@@ -170,9 +170,10 @@ window-rule {
     match is-active=false
     opacity 0.75
 }
-
-
-
+window-rule {
+    match title="Waypaper"
+    open-floating true
+}
 // --- Keybinds ---
 binds {
     // Keys
