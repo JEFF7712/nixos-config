@@ -48,7 +48,14 @@ input {
 
 // --- Layout & Look ---
 layout {
-    gaps 4
+    gaps 5
+    struts {
+        left -5
+        right -5
+        top -5
+        bottom -5
+    }
+
     center-focused-column "never"
     always-center-single-column
     empty-workspace-above-first
