@@ -6,5 +6,9 @@
       enable = true;
       extraConfig = builtins.readFile ../configs/kitty/kitty.conf;
     };
+    programs.bash = {
+      enable = true;
+      initExtra = builtins.readFile ../configs/bashrc/.bashrc;
+    };
   };
 }

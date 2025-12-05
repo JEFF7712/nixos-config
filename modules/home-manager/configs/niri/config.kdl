@@ -9,7 +9,7 @@ screenshot-path "~/media/images/screenshots/Screenshot_from_%Y-%m-%d %H-%M-%S.pn
 
 cursor {
     xcursor-theme "breeze_cursors"
-    xcursor-size 48
+    xcursor-size 36
 
     hide-when-typing
     hide-after-inactive-ms 5000
