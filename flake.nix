@@ -7,9 +7,11 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    spicetify-nix.url = "github:Gerg-L/spicetify-nix";
+    spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, spicetify-nix, ... }@inputs: {
     nixosConfigurations = {
 
       laptop = nixpkgs.lib.nixosSystem {
@@ -21,6 +23,7 @@
 	  {
 	    home-manager.useGlobalPkgs = true;
 	    home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.backupFileExtension = "backup";
 	    home-manager.users.rupan = import ./home/rupan/laptop.nix;
 	  }

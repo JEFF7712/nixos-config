@@ -109,15 +109,11 @@
   # List packages installed in system profile.
   # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
-    nvim 
     wget
     neovim
-    alacritty
-    kitty
     btop
     pciutils
     fastfetch
-    vscode
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
