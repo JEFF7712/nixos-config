@@ -1,0 +1,49 @@
+@define-color foreground rgba(250,250,250,0.9);
+@define-color foreground-inactive rgba(240,240,240,0.5);
+@define-color background rgba(0,0,0,0);
+
+* {
+    font-family: JetBrainsMono Nerd Font;
+    font-size: 14px;
+    padding: 0;
+    margin: 0;
+}
+
+#waybar {
+   color: @foreground;
+   background-color: @background;
+}
+
+#workspaces button {
+    color: @foreground;
+    background-color: @background;
+    padding-left: 0.2em;
+}
+
+#workspaces button.empty {
+    color: @foreground-inactive;
+}
+
+#memory,
+#temperature {
+    padding-left: 1em
+}
+
+#custom-hyprsunset {
+	padding: 0 6px;
+}
+
+#power-profiles-daemon {
+    padding: 0 6px;
+    padding-right: 9px;
+}
+
+#wireplumber,
+#battery,
+#backlight,
+#language,
+#network,
+#bluetooth,
+#tray {
+    padding-right: 1em 
+}

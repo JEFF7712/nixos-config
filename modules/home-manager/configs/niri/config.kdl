@@ -1,0 +1,210 @@
+// --- Startup ---
+spawn-at-startup "xwayland-satellite"
+spawn-at-startup "waybar"
+spawn-at-startup "swww-daemon"
+spawn-at-startup "mako"
+spawn-at-startup "waypaper --restore"
+
+screenshot-path "~/media/imagessScreenshots/Screenshot_from_%Y-%m-%d %H-%M-%S.png"
+
+cursor {
+    xcursor-theme "breeze_cursors"
+    xcursor-size 48
+
+    hide-when-typing
+    hide-after-inactive-ms 5000
+}
+
+output "eDP-1" {
+    mode "2880x1800@60"
+    scale 2.0
+    position x=0 y=0
+}
+
+output "DP-3" {
+    scale 1
+    position x=2880 y=0
+}
+
+// --- Input ---
+input {
+
+    focus-follows-mouse max-scroll-amount="0%"
+    warp-mouse-to-focus
+
+    keyboard {
+        xkb {
+            layout "us"
+            // options "caps:escape" // Optional: Remap Caps to Esc
+        }
+        repeat-delay 600
+        repeat-rate 25
+    }
+    touchpad {
+        tap
+        natural-scroll
+        dwt
+    }
+}
+
+// --- Layout & Look ---
+layout {
+    gaps 4
+    center-focused-column "never"
+    always-center-single-column
+    empty-workspace-above-first
+    default-column-display "tabbed"
+    background-color "#101010"
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    default-column-width { proportion 0.5; }
+
+    preset-window-heights {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    focus-ring {
+        off
+    }
+
+    border {
+        on
+        width 1
+        active-color "rgba(220,220,220,0.9)"
+        inactive-color "rgba(20,20,20,0.8)"
+        urgent-color "#9b0000"
+    }
+
+    shadow {
+        on
+        softness 30
+        spread 5
+        offset x=0 y=5
+        draw-behind-window true
+        color "#00000070"
+        // inactive-color "#00000054"
+    }
+    struts {
+        left 0
+        right 0
+        top 0
+        bottom 0 
+    }
+}
+
+// --- Animations ---
+animations {
+    // Uncomment to turn off all animations.
+    // You can also put "off" into each individual animation to disable it.
+    // off
+
+    // Slow down all animations by this factor. Values below 1 speed them up instead.
+    // slowdown 3.0
+
+    // Individual animations.
+
+    workspace-switch {
+        spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
+    }
+
+    window-open {
+        duration-ms 150
+        curve "ease-out-expo"
+    }
+
+    window-close {
+        duration-ms 150
+        curve "ease-out-quad"
+    }
+
+    horizontal-view-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    window-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    window-resize {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    config-notification-open-close {
+        spring damping-ratio=0.6 stiffness=1000 epsilon=0.001
+    }
+
+    exit-confirmation-open-close {
+        spring damping-ratio=0.6 stiffness=500 epsilon=0.01
+    }
+
+    screenshot-ui-open {
+        duration-ms 200
+        curve "ease-out-quad"
+    }
+
+    overview-open-close {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    recent-windows-close {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.001
+    }
+}
+
+// --- Window Rules ---
+window-rule {
+    geometry-corner-radius 3
+    clip-to-geometry true
+}
+window-rule {
+    match is-active=true
+    opacity 0.95
+}
+window-rule {
+    match is-active=false
+    opacity 0.75
+}
+
+
+
+// --- Keybinds ---
+binds {
+    // Keys
+    Mod+Shift+Slash { show-hotkey-overlay; }
+
+    // Apps
+    Mod+Return { spawn "kitty"; }
+    Mod+Space { spawn "fuzzel"; }
+    Mod+F { spawn "firefox"; }
+    Mod+W { spawn "waypaper"; }
+
+    // Actions
+    Mod+C { close-window; }
+    Mod+Shift+Q { quit; }
+
+    // Window Navigation
+    Mod+Left  { focus-column-left; }
+    Mod+Down  { focus-window-down; }
+    Mod+Up    { focus-window-up; }
+    Mod+Right { focus-column-right; }
+
+    Mod+Shift+Left  { move-column-left; }
+    Mod+Shift+Right { move-column-right; }
+    
+    // Window Sizing
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+
+    // Fullscreen
+    Mod+Alt+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+    
+    // Screenshots
+    Print { spawn "grim" "-g" "$(slurp)" "-"; } // Copy to clipboard needs extra piping
+}
