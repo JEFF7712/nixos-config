@@ -196,8 +196,9 @@ binds {
     Mod+S { spawn "spotify"; }        
     Mod+E { spawn "thunar"; }
 
-    Mod+C { close-window; }
+    Mod+C repeat=false { close-window; }
     Mod+O { toggle-window-rule-opacity; }
+    Mod+Shift+O repeat=false { toggle-overview; }
 
     Mod+Left  { focus-column-left; }
     Mod+Down  { focus-window-down; }
