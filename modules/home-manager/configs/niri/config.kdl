@@ -5,7 +5,7 @@ spawn-at-startup "swww-daemon"
 spawn-at-startup "mako"
 spawn-at-startup "waypaper --restore"
 
-screenshot-path "~/media/imagessScreenshots/Screenshot_from_%Y-%m-%d %H-%M-%S.png"
+screenshot-path "~/media/images/screenshots/Screenshot_from_%Y-%m-%d %H-%M-%S.png"
 
 cursor {
     xcursor-theme "breeze_cursors"
