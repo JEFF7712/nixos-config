@@ -21,5 +21,6 @@
   waypaper.enable = true;
   cli-toys.enable = true;
   direnv.enable = true;
+  rofi.enable = true;
 
 }

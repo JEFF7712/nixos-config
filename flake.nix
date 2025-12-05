@@ -75,6 +75,7 @@
             ps.scikit-learn
             ps.requests
 	    ps.matplotlib
+            ps.openpyxl
           ]))
           pkgs.openblas
         ];
