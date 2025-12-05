@@ -1,0 +1,6 @@
+# Nix
+*.drv
+*.lock
+/result
+/tmp
+*.cache
