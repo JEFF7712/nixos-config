@@ -11,9 +11,14 @@
     spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, home-manager, spicetify-nix, ... }@inputs: {
-    nixosConfigurations = {
+  outputs = { self, nixpkgs, home-manager, spicetify-nix, ... }@inputs:     
+  let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs { inherit system; };
+    python = pkgs.python311;
+  in {
 
+    nixosConfigurations = {
       laptop = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
 	specialArgs = { inherit inputs; };
@@ -59,7 +64,28 @@
           }
         ];
       };
+    };
 
+    devShells.${system} = {
+      python = pkgs.mkShell {
+        packages = [
+          (python.withPackages (ps: with ps; [
+            ps.numpy
+            ps.pandas
+            ps.scikit-learn
+            ps.requests
+	    ps.matplotlib.pyplot
+          ]))
+          pkgs.openblas
+        ];
+
+        shellHook = ''
+          echo "Welcome to the Python Development Shell."
+        '';
+      };
+
+      # Add more shells here
+      default = self.devShells.${system}.python-ai;
     };
   };
 }
