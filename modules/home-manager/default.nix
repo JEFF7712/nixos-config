@@ -1,6 +1,7 @@
 { pkgs, lib, ... }: {
   imports = [
     ./desktop-apps/vscode.nix
+    ./desktop-apps/spicetify.nix
     ./desktop-environment/niri.nix
     ./desktop-environment/fuzzel.nix
     ./desktop-environment/waybar.nix
@@ -11,6 +12,7 @@
   ];
 
   vscode.enable = lib.mkDefault true;
+  spicetify.enable = lib.mkDefault true;
   niri.enable = lib.mkDefault true;
   fuzzel.enable = lib.mkDefault true;
   waybar.enable = lib.mkDefault true;

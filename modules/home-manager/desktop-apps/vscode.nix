@@ -4,14 +4,13 @@
   config = lib.mkIf config.vscode.enable {
     programs.vscode = {
       enable = true;
-      # Prevent the "Mutable" warning by allowing extensions to be managed by Nix
       mutableExtensionsDir = false; 
       
       extensions = with pkgs.vscode-extensions; [
-        bbenoist.nix         # Nix syntax highlighting
-        ms-python.python     # Python support
-        # github.copilot     # AI
-        # eamodio.gitlens    # Git supercharger
+        bbenoist.nix       # Nix syntax highlighting
+        ms-python.python   # Python support
+        github.copilot     # AI
+        eamodio.gitlens    # Git supercharger
       ];
       
       userSettings = {
