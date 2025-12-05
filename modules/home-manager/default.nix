@@ -11,6 +11,7 @@
     ./terminals/alacritty.nix
     ./terminals/kitty.nix
     ./cli/cli-toys.nix
+    ./dev/direnv.nix
   ];
 
   niri.enable = lib.mkDefault true;

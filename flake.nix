@@ -74,7 +74,7 @@
             ps.pandas
             ps.scikit-learn
             ps.requests
-	    ps.matplotlib.pyplot
+	    ps.matplotlib
           ]))
           pkgs.openblas
         ];
@@ -85,7 +85,7 @@
       };
 
       # Add more shells here
-      default = self.devShells.${system}.python-ai;
+      default = self.devShells.${system}.python;
     };
   };
 }

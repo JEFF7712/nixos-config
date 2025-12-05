@@ -20,5 +20,6 @@
   swww.enable = true;
   waypaper.enable = true;
   cli-toys.enable = true;
+  direnv.enable = true;
 
 }
