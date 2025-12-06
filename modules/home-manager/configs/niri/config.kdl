@@ -49,10 +49,10 @@ input {
 layout {
     gaps 5
     struts {
-        left -5
-        right -5
-        top -5
-        bottom -5
+        left -4
+        right -4
+        top -4
+        bottom -4
     }
 
     center-focused-column "never"
@@ -112,6 +112,8 @@ layout {
         active-color "red"
         inactive-color "gray"
         urgent-color "blue"
+        
+    }    
 
     insert-hint {
         // off
@@ -184,6 +186,9 @@ animations {
 }
 
 // --- Window Rules ---
+window-rule {
+    open-maximized true
+}
 window-rule {
     geometry-corner-radius 5
     clip-to-geometry true
