@@ -9,6 +9,7 @@
         screenshots = true;
         fade-in = 0.2;
         indicator = true;
+	effect-scale = 0.5;  
         effect-blur = "7x5";
         effect-vignette = "0.5:0.5";
   	indicator-radius = 160; 
