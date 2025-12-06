@@ -83,6 +83,7 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+  networking.networkmanager.dns = "none";
  
   system.stateVersion = "25.11"; #DO NOT EDIT
 }
