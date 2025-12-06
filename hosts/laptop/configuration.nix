@@ -17,6 +17,10 @@
   bluetooth.enable = true;
   filemanager.enable = true;
   tailscale.enable = true; 
+
+  services.power-profiles-daemon.enable = true;
+  services.tlp.enable = false;
+  services.auto-cpufreq.enable = false;
  
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
