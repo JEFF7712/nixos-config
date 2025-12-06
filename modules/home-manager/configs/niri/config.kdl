@@ -73,11 +73,15 @@ layout {
     }
 
     focus-ring {
-        off
+        on
+        width 1
+        active-color "rgba(220,220,220,0.9)"
+        inactive-color "rgba(20,20,20,0.8)"
+        urgent-color "#9b0000"
     }
 
     border {
-        on
+        off
         width 1
         active-color "rgba(220,220,220,0.9)"
         inactive-color "rgba(20,20,20,0.8)"
