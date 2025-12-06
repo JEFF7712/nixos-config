@@ -17,6 +17,7 @@
   bluetooth.enable = true;
   filemanager.enable = true;
   tailscale.enable = true; 
+  podman.enable = true;
   distrobox.enable = true;
 
   services.power-profiles-daemon.enable = true;
