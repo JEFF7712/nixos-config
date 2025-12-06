@@ -199,6 +199,7 @@ window-rule {
 window-rule {
     match app-id="Alacritty"
     match app-id="kitty"
+    match app-id="thunar"
     open-maximized false
 }
 window-rule {

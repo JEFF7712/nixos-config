@@ -5,6 +5,7 @@
     ./desktop-apps/firefox.nix
     ./desktop-apps/media-apps.nix
     ./desktop-apps/bitwarden.nix
+    ./desktop-apps/davinci-resolve.nix
     ./desktop-environment/niri.nix
     ./desktop-environment/waybar.nix
     ./desktop-environment/swww.nix 
