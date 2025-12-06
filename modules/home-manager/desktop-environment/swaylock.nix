@@ -10,7 +10,7 @@
         indicator = true;
 	effect-scale = 0.5;  
         effect-blur = "7x5";
-        effect-vignette = "0.5:0.5";
+        effect-vignette = "0.3:0.3";
   	indicator-radius = 100; 
   	indicator-thickness = 10; 
   	inside-color = "00000000"; 
