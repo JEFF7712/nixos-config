@@ -82,8 +82,8 @@
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
-  networking.firewall.checkReversePath = "loose";
-
+  networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+ 
   system.stateVersion = "25.11"; #DO NOT EDIT
 }
 
