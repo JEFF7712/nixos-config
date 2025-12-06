@@ -9,6 +9,7 @@
     ./audio.nix
     ./bluetooth.nix
     ./ctls.nix
+    ./tailscale.nix
   ];
 
   nvidia.enable = lib.mkDefault true;
