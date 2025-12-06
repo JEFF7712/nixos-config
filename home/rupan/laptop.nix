@@ -33,6 +33,7 @@
   media-apps.enable = true;
   bitwarden.enable = true;
   davinci-resolve.enable = true;
+  swaylock.enable = true;
 
   gtk = {
     enable = true;

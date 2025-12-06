@@ -21,13 +21,12 @@
       };
     };
     
-    # Script to set a random wallpaper
     home.file.".local/bin/wallpaper-random" = {
       executable = true;
       text = ''
         #!/bin/sh
         if [ -d ~/media/images/wallpapers ]; then
-          ${pkgs.swww}/bin/swww img $(find ~/media/images/wallpapers -type f | shuf -n 1) --transition-type grow --transition-pos 0.5,0.5 --transition-step 90
+          ${pkgs.swww}/bin/swww img $(find ~/media/images/wallpapers -type f | shuf -n 1) --transition-type fade --transition-pos 0.5,0.5 --transition-step 90
         fi
       '';
     };
