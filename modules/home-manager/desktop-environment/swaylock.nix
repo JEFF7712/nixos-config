@@ -7,7 +7,6 @@
       package = pkgs.swaylock-effects;
       settings = {
         screenshots = true;
-        fade-in = 0.2;
         indicator = true;
 	effect-scale = 0.5;  
         effect-blur = "7x5";
