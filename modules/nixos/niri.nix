@@ -13,7 +13,6 @@
       libnotify
       swww
       xwayland-satellite
-      swaylock
     ];
 
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
