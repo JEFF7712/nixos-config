@@ -12,6 +12,7 @@
     ./tailscale.nix
     ./distrobox.nix
     ./podman.nix
+    ./file-utils.nix
   ];
 
   nvidia.enable = lib.mkDefault true;
