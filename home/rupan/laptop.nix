@@ -22,7 +22,6 @@
   vscode.enable = true;
   spicetify.enable = true;
   niri.enable = true;
-  fuzzel.enable = true;
   waybar.enable = true;
   alacritty.enable = true;
   kitty.enable = true;
@@ -32,7 +31,7 @@
   direnv.enable = true;
   rofi.enable = true;
   media-apps.enable = true;
-  bitwarden-cli.enable = true;
+  bitwarden.enable = true;
 
 
   gtk = {
