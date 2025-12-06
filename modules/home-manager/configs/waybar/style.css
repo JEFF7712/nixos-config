@@ -25,10 +25,17 @@
 }
 
 #memory {
-    padding: 0 4px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-left: 5px;
+    margin-right: 5px;
 }
+
 #cpu {
-    padding: 0 4px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-left: 5px;
+    margin-right: 5px;
 }
 
 #temperature {
