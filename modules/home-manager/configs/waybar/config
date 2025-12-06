@@ -4,7 +4,7 @@
     "height": 24,
     "spacing": 5,
 
-    "modules-left": ["niri/workspaces", "temperature", "power-profiles-daemon"],
+    "modules-left": ["niri/workspaces", "temperature", "power-profiles-daemon", "memory", "cpu"],
     "modules-center": ["clock"],
     "modules-right": ["wireplumber", "battery", "backlight", "network", "bluetooth", "tray"],
 
@@ -27,6 +27,14 @@
         "balanced": "",
         "power-saver": ""
         }
+    },
+
+    "cpu": {
+        "format": "{usage}% "
+    },
+
+    "memory": {
+        "format": "{}% mem"
     },
 
     "clock": {
