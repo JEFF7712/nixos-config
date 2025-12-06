@@ -25,28 +25,31 @@
 }
 
 #memory {
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-left: 5px;
-    margin-right: 5px;
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-left: 3px;
+    margin-right: 3px;
 }
 
 #cpu {
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-left: 5px;
-    margin-right: 5px;
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-left: 3px;
+    margin-right: 3px;
 }
 
 #temperature {
-    padding-left: 1em
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-left: 3px;
+    margin-right: 3px;
 }
 
 #power-profiles-daemon {
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-left: 5px;
-    margin-right: 5px;
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-left: 3px;
+    margin-right: 3px;
 }
 
 #wireplumber,
