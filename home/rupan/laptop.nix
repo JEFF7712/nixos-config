@@ -32,7 +32,7 @@
   rofi.enable = true;
   media-apps.enable = true;
   bitwarden.enable = true;
-
+  davinci-resolve.enable = true;
 
   gtk = {
     enable = true;

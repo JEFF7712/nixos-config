@@ -8,10 +8,10 @@
       
       profiles.default = {
         extensions = with pkgs.vscode-extensions; [
-          bbenoist.nix       # Nix syntax highlighting
-          ms-python.python   # Python support
-          github.copilot     # AI
-          eamodio.gitlens    # Git supercharger
+          bbenoist.nix       
+          ms-python.python   
+          github.copilot     
+          eamodio.gitlens    
         ];
         
         userSettings = {
