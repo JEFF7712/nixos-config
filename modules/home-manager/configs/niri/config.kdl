@@ -9,7 +9,7 @@ screenshot-path "~/media/images/screenshots/screenshot-%Y-%m-%d %H-%M-%S.png"
 
 cursor {
     xcursor-theme "Adwaita"
-    xcursor-size 24
+    xcursor-size 12
 
     hide-when-typing
     hide-after-inactive-ms 5000
