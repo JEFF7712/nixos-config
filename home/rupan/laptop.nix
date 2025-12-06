@@ -32,7 +32,7 @@
   direnv.enable = true;
   rofi.enable = true;
   media-apps.enable = true;
-
+  bitwarden-cli.enable = true;
 
 
   gtk = {

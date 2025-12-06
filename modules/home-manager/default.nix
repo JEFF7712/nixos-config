@@ -13,6 +13,7 @@
     ./terminals/alacritty.nix
     ./terminals/kitty.nix
     ./cli/cli-toys.nix
+    ./cli/bitwarden-cli.nix
     ./dev/direnv.nix
   ];
 
