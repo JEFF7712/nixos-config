@@ -10,6 +10,7 @@
     ./bluetooth.nix
     ./ctls.nix
     ./tailscale.nix
+    ./distrobox.nix
   ];
 
   nvidia.enable = lib.mkDefault true;
