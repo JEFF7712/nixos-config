@@ -11,8 +11,8 @@
 	effect-scale = 0.5;  
         effect-blur = "7x5";
         effect-vignette = "0.5:0.5";
-  	indicator-radius = 160; 
-  	indicator-thickness = 20; 
+  	indicator-radius = 100; 
+  	indicator-thickness = 10; 
   	inside-color = "00000000"; 
   	inside-clear-color = "00000000"; 
   	inside-ver-color = "00000000"; 
