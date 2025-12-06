@@ -27,6 +27,10 @@
 #memory {
     padding: 0 2px;
 }
+#cpu {
+    padding: 0 2px;
+}
+
 #temperature {
     padding-left: 1em
 }
