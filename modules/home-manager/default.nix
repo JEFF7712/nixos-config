@@ -19,4 +19,11 @@
 
   niri.enable = lib.mkDefault true;
   alacritty.enable = lib.mkDefault true;
+
+  home.file.".local/bin" = {
+    source = ./scripts;
+    recursive = true;
+    executable = true;
+  };
+
 }

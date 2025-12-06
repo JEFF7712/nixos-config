@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo -n "filepath: "
+read -r filePath
+
+echo -n "USB device (e.g. sda): "
+read -r usb
+
+echo "About to write $filePath to /dev/$usb. WARNING: This will erase all data on /dev/$usb."
+read -p "Type 'YES' to continue: " confirm
+
+if [ "$confirm" = "YES" ]; then
+  sudo dd if="$filePath" of="/dev/$usb" bs=1M status=progress && sync
+else
+  echo "Aborted."
+fi
