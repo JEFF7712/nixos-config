@@ -7,9 +7,16 @@ spawn-at-startup "waypaper --restore"
 
 screenshot-path "~/media/images/screenshots/screenshot-%Y-%m-%d %H-%M-%S.png"
 
+environment {
+    XCURSOR_SIZE "28"
+    XCURSOR_THEME "Adwaita"
+    QT_QPA_PLATFORM "wayland;xcb"
+    GDK_SCALE "1"
+}
+
 cursor {
     xcursor-theme "Adwaita"
-    xcursor-size 12
+    xcursor-size 28
 
     hide-when-typing
     hide-after-inactive-ms 5000
