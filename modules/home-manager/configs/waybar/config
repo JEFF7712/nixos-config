@@ -18,7 +18,7 @@
     },
 
     "power-profiles-daemon": {
-        "format": "Power profile: {icon}",
+        "format": "{icon}",
         "tooltip-format": "{profile}",
         "tooltip": true,
         "format-icons": {
@@ -30,11 +30,13 @@
     },
 
     "cpu": {
-        "format": "{usage}% "
+        "format": " {usage}%"
     },
 
     "memory": {
-        "format": "{}% mem"
+        "interval": 5,
+        "format": " {}%"
+        "tooltip-format": "{used:0.1f}G/{total:0.1f}G ({percentage}%)"
     },
 
     "clock": {
