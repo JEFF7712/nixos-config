@@ -5,7 +5,7 @@ spawn-at-startup "swww-daemon"
 spawn-at-startup "mako"
 spawn-at-startup "waypaper --restore"
 
-screenshot-path "~/media/images/screenshots/screenshot-%Y-%m-%d %H-%M-%S.png"
+screenshot-path "~/media/images/screenshots/ss-%Y-%m-%d-%H-%M-%S.png"
 
 environment {
     XCURSOR_SIZE "28"
