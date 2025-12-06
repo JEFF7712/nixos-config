@@ -58,6 +58,7 @@
 
     "temperature": {
         "format": "  {temperatureC}°C",
+        "on-click": "/home/rupan/.config/rofi/scripts/powermenu_t2" 
     },
 
     "network": {
