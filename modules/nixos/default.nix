@@ -13,6 +13,7 @@
     ./distrobox.nix
     ./podman.nix
     ./file-utils.nix
+    ./docker.nix
   ];
 
   nvidia.enable = lib.mkDefault true;
