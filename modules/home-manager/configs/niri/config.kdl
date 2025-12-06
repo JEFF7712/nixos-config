@@ -8,8 +8,8 @@ spawn-at-startup "waypaper --restore"
 screenshot-path "~/media/images/screenshots/screenshot-%Y-%m-%d %H-%M-%S.png"
 
 cursor {
-    xcursor-theme "breeze_cursors"
-    xcursor-size 36
+    xcursor-theme "Adwaita"
+    xcursor-size 24
 
     hide-when-typing
     hide-after-inactive-ms 5000
