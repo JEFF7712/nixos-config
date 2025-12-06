@@ -18,8 +18,8 @@
     },
 
     "power-profiles-daemon": {
-        "format": "{profile}",
-        "tooltip-format": "Power profile: {icon} ",
+        "format": "Power profile: {icon}",
+        "tooltip-format": "{profile}",
         "tooltip": true,
         "format-icons": {
         "default": "",
