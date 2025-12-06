@@ -3,6 +3,7 @@
     ./desktop-apps/vscode.nix
     ./desktop-apps/spicetify.nix
     ./desktop-apps/firefox.nix
+    ./desktop-apps/media-apps.nix
     ./desktop-environment/niri.nix
     ./desktop-environment/fuzzel.nix
     ./desktop-environment/waybar.nix

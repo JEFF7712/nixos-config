@@ -22,5 +22,6 @@
   cli-toys.enable = true;
   direnv.enable = true;
   rofi.enable = true;
+  media-apps.enable = true;
 
 }
