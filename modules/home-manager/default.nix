@@ -4,8 +4,8 @@
     ./desktop-apps/spicetify.nix
     ./desktop-apps/firefox.nix
     ./desktop-apps/media-apps.nix
+    ./desktop-apps/bitwarden.nix
     ./desktop-environment/niri.nix
-    ./desktop-environment/fuzzel.nix
     ./desktop-environment/waybar.nix
     ./desktop-environment/swww.nix 
     ./desktop-environment/waypaper.nix
@@ -13,7 +13,6 @@
     ./terminals/alacritty.nix
     ./terminals/kitty.nix
     ./cli/cli-toys.nix
-    ./cli/bitwarden-cli.nix
     ./dev/direnv.nix
   ];
 
