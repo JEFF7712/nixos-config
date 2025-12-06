@@ -19,6 +19,7 @@
   tailscale.enable = true; 
   podman.enable = true;
   distrobox.enable = true;
+  file-utils.enable = true;  
 
   services.power-profiles-daemon.enable = true;
   services.tlp.enable = false;
