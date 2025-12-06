@@ -9,7 +9,7 @@
         screenshots = true;
         indicator = true;
 	effect-scale = 0.5;  
-        effect-blur = "5x3";
+        effect-blur = "7x4";
         effect-vignette = "0.1:0.3";
   	indicator-radius = 100; 
   	indicator-thickness = 10; 
