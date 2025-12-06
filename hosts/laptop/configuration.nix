@@ -20,6 +20,7 @@
   podman.enable = true;
   distrobox.enable = true;
   file-utils.enable = true;  
+  docker.enable = true;
 
   services.power-profiles-daemon.enable = true;
   services.tlp.enable = false;
