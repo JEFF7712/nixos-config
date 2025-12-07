@@ -9,9 +9,7 @@
     services.gnome.gnome-keyring.enable = true;
 
     environment.systemPackages = with pkgs; [
-      mako
       libnotify
-      swww
       xwayland-satellite
     ];
 

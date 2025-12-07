@@ -11,6 +11,7 @@
     ./desktop-environment/swww.nix 
     ./desktop-environment/waypaper.nix
     ./desktop-environment/rofi.nix
+    ./desktop-environment/mako.nix
     ./desktop-environment/swaylock.nix 
     ./terminals/alacritty.nix
     ./terminals/kitty.nix

@@ -34,6 +34,7 @@
   bitwarden.enable = true;
   davinci-resolve.enable = true;
   swaylock.enable = true;
+  mako.enable = true;
 
   gtk = {
     enable = true;
