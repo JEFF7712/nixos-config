@@ -19,6 +19,10 @@
         "default-timeout" = 5000;
         layer = "overlay";
         anchor = "top-right";
+	"output=DP-1" = {
+          width = 600;
+          font = "JetBrains Mono 14";
+        };
       };
     };
   };
