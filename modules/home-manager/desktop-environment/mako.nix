@@ -20,8 +20,8 @@
         layer = "overlay";
         anchor = "top-right";
 	"output=DP-1" = {
-          width = 600;
-          font = "JetBrains Mono 14";
+          width = 400;
+          font = "JetBrains Mono 12";
         };
       };
     };
