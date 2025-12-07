@@ -11,14 +11,15 @@ in
     programs.spicetify = {
       enable = true;
     
-      theme = spicePkgs.themes.sleek;
-      colorScheme = "UltraBlack"; 
+      theme = spicePkgs.themes.comfy;
+      colorScheme = "Spotify"; 
 
       enabledExtensions = with spicePkgs.extensions; [
         fullAppDisplay
         shuffle
         hidePodcasts
         adblock
+	beautiful-lyrics
       ];
     };
   };
