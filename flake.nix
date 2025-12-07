@@ -9,6 +9,8 @@
     };
     spicetify-nix.url = "github:Gerg-L/spicetify-nix";
     spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
+    niri-blur.url = "github:visualglitch91/niri/feat/blur";
+    niri-blur.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, nixpkgs, home-manager, spicetify-nix, ... }@inputs:     

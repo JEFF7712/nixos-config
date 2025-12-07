@@ -5,10 +5,9 @@
   config = lib.mkIf config.mako.enable {
     services.mako = {
       enable = true;
-      
-      font = "JetBrains Mono 10"; 
  
       settings = {
+        font = "JetBrains Mono 10"; 
         "background-color" = "#101010cc";
         "text-color" = "#eeeeeecc";
         "border-color" = "#303030cc";
