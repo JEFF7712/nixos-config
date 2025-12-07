@@ -9,11 +9,9 @@
       font = "JetBrains Mono 10"; 
  
       settings = {
-        "background-color" = "#1e1e2e";
-        "text-color" = "#cdd6f4";
-        "border-color" = "#89b4fa";
-        "border-size" = 2;
-        "border-radius" = 5;
+        "background-color" = "#202020";
+        "text-color" = "#eeeeee";
+        "border-size" = 0;
         width = 300;
         height = 150;
         margin = "10";
