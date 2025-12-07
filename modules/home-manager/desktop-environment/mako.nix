@@ -9,7 +9,7 @@
       font = "JetBrains Mono 10"; 
  
       settings = {
-        "background-color" = "#202020cc";
+        "background-color" = "#101010cc";
         "text-color" = "#eeeeeecc";
         "border-size" = 0;
         width = 300;
