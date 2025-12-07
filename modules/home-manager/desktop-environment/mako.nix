@@ -11,8 +11,9 @@
       settings = {
         "background-color" = "#101010cc";
         "text-color" = "#eeeeeecc";
-        "border-size" = 1;
         "border-color" = "#303030cc";
+        "border-size" = 1;
+        "border-radius" = 3;
         width = 300;
         height = 150;
         margin = "10";
