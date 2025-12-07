@@ -9,8 +9,6 @@
     };
     spicetify-nix.url = "github:Gerg-L/spicetify-nix";
     spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
-    niri-blur.url = "github:visualglitch91/niri/feat/blur";
-    niri-blur.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, nixpkgs, home-manager, spicetify-nix, ... }@inputs:     
@@ -26,7 +24,6 @@
 	specialArgs = { inherit inputs; };
         modules = [
           ./hosts/laptop/configuration.nix
-          ./modules/nixos/niri.nix
           home-manager.nixosModules.home-manager 
 	  {
 	    home-manager.useGlobalPkgs = true;

@@ -1,4 +1,4 @@
-{ pkgs, lib, config, inputs, ... }: {
+{ pkgs, lib, config, ... }: {
   options = {
     niri.enable = lib.mkEnableOption "niri window manager";
   };
@@ -7,7 +7,6 @@
     
     programs.niri = {
       enable = true;
-      package = inputs.niri-blur.packages.${pkgs.system}.niri;
     };
 
     services.gnome.gnome-keyring.enable = true;
