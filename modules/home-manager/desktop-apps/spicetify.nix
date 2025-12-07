@@ -11,8 +11,8 @@ in
     programs.spicetify = {
       enable = true;
     
-      theme = spicePkgs.themes.comfy;
-      colorScheme = "Yami"; 
+      theme = spicePkgs.themes.sleek;
+#      colorScheme = "Yami"; 
 
       enabledExtensions = with spicePkgs.extensions; [
         fullAppDisplay
