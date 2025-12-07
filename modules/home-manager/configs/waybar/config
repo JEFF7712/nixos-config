@@ -30,7 +30,7 @@
     },
 
     "cpu": {
-        "format": " {usage}%"
+        "format": " {usage}%",
         "on-click": "kitty btop"
     },
 
