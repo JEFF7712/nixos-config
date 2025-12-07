@@ -21,7 +21,6 @@ in
         adblock
 	beautiful-lyrics
 	CoverAmbience
-	lastfm
       ];
     };
   };
