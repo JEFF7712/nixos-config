@@ -132,7 +132,7 @@ layout {
   blur {
     on
     passes 4
-    radius 5.0
+    radius 1.0
     noise 0.05
   }
 
