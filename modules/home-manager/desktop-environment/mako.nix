@@ -12,7 +12,7 @@
         "background-color" = "#101010cc";
         "text-color" = "#eeeeeecc";
         "border-size" = 1;
-        "border-color" = "#cccccccc";
+        "border-color" = "#303030cc";
         width = 300;
         height = 150;
         margin = "10";
