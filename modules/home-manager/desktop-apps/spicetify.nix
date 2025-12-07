@@ -20,6 +20,8 @@ in
         hidePodcasts
         adblock
 	beautiful-lyrics
+	CoverAmbience
+	lastfm
       ];
     };
   };
