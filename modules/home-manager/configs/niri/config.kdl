@@ -129,13 +129,6 @@ layout {
         // gradient from="#ffbb6680" to="#ffc88080" angle=45 relative-to="workspace-view"
     }
 
-  blur {
-    on
-    passes 4
-    radius 1.0
-    noise 0.05
-  }
-
 }
 
 prefer-no-csd
