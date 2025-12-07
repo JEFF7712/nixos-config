@@ -131,6 +131,13 @@ layout {
 
 }
 
+blur {
+    on
+    passes 4    
+    radius 12.0 
+    noise 0.05  
+}
+
 prefer-no-csd
 
 hotkey-overlay {
