@@ -27,14 +27,14 @@
       settings = {
 
         directory = {
-          style = "bold #aaaaaa"; 
+#          style = "bold #aaaaaa"; 
           truncation_length = 8;
           truncate_to_repo = false; # Always show full path
           read_only = " 🔒";
         };
     
         git_branch = {
-	  style = "bold #aaaaaa";
+#	  style = "bold #aaaaaa";
           symbol = "🌱 ";
           truncation_length = 4;
           truncation_symbol = "";
