@@ -13,6 +13,7 @@
     ./cli/cli-toys.nix
     ./dev/direnv.nix
     ./utils/localsend.nix
+    ./utils/misc-utils.nix
   ];
 
   niri.enable = lib.mkDefault true;
