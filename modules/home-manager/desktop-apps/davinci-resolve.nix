@@ -7,6 +7,12 @@
         buildFHSEnv = args: pkgs.buildFHSEnv (args // {
           extraBwrapArgs = (args.extraBwrapArgs or []) ++ [
             "--setenv QT_QPA_PLATFORM xcb"
+	    "--bind /dev/null /opt/resolve/libs/libglib-2.0.so"
+            "--bind /dev/null /opt/resolve/libs/libglib-2.0.so.0"
+            "--bind /dev/null /opt/resolve/libs/libgio-2.0.so"
+            "--bind /dev/null /opt/resolve/libs/libgio-2.0.so.0"
+            "--bind /dev/null /opt/resolve/libs/libgmodule-2.0.so"
+            "--bind /dev/null /opt/resolve/libs/libgmodule-2.0.so.0"
           ];
         });
       }))
