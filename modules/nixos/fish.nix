@@ -16,10 +16,11 @@
         lla = "eza -la --icons"; 
       };
 
-#      interactiveShellInit = ''
+      interactiveShellInit = ''
+       set fish_greeting ""
 #      set -g fish_color_param purple
 #      set -g fish_color_valid_path purple
-#      '';
+      '';
     };
 
     programs.starship = {
