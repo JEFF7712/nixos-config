@@ -15,20 +15,15 @@
       enable = true;
       settings = {
 
-        character = {
-          success_symbol = "[➜](bold green)";
-          error_symbol = "[➜](bold red)";
-        };
-
         directory = {
-          style = "bold #005fd7"; 
+          style = "bold 005fd7"; 
           truncation_length = 8;
           truncate_to_repo = false; # Always show full path
           read_only = " 🔒";
         };
     
         git_branch = {
-	  style = "underline white";
+	  style = "bold white";
           symbol = "🌱 ";
           truncation_length = 4;
           truncation_symbol = "";
