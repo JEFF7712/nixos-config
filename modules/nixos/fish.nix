@@ -14,13 +14,12 @@
         lt = "eza --tree --level=2 --icons"; 
         la = "eza -a --icons";     
         lla = "eza -la --icons"; 
-        cat = "bat";    
       };
 
-      interactiveShellInit = ''
-      set -g fish_color_param purple
-      set -g fish_color_valid_path purple
-      '';
+#      interactiveShellInit = ''
+#      set -g fish_color_param purple
+#      set -g fish_color_valid_path purple
+#      '';
     };
 
     programs.starship = {
