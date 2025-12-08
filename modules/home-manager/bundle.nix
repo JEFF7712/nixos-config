@@ -12,6 +12,7 @@
     ./terminals/kitty.nix
     ./cli/cli-toys.nix
     ./dev/direnv.nix
+    ./utils/localsend.nix
   ];
 
   niri.enable = lib.mkDefault true;
