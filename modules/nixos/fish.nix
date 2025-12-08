@@ -11,6 +11,10 @@
       };
     };
 
+    programs.starship = {
+      enable = true;
+    };
+
     users.users.rupan.shell = pkgs.fish;
   };
 }
