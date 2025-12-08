@@ -45,7 +45,14 @@
     environment.systemPackages = with pkgs; [ 
       eza 
       bat
+      tealdeer
+      fzf
     ];
+
+    programs.zoxide = {
+      enable = true;
+      enableFishIntegration = true;
+    };
 
     users.users.rupan.shell = pkgs.fish;
   };
