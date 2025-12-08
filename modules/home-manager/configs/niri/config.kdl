@@ -253,8 +253,8 @@ binds {
     Mod+Shift+Right { move-column-right; }
     
     Mod+Ctrl+Left  { focus-monitor-left; }
-    Mod+Ctrl+Down  { focus-monitor-down; }
-    Mod+Ctrl+Up    { focus-monitor-up; }
+    Mod+Ctrl+Page_Down  { focus-monitor-down; }
+    Mod+Ctrl+Page_Up    { focus-monitor-up; }
     Mod+Ctrl+Right { focus-monitor-right; }
 
     Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
