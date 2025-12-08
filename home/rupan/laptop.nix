@@ -28,7 +28,6 @@
   direnv.enable = true;
   media-apps.enable = true;
   bitwarden.enable = true;
-  davinci-resolve.enable = true;
   obs-studio.enable = true;
   localsend.enable = true;
   misc-utils.enable = true;
