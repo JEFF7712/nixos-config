@@ -35,6 +35,7 @@
   davinci-resolve.enable = true;
   swaylock.enable = true;
   mako.enable = true;
+  obs-studio.enable = true;
 
   gtk = {
     enable = true;
