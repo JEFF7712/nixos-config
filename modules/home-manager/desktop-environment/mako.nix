@@ -13,15 +13,16 @@
         "border-color" = "#303030cc";
         "border-size" = 1;
         "border-radius" = 3;
-        width = 300;
-        height = 150;
+        width = 400;
+        height = 125;
         margin = "10";
         padding = "15";
         "default-timeout" = 5000;
         layer = "overlay";
         anchor = "top-right";
 	"output=DP-1" = {
-          width = 400;
+          width = 500;
+	  height = 150;
           font = "JetBrains Mono 12";
         };
       };
