@@ -85,6 +85,12 @@
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 53317 ];
+    allowedUDPPorts = [ 53317 ];
+  };
+
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
   networking.networkmanager.dns = "none";
 
