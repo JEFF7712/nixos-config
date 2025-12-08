@@ -330,6 +330,10 @@ binds {
     Mod+V       { toggle-window-floating; }
     Mod+Shift+V { switch-focus-between-floating-and-tiling; }
 
+    Mod+Alt+E { spawn "wl-copy" "rupanpandyan@gmail.com"; }
+    Mod+Alt+N { spawn "wl-copy" "Ramrupan Sunderapandyan"; }
+    Mod+Alt+L { spawn "wl-copy" "https://www.linkedin.com/in/rupan-sunderapandyan/"; }
+
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
     XF86AudioMute        allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
