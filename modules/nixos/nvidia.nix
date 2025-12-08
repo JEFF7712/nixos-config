@@ -22,6 +22,8 @@
       };
     };
 
+    hardware.nvidia-container-toolkit.enable = true;
+
     # Performance mode that uses GPU and iGPU with sync
     specialisation.performance.configuration = {
       system.nixos.tags = [ "performance" ];
