@@ -21,7 +21,7 @@
         };
 
         directory = {
-          style = "bold F4F4F4"; 
+          style = "bold #005fd7"; 
           truncation_length = 8;
           truncate_to_repo = false; # Always show full path
           read_only = " 🔒";
