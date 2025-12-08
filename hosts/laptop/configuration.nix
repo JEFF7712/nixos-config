@@ -75,7 +75,15 @@
     enableSSHSupport = true;
   };
 
-  # List services that you want to enable:
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true; 
+
+    extraPackages = with pkgs; [
+      intel-compute-runtime 
+      intel-media-driver
+    ];
+  };
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
