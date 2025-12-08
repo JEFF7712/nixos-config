@@ -84,6 +84,12 @@
   # networking.firewall.enable = false;
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
   networking.networkmanager.dns = "none";
+
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 7d"; 
+  };
  
   system.stateVersion = "25.11"; #DO NOT EDIT
 }
