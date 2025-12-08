@@ -20,9 +20,9 @@
         "default-timeout" = 5000;
         layer = "overlay";
         anchor = "top-right";
-	"output=DP-1" = {
+	      "output=DP-1" = {
           width = 500;
-	  height = 150;
+	        height = 150;
           font = "JetBrains Mono 12";
         };
       };

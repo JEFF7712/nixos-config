@@ -8,12 +8,6 @@
     ./desktop-apps/davinci-resolve.nix
     ./desktop-apps/obs-studio.nix
     ./desktop-environment/niri.nix
-    ./desktop-environment/waybar.nix
-    ./desktop-environment/swww.nix 
-    ./desktop-environment/waypaper.nix
-    ./desktop-environment/rofi.nix
-    ./desktop-environment/mako.nix
-    ./desktop-environment/swaylock.nix 
     ./terminals/alacritty.nix
     ./terminals/kitty.nix
     ./cli/cli-toys.nix
