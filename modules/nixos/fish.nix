@@ -14,6 +14,7 @@
         lt = "eza --tree --level=2 --icons"; 
         la = "eza -a --icons";     
         lla = "eza -la --icons"; 
+        cat = "bat";    
       };
 
       interactiveShellInit = ''
@@ -42,9 +43,11 @@
       };
     };
 
-    environment.systemPackages = [ pkgs.eza ];
+    environment.systemPackages = with pkgs; [ 
+      eza 
+      bat
+    ];
 
-    environment.variables.LS_COLORS = "di=01;35";
     users.users.rupan.shell = pkgs.fish;
   };
 }
