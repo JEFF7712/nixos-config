@@ -3,9 +3,13 @@
 
   config = lib.mkIf config.file-utils.enable {
     
-    environment.systemPackages = [
-      pkgs.unzip
+    environment.systemPackages = with pkgs; [
+      unzip
+      libimobiledevice
+      ifuse # The tool to mount the filesystem
     ];
+
+    services.usbmuxd.enable = true;
 
   };
 }
