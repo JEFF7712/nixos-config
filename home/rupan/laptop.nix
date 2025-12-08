@@ -30,6 +30,7 @@
   bitwarden.enable = true;
   davinci-resolve.enable = true;
   obs-studio.enable = true;
+  localsend.enable = true;
 
   gtk = {
     enable = true;
