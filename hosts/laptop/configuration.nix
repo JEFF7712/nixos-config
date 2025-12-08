@@ -3,7 +3,7 @@
   imports =
     [
       ./hardware-configuration.nix
-      ../../modules/nixos/default.nix
+      ../../modules/nixos/bundle.nix
     ];
 
   nix = {

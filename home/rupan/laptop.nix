@@ -2,7 +2,7 @@
 {
   imports = [
     ./home.nix
-    ../../modules/home-manager/default.nix 
+    ../../modules/home-manager/bundle.nix 
   ];
 
   home.packages = with pkgs; [
@@ -22,19 +22,13 @@
   vscode.enable = true;
   spicetify.enable = true;
   niri.enable = true;
-  waybar.enable = true;
   alacritty.enable = true;
   kitty.enable = true;
-  swww.enable = true;
-  waypaper.enable = true;
   cli-toys.enable = true;
   direnv.enable = true;
-  rofi.enable = true;
   media-apps.enable = true;
   bitwarden.enable = true;
   davinci-resolve.enable = true;
-  swaylock.enable = true;
-  mako.enable = true;
   obs-studio.enable = true;
 
   gtk = {
