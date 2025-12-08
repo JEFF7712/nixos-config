@@ -39,6 +39,16 @@
       };
     };
 
+    services.batsignal = {
+      enable = true;
+      extraArgs = [
+        "-w" "30"
+        "-c" "10"
+        "-d" "5"
+        "-m" "Battery Low" 
+      ];
+    }; 
+
     programs.swaylock = {
       enable = true;
       package = pkgs.swaylock-effects;
