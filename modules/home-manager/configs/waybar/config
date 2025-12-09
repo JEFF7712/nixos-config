@@ -4,7 +4,7 @@
     "height": 24,
     "spacing": 5,
 
-    "modules-left": ["niri/workspaces", "temperature", "power-profiles-daemon", "memory", "cpu"],
+    "modules-left": ["niri/workspaces", "temperature", "power-profiles-daemon", "memory", "cpu", "idle_inhibitor"],
     "modules-center": ["clock"],
     "modules-right": ["wireplumber", "battery", "backlight", "network", "bluetooth", "tray"],
 
@@ -38,6 +38,17 @@
         "interval": 5,
         "format": " {}%",
         "tooltip-format": "{used:0.1f}G/{total:0.1f}G ({percentage}%)"
+    },
+
+    "idle_inhibitor": {
+        "format": "{icon}",
+        "format-icons": {
+            "activated": "",
+            "deactivated": ""
+        },
+        "tooltip": true,
+        "tooltip-format-activated": "Idle Inhibit: Active",
+        "tooltip-format-deactivated": "Idle Inhibit: Inactive"
     },
 
     "clock": {
