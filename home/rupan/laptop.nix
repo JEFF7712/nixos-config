@@ -31,6 +31,7 @@
   obs-studio.enable = true;
   localsend.enable = true;
   misc-utils.enable = true;
+  davinci-resolve.enable = true;
 
   gtk = {
     enable = true;
