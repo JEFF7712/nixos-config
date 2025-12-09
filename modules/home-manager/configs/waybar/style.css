@@ -52,6 +52,13 @@
     margin-right: 8px;
 }
 
+#idle_inhibitor {
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
 #wireplumber,
 #battery,
 #backlight,
