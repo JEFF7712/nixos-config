@@ -9,6 +9,7 @@
     ./desktop-apps/obs-studio.nix
     ./desktop-apps/qbittorrent.nix
     ./desktop-apps/libreoffice.nix
+    ./desktop-apps/notion.nix
     ./desktop-environment/niri.nix
     ./terminals/alacritty.nix
     ./terminals/kitty.nix

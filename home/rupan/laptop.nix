@@ -34,6 +34,7 @@
   davinci-resolve.enable = true;
   qbittorrent.enable = true;
   libreoffice.enable = true;
+  notion.enable = true;
 
   gtk = {
     enable = true;
