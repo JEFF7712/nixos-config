@@ -239,6 +239,7 @@ binds {
     Mod+W { spawn "waypaper"; }
     Mod+S { spawn "spotify"; }        
     Mod+E { spawn "thunar"; }
+    Mod+Alt+V { spawn "code"; }
 
     Mod+R { spawn "/home/rupan/.local/bin/wallpaper-random"; }
 
