@@ -15,7 +15,6 @@
     ./file-utils.nix
     ./docker.nix
     ./fish.nix
-    ./qbittorrent.nix
   ];
 
   git.enable = lib.mkDefault true;

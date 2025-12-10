@@ -32,6 +32,7 @@
   localsend.enable = true;
   misc-utils.enable = true;
   davinci-resolve.enable = true;
+  qbittorrent.enable = true;
 
   gtk = {
     enable = true;

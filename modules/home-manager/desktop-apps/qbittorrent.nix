@@ -2,6 +2,9 @@
   options.qbittorrent.enable = lib.mkEnableOption "qbittorrent";
 
   config = lib.mkIf config.qbittorrent.enable {
-    services.qbittorrent.enable = true;
+
+    home.packages = with pkgs; [
+      qbittorrent
+    ];
   };
 }
