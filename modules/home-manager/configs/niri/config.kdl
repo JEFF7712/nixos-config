@@ -28,14 +28,6 @@ output "eDP-1" {
     position x=0 y=0
 }
 
-output "DP-8" {
-    scale 1
-}
-
-output "DP-9" {
-    scale 1
-}
-
 // --- Input ---
 input {
 
