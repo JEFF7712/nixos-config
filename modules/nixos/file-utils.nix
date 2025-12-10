@@ -6,7 +6,7 @@
     environment.systemPackages = with pkgs; [
       unzip
       libimobiledevice
-      ifuse # The tool to mount the filesystem
+      ifuse 
     ];
 
     services.usbmuxd.enable = true;
