@@ -3,7 +3,7 @@
 
   config = lib.mkIf config.notion.enable {
     home.packages = with pkgs; [
-      notion-app-enhanced
+      chromium
     ];  
   };
 }
