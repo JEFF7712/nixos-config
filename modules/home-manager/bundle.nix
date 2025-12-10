@@ -7,6 +7,7 @@
     ./desktop-apps/bitwarden.nix
     ./desktop-apps/davinci-resolve.nix
     ./desktop-apps/obs-studio.nix
+    ./desktop-apps/qbittorrent.nix
     ./desktop-environment/niri.nix
     ./terminals/alacritty.nix
     ./terminals/kitty.nix
