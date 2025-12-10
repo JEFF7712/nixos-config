@@ -8,6 +8,7 @@
     ./desktop-apps/davinci-resolve.nix
     ./desktop-apps/obs-studio.nix
     ./desktop-apps/qbittorrent.nix
+    ./desktop-apps/libreoffice.nix
     ./desktop-environment/niri.nix
     ./terminals/alacritty.nix
     ./terminals/kitty.nix

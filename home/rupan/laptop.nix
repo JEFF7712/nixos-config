@@ -33,6 +33,7 @@
   misc-utils.enable = true;
   davinci-resolve.enable = true;
   qbittorrent.enable = true;
+  libreoffice.enable = true;
 
   gtk = {
     enable = true;
