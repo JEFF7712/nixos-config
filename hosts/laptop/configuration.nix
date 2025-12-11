@@ -19,7 +19,6 @@
   ctls.enable = true; 
   bluetooth.enable = true;
   filemanager.enable = true;
-  tailscale.enable = true; 
   podman.enable = true;
   distrobox.enable = true;
   file-utils.enable = true;  
