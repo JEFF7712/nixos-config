@@ -21,7 +21,7 @@
     nixosConfigurations = {
       laptop = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-	specialArgs = { inherit inputs; };
+	      specialArgs = { inherit inputs; };
         modules = [
           ./hosts/laptop/configuration.nix
           home-manager.nixosModules.home-manager 
@@ -38,7 +38,7 @@
       workmachine = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
-	modules = [
+	        modules = [
 	  ./hosts/workmachine/configuration.nix
           home-manager.nixosModules.home-manager
           {
