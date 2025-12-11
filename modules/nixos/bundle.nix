@@ -15,6 +15,7 @@
     ./file-utils.nix
     ./docker.nix
     ./fish.nix
+    ./netbird.nix
   ];
 
   git.enable = lib.mkDefault true;

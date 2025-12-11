@@ -24,6 +24,7 @@
   distrobox.enable = true;
   file-utils.enable = true;  
   docker.enable = true;
+  netbird.enable = true;
 
   services.power-profiles-daemon.enable = true;
   services.tlp.enable = false;
