@@ -1,26 +1,28 @@
-# Edit this configuration file to define what should be installed on
-# your system. Help is available in the configuration.nix(5) man page, on
-# https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
-
 { config, lib, pkgs, inputs, ... }:
-
 {
   imports =
-    [ # Include the results of the hardware scan.
+    [
       ./hardware-configuration.nix
-      inputs.home-manager.nixosModules.default
+      ../../modules/nixos/bundle.nix
     ];
 
   nix = {
     package = pkgs.nix;
     settings.experimental-features = [ "nix-command" "flakes" ];
   };
+ 
+  file-utils.enable = true;  
+  docker.enable = true;
+  netbird.enable = true;
 
+  services.tlp.enable = false;
+  services.auto-cpufreq.enable = false;
+ 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-
-  networking.hostName = "nixos"; # Define your hostname.
+  boot.supportedFilesystems = [ "exfat" ];
+  networking.hostName = "homelab-nixos"; # Define your hostname.
 
   # Configure network connections interactively with nmcli or nmtui.
   networking.networkmanager.enable = true;
@@ -28,60 +30,6 @@
   # Set your time zone.
   time.timeZone = "America/Chicago";
 
-  # Configure network proxy if necessary
-  # networking.proxy.default = "http://user:password@proxy:port/";
-  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
-
-  # Select internationalisation properties.
-  # i18n.defaultLocale = "en_US.UTF-8";
-  # console = {
-  #   font = "Lat2-Terminus16";
-  #   keyMap = "us";
-  #   useXkbConfig = true; # use xkb.options in tty.
-  # };
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
-  # Enable sound.
-  services.pipewire = {
-    enable = true;
-    pulse.enable = true;
-  };
-
-  # Enable touchpad support (enabled default in most desktopManager).
-  services.libinput.enable = true;
-
-  services.xserver.videoDrivers = [ "nvidia" ];
-
-  hardware.nvidia = {
-    modesetting.enable = true;
-    powerManagement.enable = true;
-    open = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-
-    prime = {
-      intelBusId = "PCI:0:2:0";
-      nvidiaBusId = "PCI:1:0:0";
-
-      offload = {
-        enable = true;
-        enableOffloadCmd = true;
-      };
-    };
-  };
-
-  # Performance mode that uses GPU and iGPU with sync
-  specialisation.performance.configuration = {
-    system.nixos.tags = [ "performance" ];
-    hardware.nvidia.prime = {
-      offload = {
-        enable = lib.mkForce false;
-        enableOffloadCmd = lib.mkForce false;
-      };
-      sync.enable = lib.mkForce true;
-    };
-  };
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.rupan = {
@@ -92,28 +40,13 @@
     ];
   };
 
-  home-manager = {
-    specialArgs = { inherit inputs; };
-    users = {
-      "rupan" = import ./home.nix;
-    };
-  };
-
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
-  
-  programs.firefox.enable = true;
-  programs.thunar.enable = true;
-  programs.niri.enable = true;
 
   # List packages installed in system profile.
   # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
     wget
-    neovim
-    btop
-    pciutils
-    fastfetch
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -124,7 +57,15 @@
     enableSSHSupport = true;
   };
 
-  # List services that you want to enable:
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true; 
+
+    extraPackages = with pkgs; [
+      intel-compute-runtime 
+      intel-media-driver
+    ];
+  };
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
@@ -134,30 +75,21 @@
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 53317 ];
+    allowedUDPPorts = [ 53317 ];
+  };
 
-  # Copy the NixOS configuration file and link it from the resulting system
-  # (/run/current-system/configuration.nix). This is useful in case you
-  # accidentally delete configuration.nix.
-  system.copySystemConfiguration = true;
+  networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+  networking.networkmanager.dns = "none";
 
-  # This option defines the first version of NixOS you have installed on this particular machine,
-  # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.
-  #
-  # Most users should NEVER change this value after the initial install, for any reason,
-  # even if you've upgraded your system to a new NixOS release.
-  #
-  # This value does NOT affect the Nixpkgs version your packages and OS are pulled from,
-  # so changing it will NOT upgrade your system - see https://nixos.org/manual/nixos/stable/#sec-upgrading for how
-  # to actually do that.
-  #
-  # This value being lower than the current NixOS release does NOT mean your system is
-  # out of date, out of support, or vulnerable.
-  #
-  # Do NOT change this value unless you have manually inspected all the changes it would make to your configuration,
-  # and migrated your data accordingly.
-  #
-  # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
-  system.stateVersion = "25.11"; # Did you read the comment?
-
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 7d"; 
+  };
+ 
+  system.stateVersion = "25.11"; #DO NOT EDIT
 }
 
