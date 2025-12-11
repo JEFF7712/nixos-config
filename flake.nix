@@ -30,7 +30,7 @@
 	    home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.backupFileExtension = "backup";
-	    home-manager.users.rupan = import ./home/rupan/laptop.nix;
+	          home-manager.users.rupan = import ./home/rupan/laptop.nix;
 	  }
         ];
       };
@@ -74,7 +74,7 @@
             ps.pandas
             ps.scikit-learn
             ps.requests
-	    ps.matplotlib
+	          ps.matplotlib
             ps.openpyxl
           ]))
           pkgs.openblas
