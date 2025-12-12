@@ -279,8 +279,8 @@ binds {
     Mod+Shift+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
     Mod+Shift+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
 
-    276 { focus-column-left; }
-    275 { focus-column-right; }
+    MouseBack { focus-column-left; }
+    MouseForward { focus-column-right; }
 
     Mod+1 { focus-workspace 1; }
     Mod+2 { focus-workspace 2; }
