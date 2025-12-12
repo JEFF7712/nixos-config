@@ -86,7 +86,7 @@
             truncation_symbol = "";
           };
           character = {
-            #success_symbol = "[❯](bold #cccccc)";
+            success_symbol = "[❯](bold #cccccc)";
             error_symbol = "[✖](bold #ff6666)";
           };
           nix_shell = {
