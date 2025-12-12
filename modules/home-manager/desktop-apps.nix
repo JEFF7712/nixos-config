@@ -47,6 +47,7 @@ in
           github.copilot     
           eamodio.gitlens    
           hashicorp.terraform
+          hashicorp.hcl
         ];
         
         userSettings = {
