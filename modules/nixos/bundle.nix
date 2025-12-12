@@ -14,7 +14,6 @@
     ./podman.nix
     ./file-utils.nix
     ./docker.nix
-    ./fish.nix
     ./netbird.nix
   ];
 

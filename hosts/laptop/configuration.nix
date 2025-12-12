@@ -13,7 +13,6 @@
   
   nvidia.enable = true;
   niri.enable = true;
-  fish.enable = true;
   general-laptop.enable = true;  
   audio.enable = true;
   ctls.enable = true; 
@@ -24,6 +23,10 @@
   file-utils.enable = true;  
   docker.enable = true;
   netbird.enable = true;
+
+  environment.shells = with pkgs; [ fish ];
+  users.users.rupan.shell = pkgs.fish;
+  users.users.rupan.ignoreShellProgramCheck = true;
 
   services.power-profiles-daemon.enable = true;
   services.tlp.enable = false;
