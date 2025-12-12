@@ -1,26 +1,12 @@
 { pkgs, lib, ... }: {
   imports = [
-    ./desktop-apps/vscode.nix
-    ./desktop-apps/spicetify.nix
-    ./desktop-apps/firefox.nix
-    ./desktop-apps/media-apps.nix
-    ./desktop-apps/bitwarden.nix
-    ./desktop-apps/davinci-resolve.nix
-    ./desktop-apps/obs-studio.nix
-    ./desktop-apps/qbittorrent.nix
-    ./desktop-apps/libreoffice.nix
-    ./desktop-apps/notion.nix
-    ./desktop-environment/niri.nix
-    ./terminals/alacritty.nix
-    ./terminals/kitty.nix
+    ./desktop-apps.nix
+    ./niri.nix
     ./cli/cli-toys.nix
     ./dev/direnv.nix
-    ./utils/localsend.nix
-    ./utils/misc-utils.nix
   ];
 
   niri.enable = lib.mkDefault true;
-  alacritty.enable = lib.mkDefault true;
 
   home.file.".local/bin" = {
     source = ./scripts;
