@@ -51,6 +51,24 @@
         set -g fish_color_autosuggestion 777777 # Suggestions (a medium gray)
       '';
     };
+    home.sessionVariables = {
+      EZA_COLORS = builtins.concatStringsSep ":" [
+        "di=1;97"
+        "fi=97"
+        "ln=4;3;97"
+        "ex=1;97"
+        "ur=2;90" # User Read
+        "uw=2;90" # User Write
+        "ux=2;90" # User Execute
+        "gu=2;90" # Group
+        "da=2;90" # Date
+        "sn=2;90" # Size numbers
+        "sb=2;90" # Size units
+        "do=97"   # Documents
+        "co=97"   # Compressed files
+        "tm=90"   # Temporary files (dimmed)
+      ];
+    };
     programs.starship = {
       enable = true;
         settings = {
