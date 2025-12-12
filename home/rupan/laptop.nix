@@ -22,7 +22,7 @@
   niri.enable = true;
   desktop-apps.enable = true;
   cli-toys.enable = true;
-  direnv.enable = true;
+  dev.enable = true;
 
   gtk = {
     enable = true;

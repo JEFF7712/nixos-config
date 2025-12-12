@@ -3,7 +3,7 @@
     ./desktop-apps.nix
     ./niri.nix
     ./cli/cli-toys.nix
-    ./dev/direnv.nix
+    ./dev.nix
   ];
 
   niri.enable = lib.mkDefault true;
