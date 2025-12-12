@@ -15,6 +15,15 @@
       waypaper
     ];
 
+    programs.kitty = {
+      enable = true;
+      extraConfig = builtins.readFile ./configs/kitty/kitty.conf;
+    };
+    programs.bash = {
+      enable = true;
+      initExtra = builtins.readFile ./configs/bashrc/.bashrc;
+    };
+
     services.mako = {
       enable = true;
       settings = {
@@ -152,9 +161,9 @@
       };
     };
     
-    xdg.configFile."waybar".source = ../configs/waybar;
-    xdg.configFile."niri/config.kdl".source = ../configs/niri/config.kdl;
-    xdg.configFile."rofi".source = ../configs/rofi;
+    xdg.configFile."waybar".source = ./configs/waybar;
+    xdg.configFile."niri/config.kdl".source = ./configs/niri/config.kdl;
+    xdg.configFile."rofi".source = ./configs/rofi;
 
   };
 }

@@ -18,23 +18,11 @@
     qt6Packages.qtstyleplugin-kvantum
   ];
   
-  firefox.enable = true;
-  vscode.enable = true;
-  spicetify.enable = true;
+
   niri.enable = true;
-  alacritty.enable = true;
-  kitty.enable = true;
+  desktop-apps.enable = true;
   cli-toys.enable = true;
   direnv.enable = true;
-  media-apps.enable = true;
-  bitwarden.enable = true;
-  obs-studio.enable = true;
-  localsend.enable = true;
-  misc-utils.enable = true;
-  davinci-resolve.enable = true;
-  qbittorrent.enable = true;
-  libreoffice.enable = true;
-  notion.enable = true;
 
   gtk = {
     enable = true;
