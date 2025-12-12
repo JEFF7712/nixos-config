@@ -75,7 +75,7 @@
           format = "$all";
           directory = {
             style = "bold #aaaaaa"; 
-            truncation_length = 0;
+            truncation_length = 8;
             truncate_to_repo = false;
             read_only = " 🔒"; 
           };
