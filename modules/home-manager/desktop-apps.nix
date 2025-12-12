@@ -52,6 +52,7 @@ in
           "editor.fontFamily" = "'JetBrainsMono Nerd Font', 'Droid Sans Mono', 'monospace'";
           "editor.fontSize" = 14;
           "window.titleBarStyle" = "custom";
+          "git.enableSmartCommit" = true;
         };
       };
     };
