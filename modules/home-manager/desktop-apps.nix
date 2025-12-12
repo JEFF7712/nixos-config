@@ -46,6 +46,7 @@ in
           ms-python.python   
           github.copilot     
           eamodio.gitlens    
+          hashicorp.terraform
         ];
         
         userSettings = {
