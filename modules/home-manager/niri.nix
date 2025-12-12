@@ -41,26 +41,40 @@
         lla = "eza -la --icons"; 
       };
       interactiveShellInit = ''
-       set fish_greeting ""
-       set -g fish_color_param purple
-       set -g fish_color_valid_path purple
+        set fish_greeting ""
+        set -g fish_color_param dddddd 
+        set -g fish_color_valid_path aaaaaa 
+       
+        set -g fish_color_command ffffff      # The command itself (e.g., 'git')
+        set -g fish_color_error ff6666        # Keep error a slightly reddish-gray for contrast
+        set -g fish_color_quote ffffff        # Strings in quotes
+        set -g fish_color_autosuggestion 777777 # Suggestions (a medium gray)
       '';
     };
     programs.starship = {
       enable = true;
-      settings = {
-        directory = {
-          style = "bold #aaaaaa"; 
-          truncation_length = 8;
-          truncate_to_repo = false;
-          read_only = " 🔒";
-        };
-        git_branch = {
-          style = "bold #aaaaaa";
-          symbol = "🌱 ";
-          truncation_length = 4;
-          truncation_symbol = "";
-        };
+        settings = {
+          format = "$all";
+          directory = {
+            style = "bold #aaaaaa"; 
+            truncation_length = 8;
+            truncate_to_repo = false;
+            read_only = " 🔒"; 
+          };
+          git_branch = {
+            style = "bold #f8f8f2"; 
+            symbol = "🌱 ";
+            truncation_length = 4;
+            truncation_symbol = "";
+          };
+          character = {
+            success_symbol = "[❯](bold #cccccc)";
+            error_symbol = "[✖](bold #ff6666)";
+          };
+          nix_shell = {
+            style = "bold #aaaaaa";
+            symbol = "❄️ ";
+          };
       };
     };
     programs.zoxide = {
