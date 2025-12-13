@@ -49,6 +49,7 @@ in
           hashicorp.terraform
           hashicorp.hcl
           redhat.vscode-yaml
+	  redhat.ansible
         ];
         
         userSettings = {
