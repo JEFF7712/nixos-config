@@ -6,7 +6,7 @@ in
   imports = [ inputs.spicetify-nix.homeManagerModules.default ];
   options.desktop-apps.enable = lib.mkEnableOption "desktop-apps";
   config = lib.mkIf config.desktop-apps.enable {
- 
+
     home.packages = with pkgs; [
       davinci-resolve
       bitwarden-desktop
@@ -41,13 +41,13 @@ in
       mutableExtensionsDir = false; 
       
       profiles.default = {
-        extensions = with pkgs.vscode-extensions; [
+        extensions = with pkgs.vscode-marketplace; [
           bbenoist.nix       
           ms-python.python   
           github.copilot     
           eamodio.gitlens    
           hashicorp.terraform
-          hashicorp.hcl
+          pjmiravalle.terraform-advanced-syntax-highlighting
           redhat.vscode-yaml
           esbenp.prettier-vscode
 	  ms-azuretools.vscode-docker
