@@ -51,6 +51,7 @@ in
           redhat.vscode-yaml
 	  redhat.ansible
           esbenp.prettier-vscode
+	  ms-azuretools.vscode-docker
         ];
         
         userSettings = {
