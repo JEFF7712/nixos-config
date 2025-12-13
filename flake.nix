@@ -9,19 +9,26 @@
     };
     spicetify-nix.url = "github:Gerg-L/spicetify-nix";
     spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
+    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
   };
 
-  outputs = { self, nixpkgs, home-manager, spicetify-nix, ... }@inputs:     
+  outputs = { self, nixpkgs, home-manager, spicetify-nix, nix-vscode-extensions, ... }@inputs:     
   let
     system = "x86_64-linux";
-    pkgs = import nixpkgs { inherit system; };
+    pkgs = import nixpkgs { 
+      inherit system; 
+      config.allowUnfree = true;
+      overlays = [
+        nix-vscode-extensions.overlays.default
+      ];
+    };
     python = pkgs.python311;
   in {
 
     nixosConfigurations = {
       laptop = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-	      specialArgs = { inherit inputs; };
+	inherit system pkgs;
+	specialArgs = { inherit inputs; };
         modules = [
           ./hosts/laptop/configuration.nix
           home-manager.nixosModules.home-manager 

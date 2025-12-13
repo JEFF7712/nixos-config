@@ -10,7 +10,7 @@
     package = pkgs.nix;
     settings.experimental-features = [ "nix-command" "flakes" ];
   };
-  
+
   nvidia.enable = true;
   niri.enable = true;
   general-laptop.enable = true;  
@@ -58,9 +58,6 @@
       tree
     ];
   };
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
   # List packages installed in system profile.
   # You can use https://search.nixos.org/ to find more packages (and options).
