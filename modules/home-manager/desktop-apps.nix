@@ -16,6 +16,7 @@ in
       obs-studio
       qbittorrent
       localsend
+      networkmanagerapplet
     ];
     
     programs.firefox.enable = true;
