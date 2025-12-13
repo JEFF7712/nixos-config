@@ -48,6 +48,7 @@ in
           eamodio.gitlens    
           hashicorp.terraform
           hashicorp.hcl
+          redhat.vscode-yaml
         ];
         
         userSettings = {
