@@ -55,6 +55,7 @@ in
           "editor.fontSize" = 14;
           "window.titleBarStyle" = "custom";
           "git.enableSmartCommit" = true;
+          "git.confirmSync" = false;
         };
       };
     };
