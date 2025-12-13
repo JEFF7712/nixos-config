@@ -50,11 +50,13 @@ in
           hashicorp.hcl
           redhat.vscode-yaml
 	  redhat.ansible
+          esbenp.prettier-vscode
         ];
         
         userSettings = {
           "editor.fontFamily" = "'JetBrainsMono Nerd Font', 'Droid Sans Mono', 'monospace'";
           "editor.fontSize" = 14;
+          "editor.defaultFormatter" = "prettier.prettier-vscode";
           "window.titleBarStyle" = "custom";
           "git.enableSmartCommit" = true;
           "git.confirmSync" = false;
