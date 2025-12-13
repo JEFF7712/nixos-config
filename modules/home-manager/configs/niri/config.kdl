@@ -27,15 +27,14 @@ output "eDP-1" {
     scale 2
     position x=0 y=0
 }
-output "DP-7" {
-    mode "1920x1080@60"
+output "Dell Inc. D3218HN X9R5K82N1SRE" {
     scale 1
-    position x=2880 y=0
+    position x=1440 y=0
+    focus-at-startup
 }
-output "DP-6" {
-    mode "1920x1080@60"
+output "Samsung Electric Company LS24D300G H1AK500000" {
     scale 1
-    position x=4800 y=0
+    position x=3360 y=0
 }
 
 // --- Input ---
