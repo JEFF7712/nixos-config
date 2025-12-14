@@ -10,6 +10,7 @@
       terraform
       ansible
       talosctl
+      kubectl
     ];
   };
 }
