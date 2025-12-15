@@ -241,6 +241,7 @@ binds {
     Mod+S { spawn "spotify"; }        
     Mod+E { spawn "thunar"; }
     Mod+Alt+V { spawn "code"; }
+    Mod+Z { spawn "/home/rupan/.local/bin/toggle_zoom.py"; }
 
     Mod+R { spawn "/home/rupan/.local/bin/wallpaper-random"; }
 
