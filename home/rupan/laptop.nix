@@ -22,6 +22,7 @@
   niri.enable = true;
   desktop-apps.enable = true;
   cli-toys.enable = true;
+  cli-tools.enable = true;
   dev.enable = true;
 
   gtk = {

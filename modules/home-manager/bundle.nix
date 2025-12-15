@@ -3,6 +3,7 @@
     ./desktop-apps.nix
     ./niri.nix
     ./cli/cli-toys.nix
+    ./cli/cli-tools.nix
     ./dev.nix
   ];
 
