@@ -17,10 +17,24 @@ in
       qbittorrent
       localsend
       networkmanagerapplet
-      (writeShellScriptBin "firefox" ''
-        exec ${pkgs.firefox}/bin/firefox --marionette --remote-allow-system-access "$@"
-      '')
     ];
+
+    programs.firefox = {
+      enable = true;
+      package = pkgs.lib.makeOverridable (attrs: 
+        pkgs.writeShellScriptBin "firefox" ''
+          exec ${pkgs.firefox}/bin/firefox --marionette --remote-allow-system-access "$@"
+      ''
+    ) {};  
+    };
+
+    home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
+      source = ./configs/firefox/chrome;
+      recursive = true;
+    };
+    home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
+      user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+    '';
 
     programs.spicetify = {
       enable = true;

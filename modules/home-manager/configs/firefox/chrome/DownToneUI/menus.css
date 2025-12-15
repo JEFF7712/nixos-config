@@ -1,0 +1,34 @@
+/* ============================================================================
+ * Tweaks for the popup menus
+ * ========================================================================= */
+
+/* Hide context menu items */
+#context-navigation, #context-sep-navigation, #context-sendimage,
+#context-bookmarkpage, #context-openlink, #context-print-selection,
+#context-savelink, #context-savelinktopocket, #context-pocket,
+#context-savepage, #context-selectall, #context-sep-selectall,
+#context-inspect-a11y, #toolbar-context-undoCloseTab +menuseparator {
+  display: none !important;
+}
+
+/* Clean extensions menu */
+#unified-extensions-panel { .panel-header, toolbarseparator, #unified-extensions-manage-extensions { display: none !important; }}
+
+/* Popup animations */
+#appMenu-popup[animate="open"], #unified-extensions-panel[animate="open"], .panel-no-padding[animate="open"],
+.bookmark-item[open] .toolbar-menupopup {
+  animation: popup-animation var(--dtui-menu-animation-speed) ease-out !important;
+}
+#window-modal-dialog[open] {
+  animation: popup-animation var(--dtui-window-animation-speed) ease-out !important;
+}
+@keyframes popup-animation {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
