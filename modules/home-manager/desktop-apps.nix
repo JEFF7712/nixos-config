@@ -17,9 +17,10 @@ in
       qbittorrent
       localsend
       networkmanagerapplet
+      (writeShellScriptBin "firefox" ''
+        exec ${pkgs.firefox}/bin/firefox --marionette --remote-allow-system-access "$@"
+      '')
     ];
-    
-    programs.firefox.enable = true;
 
     programs.spicetify = {
       enable = true;
