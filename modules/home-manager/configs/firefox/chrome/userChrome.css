@@ -15,3 +15,7 @@
 /* Your own customizations */
 @import "DownToneUI/override_globals.css";
 @import "DownToneUI/override_chrome.css";
+
+#urlbar-background {
+    background-color: #00ff00 !important;
+}
