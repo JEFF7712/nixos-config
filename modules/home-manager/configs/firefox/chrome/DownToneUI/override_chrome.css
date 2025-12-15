@@ -1,7 +1,23 @@
-#remote-control-box {
-  display: none !important;
+/* --- Remote Agent UI Fixes --- */
+
+/* 1. Force the red/striped variables to be transparent globally */
+:root {
+    --remote-control-share-color: transparent !important;
+    --remote-control-bgcolor: transparent !important;
 }
 
-#urlbar-background {
-  background-image: unset !important;
+/* 2. Kill the striped background on the main toolbar */
+#navigator-toolbox[remotecontrol="true"] {
+    background-image: none !important;
+    background-color: transparent !important;
+}
+
+/* 3. Hide the robot icon in the URL bar */
+#remote-control-icon {
+    display: none !important;
+}
+
+/* 4. Hide the notification stack (the yellow/red bar that sometimes appears) */
+.notificationbox-stack[label="Remote Control"] {
+    display: none !important;
 }
