@@ -8,7 +8,6 @@
       pipes-rs      
       cbonsai    
       sl         
-      btop       
     ];
   };
 }
