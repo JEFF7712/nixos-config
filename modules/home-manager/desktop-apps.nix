@@ -28,32 +28,10 @@ in
     ) {};  
     };
 
-#    home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
-#      source = ./configs/firefox/chrome;
-#      recursive = true;
-#    };
-
-    home.file.".mozilla/firefox/09longn9.default-release/chrome/userChrome.css".text = ''
-      @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
-      #urlbar-background {
-          background-color: #00ff00 !important;
-      }
-      :root {
-          --remote-control-share-color: transparent !important;
-          --remote-control-bgcolor: transparent !important;
-      }
-      #navigator-toolbox[remotecontrol="true"] {
-          background-image: none !important;
-          background-color: transparent !important;
-          box-shadow: none !important;
-          border-bottom: none !important;
-      }
-      #remote-control-icon,
-      .notificationbox-stack[label="Remote Control"] {
-          display: none !important;
-      }
-    '';
-
+    home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
+      source = ./configs/firefox/chrome;
+      recursive = true;
+    };
 
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
