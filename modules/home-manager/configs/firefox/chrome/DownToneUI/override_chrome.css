@@ -1,23 +1,16 @@
-:root,
-:host,
-#navigator-toolbox,
-toolbar {
+:root {
     --remote-control-share-color: transparent !important;
     --remote-control-bgcolor: transparent !important;
-    --remote-control-box-background: transparent !important;
 }
 
 #navigator-toolbox[remotecontrol="true"] {
     background-image: none !important;
-    background: transparent !important;
+    background-color: transparent !important;
     box-shadow: none !important;
     border-bottom: none !important;
 }
 
 #remote-control-icon,
-.notificationbox-stack[label="Remote Control"],
-hbox[class="notificationbox-stack"] {
+.notificationbox-stack[label="Remote Control"] {
     display: none !important;
-    visibility: hidden !important;
-    width: 0px !important;
 }
