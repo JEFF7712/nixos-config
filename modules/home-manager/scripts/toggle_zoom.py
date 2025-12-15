@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! /home/rupan/.local/share/fx-automation/bin/python
 from marionette_driver.marionette import Marionette
 
 client = Marionette(host='localhost', port=2828)

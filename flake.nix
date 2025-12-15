@@ -83,7 +83,6 @@
             ps.requests
 	          ps.matplotlib
             ps.openpyxl
-            ps.marionette_driver
           ]))
           pkgs.openblas
         ];
