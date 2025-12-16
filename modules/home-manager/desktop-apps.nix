@@ -62,7 +62,6 @@ in
           bbenoist.nix       
           ms-python.python   
           github.copilot     
-          eamodio.gitlens    
           hashicorp.terraform
           pjmiravalle.terraform-advanced-syntax-highlighting
           redhat.vscode-yaml
