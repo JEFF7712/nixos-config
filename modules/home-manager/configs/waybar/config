@@ -93,7 +93,7 @@
         "tooltip-format-ethernet": "{ifname}",
         "tooltip-format-disconnected": "Disconnected",
         "on-click": "nm-connection-editor",
-        "on-right-click": "kitty sudo nmtui"
+        "on-click-right": "kitty sudo nmtui"
     },
 
     "bluetooth": {
