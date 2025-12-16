@@ -55,7 +55,7 @@ in
 
     programs.vscode = {
       enable = true;
-      mutableExtensionsDir = false; 
+      mutableExtensionsDir = true; 
       
       profiles.default = {
         extensions = with pkgs.vscode-marketplace; [
