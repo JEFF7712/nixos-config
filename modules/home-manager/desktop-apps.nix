@@ -76,6 +76,9 @@ in
           "window.titleBarStyle" = "custom";
           "git.enableSmartCommit" = true;
           "git.confirmSync" = false;
+          "files.exclude" = {
+            "**/secrets.auto.tfvars" = true;
+          };
         };
       };
     };
