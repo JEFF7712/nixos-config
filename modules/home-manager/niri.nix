@@ -39,7 +39,7 @@
         lt = "eza --tree --level=2 --icons"; 
         la = "eza -a --icons";     
         lla = "eza -la --icons"; 
-        nodse = "kubectl --kubeconfig=./kubeconfig get nodes";
+        nodes = "kubectl --kubeconfig=./kubeconfig get nodes";
       };
       interactiveShellInit = ''
         set fish_greeting ""
