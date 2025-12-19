@@ -20,6 +20,7 @@
         cp $src $out/bin/talosctl
         chmod +x $out/bin/talosctl
       '')
+      fluxcd
     ];
   };
 }
