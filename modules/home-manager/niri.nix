@@ -175,7 +175,7 @@
           language = "";
           lockOnSuspend = true;
           radiusRatio = 0.1;
-          scaleRatio = 0.95;
+          scaleRatio = 1;
           screenRadiusRatio = 1;
           shadowDirection = "bottom_right";
           shadowOffsetX = 2;
