@@ -53,6 +53,14 @@ input {
     }
 }
 
+gestures {
+
+    hot-corners {
+        off
+    }
+
+}
+
 // --- Layout & Look ---
 layout {
 
