@@ -10,6 +10,7 @@ environment {
     XCURSOR_THEME "Adwaita"
     QT_QPA_PLATFORM "wayland;xcb"
     GDK_SCALE "1"
+    QT_QPA_PLATFORMTHEME "qt6ct"
 }
 
 cursor {
@@ -206,7 +207,7 @@ window-rule {
     open-maximized false
 }
 window-rule {
-    geometry-corner-radius 5
+    geometry-corner-radius 20
     clip-to-geometry true
 }
 window-rule {
@@ -226,22 +227,41 @@ window-rule {
     open-floating true
 }
 
+layer-rule {
+  match namespace="^noctalia-wallpaper*"
+  place-within-backdrop true
+}
+
+layout {
+  background-color "transparent"
+}
+
+overview {
+  workspace-shadow {
+    off
+  }
+}
+
+debug {
+    honor-xdg-activation-with-invalid-serial
+}
+
 // --- Keybinds ---
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-//    Mod+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
-    Mod+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "/home/rupan/.config/rofi/scripts/launcher_t4"; }
-    Mod+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "noctalia-shell ipc call launcher toggle"; }
+    Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell ipc call lockScreen lock"; }
     Mod+F { spawn "firefox"; }
-    Mod+W { spawn "waypaper"; }
+    Mod+W { spawn "noctalia-shell ipc call wallpaper toggle"; }
     Mod+S { spawn "spotify"; }        
     Mod+E { spawn "thunar"; }
     Mod+Alt+V { spawn "code"; }
     Mod+Z { spawn "/home/rupan/.local/bin/toggle_zoom.py"; }
-
-    Mod+R { spawn "/home/rupan/.local/bin/wallpaper-random"; }
+    Mod+B { spawn "noctalia-shell ipc call bar toggle"; }
+    Mod+Alt+V { spawn "noctalia-shell" "ipc" "call" "launcher" "clipboard"; }
+    Mod+R { spawn "noctalia-shell ipc call wallpaper random"; }
 
     Mod+C repeat=false { close-window; }
     Mod+O { toggle-window-rule-opacity; }
@@ -351,13 +371,13 @@ binds {
     Mod+Alt+N { spawn "wl-copy" "Ramrupan Sunderapandyan"; }
     Mod+Alt+L { spawn "wl-copy" "https://www.linkedin.com/in/rupan-sunderapandyan/"; }
 
-    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
-    XF86AudioMute        allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
-    XF86AudioMicMute     allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
-   
-    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+    XF86AudioRaiseVolume { spawn "noctalia-shell" "ipc" "call" "volume" "increase"; }
+    XF86AudioLowerVolume { spawn "noctalia-shell" "ipc" "call" "volume" "decrease"; }
+    XF86AudioMute { spawn "noctalia-shell" "ipc" "call" "volume" "muteOutput"; }
+
+    XF86MonBrightnessUp { spawn "noctalia-shell" "ipc" "call" "brightness" "increase"; }
+    XF86MonBrightnessDown { spawn "noctalia-shell" "ipc" "call" "brightness" "decrease"; }
+
 
     // Screenshots
     Print { screenshot; }
