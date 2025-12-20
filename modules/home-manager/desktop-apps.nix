@@ -17,7 +17,7 @@ in
       qbittorrent
       localsend
       networkmanagerapplet
-      discord
+      vesktop
       pywalfox-native
     ];
 
