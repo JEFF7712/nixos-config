@@ -21,11 +21,12 @@
       bat
       tealdeer
       fzf
+      inputs.noctalia.packages.${pkgs.system}.default
     ];
 
     ## TERMINAL, SHELL, PROMPT CONFIGURATION
-    programs.noctalia-shell = {
-      enable = true;
+    # programs.noctalia-shell = {
+    #   enable = true;
       # settings = {
       #   bar = {
       #     density = "compact";
@@ -77,7 +78,7 @@
       #     name = "Marseille, France";
       #   };
       # };
-    };
+  # };
 
     xdg.configFile."noctalia/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/modules/home-manager/configs/noctalia/settings.json";
 
