@@ -1,12 +1,8 @@
-{ inputs, pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }: {
 
   options = {
     niri.enable = lib.mkEnableOption "user niri config"; 
   };
-
-  imports = [
-    inputs.noctalia.homeModules.default
-  ];
 
   config = lib.mkIf config.niri.enable {
 
@@ -23,70 +19,14 @@
       fzf
     ];
 
-    ## TERMINAL, SHELL, PROMPT CONFIGURATION
-    programs.noctalia-shell = {
-      enable = true;
-      settings = {
-        spawn-at-startup = [
-          {
-            command = [
-              "noctalia-shell"
-            ];
-          }
-        ];
-        # configure noctalia here
-        bar = {
-          density = "compact";
-          position = "right";
-          showCapsule = false;
-          widgets = {
-            left = [
-              {
-                id = "ControlCenter";
-                useDistroLogo = true;
-              }
-              {
-                id = "WiFi";
-              }
-              {
-                id = "Bluetooth";
-              }
-            ];
-            center = [
-              {
-                hideUnoccupied = false;
-                id = "Workspace";
-                labelMode = "none";
-              }
-            ];
-            right = [
-              {
-                alwaysShowPercentage = false;
-                id = "Battery";
-                warningThreshold = 30;
-              }
-              {
-                formatHorizontal = "HH:mm";
-                formatVertical = "HH mm";
-                id = "Clock";
-                useMonospacedFont = true;
-                usePrimaryColor = true;
-              }
-            ];
-          };
-        };
-        colorSchemes.predefinedScheme = "Monochrome";
-        general = {
-          avatarImage = "/home/drfoobar/.face";
-          radiusRatio = 0.2;
-        };
-        location = {
-          monthBeforeDay = true;
-          name = "Marseille, France";
-        };
-      };
-    };
+    home-manager.users.drfoobar = {
+      imports = [
+        inputs.noctalia.homeModules.default
+      ];
 
+
+
+    ## TERMINAL, SHELL, PROMPT CONFIGURATION
     programs.kitty = {
       enable = true;
       extraConfig = builtins.readFile ./configs/kitty/kitty.conf;

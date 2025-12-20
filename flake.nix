@@ -10,6 +10,10 @@
     spicetify-nix.url = "github:Gerg-L/spicetify-nix";
     spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+    noctalia = {
+      url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, spicetify-nix, nix-vscode-extensions, ... }@inputs:     
@@ -27,18 +31,18 @@
 
     nixosConfigurations = {
       laptop = nixpkgs.lib.nixosSystem {
-	inherit system pkgs;
-	specialArgs = { inherit inputs; };
+	      inherit system pkgs;
+	      specialArgs = { inherit inputs; };
         modules = [
           ./hosts/laptop/configuration.nix
           home-manager.nixosModules.home-manager 
-	  {
-	    home-manager.useGlobalPkgs = true;
-	    home-manager.useUserPackages = true;
+          {
+	          home-manager.useGlobalPkgs = true;
+	          home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.backupFileExtension = "backup";
 	          home-manager.users.rupan = import ./home/rupan/laptop.nix;
-	  }
+          }
         ];
       };
 
