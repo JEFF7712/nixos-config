@@ -1,8 +1,10 @@
 shell_integration no-rc
 
 # BEGIN_KITTY_THEME
-# Noctalia
-include current-theme.conf
+
+#include ./themes/white.conf
+include ./current-theme.conf
+
 # END_KITTY_THEME
 
 # BEGIN_KITTY_FONTS
