@@ -11,8 +11,6 @@
     settings.experimental-features = [ "nix-command" "flakes" ];
   };
 
-  nvidia.enable = true;
-  niri.enable = true;
   general-laptop.enable = true;  
   audio.enable = true;
   ctls.enable = true; 
