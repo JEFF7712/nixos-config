@@ -31,9 +31,6 @@
       kitty
     ];
 
-    programs.kitty.enable = false;
-    gtk.enable = false;
-
     programs.noctalia-shell = {
       enable = true;
       systemd.enable = true;
@@ -189,7 +186,6 @@
           allowPanelsOnScreenWithoutBar = true;
         };
 
-        # ... (Rest of your simpler sections converted below) ...
         audio = {
           cavaFrameRate = 60;
           externalMixer = "pwvucontrol || pavucontrol";
@@ -515,6 +511,7 @@
     };
     
     xdg.configFile."niri".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/niri";
+    xdg.configFile."kitty".source = ./configs/kitty;
     xdg.configFile."gtk-2.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-2.0";
     xdg.configFile."gtk-3.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-3.0";
     xdg.configFile."gtk-4.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-4.0";
