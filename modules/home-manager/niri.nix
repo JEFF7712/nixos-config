@@ -37,7 +37,7 @@
       settings = {
         settingsVersion = 31;
         templates = {
-          kitty = false;
+          kitty = true;
           niri = true;
           gtk = true;
           qt = true;
@@ -51,7 +51,7 @@
           ghostty = false;
           kcolorscheme = false;
           mango = false;
-          pywalfox = false;
+          pywalfox = true;
           spicetify = false;
           telegram = false;
           vicinae = false;
