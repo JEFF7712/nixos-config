@@ -500,7 +500,7 @@
         "fontDefaultScale": 0.95,
         "fontFixed": "JetBrainsMono Nerd Font Mono",
         "fontFixedScale": 1,
-        "panelBackgroundOpacity": 0.5,
+        "panelBackgroundOpacity": 0.76,
         "panelsAttachedToBar": true,
         "settingsPanelMode": "attached",
         "tooltipsEnabled": true
