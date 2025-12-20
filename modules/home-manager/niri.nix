@@ -54,10 +54,10 @@
         set -g fish_color_param dddddd 
         set -g fish_color_valid_path aaaaaa 
        
-        set -g fish_color_command ffffff      # The command itself (e.g., 'git')
-        set -g fish_color_error ff6666        # Keep error a slightly reddish-gray for contrast
-        set -g fish_color_quote ffffff        # Strings in quotes
-        set -g fish_color_autosuggestion 777777 # Suggestions (a medium gray)
+        set -g fish_color_command ffffff
+        set -g fish_color_error ff6666
+        set -g fish_color_quote ffffff        
+        set -g fish_color_autosuggestion 777777 
       '';
     };
     home.sessionVariables = {
@@ -174,16 +174,6 @@
       };
     };
     
-    home.file.".local/bin/wallpaper-random" = {
-      executable = true;
-      text = ''
-        #!/bin/sh
-        if [ -d ~/media/images/wallpapers ]; then
-          ${pkgs.swww}/bin/swww img $(find ~/media/images/wallpapers -type f | shuf -n 1) --transition-type fade --transition-pos 0.5,0.5 --transition-step 90
-        fi
-      '';
-    };
-
     xdg.configFile."niri/config.kdl".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/niri/config.kdl";
     xdg.configFile."noctalia/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/noctalia/settings.json";
     xdg.configFile."gtk-2.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-2.0";
