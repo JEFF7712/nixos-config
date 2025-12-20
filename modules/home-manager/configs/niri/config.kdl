@@ -1,0 +1,391 @@
+include "./noctalia.kdl"
+
+// --- Startup ---
+spawn-at-startup "xwayland-satellite"
+
+screenshot-path "~/media/images/screenshots/ss-%Y-%m-%d-%H-%M-%S.png"
+
+environment {
+    XCURSOR_SIZE "28"
+    XCURSOR_THEME "Adwaita"
+    QT_QPA_PLATFORM "wayland;xcb"
+    GDK_SCALE "1"
+    QT_QPA_PLATFORMTHEME "qt6ct"
+}
+
+cursor {
+    xcursor-theme "Adwaita"
+    xcursor-size 28
+
+    hide-when-typing
+    hide-after-inactive-ms 5000
+}
+
+output "eDP-1" {
+    mode "2880x1800@60"
+    scale 2
+    position x=0 y=0
+}
+output "Dell Inc. D3218HN X9R5K82N1SRE" {
+    scale 1
+    position x=1440 y=0
+    focus-at-startup
+}
+output "Samsung Electric Company LS24D300G H1AK500000" {
+    scale 1
+    position x=3360 y=0
+}
+
+// --- Input ---
+input {
+
+    focus-follows-mouse max-scroll-amount="0%"
+
+    keyboard {
+        xkb {
+            layout "us"
+        }
+        repeat-delay 600
+        repeat-rate 25
+    }
+    touchpad {
+        tap
+        natural-scroll
+        dwt
+    }
+}
+
+// --- Layout & Look ---
+layout {
+
+    background-color "transparent"
+
+    gaps 5
+    struts {
+        left -4
+        right -4
+        top -4
+        bottom -4
+    }
+
+    center-focused-column "never"
+    always-center-single-column
+    empty-workspace-above-first
+    default-column-display "tabbed"
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    preset-window-heights {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    focus-ring {
+        on
+        width 0.5
+        active-color "rgba(220,220,220,0.9)"
+        inactive-color "rgba(20,20,20,0.8)"
+        urgent-color "#9b0000"
+    }
+
+    border {
+        off
+        width 1
+        active-color "rgba(220,220,220,0.9)"
+        inactive-color "rgba(20,20,20,0.8)"
+        urgent-color "#9b0000"
+    }
+
+    shadow {
+        on
+        softness 30
+        spread 5
+        offset x=0 y=5
+        draw-behind-window true
+        color "#00000070"
+        inactive-color "#00000054"
+    }
+
+    tab-indicator {
+        on
+        hide-when-single-tab
+        place-within-column
+        gap 5
+        width 4
+        length total-proportion=1.0
+        position "right"
+        gaps-between-tabs 2
+        corner-radius 8
+        active-color "red"
+        inactive-color "gray"
+        urgent-color "blue"
+        
+    }    
+
+}
+
+prefer-no-csd
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+// --- Animations ---
+animations {
+
+    // slowdown 1.5
+
+    workspace-switch {
+        spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
+    }
+
+    window-open {
+        duration-ms 150
+        curve "ease-out-expo"
+    }
+
+    window-close {
+        duration-ms 150
+        curve "ease-out-quad"
+    }
+
+    horizontal-view-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    window-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    window-resize {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    config-notification-open-close {
+        spring damping-ratio=0.6 stiffness=1000 epsilon=0.001
+    }
+
+    exit-confirmation-open-close {
+        spring damping-ratio=0.6 stiffness=500 epsilon=0.01
+    }
+
+    screenshot-ui-open {
+        duration-ms 200
+        curve "ease-out-quad"
+    }
+
+    overview-open-close {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    recent-windows-close {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.001
+    }
+}
+
+// --- Window Rules ---
+window-rule {
+    open-maximized true
+}
+window-rule {
+    match app-id="Alacritty"
+    match app-id="kitty"
+    match app-id="thunar"
+    open-maximized false
+}
+window-rule {
+    geometry-corner-radius 5
+    clip-to-geometry true
+}
+window-rule {
+    match is-active=true
+    opacity 0.95
+}
+window-rule {
+    match is-active=false
+    opacity 0.75
+}
+window-rule {
+    match title="Waypaper"
+    open-floating true
+}
+window-rule {
+    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+    open-floating true
+}
+
+layer-rule {
+  match namespace="^noctalia-wallpaper*"
+  place-within-backdrop true
+}
+
+overview {
+  workspace-shadow {
+    off
+  }
+}
+
+debug {
+    honor-xdg-activation-with-invalid-serial
+}
+
+// --- Keybinds ---
+binds {
+    Mod+Shift+Slash { show-hotkey-overlay; }
+
+    Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
+    Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
+    Mod+F { spawn "firefox"; }
+    Mod+W { spawn "noctalia-shell" "ipc" "call" "wallpaper" "toggle"; }
+    Mod+S { spawn "spotify"; }        
+    Mod+E { spawn "thunar"; }
+    Mod+Alt+C { spawn "code"; }
+    Mod+Z { spawn "/home/rupan/.local/bin/toggle_zoom.py"; }
+    Mod+B { spawn "noctalia-shell" "ipc" "call" "bar" "toggle"; }
+    Mod+Alt+V { spawn "noctalia-shell" "ipc" "call" "launcher" "clipboard"; }
+    Mod+R { spawn "noctalia-shell" "ipc" "call" "wallpaper" "random"; }
+
+    Mod+C repeat=false { close-window; }
+    Mod+O { toggle-window-rule-opacity; }
+    Mod+Shift+O repeat=false { toggle-overview; }
+
+    Mod+Left  { focus-column-left; }
+    Mod+Page_Down  { focus-window-down; }
+    Mod+Page_Up    { focus-window-up; }
+    Mod+Right { focus-column-right; }
+
+    Mod+Shift+Left  { move-column-left; }
+    Mod+Shift+Page_Down  { move-window-down; }
+    Mod+Shift+Page_Up    { move-window-up; }
+    Mod+Shift+Right { move-column-right; }
+    
+    Mod+Ctrl+Left  { focus-monitor-left; }
+    Mod+Ctrl+Page_Down  { focus-monitor-down; }
+    Mod+Ctrl+Page_Up    { focus-monitor-up; }
+    Mod+Ctrl+Right { focus-monitor-right; }
+
+    Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+Down  { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+Up    { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
+
+    Mod+Down      { focus-workspace-down; }
+    Mod+Up        { focus-workspace-up; }
+    Mod+U              { focus-workspace-down; }
+    Mod+I              { focus-workspace-up; }
+    Mod+Shift+Down { move-column-to-workspace-down; }
+    Mod+Shift+Up   { move-column-to-workspace-up; }
+    Mod+Shift+U         { move-column-to-workspace-down; }
+    Mod+Shift+I         { move-column-to-workspace-up; }
+
+    Mod+Ctrl+Down { move-workspace-down; }
+    Mod+Ctrl+Up   { move-workspace-up; }
+    Mod+Ctrl+U         { move-workspace-down; }
+    Mod+Ctrl+I         { move-workspace-up; }
+
+    Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp   cooldown-ms=150 { focus-workspace-up; }
+
+    Mod+Shift+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Shift+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+
+    MouseForward { focus-column-right; }
+    MouseBack { focus-column-left; }
+
+    Shift+MouseForward { move-column-right; }
+    Shift+MouseBack { move-column-left; }
+
+    Mod+MouseForward { focus-workspace-up; }
+    Mod+MouseBack { focus-workspace-down; }
+
+    Mod+Shift+MouseForward { move-column-to-workspace-up; }
+    Mod+Shift+MouseBack { move-column-to-workspace-down; }
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+    Mod+0 { focus-workspace 10; }
+    Mod+Shift+1 { move-window-to-workspace 1; }
+    Mod+Shift+2 { move-window-to-workspace 2; }
+    Mod+Shift+3 { move-window-to-workspace 3; }
+    Mod+Shift+4 { move-window-to-workspace 4; }
+    Mod+Shift+5 { move-window-to-workspace 5; }
+    Mod+Shift+6 { move-window-to-workspace 6; }
+    Mod+Shift+7 { move-window-to-workspace 7; }
+    Mod+Shift+8 { move-window-to-workspace 8; }
+    Mod+Shift+9 { move-window-to-workspace 9; }
+    Mod+Shift+0 { move-window-to-workspace 10; }
+
+    Mod+Tab { focus-workspace-previous; }
+
+    Mod+BracketLeft  { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+
+    Mod+Comma  { consume-window-into-column; }
+    Mod+Period { expel-window-from-column; }
+
+    Mod+Alt+R { switch-preset-column-width; }
+    Mod+Shift+R { switch-preset-window-height; }
+    Mod+Ctrl+R { reset-window-height; }
+
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
+    
+    Mod+Alt+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+    Mod+Ctrl+F { expand-column-to-available-width; }
+
+    Mod+Shift+C { center-column; }
+    Mod+Ctrl+C { center-visible-columns; }
+    
+    Mod+V       { toggle-window-floating; }
+    Mod+Shift+V { switch-focus-between-floating-and-tiling; }
+
+    Mod+Alt+E { spawn "wl-copy" "rupanpandyan@gmail.com"; }
+    Mod+Alt+N { spawn "wl-copy" "Ramrupan Sunderapandyan"; }
+    Mod+Alt+L { spawn "wl-copy" "https://www.linkedin.com/in/rupan-sunderapandyan/"; }
+
+    XF86AudioRaiseVolume { spawn "noctalia-shell" "ipc" "call" "volume" "increase"; }
+    XF86AudioLowerVolume { spawn "noctalia-shell" "ipc" "call" "volume" "decrease"; }
+    XF86AudioMute { spawn "noctalia-shell" "ipc" "call" "volume" "muteOutput"; }
+
+    XF86MonBrightnessUp { spawn "noctalia-shell" "ipc" "call" "brightness" "increase"; }
+    XF86MonBrightnessDown { spawn "noctalia-shell" "ipc" "call" "brightness" "decrease"; }
+
+
+    // Screenshots
+    Print { screenshot; }
+    Ctrl+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+
+    // Applications such as remote-desktop clients and software KVM switches may
+    // request that niri stops processing the keyboard shortcuts defined here
+    // so they may, for example, forward the key presses as-is to a remote machine.
+    // It's a good idea to bind an escape hatch to toggle the inhibitor,
+    // so a buggy application can't hold your session hostage.
+    //
+    // The allow-inhibiting=false property can be applied to other binds as well,
+    // which ensures niri always processes them, even when an inhibitor is active.
+    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+
+    // The quit action will show a confirmation dialog to avoid accidental exits.
+    Mod+Shift+Q { quit; }
+    Ctrl+Alt+Delete { quit; }
+
+    // Powers off the monitors. To turn them back on, do any input like
+    // moving the mouse or pressing any other key.
+    Mod+Shift+P { power-off-monitors; }
+}
