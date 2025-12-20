@@ -37,8 +37,8 @@
       settings = {
         settingsVersion = 31;
         templates = {
-          kitty = true;
-          niri = true;
+          kitty = false;
+          niri = false;
           gtk = true;
           qt = true;
           alacritty = true;
