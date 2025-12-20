@@ -25,7 +25,6 @@
       bat
       tealdeer
       fzf
-      inputs.noctalia.packages.${pkgs.system}.default
       nwg-look
       kdePackages.qt6ct
       adw-gtk3
@@ -34,6 +33,11 @@
 
     programs.kitty.enable = false;
     gtk.enable = false;
+
+    programs.noctalia-shell = {
+      enable = true;
+      systemd.enable = true;
+    };
 
     ## TERMINAL, SHELL, PROMPT CONFIGURATION
     programs.bash = {
