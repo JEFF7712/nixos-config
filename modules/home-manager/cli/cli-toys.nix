@@ -8,6 +8,7 @@
       pipes-rs      
       cbonsai    
       sl         
+      cava
     ];
   };
 }
