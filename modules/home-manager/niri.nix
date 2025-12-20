@@ -44,7 +44,7 @@
           alacritty = true;
           cava = true;
           code = true;
-          discord = false;
+          discord = true;
           emacs = false;
           foot = false;
           fuzzel = false;
