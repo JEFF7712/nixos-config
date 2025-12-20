@@ -27,13 +27,6 @@
     programs.noctalia-shell = {
       enable = true;
       settings = {
-        spawn-at-startup = [
-          {
-            command = [
-              "noctalia-shell"
-            ];
-          }
-        ];
         bar = {
           density = "compact";
           position = "right";
