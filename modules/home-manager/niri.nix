@@ -11,12 +11,16 @@
   config = lib.mkIf config.niri.enable {
 
     home.packages = with pkgs; [
+      matugen
       grim
       slurp
-      wl-clipboard
-      rofi
       swww
-      waypaper
+      gpu-screen-recorder
+      wl-clipboard
+      cliphist
+      wlsunset
+      ddcutil
+      rofi
       eza 
       bat
       tealdeer
