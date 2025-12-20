@@ -23,6 +23,7 @@
   file-utils.enable = true;  
   docker.enable = true;
   netbird.enable = true;
+  waydroid.enable = true;
 
   environment.shells = with pkgs; [ fish ];
   users.users.rupan.shell = pkgs.fish;
