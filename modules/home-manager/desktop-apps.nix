@@ -21,16 +21,24 @@ in
     ];
 
     programs.firefox = {
-      enable = true;
-      nativeMessagingHosts = [
-        pkgs.pywalfox-native
-      ];
-      package = pkgs.lib.makeOverridable (attrs: 
-        pkgs.writeShellScriptBin "firefox" ''
-          exec ${pkgs.firefox}/bin/firefox --marionette --remote-allow-system-access "$@"
-      ''
-    ) {};  
-    };
+        enable = true;
+        nativeMessagingHosts = [ pkgs.pywalfox-native ];
+        package = pkgs.firefox;
+      };
+
+      xdg.desktopEntries.firefox = {
+        name = "Firefox";
+        genericName = "Web Browser";
+        exec = "firefox --marionette --remote-allow-system-access %U";
+        terminal = false;
+        categories = [ "Application" "Network" "WebBrowser" ];
+        mimeType = [ "text/html" "text/xml" ];
+        icon = "firefox";
+      };
+
+      home.shellAliases = {
+        firefox = "firefox --marionette --remote-allow-system-access";
+      };
 
     home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
       source = ./configs/firefox/chrome;
