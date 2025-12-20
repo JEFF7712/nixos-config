@@ -3,7 +3,5 @@
   
   config = lib.mkIf config.general-laptop.enable {
       services.libinput.enable = true;
-      services.upower.enable = true;
-      services.gnome.gnome-keyring.enable = true;
   };
 }

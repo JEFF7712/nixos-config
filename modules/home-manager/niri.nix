@@ -11,10 +11,6 @@
   config = lib.mkIf config.niri.enable {
 
     home.packages = with pkgs; [
-      niri
-      alacritty
-      libnotify
-      xwayland-satellite
       matugen
       grim
       slurp
@@ -35,9 +31,8 @@
       kitty
     ];
 
-    home.sessionVariables.NIXOS_OZONE_WL = "1";
-    services.upower.enable = true;
-    services.gnome.gnome-keyring.enable = true;
+    programs.kitty.enable = false;
+    gtk.enable = false;
 
     programs.noctalia-shell = {
       enable = true;
@@ -519,6 +514,7 @@
       };
     };
     
+    xdg.configFile."niri".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/niri";
     xdg.configFile."gtk-2.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-2.0";
     xdg.configFile."gtk-3.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-3.0";
     xdg.configFile."gtk-4.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-4.0";
