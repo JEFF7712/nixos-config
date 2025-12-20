@@ -28,6 +28,7 @@
       inputs.noctalia.packages.${pkgs.system}.default
       nwg-look
       kdePackages.qt6ct
+      adw-gtk3
     ];
 
     ## TERMINAL, SHELL, PROMPT CONFIGURATION
@@ -187,8 +188,12 @@
     };
 
     xdg.configFile."niri/config.kdl".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/niri/config.kdl";
-    xdg.configFile."rofi".source = ./configs/rofi;
     xdg.configFile."noctalia/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/noctalia/settings.json";
+    xdg.configFile."gtk-2.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-2.0";
+    xdg.configFile."gtk-3.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-3.0";
+    xdg.configFile."gtk-4.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-4.0";
+    xdg.configFile."qt5ct".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/qt5ct";    
+    xdg.configFile."qt6ct".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/qt6ct";
 
   };
 }

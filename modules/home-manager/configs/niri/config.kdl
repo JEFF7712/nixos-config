@@ -44,7 +44,6 @@ input {
     keyboard {
         xkb {
             layout "us"
-            // options "caps:escape" // Optional: Remap Caps to Esc
         }
         repeat-delay 600
         repeat-rate 25
@@ -138,9 +137,7 @@ hotkey-overlay {
 // --- Animations ---
 animations {
 
-    slowdown 1.5
-
-
+    // slowdown 1.5
 
     workspace-switch {
         spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
