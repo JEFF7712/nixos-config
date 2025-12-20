@@ -26,6 +26,8 @@
       tealdeer
       fzf
       inputs.noctalia.packages.${pkgs.system}.default
+      nwg-look
+      kdePackages.qt6ct
     ];
 
     ## TERMINAL, SHELL, PROMPT CONFIGURATION
@@ -109,40 +111,6 @@
       enableFishIntegration = true;
     };
 
-    services.mako = {
-      enable = true;
-      settings = {
-        font = "JetBrains Mono 10"; 
-        "background-color" = "#101010cc";
-        "text-color" = "#eeeeeecc";
-        "border-color" = "#303030cc";
-        "border-size" = 1;
-        "border-radius" = 3;
-        width = 400;
-        height = 125;
-        margin = "10";
-        padding = "15";
-        "default-timeout" = 5000;
-        layer = "overlay";
-        anchor = "top-right";
-	      "output=DP-1" = {
-          width = 500;
-	        height = 150;
-          font = "JetBrains Mono 12";
-        };
-      };
-    };
-
-    services.batsignal = {
-      enable = true;
-      extraArgs = [
-        "-w" "30"
-        "-c" "10"
-        "-d" "5"
-        "-m" "Battery Low" 
-      ];
-    }; 
-
     programs.swaylock = {
       enable = true;
       package = pkgs.swaylock-effects;
@@ -218,34 +186,6 @@
       '';
     };
 
-    programs.waybar = {
-      enable = true;
-    };  
-
-    systemd.user.services.wallpaper-cycler = {
-      Unit = {
-        Description = "Cycle wallpaper randomly using waypaper";
-        After = [ "graphical-session.target" ];
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.waypaper}/bin/waypaper --random";
-      };
-    };
-
-    systemd.user.timers.wallpaper-cycler = {
-      Unit = {
-        Description = "Timer to cycle wallpaper every hour";
-      };
-      Timer = {
-        OnBootSec = "5m"; 
-        OnUnitActiveSec = "1h"; 
-      };
-      Install = {
-        WantedBy = [ "timers.target" ];
-      };
-    };
-    
     xdg.configFile."niri/config.kdl".source = ./configs/niri/config.kdl;
     xdg.configFile."rofi".source = ./configs/rofi;
     xdg.configFile."noctalia/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/noctalia/settings.json";
