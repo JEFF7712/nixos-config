@@ -22,6 +22,9 @@ in
 
     programs.firefox = {
       enable = true;
+      nativeMessagingHosts = [
+        pkgs.pywalfox-native
+      ];
       package = pkgs.lib.makeOverridable (attrs: 
         pkgs.writeShellScriptBin "firefox" ''
           exec ${pkgs.firefox}/bin/firefox --marionette --remote-allow-system-access "$@"
