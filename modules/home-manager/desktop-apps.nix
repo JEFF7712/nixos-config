@@ -19,6 +19,7 @@ in
       networkmanagerapplet
       vesktop
       pywalfox-native
+      spicetify-cli
     ];
 
     programs.firefox = {
