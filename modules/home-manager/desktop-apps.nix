@@ -59,14 +59,15 @@ in
       
       profiles.default = {
         extensions = with pkgs.vscode-marketplace; [
-          bbenoist.nix       
+          jnoortheen.nix-ide       
           ms-python.python   
           github.copilot     
           hashicorp.terraform
           pjmiravalle.terraform-advanced-syntax-highlighting
           redhat.vscode-yaml
           esbenp.prettier-vscode
-	  ms-azuretools.vscode-docker
+          kdl-org.kdl
+	        ms-azuretools.vscode-docker
         ];
         
         userSettings = {
