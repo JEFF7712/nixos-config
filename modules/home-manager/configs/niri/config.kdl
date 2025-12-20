@@ -1,5 +1,3 @@
-include "./noctalia.kdl"
-
 // --- Startup ---
 spawn-at-startup "xwayland-satellite"
 
@@ -389,3 +387,5 @@ binds {
     // moving the mouse or pressing any other key.
     Mod+Shift+P { power-off-monitors; }
 }
+
+include "./noctalia.kdl"
