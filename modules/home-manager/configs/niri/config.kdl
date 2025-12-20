@@ -1,9 +1,6 @@
 // --- Startup ---
 spawn-at-startup "xwayland-satellite"
-spawn-at-startup "waybar"
 spawn-at-startup "swww-daemon"
-spawn-at-startup "mako"
-spawn-at-startup "waypaper --restore"
 spawn-at-startup "noctalia-shell"
 
 screenshot-path "~/media/images/screenshots/ss-%Y-%m-%d-%H-%M-%S.png"
