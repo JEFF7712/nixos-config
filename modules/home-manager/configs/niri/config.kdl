@@ -1,6 +1,7 @@
 // --- Startup ---
 spawn-at-startup "xwayland-satellite"
 spawn-at-startup "noctalia-shell"
+spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP"
 
 screenshot-path "~/media/images/screenshots/ss-%Y-%m-%d-%H-%M-%S.png"
 
