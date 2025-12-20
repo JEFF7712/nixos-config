@@ -29,13 +29,10 @@
       nwg-look
       kdePackages.qt6ct
       adw-gtk3
+      kitty
     ];
 
     ## TERMINAL, SHELL, PROMPT CONFIGURATION
-    programs.kitty = {
-      enable = true;
-      extraConfig = builtins.readFile ./configs/kitty/kitty.conf;
-    };
     programs.bash = {
       enable = true;
       initExtra = builtins.readFile ./configs/bashrc/.bashrc;
@@ -194,6 +191,6 @@
     xdg.configFile."gtk-4.0".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/gtk-4.0";
     xdg.configFile."qt5ct".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/qt5ct";    
     xdg.configFile."qt6ct".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/qt6ct";
-
+    xdg.configFile."kitty".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/kitty";
   };
 }
