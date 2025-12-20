@@ -186,7 +186,7 @@
       '';
     };
 
-    xdg.configFile."niri/config.kdl".source = ./configs/niri/config.kdl;
+    xdg.configFile."niri/config.kdl".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/niri/config.kdl";
     xdg.configFile."rofi".source = ./configs/rofi;
     xdg.configFile."noctalia/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/noctalia/settings.json";
 
