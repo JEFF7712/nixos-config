@@ -17,6 +17,7 @@ in
       qbittorrent
       localsend
       networkmanagerapplet
+      discord
     ];
 
     programs.firefox = {
