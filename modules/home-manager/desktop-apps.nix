@@ -67,20 +67,12 @@ in
           redhat.vscode-yaml
           esbenp.prettier-vscode
           kdl-org.kdl
-	        ms-azuretools.vscode-docker
-        ];
-        
-        userSettings = {
-          "editor.fontFamily" = "'JetBrainsMono Nerd Font', 'Droid Sans Mono', 'monospace'";
-          "editor.fontSize" = 14;
-          "editor.defaultFormatter" = "prettier.prettier-vscode";
-          "window.titleBarStyle" = "custom";
-          "git.enableSmartCommit" = true;
-          "git.confirmSync" = false;
-        };
+          ms-azuretools.vscode-docker
+        ];        
       };
     };
 
+    xdg.configFile."Code/User/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/vscode/settings.json";
 
   };
 }

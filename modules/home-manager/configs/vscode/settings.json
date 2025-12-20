@@ -1,0 +1,8 @@
+{
+  "editor.defaultFormatter": "prettier.prettier-vscode",
+  "editor.fontFamily": "'JetBrainsMono Nerd Font', 'Droid Sans Mono', 'monospace'",
+  "editor.fontSize": 14,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "window.titleBarStyle": "custom"
+}
