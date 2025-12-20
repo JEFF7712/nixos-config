@@ -91,6 +91,9 @@
                 },
                 {
                     "id": "plugin:launcher-button"
+                },
+                {
+                    "id": "plugin:catwalk"
                 }
             ],
             "right": [
@@ -187,7 +190,7 @@
                 "id": "audio-card"
             },
             {
-                "enabled": false,
+                "enabled": true,
                 "id": "brightness-card"
             },
             {
@@ -234,7 +237,7 @@
     "desktopWidgets": {
         "editMode": false,
         "enabled": true,
-        "gridSnap": false,
+        "gridSnap": true,
         "monitorWidgets": [
             {
                 "name": "DP-7",
@@ -249,19 +252,29 @@
                         "customFont": "",
                         "format": "h:mm AP\\nd MMMM yyyy",
                         "id": "Clock",
-                        "showBackground": true,
+                        "scale": 3,
+                        "showBackground": false,
                         "useCustomFont": false,
                         "usePrimaryColor": false,
-                        "x": 50,
-                        "y": 50
+                        "x": 740,
+                        "y": 100
                     },
                     {
                         "hideMode": "visible",
                         "id": "MediaPlayer",
-                        "showBackground": true,
+                        "scale": 2.83417983681162,
+                        "showBackground": false,
                         "visualizerType": "linear",
-                        "x": 100,
-                        "y": 200
+                        "visualizerVisibility": "always",
+                        "x": 440,
+                        "y": 420
+                    },
+                    {
+                        "id": "Weather",
+                        "scale": 3,
+                        "showBackground": false,
+                        "x": 580,
+                        "y": 780
                     }
                 ]
             }
@@ -370,7 +383,8 @@
             0,
             1,
             2,
-            4
+            4,
+            3
         ],
         "location": "top_right",
         "monitors": [
@@ -457,7 +471,7 @@
         "warningColor": ""
     },
     "templates": {
-        "alacritty": true,
+        "alacritty": false,
         "cava": true,
         "code": true,
         "discord": false,
@@ -468,7 +482,7 @@
         "ghostty": false,
         "gtk": true,
         "kcolorscheme": false,
-        "kitty": true,
+        "kitty": false,
         "mango": false,
         "niri": true,
         "pywalfox": false,
