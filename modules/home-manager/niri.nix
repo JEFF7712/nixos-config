@@ -36,6 +36,8 @@
     ];
 
     home.sessionVariables.NIXOS_OZONE_WL = "1";
+    services.upower.enable = true;
+    services.gnome.gnome-keyring.enable = true;
 
     programs.noctalia-shell = {
       enable = true;
