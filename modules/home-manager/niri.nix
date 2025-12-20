@@ -34,7 +34,6 @@
             ];
           }
         ];
-        # configure noctalia here
         bar = {
           density = "compact";
           position = "right";
