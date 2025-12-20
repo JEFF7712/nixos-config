@@ -32,6 +32,9 @@
       kitty
     ];
 
+    programs.kitty.enable = false;
+    gtk.enable = false;
+
     ## TERMINAL, SHELL, PROMPT CONFIGURATION
     programs.bash = {
       enable = true;
@@ -183,5 +186,6 @@
     xdg.configFile."qt5ct".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/qt5ct";    
     xdg.configFile."qt6ct".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/qt6ct";
     xdg.configFile."kitty".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/kitty";
+
   };
 }
