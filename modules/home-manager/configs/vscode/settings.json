@@ -5,4 +5,5 @@
   "git.confirmSync": false,
   "git.enableSmartCommit": true,
   "window.titleBarStyle": "custom"
+  "workbench.colorTheme": "NoctaliaTheme"
 }
