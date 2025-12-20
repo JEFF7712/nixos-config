@@ -238,17 +238,17 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-    Mod+Space hotkey-overlay-title="App Launcher" { spawn "noctalia-shell ipc call launcher toggle"; }
-    Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell ipc call lockScreen lock"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
+    Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
     Mod+F { spawn "firefox"; }
-    Mod+W { spawn "noctalia-shell ipc call wallpaper toggle"; }
+    Mod+W { spawn "noctalia-shell" "ipc" "call" "wallpaper" "toggle"; }
     Mod+S { spawn "spotify"; }        
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
     Mod+Z { spawn "/home/rupan/.local/bin/toggle_zoom.py"; }
-    Mod+B { spawn "noctalia-shell ipc call bar toggle"; }
+    Mod+B { spawn "noctalia-shell" "ipc" "call" "bar" "toggle"; }
     Mod+Alt+V { spawn "noctalia-shell" "ipc" "call" "launcher" "clipboard"; }
-    Mod+R { spawn "noctalia-shell ipc call wallpaper random"; }
+    Mod+R { spawn "noctalia-shell" "ipc" "call" "wallpaper" "random"; }
 
     Mod+C repeat=false { close-window; }
     Mod+O { toggle-window-rule-opacity; }
