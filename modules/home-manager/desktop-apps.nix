@@ -18,6 +18,7 @@ in
       localsend
       networkmanagerapplet
       discord
+      pywalfox-native
     ];
 
     programs.firefox = {
