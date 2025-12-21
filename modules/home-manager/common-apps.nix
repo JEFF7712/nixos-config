@@ -4,22 +4,13 @@ let
 in
 {
   imports = [ inputs.spicetify-nix.homeManagerModules.default ];
-  options.desktop-apps.enable = lib.mkEnableOption "desktop-apps";
-  config = lib.mkIf config.desktop-apps.enable {
+  options.common-apps.enable = lib.mkEnableOption "common-apps";
+  config = lib.mkIf config.common-apps.enable {
 
     home.packages = with pkgs; [
-      davinci-resolve
-      bitwarden-desktop
-      libreoffice-qt-fresh  
-      netflix
-      chromium
-      obs-studio
-      qbittorrent
-      localsend
       networkmanagerapplet
       vesktop
       pywalfox-native
-      chiaki-ng
     ];
 
     programs.firefox = {

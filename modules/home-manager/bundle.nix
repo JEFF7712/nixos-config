@@ -1,6 +1,7 @@
 { pkgs, lib, ... }: {
   imports = [
-    ./desktop-apps.nix
+    ./common-apps.nix
+    ./heavy-apps.nix
     ./niri.nix
     ./cli/cli-toys.nix
     ./cli/cli-tools.nix
