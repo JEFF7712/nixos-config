@@ -2,7 +2,11 @@
 
 ## Try it out yourself!
 
-1. Download the ISO
+1. Build the ISO (Might take a while):
+
+```
+nix build github:JEFF7712/nixos-config#nixosConfigurations.iso.config.system.build.isoImage
+```
 
 2. Flash the ISO onto a USB flash drive
 
@@ -10,7 +14,7 @@
 
 4. Connect to wifi:
 
-using nmtui:
+Using nmtui:
 
 ```
 sudo nmtui

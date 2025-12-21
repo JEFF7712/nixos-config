@@ -1,0 +1,41 @@
+name: Build and Release ISO
+
+on:
+  workflow_dispatch: # Allows you to click "Run" manually in GitHub Actions tab
+  push:
+    tags:
+      - 'v*' # Triggers only when you push a tag like v1.0
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 1. Install Nix
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@main
+
+    # 2. Enable Magic Cache
+    - name: Magic Nix Cache
+      uses: DeterminateSystems/magic-nix-cache-action@main
+
+    # 3. Build the ISO
+    - name: Build ISO
+      run: |
+        nix build .#nixosConfigurations.iso.config.system.build.isoImage
+        cp $(readlink -f result/iso/*.iso) custom-nixos.iso
+        sha256sum custom-nixos.iso > custom-nixos.iso.sha256
+        echo "Build Complete! Filename: custom-nixos.iso"
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          custom-nixos.iso
+          custom-nixos.iso.sha256
+        draft: false 
+        prerelease: false
