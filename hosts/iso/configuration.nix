@@ -3,7 +3,13 @@
 {
   imports = [
     "${modulesPath}/installer/cd-dvd/installation-cd-graphical-base.nix"
-    ../../modules/nixos/bundle.nix
+    ../../modules/nixos/niri.nix
+    ../../modules/nixos/general-laptop.nix
+    ../../modules/nixos/audio.nix
+    ../../modules/nixos/ctls.nix
+    ../../modules/nixos/bluetooth.nix
+    ../../modules/nixos/filemanager.nix
+    ../../modules/nixos/file-utils.nix
   ];
 
   boot.loader.systemd-boot.enable = lib.mkForce false;

@@ -2,7 +2,11 @@
 {
   imports = [
     ./home.nix
-    ../../modules/home-manager/bundle.nix 
+    ../../modules/home-manager/niri.nix 
+    ../../modules/home-manager/common-apps.nix 
+    ../../modules/home-manager/cli/cli-tools.nix
+    ../../modules/home-manager/cli/cli-toys.nix  
+
   ];
 
   home.packages = with pkgs; [
@@ -15,11 +19,10 @@
   common-apps.enable = true;
   cli-toys.enable = true;
   cli-tools.enable = true;
-  dev.enable = true;
 
   programs.fish = {
     shellAliases = {
-      bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#laptop && git commit -m 'Updates' && git push";
+      bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#iso && git commit -m 'Updates' && git push";
     };
   };
 
