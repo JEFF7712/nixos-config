@@ -27,7 +27,7 @@
 
   programs.fish = {
     shellAliases = {
-      bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#laptop && git commit -m 'Updates' && git push";
+      bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#general-device && git commit -m 'Updates' && git push";
     };
   };
 

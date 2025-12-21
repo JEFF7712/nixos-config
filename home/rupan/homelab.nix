@@ -6,6 +6,12 @@
   ];
   
   cli-toys.enable = true;
-  direnv.enable = true;
+  dev.enable = true;
+
+  programs.fish = {
+    shellAliases = {
+      bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#homelab && git commit -m 'Updates' && git push";
+    };
+  };
 
 }
