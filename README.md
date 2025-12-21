@@ -12,6 +12,8 @@
 
 5. Open a terminal and run 
 
-''
+```
 get-config
-''
+```
+
+6. Done!
