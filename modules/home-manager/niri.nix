@@ -484,6 +484,7 @@
         la = "eza -a --icons";     
         lla = "eza -la --icons"; 
         cd = "z";
+        cds = "zi";
       };
       interactiveShellInit = ''
         set fish_greeting ""
