@@ -1,10 +1,10 @@
 name: Build and Release ISO
 
 on:
-  workflow_dispatch: # Allows you to click "Run" manually in GitHub Actions tab
+  workflow_dispatch:
   push:
     tags:
-      - 'v*' # Triggers only when you push a tag like v1.0
+      - 'v*'
 
 jobs:
   build-iso:
@@ -22,6 +22,8 @@ jobs:
     # 2. Enable Magic Cache
     - name: Magic Nix Cache
       uses: DeterminateSystems/magic-nix-cache-action@main
+      with:
+        use-flakehub: false
 
     # 3. Build the ISO
     - name: Build ISO
@@ -37,5 +39,5 @@ jobs:
         files: |
           custom-nixos.iso
           custom-nixos.iso.sha256
-        draft: false 
+        draft: false
         prerelease: false
