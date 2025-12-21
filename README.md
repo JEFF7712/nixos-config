@@ -2,11 +2,7 @@
 
 ## Try it out yourself!
 
-1. Build the ISO (Might take a while):
-
-```
-nix build github:JEFF7712/nixos-config#nixosConfigurations.iso.config.system.build.isoImage
-```
+1. Download the ISO from the releases page
 
 2. Flash the ISO onto a USB flash drive
 
