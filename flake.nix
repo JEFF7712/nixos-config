@@ -67,8 +67,20 @@
             }
           ];
         };
+        iso-full = nixpkgs.lib.nixosSystem {
+        inherit system pkgs; 
+        specialArgs = { inherit inputs self; }; 
+        modules = [
+          ./hosts/iso/full.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = { inherit inputs; };
+            home-manager.users.rupan = import ./home/rupan/laptop.nix;
+          }
+        ];
       };
-
 
       devShells.${system} = {
         cbe = pkgs.mkShell {
@@ -78,4 +90,5 @@
         default = self.devShells.${system}.cbe;
       };
     };
+  };
 }
