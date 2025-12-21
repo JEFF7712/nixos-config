@@ -46,14 +46,14 @@ jobs:
           echo "❌ ISO is too big: $FILE_SIZE bytes"
           exit 1
         fi
-        cp "$ISO_PATH" custom-nixos.iso
-        sha256sum custom-nixos.iso > custom-nixos.iso.sha256
+        cp "$ISO_PATH" rupan-nixos.iso
+        sha256sum rupan-nixos.iso > rupan-nixos.iso.sha256
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          custom-nixos.iso
-          custom-nixos.iso.sha256
+          rupan-nixos.iso
+          rupan-nixos.iso.sha256
         draft: false
         prerelease: false
