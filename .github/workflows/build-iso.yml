@@ -39,7 +39,7 @@ jobs:
     # 3. Build the ISO
     - name: Build ISO
       run: |
-        nix build .#nixosConfigurations.iso.config.system.build.isoImage
+        nix build .#nixosConfigurations.iso-micro.config.system.build.isoImage
         ISO_PATH=$(readlink -f result/iso/*.iso)
         FILE_SIZE=$(stat -c%s "$ISO_PATH")
         if [ "$FILE_SIZE" -gt 2147483648 ]; then
