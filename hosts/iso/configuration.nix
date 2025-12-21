@@ -1,4 +1,4 @@
-{ config, lib, pkgs, modulesPath, ... }:
+{ config, lib, pkgs, modulesPath, self, ... }:
 
 {
   imports = [
@@ -15,6 +15,19 @@
       options = [ "lowerdir=/nix/store" "upperdir=/run/current-system" "workdir=/run/workdir" ];
     };
   };
+
+  isoImage.squashfsCompression = "zstd";
+
+  environment.etc."nixos-config-source".source = self;
+
+  system.activationScripts.copyConfig = ''
+    if [ ! -d /home/rupan/nixos-config ]; then
+      echo "Copying config to home directory..."
+      mkdir -p /home/rupan
+      ${pkgs.rsync}/bin/rsync -av --chmod=u+w /etc/nixos-config-source/ /home/rupan/nixos-config/
+      chown -R rupan:users /home/rupan/nixos-config
+    fi
+  '';
 
   networking.hostName = "rupan-live-iso";
   
@@ -51,6 +64,7 @@
     wget 
     neovim 
     pciutils
+    rsync
   ];
 
   services.power-profiles-daemon.enable = true;
