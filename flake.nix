@@ -55,7 +55,7 @@
         general-device = mkSystem "general-device" ./home/rupan/general-device.nix;
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
         iso = nixpkgs.lib.nixosSystem {
-          inherit system;
+          inherit system pkgs;
           specialArgs = { inherit inputs; };
           modules = [
             ./hosts/iso/configuration.nix
