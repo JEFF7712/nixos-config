@@ -5,6 +5,7 @@
     environment.systemPackages = [
       pkgs.brightnessctl
       pkgs.playerctl
+      pkgs.dualsensectl      
     ]; 
   };
 }
