@@ -19,6 +19,7 @@ in
       networkmanagerapplet
       vesktop
       pywalfox-native
+      chiaki-ng
     ];
 
     programs.firefox = {
