@@ -1,4 +1,4 @@
-{ config, lib, pkgs, modulesPath, self, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
 
 {
   imports = [
@@ -9,17 +9,6 @@
   boot.loader.systemd-boot.enable = lib.mkForce false;
 
   isoImage.squashfsCompression = "xz";
-
-  environment.etc."nixos-config-source".source = self;
-
-  system.activationScripts.copyConfig = ''
-    if [ ! -d /home/rupan/nixos-config ]; then
-      echo "Copying config to home directory..."
-      mkdir -p /home/rupan
-      ${pkgs.rsync}/bin/rsync -av --chmod=u+w /etc/nixos-config-source/ /home/rupan/nixos-config/
-      chown -R rupan:users /home/rupan/nixos-config
-    fi
-  '';
 
   networking.hostName = "rupan-live-iso";
   
