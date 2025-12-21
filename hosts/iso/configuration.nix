@@ -8,8 +8,7 @@
 
   boot.loader.systemd-boot.enable = lib.mkForce false;
 
-
-  isoImage.squashfsCompression = "zstd";
+  isoImage.squashfsCompression = "xz";
 
   environment.etc."nixos-config-source".source = self;
 

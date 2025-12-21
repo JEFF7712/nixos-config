@@ -55,7 +55,7 @@
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
         iso = nixpkgs.lib.nixosSystem {
           inherit system pkgs;
-          specialArgs = { inherit inputs self; };
+          specialArgs = { inherit inputs; };
           modules = [
             ./hosts/iso/configuration.nix
             home-manager.nixosModules.home-manager
