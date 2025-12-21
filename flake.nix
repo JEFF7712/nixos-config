@@ -7,8 +7,10 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    spicetify-nix.url = "github:Gerg-L/spicetify-nix";
-    spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
+    spicetify-nix = {
+      url = "github:Gerg-L/spicetify-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
@@ -16,103 +18,64 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, spicetify-nix, nix-vscode-extensions, ... }@inputs:     
-  let
-    system = "x86_64-linux";
-    pkgs = import nixpkgs { 
-      inherit system; 
-      config.allowUnfree = true;
-      overlays = [
-        nix-vscode-extensions.overlays.default
-      ];
-    };
-    python = pkgs.python311;
-  in {
+  outputs = { self, nixpkgs, home-manager, nix-vscode-extensions, ... }@inputs:
+    let
+      system = "x86_64-linux";
+      
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+        overlays = [ nix-vscode-extensions.overlays.default ];
+      };
 
-    nixosConfigurations = {
-      laptop = nixpkgs.lib.nixosSystem {
-	      inherit system pkgs;
-	      specialArgs = { inherit inputs; };
+      mkSystem = host: userModule: nixpkgs.lib.nixosSystem {
+        inherit system pkgs;
+        specialArgs = { inherit inputs; };
         modules = [
-          ./hosts/laptop/configuration.nix
-          home-manager.nixosModules.home-manager 
+          ./hosts/${host}/configuration.nix
+          home-manager.nixosModules.home-manager
           {
-	          home-manager.useGlobalPkgs = true;
-	          home-manager.useUserPackages = true;
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.backupFileExtension = "backup";
-	          home-manager.users.rupan = import ./home/rupan/laptop.nix;
+            home-manager.users.rupan = import userModule;
           }
         ];
       };
 
-      workmachine = nixpkgs.lib.nixosSystem {
-        inherit system pkgs;
-        specialArgs = { inherit inputs; };
-	      modules = [
-	        ./hosts/workmachine/configuration.nix
-          home-manager.nixosModules.home-manager
-          { 
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.backupFileExtension = "backup";
-            home-manager.users.rupan = import ./home/rupan/workmachine.nix;
-          }
-        ];
+      pythonEnv = pkgs.python311.withPackages (ps: with ps; [
+        numpy pandas scikit-learn requests matplotlib openpyxl
+      ]);
+
+    in {
+      nixosConfigurations = {
+        laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
+        workmachine = mkSystem "workmachine" ./home/rupan/workmachine.nix;
+        general-device = mkSystem "general-device" ./home/rupan/general-device.nix;
+        homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
+        iso = nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = { inherit inputs; };
+          modules = [
+            ./hosts/iso/configuration.nix
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.rupan = import ./home/rupan/laptop.nix;
+            }
+          ];
+        };
       };
 
-      general-device = nixpkgs.lib.nixosSystem {
-        inherit system pkgs;
-        specialArgs = { inherit inputs; };
-	      modules = [
-	        ./hosts/general-device/configuration.nix
-          home-manager.nixosModules.home-manager
-          { 
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.backupFileExtension = "backup";
-            home-manager.users.rupan = import ./home/rupan/general-device.nix;
-          }
-        ];
-      };
 
-      homelab = nixpkgs.lib.nixosSystem {
-        inherit system pkgs;
-        specialArgs = { inherit inputs; };
-        modules = [
-          ./hosts/homelab/configuration.nix
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.backupFileExtension = "backup";
-            home-manager.users.rupan = import ./home/rupan/homelab.nix;
-          }
-        ];
+      devShells.${system} = {
+        cbe = pkgs.mkShell {
+          packages = [ pythonEnv pkgs.openblas ];
+          shellHook = ''echo "Welcome to the CBE Development Shell."'';
+        };
+        default = self.devShells.${system}.cbe;
       };
     };
-
-    devShells.${system} = {
-      cbe = pkgs.mkShell {
-        packages = [
-          (python.withPackages (ps: with ps; [
-            ps.numpy
-            ps.pandas
-            ps.scikit-learn
-            ps.requests
-	          ps.matplotlib
-            ps.openpyxl
-          ]))
-          pkgs.openblas
-        ];
-
-        shellHook = ''
-          echo "Welcome to the CBE Development Shell."
-        '';
-      };
-
-      # Add more shells here
-      default = self.devShells.${system}.cbe;
-    };
-  };
 }
