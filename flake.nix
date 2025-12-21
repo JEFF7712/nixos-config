@@ -53,18 +53,10 @@
         laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
         workmachine = mkSystem "workmachine" ./home/rupan/workmachine.nix;
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
-        iso = nixpkgs.lib.nixosSystem {
+        iso-micro = nixpkgs.lib.nixosSystem {
           inherit system pkgs;
-          specialArgs = { inherit inputs; };
           modules = [
-            ./hosts/iso/configuration.nix
-            home-manager.nixosModules.home-manager
-            {
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.extraSpecialArgs = { inherit inputs; };
-              home-manager.users.rupan = import ./home/rupan/iso.nix;
-            }
+            ./hosts/iso/micro.nix
           ];
         };
         iso-full = nixpkgs.lib.nixosSystem {
