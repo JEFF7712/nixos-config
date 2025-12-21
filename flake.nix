@@ -53,17 +53,11 @@
         laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
         workmachine = mkSystem "workmachine" ./home/rupan/workmachine.nix;
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
-        iso-micro = nixpkgs.lib.nixosSystem {
-          inherit system pkgs;
-          modules = [
-            ./hosts/iso/micro.nix
-          ];
-        };
-        iso-full = nixpkgs.lib.nixosSystem {
+        iso = nixpkgs.lib.nixosSystem {
         inherit system pkgs; 
         specialArgs = { inherit inputs self; }; 
         modules = [
-          ./hosts/iso/full.nix
+          ./hosts/iso/configuration.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
