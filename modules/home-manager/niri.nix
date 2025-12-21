@@ -75,19 +75,61 @@
         color15 {{colors.on_surface_variant.default.hex}}
     '';
 
+    xdg.configFile."noctalia/templates/fish.fish".text = ''
+      set -g fish_color_normal {{colors.on_surface.default.hex}}
+      set -g fish_color_command {{colors.primary.default.hex}}
+      set -g fish_color_keyword {{colors.tertiary.default.hex}}
+      set -g fish_color_quote {{colors.secondary.default.hex}}
+      set -g fish_color_redirection {{colors.on_surface.default.hex}}
+      set -g fish_color_end {{colors.on_surface_variant.default.hex}}
+      set -g fish_color_error {{colors.error.default.hex}}
+      set -g fish_color_param {{colors.on_surface.default.hex}}
+      set -g fish_color_comment {{colors.outline.default.hex}}
+      set -g fish_color_selection --background={{colors.surface_container_highest.default.hex}}
+      set -g fish_color_search_match --background={{colors.surface_container_highest.default.hex}}
+      set -g fish_color_operator {{colors.primary.default.hex}}
+      set -g fish_color_escape {{colors.secondary.default.hex}}
+      set -g fish_color_autosuggestion {{colors.on_surface_variant.default.hex}}
+    '';
+
+    xdg.configFile."noctalia/templates/starship.toml".text = ''
+      format = "$all"
+      
+      [character]
+      success_symbol = "[❯]({{colors.primary.default.hex}})"
+      error_symbol = "[❯]({{colors.error.default.hex}})"
+
+      [directory]
+      style = "bold {{colors.secondary.default.hex}}"
+
+      [git_branch]
+      style = "bold {{colors.tertiary.default.hex}}"
+
+      [cmd_duration]
+      style = "bold {{colors.on_surface_variant.default.hex}}"
+    '';
+
     programs.noctalia-shell = {
       enable = true;
       systemd.enable = true;
       user-templates = {
         config = {
-          scheme_type = "scheme_monochrome"; 
+          scheme_type = "scheme_tonal-spot"; 
         };
         
         templates = {
           kitty = {
             input_path = "~/.config/noctalia/templates/kitty.conf";
             output_path = "~/.config/kitty/colors.conf";
-            post_hook = "${pkgs.procps}/bin/pkill -USR1 kitty"; 
+            post_hook = "${pkgs.procps}/bin/pkill -USR1 kitty";
+          };
+          fish = {
+            input_path = "~/.config/noctalia/templates/fish.fish";
+            output_path = "~/.config/fish/conf.d/matugen_theme.fish";
+          };
+          starship = {
+            input_path = "~/.config/noctalia/templates/starship.toml";
+            output_path = "~/.config/starship_matugen.toml";
           };
         };
       };
@@ -444,58 +486,59 @@
       };
       interactiveShellInit = ''
         set fish_greeting ""
-        set -g fish_color_param dddddd 
-        set -g fish_color_valid_path aaaaaa 
+        set -gx STARSHIP_CONFIG $HOME/.config/starship_matugen.toml
+        # set -g fish_color_param dddddd 
+        # set -g fish_color_valid_path aaaaaa 
        
-        set -g fish_color_command ffffff
-        set -g fish_color_error ff6666
-        set -g fish_color_quote ffffff        
-        set -g fish_color_autosuggestion 777777 
+        # set -g fish_color_command ffffff
+        # set -g fish_color_error ff6666
+        # set -g fish_color_quote ffffff        
+        # set -g fish_color_autosuggestion 777777 
       '';
     };
-    home.sessionVariables = {
-      EZA_COLORS = builtins.concatStringsSep ":" [
-        "di=1;97"
-        "fi=97"
-        "ln=4;3;97"
-        "ex=1;97"
-        "ur=2;90" # User Read
-        "uw=2;90" # User Write
-        "ux=2;90" # User Execute
-        "gu=2;90" # Group
-        "da=2;90" # Date
-        "sn=2;90" # Size numbers
-        "sb=2;90" # Size units
-        "do=97"   # Documents
-        "co=97"   # Compressed files
-        "tm=90"   # Temporary files (dimmed)
-      ];
-    };
+    # home.sessionVariables = {
+    #   EZA_COLORS = builtins.concatStringsSep ":" [
+    #     "di=1;97"
+    #     "fi=97"
+    #     "ln=4;3;97"
+    #     "ex=1;97"
+    #     "ur=2;90" # User Read
+    #     "uw=2;90" # User Write
+    #     "ux=2;90" # User Execute
+    #     "gu=2;90" # Group
+    #     "da=2;90" # Date
+    #     "sn=2;90" # Size numbers
+    #     "sb=2;90" # Size units
+    #     "do=97"   # Documents
+    #     "co=97"   # Compressed files
+    #     "tm=90"   # Temporary files (dimmed)
+    #   ];
+    # };
     programs.starship = {
       enable = true;
-        settings = {
-          format = "$all";
-          directory = {
-            style = "bold #aaaaaa"; 
-            truncation_length = 8;
-            truncate_to_repo = false;
-            read_only = " 🔒"; 
-          };
-          git_branch = {
-            style = "bold #f8f8f2"; 
-            symbol = "🌱 ";
-            truncation_length = 4;
-            truncation_symbol = "";
-          };
-          character = {
-            success_symbol = "[❯](bold #cccccc)";
-            error_symbol = "[✖](bold #ff6666)";
-          };
-          nix_shell = {
-            style = "bold #aaaaaa";
-            symbol = "❄️ ";
-          };
-      };
+      #   settings = {
+      #     format = "$all";
+      #     directory = {
+      #       style = "bold #aaaaaa"; 
+      #       truncation_length = 8;
+      #       truncate_to_repo = false;
+      #       read_only = " 🔒"; 
+      #     };
+      #     git_branch = {
+      #       style = "bold #f8f8f2"; 
+      #       symbol = "🌱 ";
+      #       truncation_length = 4;
+      #       truncation_symbol = "";
+      #     };
+      #     character = {
+      #       success_symbol = "[❯](bold #cccccc)";
+      #       error_symbol = "[✖](bold #ff6666)";
+      #     };
+      #     nix_shell = {
+      #       style = "bold #aaaaaa";
+      #       symbol = "❄️ ";
+      #     };
+      # };
     };
     programs.zoxide = {
       enable = true;
