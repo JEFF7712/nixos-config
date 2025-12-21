@@ -52,11 +52,10 @@
       nixosConfigurations = {
         laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
         workmachine = mkSystem "workmachine" ./home/rupan/workmachine.nix;
-        general-device = mkSystem "general-device" ./home/rupan/general-device.nix;
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
         iso = nixpkgs.lib.nixosSystem {
           inherit system pkgs;
-          specialArgs = { inherit inputs; };
+          specialArgs = { inherit inputs self; };
           modules = [
             ./hosts/iso/configuration.nix
             home-manager.nixosModules.home-manager
