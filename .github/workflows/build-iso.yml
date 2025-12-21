@@ -40,9 +40,14 @@ jobs:
     - name: Build ISO
       run: |
         nix build .#nixosConfigurations.iso.config.system.build.isoImage
-        cp $(readlink -f result/iso/*.iso) custom-nixos.iso
+        ISO_PATH=$(readlink -f result/iso/*.iso)
+        FILE_SIZE=$(stat -c%s "$ISO_PATH")
+        if [ "$FILE_SIZE" -gt 2147483648 ]; then
+          echo "❌ ISO is too big: $FILE_SIZE bytes"
+          exit 1
+        fi
+        cp "$ISO_PATH" custom-nixos.iso
         sha256sum custom-nixos.iso > custom-nixos.iso.sha256
-        echo "Build Complete! Filename: custom-nixos.iso"
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
