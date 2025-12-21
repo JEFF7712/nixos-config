@@ -174,7 +174,7 @@
 
         wallpaper = {
           enabled = true;
-          directory = "/home/rupan/media/images/wallpapers";
+          directory = "/home/rupan/nixos/modules/home-manager/assets/wallpapers";
           panelPosition = "follow_bar";
           randomEnabled = true;
           randomIntervalSec = 3600;
@@ -265,7 +265,7 @@
         general = {
           animationDisabled = false;
           animationSpeed = 1;
-          avatarImage = "/home/rupan/media/images/pictures/Sponge.jpg";
+          avatarImage = "/home/rupan/nixos/modules/home-manager/assets/Sponge.jpg";
           boxRadiusRatio = 1;
           compactLockScreen = true;
           dimmerOpacity = 0.2;

@@ -64,7 +64,7 @@
       if ping -c 1 github.com &> /dev/null; then
           echo "Connected! Updating repository..."
 
-          TARGET_DIR="/home/rupan/nixos-config"
+          TARGET_DIR="/home/rupan/nixos"
 
           if [ -d "$TARGET_DIR/.git" ]; then
               cd "$TARGET_DIR"
