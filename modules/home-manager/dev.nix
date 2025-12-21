@@ -21,6 +21,8 @@
         chmod +x $out/bin/talosctl
       '')
       fluxcd
+      gemini-cli
+      geminicommit
     ];
   };
 }
