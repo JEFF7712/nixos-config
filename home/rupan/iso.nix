@@ -21,7 +21,6 @@
 
   niri.enable = true;
   common-apps.enable = true;
-  heavy-apps.enable = true;
   cli-toys.enable = true;
   cli-tools.enable = true;
   dev.enable = true;
