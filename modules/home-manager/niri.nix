@@ -31,12 +31,70 @@
       kitty
     ];
 
+    xdg.configFile."noctalia/templates/kitty.conf".text = ''
+        # Cursor
+        cursor {{colors.on_surface.default.hex}}
+        cursor_text_color {{colors.surface.default.hex}}
+
+        # Main
+        foreground {{colors.on_surface.default.hex}}
+        background {{colors.surface.default.hex}}
+        selection_foreground {{colors.on_primary.default.hex}}
+        selection_background {{colors.primary.default.hex}}
+
+        # Black
+        color0 {{colors.surface_container_low.default.hex}}
+        color8 {{colors.surface_container_high.default.hex}}
+
+        # Red (Error colors are usually preserved even in monochrome for functionality)
+        color1 {{colors.error.default.hex}}
+        color9 {{colors.error_container.default.hex}}
+
+        # Green -> Primary
+        color2 {{colors.primary.default.hex}}
+        color10 {{colors.primary_container.default.hex}}
+
+        # Yellow -> Secondary
+        color3 {{colors.secondary.default.hex}}
+        color11 {{colors.secondary_container.default.hex}}
+
+        # Blue -> Tertiary
+        color4 {{colors.tertiary.default.hex}}
+        color12 {{colors.tertiary_container.default.hex}}
+
+        # Magenta -> Primary
+        color5 {{colors.primary.default.hex}}
+        color13 {{colors.primary_container.default.hex}}
+
+        # Cyan -> Secondary
+        color6 {{colors.secondary.default.hex}}
+        color14 {{colors.secondary_container.default.hex}}
+
+        # White
+        color7 {{colors.on_surface.default.hex}}
+        color15 {{colors.on_surface_variant.default.hex}}
+    '';
+
     programs.noctalia-shell = {
       enable = true;
       systemd.enable = true;
+      user-templates = {
+        config = {
+          scheme_type = "scheme_monochrome"; 
+        };
+        
+        templates = {
+          kitty = {
+            input_path = "~/.config/noctalia/templates/kitty.conf";
+            output_path = "~/.config/kitty/colors.conf";
+            post_hook = "${pkgs.procps}/bin/pkill -USR1 kitty"; 
+          };
+        };
+      };
       settings = {
         settingsVersion = 31;
         templates = {
+          enableUserTemplates = true;
           kitty = false;
           niri = true;
           gtk = true;
