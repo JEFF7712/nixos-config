@@ -9,17 +9,13 @@
 3. Boot into the flash drive
 
 4. Connect to wifi:
-
-Using nmtui:
-
 ```
-sudo nmtui
+nmtui
 ```
 
-5. Open a terminal and run:
-
+5. Run the get-config command:
 ```
 get-config
 ```
 
-6. Done!
+Done!
