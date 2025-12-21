@@ -476,7 +476,6 @@
       enable = true;
       shellAliases = {
         gc = "nix-collect-garbage -d";
-        bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#laptop && git commit -m 'Updates' && git push";
         cniri="sudo $EDITOR $HOME/nixos/modules/home-manager/configs/niri/config.kdl";
         ls = "eza --icons";      
         ll = "eza -l --icons";   

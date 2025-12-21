@@ -20,12 +20,6 @@
   cli-toys.enable = true;
   cli-tools.enable = true;
 
-  programs.fish = {
-    shellAliases = {
-      bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#iso && git commit -m 'Updates' && git push";
-    };
-  };
-
   qt = {
     enable = true;
   };
