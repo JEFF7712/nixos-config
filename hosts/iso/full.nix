@@ -11,10 +11,10 @@
   environment.etc."nixos-config-source".source = self;
   
   system.activationScripts.copyConfig = ''
-    if [ ! -d /home/rupan/nixos-config ]; then
+    if [ ! -d /home/rupan/nixos ]; then
       mkdir -p /home/rupan
-      ${pkgs.rsync}/bin/rsync -av --chmod=u+w /etc/nixos-config-source/ /home/rupan/nixos-config/
-      chown -R rupan:users /home/rupan/nixos-config
+      ${pkgs.rsync}/bin/rsync -av --chmod=u+w /etc/nixos-config-source/ /home/rupan/nixos/
+      chown -R rupan:users /home/rupan/nixos
     fi
   '';
 
