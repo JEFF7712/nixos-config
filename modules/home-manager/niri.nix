@@ -166,7 +166,7 @@
           generateTemplatesForPredefined = true;
           manualSunrise = "06:30";
           manualSunset = "18:30";
-          matugenSchemeType = "scheme-fidelity";
+          matugenSchemeType = "scheme-tonal-spot";
           predefinedScheme = "Ayu";
           schedulingMode = "off";
           useWallpaperColors = true;
