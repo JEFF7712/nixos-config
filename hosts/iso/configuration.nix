@@ -7,14 +7,7 @@
   ];
 
   boot.loader.systemd-boot.enable = lib.mkForce false;
-  
-  fileSystems = lib.mkForce {
-    "/" = {
-      device = "overlay";
-      fsType = "overlay";
-      options = [ "lowerdir=/nix/store" "upperdir=/run/current-system" "workdir=/run/workdir" ];
-    };
-  };
+
 
   isoImage.squashfsCompression = "zstd";
 
@@ -65,6 +58,28 @@
     neovim 
     pciutils
     rsync
+    git
+    (pkgs.writeShellScriptBin "get-config" ''
+      echo "Checking internet connection..."
+      if ping -c 1 github.com &> /dev/null; then
+          echo "Connected! Updating repository..."
+
+          TARGET_DIR="/home/rupan/nixos-config"
+
+          if [ -d "$TARGET_DIR/.git" ]; then
+              cd "$TARGET_DIR"
+              ${pkgs.git}/bin/git pull
+              echo "✅ Config updated from GitHub."
+          else
+              echo "Resyncing fresh from GitHub..."
+              rm -rf "$TARGET_DIR"
+              ${pkgs.git}/bin/git clone https://github.com/JEFF7712/nixos-config.git "$TARGET_DIR"
+              echo "✅ Config downloaded to $TARGET_DIR"
+          fi
+      else
+          echo "❌ No Internet Connection."
+      fi
+    '')
   ];
 
   services.power-profiles-daemon.enable = true;
