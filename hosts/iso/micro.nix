@@ -22,8 +22,8 @@
       if ping -c 1 github.com &> /dev/null; then
           echo "Connected! Cloning..."
           rm -rf /home/nixos/nixos-config
-          ${pkgs.git}/bin/git clone https://github.com/JEFF7712/nixos-config.git /home/nixos/nixos-config
-          echo "✅ Config downloaded to ~/nixos-config"
+          ${pkgs.git}/bin/git clone https://github.com/JEFF7712/nixos-config.git /home/nixos/nixos
+          echo "✅ Config downloaded to ~/nixos"
       else
           echo "❌ No Internet. Run 'nmtui' to connect."
       fi
@@ -42,5 +42,5 @@
   documentation.enable = false;
   documentation.nixos.enable = false;
   
-  networking.hostName = "rupan-installer";
+  networking.hostName = "rupan-nixos";
 }
