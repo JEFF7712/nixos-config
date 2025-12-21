@@ -47,22 +47,37 @@
       };
 
       workmachine = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
+        inherit system pkgs;
         specialArgs = { inherit inputs; };
-	        modules = [
-	  ./hosts/workmachine/configuration.nix
+	      modules = [
+	        ./hosts/workmachine/configuration.nix
           home-manager.nixosModules.home-manager
-          {
+          { 
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "backup";
             home-manager.users.rupan = import ./home/rupan/workmachine.nix;
           }
-	];
+        ];
+      };
+
+      general-device = nixpkgs.lib.nixosSystem {
+        inherit system pkgs;
+        specialArgs = { inherit inputs; };
+	      modules = [
+	        ./hosts/general-device/configuration.nix
+          home-manager.nixosModules.home-manager
+          { 
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.backupFileExtension = "backup";
+            home-manager.users.rupan = import ./home/rupan/general-device.nix;
+          }
+        ];
       };
 
       homelab = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
+        inherit system pkgs;
         specialArgs = { inherit inputs; };
         modules = [
           ./hosts/homelab/configuration.nix
@@ -78,7 +93,7 @@
     };
 
     devShells.${system} = {
-      python = pkgs.mkShell {
+      cbe = pkgs.mkShell {
         packages = [
           (python.withPackages (ps: with ps; [
             ps.numpy
@@ -92,12 +107,12 @@
         ];
 
         shellHook = ''
-          echo "Welcome to the Python Development Shell."
+          echo "Welcome to the CBE Development Shell."
         '';
       };
 
       # Add more shells here
-      default = self.devShells.${system}.python;
+      default = self.devShells.${system}.cbe;
     };
   };
 }
