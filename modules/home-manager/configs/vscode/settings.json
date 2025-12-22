@@ -6,4 +6,8 @@
   "git.enableSmartCommit": true,
   "window.titleBarStyle": "custom"
   "workbench.colorTheme": "NoctaliaTheme"
+  "files.associations": {
+    "*.hcl": "hcl",
+    "terragrunt.hcl": "terragrunt" 
 }
+
