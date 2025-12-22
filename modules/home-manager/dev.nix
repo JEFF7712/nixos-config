@@ -10,6 +10,7 @@
       terraform
       ansible
       kubectl
+      terragrunt
       (pkgs.runCommand "talosctl-1.11.6" {
         src = pkgs.fetchurl {
           url = "https://github.com/siderolabs/talos/releases/download/v1.11.6/talosctl-linux-amd64";
