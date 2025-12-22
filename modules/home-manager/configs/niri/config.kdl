@@ -251,7 +251,6 @@ binds {
     Mod+S { spawn "spotify"; }        
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
-    Mod+Z { spawn "/home/rupan/.local/bin/toggle_zoom.py"; }
     Mod+B { spawn "noctalia-shell" "ipc" "call" "bar" "toggle"; }
     Mod+Alt+V { spawn "noctalia-shell" "ipc" "call" "launcher" "clipboard"; }
     Mod+R { spawn "noctalia-shell" "ipc" "call" "wallpaper" "random"; }
