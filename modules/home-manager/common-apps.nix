@@ -15,6 +15,23 @@ in
 
     programs.firefox = {
       enable = true;
+      profiles.default = {
+        extraConfig = ''
+          (function() {
+            try {
+              window.addEventListener("keydown", function(e) {
+                // Hotkey: Ctrl + Alt + Z
+                if (e.ctrlKey && e.altKey && e.code === "KeyZ") {
+                  let pref = "layout.css.devPixelsPerPx";
+                  let current = Services.prefs.getCharPref(pref);
+                  let newValue = (current === "1.0" || current === "1") ? "2.0" : "1.0";
+                  Services.prefs.setCharPref(pref, newValue);
+                }
+              }, false);
+            } catch (e) {}
+          })();
+        '';
+      };
     };
 
     home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
