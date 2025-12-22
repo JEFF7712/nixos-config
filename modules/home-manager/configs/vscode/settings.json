@@ -8,6 +8,6 @@
   "workbench.colorTheme": "NoctaliaTheme"
   "files.associations": {
     "*.hcl": "hcl",
-    "terragrunt.hcl": "terragrunt" 
+    "terragrunt.hcl": "hcl"
 }
 
