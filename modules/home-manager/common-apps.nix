@@ -15,11 +15,6 @@ in
 
     programs.firefox = {
       enable = true;
-      package = pkgs.lib.makeOverridable (attrs: 
-        pkgs.writeShellScriptBin "firefox" ''
-          exec ${pkgs.firefox}/bin/firefox --marionette --remote-allow-system-access "$@"
-      ''
-    ) {};  
     };
 
     home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
