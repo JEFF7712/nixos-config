@@ -484,6 +484,7 @@
         lla = "eza -la --icons"; 
         cd = "z";
         cds = "zi";
+        tf="terragrunt";
       };
       interactiveShellInit = ''
         set fish_greeting ""
