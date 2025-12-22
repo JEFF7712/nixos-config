@@ -15,7 +15,7 @@ in
 
     programs.firefox = {
       enable = true;
-      profiles.default = {
+      profiles."09longn9.default-release" = {
         extraConfig = ''
           (function() {
             try {
