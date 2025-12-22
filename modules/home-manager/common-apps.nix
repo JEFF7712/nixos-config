@@ -15,6 +15,7 @@ in
 
     programs.firefox = {
       enable = true;
+      profiles."09longn9.default-release" = {};
     };
 
     home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
