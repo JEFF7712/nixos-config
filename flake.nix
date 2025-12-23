@@ -69,10 +69,9 @@
           }
         ];
       };
-
-      devShells.${system} = Shells // {
-        default = self.devShells.${system}.cbe;
-      };
+    };
+    devShells.${system} = Shells // {
+      default = self.devShells.${system}.cbe;
     };
   };
 }
