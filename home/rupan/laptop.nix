@@ -12,6 +12,8 @@
   
 
   niri.enable = true;
+  noctalia.enable = true;
+  terminal.enable = true;
   common-apps.enable = true;
   heavy-apps.enable = true;
   cli-toys.enable = true;
