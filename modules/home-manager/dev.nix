@@ -9,6 +9,7 @@
     home.packages = with pkgs; [
       gemini-cli
       geminicommit
+      jq
     ];
   };
 }
