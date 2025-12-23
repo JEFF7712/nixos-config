@@ -71,7 +71,7 @@
       };
     };
     devShells.${system} = Shells // {
-      default = self.devShells.${system}.cbe;
+      default = Shells.cbe;
     };
   };
 }
