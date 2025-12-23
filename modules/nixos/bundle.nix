@@ -9,7 +9,6 @@
     ./audio.nix
     ./bluetooth.nix
     ./ctls.nix
-    ./tailscale.nix
     ./distrobox.nix
     ./podman.nix
     ./file-utils.nix
