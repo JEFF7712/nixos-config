@@ -2,7 +2,7 @@
 
 ## Try it out yourself!
 
-### 1. Download the ISO from the releases page
+### 1. Download the ISO from https://nix.rupan.dev/nixos.iso
 
 ### 2. Flash the ISO onto a USB flash drive
 
