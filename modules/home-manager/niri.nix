@@ -485,6 +485,7 @@
         cd = "z";
         cds = "zi";
         tf="terragrunt";
+        k="kubectl";
       };
       interactiveShellInit = ''
         set fish_greeting ""
