@@ -21,7 +21,7 @@
   outputs = { self, nixpkgs, home-manager, nix-vscode-extensions, ... }@inputs:
     let
       system = "x86_64-linux";
-      
+
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
@@ -48,14 +48,16 @@
         numpy pandas scikit-learn requests matplotlib openpyxl
       ]);
 
+      Shells = import ./shells.nix { inherit pkgs pythonEnv; };
+
     in {
       nixosConfigurations = {
         laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
         workmachine = mkSystem "workmachine" ./home/rupan/workmachine.nix;
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
         iso = nixpkgs.lib.nixosSystem {
-        inherit system pkgs; 
-        specialArgs = { inherit inputs self; }; 
+        inherit system pkgs;
+        specialArgs = { inherit inputs self; };
         modules = [
           ./hosts/iso/configuration.nix
           home-manager.nixosModules.home-manager
@@ -68,36 +70,7 @@
         ];
       };
 
-      devShells.${system} = {
-        cbe = pkgs.mkShell {
-          packages = [ pythonEnv pkgs.openblas ];
-          shellHook = ''echo "Welcome to the CBE Development Shell."'';
-        };
-        homelab = pkgs.mkShell {
-          packages = with pkgs; [ 
-            kubectl
-            terraform
-            terragrunt
-            ansible
-            fluxcd
-            (stdenv.mkDerivation {
-              pname = "talosctl";
-              version = "1.11.6";
-              src = fetchurl {
-                url = "https://github.com/siderolabs/talos/releases/download/v1.11.6/talosctl-linux-amd64";
-                hash = "sha256-0d6gql2wm54cp8pqxr8m6lvffql8im6y3rl1680hiawwbxffyj52="; # Ensure SRI format
-              };
-              phases = [ "installPhase" ];
-              installPhase = ''
-                mkdir -p $out/bin
-                cp $src $out/bin/talosctl
-                chmod +x $out/bin/talosctl
-              '';
-            })
-          ];
-          shellHook = ''echo "Welcome to the homelab Development Shell."'';
-        };
-
+      devShells.${system} = Shells // {
         default = self.devShells.${system}.cbe;
       };
     };
