@@ -7,21 +7,14 @@
 
   home.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
-    hack-font
-
-    flat-remix-gtk
     papirus-icon-theme
-    adwaita-icon-theme
-    fluent-icon-theme
-    
-    libsForQt5.qtstyleplugin-kvantum
-    qt6Packages.qtstyleplugin-kvantum
   ];
   
 
   niri.enable = true;
-  desktop-apps.enable = true;
-  cli-toys.enable = true;
+  noctalia.enable = true;
+  terminal.enable = true;
+  common-apps.enable = true;
   cli-tools.enable = true;
   dev.enable = true;
 
