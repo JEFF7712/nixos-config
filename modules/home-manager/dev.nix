@@ -10,6 +10,7 @@
       gemini-cli
       geminicommit
       jq
+      lens
     ];
   };
 }
