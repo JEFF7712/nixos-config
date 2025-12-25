@@ -11,6 +11,7 @@
       geminicommit
       jq
       lens
+      net-tools
     ];
   };
 }
