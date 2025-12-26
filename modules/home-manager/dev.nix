@@ -12,6 +12,7 @@
       jq
       lens
       net-tools
+      openssl_oqs
     ];
   };
 }
