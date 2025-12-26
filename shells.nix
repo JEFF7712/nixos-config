@@ -23,6 +23,7 @@
         phases = [ "installPhase" ];
         installPhase = "mkdir -p $out/bin; cp $src $out/bin/talosctl; chmod +x $out/bin/talosctl";
       })
+      cilium-cli
     ];
     shellHook = ''echo "Welcome to the homelab Development Shell."'';
   };
