@@ -13,6 +13,7 @@
       lens
       net-tools
       openssl_oqs
+      tcpdump
     ];
   };
 }
