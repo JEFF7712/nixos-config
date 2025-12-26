@@ -1,13 +1,13 @@
 layout {
 
     focus-ring {
-        active-color   "#b1c6ff"
+        active-color   "#b5c4ff"
         inactive-color "#121318"
         urgent-color   "#ffb4ab"
     }
 
     border {
-        active-color   "#b1c6ff"
+        active-color   "#b5c4ff"
         inactive-color "#121318"
         urgent-color   "#ffb4ab"
     }
@@ -17,12 +17,12 @@ layout {
     }
 
     tab-indicator {
-        active-color   "#b1c6ff"
-        inactive-color "#2f4578"
+        active-color   "#b5c4ff"
+        inactive-color "#344479"
         urgent-color   "#ffb4ab"
     }
 
     insert-hint {
-        color "#b1c6ff80"
+        color "#b5c4ff80"
     }
 }

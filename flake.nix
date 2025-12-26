@@ -16,9 +16,11 @@
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    fresh.url = "github:sinelaw/fresh";
+    fresh.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, home-manager, nix-vscode-extensions, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, nix-vscode-extensions, fresh, ... }@inputs:
     let
       system = "x86_64-linux";
 

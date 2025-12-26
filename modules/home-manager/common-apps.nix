@@ -11,6 +11,7 @@ in
       networkmanagerapplet
       vesktop
       pywalfox-native
+      inputs.fresh.packages.${pkgs.system}.default
     ];
 
     programs.firefox = {
