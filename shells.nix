@@ -15,6 +15,7 @@
       fluxcd
       talosctl
       cilium-cli
+      kubernetes-helm
     ];
     shellHook = ''echo "Welcome to the homelab Development Shell."'';
   };
