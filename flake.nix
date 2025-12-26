@@ -73,7 +73,7 @@
       };
     };
     devShells.${system} = Shells // {
-      default = Shells.cbe;
+      default = Shells.homelab;
     };
   };
 }
