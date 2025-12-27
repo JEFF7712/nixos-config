@@ -14,6 +14,8 @@
       net-tools
       openssl_oqs
       tcpdump
+      sops
+      age
     ];
   };
 }
