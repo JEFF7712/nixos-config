@@ -16,6 +16,7 @@
       tcpdump
       sops
       age
+      dig
     ];
   };
 }
