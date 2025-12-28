@@ -16,6 +16,7 @@
       talosctl
       cilium-cli
       kubernetes-helm
+      argocd
     ];
     shellHook = ''echo "Welcome to the homelab Development Shell."'';
   };
