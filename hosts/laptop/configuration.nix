@@ -97,7 +97,7 @@
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 53317 ];
-    allowedUDPPorts = [ 53317 ];
+    allowedUDPPorts = [ 53317 53 5353 22054 ];
   };
 
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
