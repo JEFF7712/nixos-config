@@ -32,7 +32,7 @@
         cds = "zi";
         tf="terragrunt";
         k="kubectl";
-        kprune="kubectl delete pods -A --field-selector=status.phase=Failed && kubectl delete pods -A --field-selector=status.phase=Succeeded";
+        kprune="kubectl delete pods -A --field-selector=status.phase=Failed,status.phase=Succeeded";
       };
       interactiveShellInit = ''
         set fish_greeting ""
