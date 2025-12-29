@@ -13,6 +13,7 @@
       qbittorrent
       localsend
       chiaki-ng
+      tor-browser
     ];
   };
 }
