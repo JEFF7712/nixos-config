@@ -13,6 +13,8 @@
       localsend
       chiaki-ng
       tor-browser
+      feishin
+      aonsoku
     ];
   };
 }
