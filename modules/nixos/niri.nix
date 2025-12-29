@@ -18,7 +18,11 @@
     ];
 
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
-
+    environment.sessionVariables = {
+      NVD_BACKEND = "direct";
+      LIBVA_DRIVER_NAME = "nvidia";
+      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    };
     services.upower.enable = true;
   };
 }
