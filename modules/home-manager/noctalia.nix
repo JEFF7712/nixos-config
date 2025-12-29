@@ -363,7 +363,7 @@
         };
 
         location = {
-          name = "Chicago";
+          name = "Madison, WI";
           analogClockInCalendar = false;
           firstDayOfWeek = -1;
           showCalendarEvents = true;
