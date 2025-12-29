@@ -10,7 +10,6 @@
       netflix
       chromium
       obs-studio
-      qbittorrent
       localsend
       chiaki-ng
       tor-browser
