@@ -17,6 +17,7 @@
       cilium-cli
       kubernetes-helm
       argocd
+      k9s
     ];
     shellHook = ''echo "Welcome to the homelab Development Shell."'';
   };
