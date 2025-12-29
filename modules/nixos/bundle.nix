@@ -15,6 +15,7 @@
     ./docker.nix
     ./netbird.nix
     ./waydroid.nix
+    ./game.nix
   ];
 
   git.enable = lib.mkDefault true;

@@ -24,6 +24,7 @@
   docker.enable = true;
   netbird.enable = true;
   waydroid.enable = true;
+  game.enable = true;
 
   environment.shells = with pkgs; [ fish ];
   users.users.rupan.shell = pkgs.fish;
