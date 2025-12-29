@@ -14,6 +14,9 @@
       enable = true;
       remotePlay.openFirewall = true;
       dedicatedServer.openFirewall = true;
+      package = pkgs.steam.override {
+        extraArgs = "-system-composer";
+      };
     };
 
     environment.systemPackages = with pkgs; [
