@@ -18,6 +18,8 @@
         extraArgs = "-system-composer";
       };
     };
+    
+    programs.xwayland.enable = true;
 
     environment.systemPackages = with pkgs; [
       mangohud
@@ -25,6 +27,7 @@
       lutris
       heroic
       wineWowPackages.staging
+      xwayland-satellite
     ];
   };
 }
