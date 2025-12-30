@@ -15,6 +15,7 @@
       tor-browser
       feishin
       aonsoku
+      gimp2
     ];
   };
 }
