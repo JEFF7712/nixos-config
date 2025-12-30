@@ -5,6 +5,7 @@
     home.packages = with pkgs; [
       tmux
       btop
+      ffmpeg
     ];
   };
 }
