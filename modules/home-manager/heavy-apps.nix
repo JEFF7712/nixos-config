@@ -17,6 +17,7 @@
       aonsoku
       gimp2
       vlc
+      avidemux
     ];
   };
 }
