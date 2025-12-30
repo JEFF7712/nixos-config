@@ -1,6 +1,6 @@
 # This is my NixOS Configuration
 
-<img src="./assets/LinuxSetup.gif" width="100%">
+https://github.com/user-attachments/assets/86beb071-240c-4ced-907f-d1d5e281a17e
 
 ## Try it out yourself!
 
