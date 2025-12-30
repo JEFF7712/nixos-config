@@ -1,5 +1,7 @@
 # This is my NixOS Configuration
 
+![Linux Setup Showcase](./assets/LinuxSetup.gif)
+
 ## Try it out yourself!
 
 ### 1. Download the ISO from https://nix.rupan.dev
