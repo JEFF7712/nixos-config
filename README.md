@@ -1,6 +1,6 @@
 # This is my NixOS Configuration
 
-![Linux Setup Showcase](./assets/LinuxSetup.gif)
+<img src="./assets/LinuxSetup.gif" width="100%">
 
 ## Try it out yourself!
 
