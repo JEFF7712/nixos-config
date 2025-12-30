@@ -16,6 +16,7 @@
       feishin
       aonsoku
       gimp2
+      vlc
     ];
   };
 }
