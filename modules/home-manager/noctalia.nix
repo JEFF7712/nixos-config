@@ -232,7 +232,8 @@
               { id = "Clock"; formatHorizontal = "ddd MMM d h:mm AP"; formatVertical = "HH mm - dd MM"; useCustomFont = false; customFont = ""; usePrimaryColor = true; }
             ];
             right = [
-              { id = "Tray"; drawerEnabled = false; hidePassive = false; colorizeIcons = false; blacklist = []; pinned = []; }
+              { id = "Tray"; drawerEnabled = false; hidePassive = false; colorizeIcons = false; blacklist = [ "nm-applet" ]; pinned = []; }
+              { id = "WiFi"; displayMode = "onhover"; }
               { id = "NotificationHistory"; showUnreadBadge = true; hideWhenZero = true; }
               { id = "Battery"; displayMode = "alwaysShow"; showNoctaliaPerformance = true; showPowerProfiles = true; warningThreshold = 30; deviceNativePath = ""; }
               { id = "Volume"; displayMode = "alwaysShow"; }
