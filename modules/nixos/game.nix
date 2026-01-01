@@ -26,6 +26,7 @@
       heroic
       wineWowPackages.staging
       vulkan-tools
+      vulkan-loader
     ];
   };
 }
