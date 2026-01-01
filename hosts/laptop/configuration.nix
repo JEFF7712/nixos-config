@@ -104,11 +104,18 @@
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
   networking.networkmanager.dns = "none";
 
+  system.autoUpgrade = {
+    enable = true;
+    dates = "weekly";
+  };
+
   nix.gc = {
     automatic = true;
-    dates = "weekly";
+    dates = "daily";
     options = "--delete-older-than 7d"; 
   };
+
+  nix.settings.auto-optimise-store = true;
  
   system.stateVersion = "25.11"; #DO NOT EDIT
 }
