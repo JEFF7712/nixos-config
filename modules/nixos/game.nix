@@ -25,6 +25,7 @@
       lutris
       heroic
       wineWowPackages.staging
+      winetricks
       bottles
     ];
   };
