@@ -25,6 +25,7 @@
       lutris
       heroic
       wineWowPackages.staging
+      vulkan-tools
     ];
   };
 }
