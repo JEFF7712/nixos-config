@@ -7,7 +7,7 @@
       nix-direnv.enable = true;
     };
     home.packages = with pkgs; [
-      gemini-cli
+#      gemini-cli
       geminicommit
       jq
       lens

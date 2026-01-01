@@ -11,7 +11,6 @@
       chromium
       obs-studio
       localsend
-      chiaki-ng
       tor-browser
       feishin
       aonsoku
