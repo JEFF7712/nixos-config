@@ -24,7 +24,7 @@
       protonup-qt
       lutris
       heroic
-      wineWowPackages.staging
+      wineWowPackages.stable
       winetricks
       bottles
     ];
