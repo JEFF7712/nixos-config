@@ -11,15 +11,6 @@
     settings.experimental-features = [ "nix-command" "flakes" ];
   };
 
-  nix.settings = {
-    substituters = [
-      "https://cuda-maintainers.cachix.org"
-    ];
-    trusted-public-keys = [
-      "cuda-maintainers.cachix.org-1:0t9Y6fDgeYpBkS/61Fi6E6/78Utu9shqfC0OFYIWNoI="
-    ];
-  };
-
   nvidia.enable = true;
   niri.enable = true;
   general-laptop.enable = true;  
