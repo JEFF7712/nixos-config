@@ -1,6 +1,15 @@
 {
   description = "nixos config";
 
+  nixConfig = {
+    extra-substituters = [
+      "https://cuda-maintainers.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "cuda-maintainers.cachix.org-1:0t9Y6fDgeYpBkS/61Fi6E6/78Utu9shqfC0OFYIWNoI="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager = {
@@ -24,7 +33,10 @@
 
       pkgs = import nixpkgs {
         inherit system;
-        config.allowUnfree = true;
+        config = {
+          allowUnfree = true;
+          cudaCapabilities = [ "8.6" ]; 
+        };
         overlays = [ nix-vscode-extensions.overlays.default ];
       };
 

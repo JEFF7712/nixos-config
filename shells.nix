@@ -16,6 +16,7 @@
       pkgs.linuxPackages.nvidia_x11
       pkgs.libGL
       pkgs.stdenv.cc.cc.lib
+      pkgs.zlib
     ];
 
     shellHook = ''
@@ -23,8 +24,8 @@
       export PYTHONPATH="$PIP_PREFIX/${pkgs.python3.sitePackages}:$PYTHONPATH"
       export PATH="$PIP_PREFIX/bin:$PATH"
       export CUDA_PATH=${pkgs.cudaPackages.cudatoolkit}
-      export LD_LIBRARY_PATH=/run/opengl-driver/lib:${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.libGL}/lib:$LD_LIBRARY_PATH
-      unset SOURCE_DATE_EPOCH
+      export LD_LIBRARY_PATH="/run/opengl-driver/lib:${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.cudaPackages.cudatoolkit}/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.libGL}/lib:$LD_LIBRARY_PATH"
+      unset SOURCE_DATE_EPOCH # Fixes some pip install issues
       echo "Welcome to the Python Development Shell."
     '';
   };
