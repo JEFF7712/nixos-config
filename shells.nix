@@ -7,7 +7,7 @@
   };
 
   python = pkgs.mkShell {
-packages = [
+    packages = [
       pythonEnv
       pkgs.python3Packages.pip
       pkgs.python3Packages.virtualenv
