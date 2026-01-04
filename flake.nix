@@ -51,7 +51,7 @@
       ]);
 
       pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-        numpy pandas scikit-learn requests torch-bin torchaudio-bin torchvision-bin matplotlib
+        numpy pandas scikit-learn requests matplotlib
       ]);
 
       Shells = import ./shells.nix { inherit pkgs CBEpythonEnv pythonEnv; };
