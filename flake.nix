@@ -44,11 +44,15 @@
         ];
       };
 
-      pythonEnv = pkgs.python311.withPackages (ps: with ps; [
+      CBEpythonEnv = pkgs.python311.withPackages (ps: with ps; [
         numpy pandas scikit-learn requests matplotlib openpyxl
       ]);
 
-      Shells = import ./shells.nix { inherit pkgs pythonEnv; };
+      pythonEnv = pkgs.python3.withPackages (ps: with ps; [
+        numpy pandas scikit-learn requests torch-bin torchaudio-bin torchvision-bin matplotlib
+      ]);
+
+      Shells = import ./shells.nix { inherit pkgs CBEpythonEnv pythonEnv; };
 
     in {
       nixosConfigurations = {
