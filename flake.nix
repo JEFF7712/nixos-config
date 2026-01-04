@@ -87,7 +87,7 @@
       };
     };
     devShells.${system} = Shells // {
-      default = Shells.homelab;
+      default = Shells.python;
     };
   };
 }
