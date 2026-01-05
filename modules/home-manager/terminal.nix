@@ -1,8 +1,7 @@
-{ inputs, pkgs, lib, config, ... }: {
+{ inputs, pkgs, lib, config, ... }:
 
-  options = {
-    terminal.enable = lib.mkEnableOption "user terminal config"; 
-  };
+{
+  options.terminal.enable = lib.mkEnableOption "user terminal config";
 
   config = lib.mkIf config.terminal.enable {
 

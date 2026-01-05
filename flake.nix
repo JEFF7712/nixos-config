@@ -24,9 +24,7 @@
 
       pkgs = import nixpkgs {
         inherit system;
-        config = {
-          allowUnfree = true;
-        };
+        config.allowUnfree = true;
         overlays = [ nix-vscode-extensions.overlays.default ];
       };
 
@@ -61,21 +59,8 @@
         laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
         workmachine = mkSystem "workmachine" ./home/rupan/workmachine.nix;
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
-        iso = nixpkgs.lib.nixosSystem {
-        inherit system pkgs;
-        specialArgs = { inherit inputs self; };
-        modules = [
-          ./hosts/iso/configuration.nix
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = { inherit inputs; };
-            home-manager.users.rupan = import ./home/rupan/laptop.nix;
-          }
-        ];
+        iso = mkSystem "iso" ./home/rupan/laptop.nix;
       };
-    };
     devShells.${system} = Shells // {
       default = Shells.python;
     };

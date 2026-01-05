@@ -1,4 +1,6 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
+
+{
   options.git.enable = lib.mkEnableOption "git";
 
   config = lib.mkIf config.git.enable {

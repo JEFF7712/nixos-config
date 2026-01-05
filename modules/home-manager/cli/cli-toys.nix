@@ -1,4 +1,6 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
+
+{
   options.cli-toys.enable = lib.mkEnableOption "cli toys";
 
   config = lib.mkIf config.cli-toys.enable {
