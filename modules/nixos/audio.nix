@@ -1,4 +1,6 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
+
+{
   options.audio.enable = lib.mkEnableOption "audio";
 
   config = lib.mkIf config.audio.enable {
@@ -10,9 +12,6 @@
       pulse.enable = true;
       wireplumber.enable = true;
     };
-    environment.systemPackages = [
-      pkgs.pavucontrol
-    ];
+    environment.systemPackages = [ pkgs.pavucontrol ];
   };
 }
-

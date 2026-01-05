@@ -1,4 +1,6 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
+
+{
   options.cli-tools.enable = lib.mkEnableOption "cli tools";
 
   config = lib.mkIf config.cli-tools.enable {

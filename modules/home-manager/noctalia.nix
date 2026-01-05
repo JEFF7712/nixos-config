@@ -1,15 +1,11 @@
-{ inputs, pkgs, lib, config, ... }: {
+{ inputs, pkgs, lib, config, ... }:
 
-  options = {
-    noctalia.enable = lib.mkEnableOption "enable noctalia"; 
-  };
+{
+  options.noctalia.enable = lib.mkEnableOption "enable noctalia";
 
-  imports = [
-    inputs.noctalia.homeModules.default
-  ];
+  imports = [ inputs.noctalia.homeModules.default ];
 
   config = lib.mkIf config.noctalia.enable {
-
     home.packages = with pkgs; [
       matugen
       gpu-screen-recorder
@@ -19,7 +15,6 @@
       nwg-look
       kdePackages.qt6ct
       adw-gtk3
-      kitty
     ];
     
     xdg.configFile."noctalia/templates/kitty.conf".text = ''

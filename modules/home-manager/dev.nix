@@ -1,4 +1,6 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
+
+{
   options.dev.enable = lib.mkEnableOption "dev";
 
   config = lib.mkIf config.dev.enable {

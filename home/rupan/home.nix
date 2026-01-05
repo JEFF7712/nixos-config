@@ -3,17 +3,9 @@
 {
   home.username = "rupan";
   home.homeDirectory = "/home/rupan";
-  home.stateVersion = "25.11"; 
-  home.packages = [
-    
-  ];
+  home.stateVersion = "25.11";
 
-  home.file = {
-  };
-
-  home.sessionVariables = {
-    EDITOR = "nano";
-  };
+  home.sessionVariables.EDITOR = "nano";
 
   programs.home-manager.enable = true;
 }

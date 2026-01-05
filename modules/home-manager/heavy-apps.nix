@@ -1,6 +1,8 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
 
+{
   options.heavy-apps.enable = lib.mkEnableOption "heavy-apps";
+
   config = lib.mkIf config.heavy-apps.enable {
 
     home.packages = with pkgs; [

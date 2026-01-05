@@ -1,10 +1,10 @@
 { config, lib, pkgs, inputs, ... }:
+
 {
-  imports =
-    [
-      ./hardware-configuration.nix
-      ../../modules/nixos/bundle.nix
-    ];
+  imports = [
+    ./hardware-configuration.nix
+    ../../../modules/nixos/bundle.nix
+  ];
 
   nix = {
     package = pkgs.nix;

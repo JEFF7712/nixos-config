@@ -1,4 +1,6 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
+
+{
   options.filemanager.enable = lib.mkEnableOption "thunar file manager";
 
   config = lib.mkIf config.filemanager.enable {

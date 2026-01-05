@@ -1,23 +1,23 @@
-{ pkgs, lib, ... }: {
+{ pkgs, lib, ... }:
 
+{
   imports = [
-    ./nvidia.nix
-    ./niri.nix
-    ./git.nix
-    ./filemanager.nix
-    ./general-laptop.nix
     ./audio.nix
     ./bluetooth.nix
     ./ctls.nix
     ./distrobox.nix
-    ./podman.nix
-    ./file-utils.nix
     ./docker.nix
-    ./netbird.nix
-    ./waydroid.nix
+    ./file-utils.nix
+    ./filemanager.nix
     ./game.nix
+    ./general-laptop.nix
+    ./git.nix
+    ./netbird.nix
+    ./niri.nix
+    ./nvidia.nix
+    ./podman.nix
+    ./waydroid.nix
   ];
 
   git.enable = lib.mkDefault true;
-
 }

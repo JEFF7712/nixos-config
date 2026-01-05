@@ -1,6 +1,8 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
 
+{
   options.game.enable = lib.mkEnableOption "game";
+
   config = lib.mkIf config.game.enable {
 
     hardware.graphics = {

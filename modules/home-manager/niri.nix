@@ -1,8 +1,7 @@
-{ inputs, pkgs, lib, config, ... }: {
+{ inputs, pkgs, lib, config, ... }:
 
-  options = {
-    niri.enable = lib.mkEnableOption "user niri config"; 
-  };
+{
+  options.niri.enable = lib.mkEnableOption "user niri config";
 
   config = lib.mkIf config.niri.enable {
 
@@ -11,14 +10,9 @@
       slurp
       swww
       wl-clipboard
-      eza 
-      bat
-      tealdeer
-      fzf
       nwg-look
       kdePackages.qt6ct
       adw-gtk3
-      kitty
     ];
 
 
