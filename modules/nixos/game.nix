@@ -20,13 +20,9 @@
     };
 
     environment.systemPackages = with pkgs; [
-      mangohud
       protonup-qt
-      lutris
-      heroic
       wineWowPackages.stable
       winetricks
-      bottles
     ];
   };
 }
