@@ -19,6 +19,7 @@
       gimp2
       vlc
       avidemux
+      telegram-desktop
     ];
   };
 }
