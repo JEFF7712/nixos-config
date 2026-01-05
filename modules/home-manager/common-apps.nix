@@ -58,6 +58,8 @@ in
           esbenp.prettier-vscode
           kdl-org.kdl
           ms-azuretools.vscode-docker
+          ms-vscode-remote.remote-ssh
+          ms-vscode-remote.remote-ssh-edit
         ];        
       };
     };
