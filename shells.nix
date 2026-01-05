@@ -11,10 +11,6 @@
       pythonEnv
       pkgs.python3Packages.pip
       pkgs.python3Packages.virtualenv
-      pkgs.linuxPackages.nvidia_x11
-      pkgs.libGL
-      pkgs.stdenv.cc.cc.lib
-      pkgs.zlib
     ];
 
     shellHook = ''
