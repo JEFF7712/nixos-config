@@ -45,6 +45,7 @@
       kubernetes-helm
       argocd
       k9s
+      glab
     ];
     shellHook = ''echo "Welcome to the homelab Development Shell."'';
   };
