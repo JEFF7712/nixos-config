@@ -6,8 +6,8 @@
   config = lib.mkIf config.docker.enable {
     virtualisation.docker = {
       enable = true;
-      enableNvidia = true;
     };
+    hardware.nvidia-container-toolkit.enable = true;
     users.users.rupan.extraGroups = [ "docker" ];
   };
 }

@@ -19,7 +19,6 @@
       sops
       age
       dig
-      nvidia-container-toolkit
     ];
   };
 }
