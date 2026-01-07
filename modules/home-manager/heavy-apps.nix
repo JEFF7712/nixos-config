@@ -20,6 +20,7 @@
       vlc
       avidemux
       telegram-desktop
+      antigravity
     ];
   };
 }
