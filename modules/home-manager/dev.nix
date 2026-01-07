@@ -12,7 +12,6 @@
 #      gemini-cli
       geminicommit
       jq
-      lens
       net-tools
       openssl_oqs
       tcpdump
