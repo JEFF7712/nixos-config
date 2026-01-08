@@ -18,6 +18,7 @@
       sops
       age
       dig
+      glab
     ];
   };
 }

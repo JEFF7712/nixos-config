@@ -31,7 +31,7 @@
         cds = "zi";
         tf="terragrunt";
         k="kubectl";
-        kprune="kubectl delete pods -A --field-selector=status.phase=Failed,status.phase=Succeeded";
+        kprune="kubectl delete pods -A --field-selector=status.phase=Failed,status.phase=Succeeded,status.phase==Completed";
       };
       interactiveShellInit = ''
         set fish_greeting ""
