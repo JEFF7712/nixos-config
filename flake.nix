@@ -49,7 +49,7 @@
       ]);
 
       pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-        numpy pandas scikit-learn requests matplotlib imblearn
+        numpy pandas scikit-learn requests matplotlib imbalanced-learn
       ]);
 
       Shells = import ./shells.nix { inherit pkgs CBEpythonEnv pythonEnv; };
