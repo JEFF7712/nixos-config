@@ -59,14 +59,16 @@ in
           kdl-org.kdl
           ms-azuretools.vscode-docker
           rust-lang.rust-analyzer
-	  tauri-apps.tauri-vscode
+	        tauri-apps.tauri-vscode
           llvm-vs-code-extensions.vscode-clangd
           ms-vscode.cmake-tools
         ];        
       };
     };
 
-    xdg.configFile."Code/User/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/vscode/settings.json";
-
+    xdg.configFile."Code/User/settings.json" = {
+      source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/modules/home-manager/configs/vscode/settings.json";
+      force = true;
+    };
   };
 }
