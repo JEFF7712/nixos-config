@@ -60,6 +60,8 @@ in
           ms-azuretools.vscode-docker
           rust-lang.rust-analyzer
 	  tauri-apps.tauri-vscode
+          llvm-vs-code-extensions.vscode-clangd
+          ms-vscode.cmake-tools
         ];        
       };
     };
