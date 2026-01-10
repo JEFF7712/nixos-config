@@ -21,6 +21,7 @@
       avidemux
       telegram-desktop
       antigravity
+      obsidian
     ];
   };
 }
