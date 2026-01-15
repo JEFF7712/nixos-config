@@ -21,6 +21,9 @@
   "cmake.buildDirectory": "${workspaceFolder}/build",
   "[cpp]": {
     "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
-  }
+  },
+  "claudeCode.preferredLocation": "panel",
+  "claudeCode.allowDangerouslySkipPermissions": true,
+  "chat.useClaudeSkills": true
 }
 

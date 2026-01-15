@@ -30,6 +30,18 @@
   users.users.rupan.shell = pkgs.fish;
   users.users.rupan.ignoreShellProgramCheck = true;
 
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    stdenv.cc.cc
+    zlib
+    fuse3
+    icu
+    nss
+    openssl
+    curl
+    expat
+  ];
+
   services.power-profiles-daemon.enable = true;
   services.tlp.enable = false;
   services.auto-cpufreq.enable = false;

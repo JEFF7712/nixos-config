@@ -9,7 +9,6 @@
       nix-direnv.enable = true;
     };
     home.packages = with pkgs; [
-#      gemini-cli
       geminicommit
       jq
       net-tools
@@ -19,6 +18,7 @@
       age
       dig
       glab
+      claude-code
     ];
   };
 }
