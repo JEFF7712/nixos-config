@@ -1,4 +1,4 @@
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, config, pkgs-stable, ... }:
 
 {
   options.heavy-apps.enable = lib.mkEnableOption "heavy-apps";
@@ -22,6 +22,8 @@
       telegram-desktop
       antigravity
       obsidian
+      ovito
+      pkgs-stable.avogadro2
     ];
   };
 }
