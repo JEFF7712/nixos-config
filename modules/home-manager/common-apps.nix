@@ -38,8 +38,8 @@ in
         shuffle
         hidePodcasts
         adblock
-	      beautiful-lyrics
-	      CoverAmbience
+	beautiful-lyrics
+	CoverAmbience
       ];
     };
 
