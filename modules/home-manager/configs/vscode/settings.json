@@ -24,7 +24,7 @@
   },
   "claudeCode.preferredLocation": "panel",
   "claudeCode.allowDangerouslySkipPermissions": true,
-  "chat.useClaudeSkills": true,
-  "[cmake]": {}
+  "[cmake]": {},
+  "chat.useAgentSkills": true
 }
 
