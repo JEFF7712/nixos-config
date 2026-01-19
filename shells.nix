@@ -46,6 +46,7 @@
       argocd
       k9s
       glab
+      kubeseal
     ];
     shellHook = ''echo "Welcome to the homelab Development Shell."'';
   };
