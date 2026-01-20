@@ -11,6 +11,7 @@
     home.packages = with pkgs; [
       geminicommit
       jq
+      yq
       net-tools
       openssl_oqs
       tcpdump
