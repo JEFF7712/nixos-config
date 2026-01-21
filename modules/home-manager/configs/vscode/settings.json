@@ -25,6 +25,7 @@
   "claudeCode.preferredLocation": "panel",
   "claudeCode.allowDangerouslySkipPermissions": true,
   "[cmake]": {},
-  "chat.useAgentSkills": true
+  "chat.useAgentSkills": true,
+  "editor.tabSize": 2
 }
 
