@@ -11,6 +11,7 @@ in
       networkmanagerapplet
 #      vesktop
       pywalfox-native
+      zoom
     ];
 
     programs.firefox = {
