@@ -19,6 +19,21 @@ in
       profiles."09longn9.default-release" = {};
     };
 
+    xdg.mimeApps = {
+      enable = true;
+      defaultApplications = {
+        "text/html" = "firefox.desktop";
+        "x-scheme-handler/http" = "firefox.desktop";
+        "x-scheme-handler/https" = "firefox.desktop";
+        "x-scheme-handler/about" = "firefox.desktop";
+        "x-scheme-handler/unknown" = "firefox.desktop";
+      };
+    };
+
+    home.sessionVariables = {
+      BROWSER = "firefox";
+    };
+
     home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
       source = ./configs/firefox/chrome;
       recursive = true;
