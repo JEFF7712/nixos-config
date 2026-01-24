@@ -17,6 +17,7 @@
     ./nvidia.nix
     ./podman.nix
     ./waydroid.nix
+    ./airplay.nix
   ];
 
   git.enable = lib.mkDefault true;
