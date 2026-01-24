@@ -4,7 +4,10 @@
   options.airplay.enable = lib.mkEnableOption "airplay";
 
   config = lib.mkIf config.airplay.enable {
-    environment.systemPackages = [ pkgs.uxplay ];
+    environment.systemPackages = with pkgs; [ 
+      uxplay 
+      gst_all_1.gst-vaapi
+    ];
 
     services.avahi = {
       enable = true;
