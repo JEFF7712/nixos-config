@@ -15,6 +15,7 @@
       nwg-look
       kdePackages.qt6ct
       adw-gtk3
+      python3
     ];
     
     xdg.configFile."noctalia/templates/kitty.conf".text = ''
