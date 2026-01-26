@@ -25,6 +25,7 @@
       ovito
       pkgs-stable.avogadro2
       slack
+      blender
     ];
   };
 }
