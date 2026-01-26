@@ -26,6 +26,7 @@
       pkgs-stable.avogadro2
       slack
       blender
+      f3d
     ];
   };
 }
