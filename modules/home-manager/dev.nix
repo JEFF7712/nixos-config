@@ -20,7 +20,6 @@
       dig
       glab
       claude-code
-      nodejs_24
     ];
   };
 }
