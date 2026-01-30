@@ -50,16 +50,6 @@
         ];
       };
 
-      CBEpythonEnv = pkgs.python311.withPackages (ps: with ps; [
-        numpy pandas scikit-learn requests matplotlib openpyxl
-      ]);
-
-      pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-        numpy pandas scikit-learn requests matplotlib imbalanced-learn scipy
-      ]);
-
-      Shells = import ./shells.nix { inherit pkgs CBEpythonEnv pythonEnv; };
-
     in {
       nixosConfigurations = {
         laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
@@ -67,8 +57,5 @@
         homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
         iso = mkSystem "iso" ./home/rupan/laptop.nix;
       };
-    devShells.${system} = Shells // {
-      default = Shells.python;
-    };
   };
 }
