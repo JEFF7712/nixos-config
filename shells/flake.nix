@@ -1,0 +1,91 @@
+{
+  description = "Development shells for various projects";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
+
+        pythonEnv = pkgs.python3.withPackages (ps: with ps; [
+          numpy
+          pandas
+          requests
+          matplotlib
+          openpyxl
+        ]);
+      in
+      {
+        devShells = {
+          cbe = pkgs.mkShell {
+            packages = [ 
+              pythonEnv
+              pkgs.python3Packages.scikit-learn 
+              pkgs.openblas 
+            ];
+            shellHook = ''echo "CBE Shell ready." '';
+          };
+
+          ml = pkgs.mkShell {
+            packages = [
+              pythonEnv
+              pkgs.python3Packages.pip
+              pkgs.python3Packages.virtualenv
+              pkgs.python3Packages.jupyterlab
+              pkgs.python3Packages.scikit-learn
+              pkgs.python3Packages.scipy
+              pkgs.python3Packages.torch
+              pkgs.python3Packages.torch-geometric
+              pkgs.python3Packages.imbalanced-learn
+            ];
+
+            shellHook = ''
+              if [ ! -d ".venv" ]; then
+                echo "Creating new virtual environment..."
+                virtualenv .venv
+              fi
+              source .venv/bin/activate
+
+              export PIP_PREFIX="$(pwd)/.build/pip_packages"
+              export PYTHONPATH="$PIP_PREFIX/${pkgs.python3.sitePackages}:$PYTHONPATH"
+              export PATH="$PIP_PREFIX/bin:$PATH"
+
+              export LD_LIBRARY_PATH="/run/opengl-driver/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.libGL}/lib:$LD_LIBRARY_PATH"
+
+              unset SOURCE_DATE_EPOCH
+              
+              echo "Virtual environment (.venv) activated."
+              echo "Machine Learning Python Shell ready."
+            '';
+          };
+
+          homelab = pkgs.mkShell {
+            packages = with pkgs; [ 
+              kubectl
+              terraform
+              terragrunt
+              ansible
+              fluxcd
+              talosctl
+              cilium-cli
+              kubernetes-helm
+              argocd
+              k9s
+              glab
+              kubeseal
+            ];
+            shellHook = ''echo "Welcome to the homelab Development Shell."'';
+          };
+
+          default = self.devShells.${system}.ml;
+        };
+      }
+    );
+}
