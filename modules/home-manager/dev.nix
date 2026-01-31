@@ -21,6 +21,7 @@
       glab
       claude-code
       opencode
+      nodejs_24
     ];
   };
 }
