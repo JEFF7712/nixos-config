@@ -20,6 +20,7 @@
       dig
       glab
       claude-code
+      opencode
     ];
   };
 }
