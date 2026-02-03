@@ -22,6 +22,7 @@
       claude-code
       opencode
       nodejs_24
+      cloc
     ];
   };
 }
