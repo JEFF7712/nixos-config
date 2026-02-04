@@ -47,6 +47,11 @@
   services.tlp.enable = false;
   services.auto-cpufreq.enable = false;
  
+  fonts = {
+    fontDir.enable = true;
+    enableDefaultPackages = true;
+  };
+  
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
