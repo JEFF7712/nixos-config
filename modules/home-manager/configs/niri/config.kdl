@@ -9,8 +9,9 @@ environment {
     QT_QPA_PLATFORM "wayland;xcb"
     GDK_SCALE "1"
     QT_QPA_PLATFORMTHEME "qt6ct"
-    "DISPLAY" ":0"
-    "XAUTHORITY" "/run/user/1000/xauth"
+    DISPLAY ":0"
+    XAUTHORITY "/run/user/1000/xauth"
+    NIXOS_OZONE_WL "1"
 }
 
 cursor {
