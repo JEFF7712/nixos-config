@@ -27,6 +27,7 @@
       slack
       blender
       f3d
+      google-chrome
     ];
   };
 }
