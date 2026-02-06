@@ -154,7 +154,7 @@
           manualSunrise = "06:30";
           manualSunset = "18:30";
           matugenSchemeType = "scheme-tonal-spot";
-          predefinedScheme = "Ayu";
+          predefinedScheme = "Focus";
           schedulingMode = "off";
           useWallpaperColors = true;
         };
