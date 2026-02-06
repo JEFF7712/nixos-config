@@ -120,7 +120,7 @@ layout {
     }
 
     tab-indicator {
-        on
+        off
         hide-when-single-tab
         place-within-column
         gap 5
@@ -212,11 +212,11 @@ window-rule {
 }
 window-rule {
     match is-active=true
-    opacity 0.95
+    opacity 1.0
 }
 window-rule {
     match is-active=false
-    opacity 0.75
+    opacity 0.70
 }
 window-rule {
     match title="Waypaper"
@@ -257,9 +257,10 @@ binds {
     Mod+B { spawn "noctalia-shell" "ipc" "call" "bar" "toggle"; }
     Mod+Alt+V { spawn "noctalia-shell" "ipc" "call" "launcher" "clipboard"; }
     Mod+R { spawn "noctalia-shell" "ipc" "call" "wallpaper" "random"; }
+    Mod+O {spawn "obsidian"; }
 
     Mod+C repeat=false { close-window; }
-    Mod+O { toggle-window-rule-opacity; }
+    Mod+Alt+O { toggle-window-rule-opacity; }
     Mod+Shift+O repeat=false { toggle-overview; }
 
     Mod+Left  { focus-column-left; }

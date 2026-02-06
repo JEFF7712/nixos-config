@@ -27,6 +27,12 @@ in
         "x-scheme-handler/https" = "firefox.desktop";
         "x-scheme-handler/about" = "firefox.desktop";
         "x-scheme-handler/unknown" = "firefox.desktop";
+        "application/pdf" = "firefox.desktop";
+        "image/jpeg" = "firefox.desktop";
+        "image/png" = "firefox.desktop";
+        "image/gif" = "firefox.desktop";
+        "image/webp" = "firefox.desktop";
+        "image/svg+xml" = "firefox.desktop";
       };
     };
 

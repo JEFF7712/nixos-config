@@ -1,0 +1,14 @@
+format = "$all"
+
+[character]
+success_symbol = "[❯](#98cbff)"
+error_symbol = "[❯](#ffb4ab)"
+
+[directory]
+style = "bold #b9c8da"
+
+[git_branch]
+style = "bold #98cbff"
+
+[cmd_duration]
+style = "bold #c2c7cf"

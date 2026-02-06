@@ -45,6 +45,7 @@
               pkgs.python3Packages.torch-geometric
               pkgs.python3Packages.imbalanced-learn
               pkgs.python3Packages.openmm
+              openmmtools
               pkgs.python3Packages.mdtraj
             ];
 
