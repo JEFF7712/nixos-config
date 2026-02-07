@@ -2,8 +2,49 @@
 
 {
   options.terminal.enable = lib.mkEnableOption "user terminal config";
+  imports = [ inputs.nixvim.homeManagerModules.nixvim ];
 
   config = lib.mkIf config.terminal.enable {
+
+    programs.nixvim = {
+      enable = true;
+      colorschemes.catppuccin.enable = true;
+      opts = {
+        number = true;
+        relativenumber = true;
+        shiftwidth = 2;
+        expandtab = true;
+      };
+
+      plugins = {
+        lualine.enable = true;      # Status line
+        telescope.enable = true;    # Fuzzy finder
+        treesitter.enable = true;   # Better syntax highlighting
+        neo-tree.enable = true;     # File explorer
+        
+        cmp = {
+          enable = true;
+          settings.sources = [
+            { name = "nvim_lsp"; }
+            { name = "path"; }
+            { name = "buffer"; }
+          ];
+          settings.mapping = {
+            "<C-Space>" = "cmp.mapping.complete()";
+            "<CR>" = "cmp.mapping.confirm({ select = true })";
+          };
+        };
+
+        lsp = {
+          enable = true;
+          servers = {
+            nil_ls.enable = true;    # Nix
+            pyright.enable = true;   # Python
+            clangd.enable = true;    # C/C++
+          };
+        };
+      };
+    };
 
     home.packages = with pkgs; [
       eza 

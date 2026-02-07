@@ -17,9 +17,13 @@
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nix-vscode-extensions, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nix-vscode-extensions, nixvim, ... }@inputs:
     let
       system = "x86_64-linux";
 

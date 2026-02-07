@@ -73,6 +73,7 @@ toggle_focus() {
         jq '.colorSchemes.useWallpaperColors = false | .colorSchemes.predefinedScheme = "Focus"' "$NOCTALIA_SETTINGS" > "$tmp" && mv "$tmp" "$NOCTALIA_SETTINGS"
     fi
     noctalia-shell ipc call colorScheme set "Focus"
+    noctalia-shell ipc call powerProfile toggleNoctaliaPerformance
     if command -v jq &> /dev/null && command -v niri &> /dev/null; then
         OUTPUTS=$(niri msg -j outputs | jq -r 'keys[]')
         for screen in $OUTPUTS; do
