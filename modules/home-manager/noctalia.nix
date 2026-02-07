@@ -96,6 +96,8 @@
       style = "bold {{colors.on_surface_variant.default.hex}}"
     '';
 
+    xdg.configFile."noctalia/settings.json".force = true;
+
     programs.noctalia-shell = {
       enable = true;
       systemd.enable = true;
