@@ -24,6 +24,11 @@
       in
       {
         devShells = {
+          python = pkgs.mkShell {
+            packages = [ pythonEnv ];
+            shellHook = ''echo "Python Shell ready." '';
+          };
+          
           cbe = pkgs.mkShell {
             packages = [ 
               pythonEnv
