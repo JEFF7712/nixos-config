@@ -8,19 +8,18 @@
 
     programs.nixvim = {
       enable = true;
-      colorschemes.catppuccin.enable = true;
+      colorschemes.oxocarbon.enable = true;
       opts = {
         number = true;
-        relativenumber = true;
         shiftwidth = 2;
         expandtab = true;
       };
 
       plugins = {
-        lualine.enable = true;      # Status line
-        telescope.enable = true;    # Fuzzy finder
-        treesitter.enable = true;   # Better syntax highlighting
-        neo-tree.enable = true;     # File explorer
+        lualine.enable = true;
+        telescope.enable = true;
+        treesitter.enable = true;
+        neo-tree.enable = true;
         
         cmp = {
           enable = true;
@@ -38,9 +37,9 @@
         lsp = {
           enable = true;
           servers = {
-            nil_ls.enable = true;    # Nix
-            pyright.enable = true;   # Python
-            clangd.enable = true;    # C/C++
+            nil_ls.enable = true;
+            pyright.enable = true;
+            clangd.enable = true;
           };
         };
       };
