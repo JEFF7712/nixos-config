@@ -11,6 +11,7 @@
       cbonsai    
       sl         
       cava
+      ttyper
     ];
   };
 }
