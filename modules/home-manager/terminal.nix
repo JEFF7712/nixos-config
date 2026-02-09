@@ -17,6 +17,7 @@
 
       plugins = {
         lualine.enable = true;
+        web-devicons.enable = true;
         telescope.enable = true;
         treesitter.enable = true;
         neo-tree.enable = true;
