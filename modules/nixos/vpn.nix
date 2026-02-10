@@ -6,6 +6,7 @@
   config = lib.mkIf config.vpn.enable {
     environment.systemPackages = [
       inputs.globalprotect-openconnect.packages.${pkgs.stdenv.hostPlatform.system}.default
+      pkgs.openconnect
     ];
   };
 }
