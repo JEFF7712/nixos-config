@@ -18,6 +18,7 @@
     ./podman.nix
     ./waydroid.nix
     ./airplay.nix
+    ./vpn.nix
   ];
 
   git.enable = lib.mkDefault true;

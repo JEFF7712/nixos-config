@@ -21,9 +21,10 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nix-vscode-extensions, nixvim, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nix-vscode-extensions, nixvim, globalprotect-openconnect,... }@inputs:
     let
       system = "x86_64-linux";
 
