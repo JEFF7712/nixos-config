@@ -26,6 +26,7 @@
   waydroid.enable = true;
   game.enable = true;
   airplay.enable = true;
+  vpn.enable = true;
 
   environment.shells = with pkgs; [ fish ];
   users.users.rupan.shell = pkgs.fish;
