@@ -15,7 +15,6 @@
       localsend
       tor-browser
       feishin
-      aonsoku
       gimp2
       vlc
       avidemux
