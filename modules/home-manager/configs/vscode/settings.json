@@ -26,6 +26,7 @@
   "claudeCode.allowDangerouslySkipPermissions": true,
   "[cmake]": {},
   "chat.useAgentSkills": true,
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  "editor.unicodeHighlight.invisibleCharacters": false
 }
 
