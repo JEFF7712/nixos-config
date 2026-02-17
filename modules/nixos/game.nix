@@ -23,7 +23,7 @@
 
     environment.systemPackages = with pkgs; [
       protonup-qt
-      wineWowPackages.stable
+      wineWow64Packages.stable
       winetricks
     ];
   };
