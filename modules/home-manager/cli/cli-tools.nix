@@ -8,6 +8,8 @@
       tmux
       btop
       ffmpeg
+      parted
+      smartmontools
     ];
   };
 }
