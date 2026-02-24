@@ -73,6 +73,7 @@
         tf="terragrunt";
         k="kubectl";
         kprune="kubectl delete pods -A --field-selector=status.phase=Failed,status.phase=Succeeded,status.phase==Completed";
+        gg="git add . && gmc && git push";
       };
       interactiveShellInit = ''
         set fish_greeting ""
