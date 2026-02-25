@@ -122,7 +122,10 @@
 
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
   networking.networkmanager.dns = "none";
+  networking.networkmanager.wifi.scanRandMacAddress = false;
+  networking.networkmanager.wifi.macAddress = "preserve";
   networking.wireless.iwd.enable = false;
+
 
   system.autoUpgrade = {
     enable = true;
