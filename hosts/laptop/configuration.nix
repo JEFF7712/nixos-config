@@ -122,8 +122,7 @@
 
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
   networking.networkmanager.dns = "none";
-  networking.wireless.iwd.enable = true;
-  networking.networkmanager.wifi.backend = "iwd";
+  networking.wireless.iwd.enable = false;
 
   system.autoUpgrade = {
     enable = true;
