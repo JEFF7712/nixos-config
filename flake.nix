@@ -65,7 +65,6 @@
       nixosConfigurations = {
         laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
         workmachine = mkSystem "workmachine" ./home/rupan/workmachine.nix;
-        homelab = mkSystem "homelab" ./home/rupan/homelab.nix;
         iso = mkSystem "iso" ./home/rupan/laptop.nix;
       };
   };
