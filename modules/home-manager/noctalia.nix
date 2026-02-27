@@ -101,6 +101,15 @@
     programs.noctalia-shell = {
       enable = true;
       systemd.enable = true;
+      package = inputs.noctalia.packages.${pkgs.system}.default.overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          if grep -q "BackgroundEffect.blurRegion" Modules/MainScreen/MainScreen.qml; then
+            sed -i 's/^  BackgroundEffect\.blurRegion: Region {$/  BackgroundBlur {/' Modules/MainScreen/MainScreen.qml
+            sed -i '0,/^  BackgroundBlur {$/s//&\n    blurRegion: Region {/' Modules/MainScreen/MainScreen.qml
+            sed -i '0,/^  \/\/ --------------------------------------$/s//  }\n&/' Modules/MainScreen/MainScreen.qml
+          fi
+        '';
+      });
       user-templates = {
         config = {
           scheme_type = "scheme_tonal-spot"; 
