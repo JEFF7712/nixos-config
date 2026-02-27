@@ -10,7 +10,6 @@
       bitwarden-desktop
       libreoffice-qt-fresh  
       netflix
-      chromium
       obs-studio
       localsend
       tor-browser

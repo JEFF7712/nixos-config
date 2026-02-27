@@ -10,6 +10,7 @@
       ffmpeg
       parted
       smartmontools
+      ncdu
     ];
   };
 }
