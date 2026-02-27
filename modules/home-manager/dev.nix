@@ -1,4 +1,4 @@
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, config, inputs, ... }:
 
 {
   options.dev.enable = lib.mkEnableOption "dev";
@@ -20,6 +20,7 @@
       dig
       glab
       claude-code
+      inputs.claude-desktop.packages.${pkgs.system}.claude-desktop
       opencode
       nodejs_24
       cloc
