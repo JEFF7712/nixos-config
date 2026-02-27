@@ -23,6 +23,7 @@
       opencode
       nodejs_24
       cloc
+      codex
     ];
   };
 }
