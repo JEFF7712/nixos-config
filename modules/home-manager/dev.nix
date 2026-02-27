@@ -38,6 +38,7 @@
         nodejs_24
         cloc
         codex
+        code-cursor
       ];
     }
   );
