@@ -247,16 +247,16 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-    Mod+Space hotkey-overlay-title="App Launcher" { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
-    Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "noctalia-shell" "ipc" "--any-display" "call" "launcher" "toggle"; }
+    Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "--any-display" "call" "lockScreen" "lock"; }
     Mod+F { spawn "firefox"; }
-    Mod+W { spawn "noctalia-shell" "ipc" "call" "wallpaper" "toggle"; }
+    Mod+W { spawn "noctalia-shell" "ipc" "--any-display" "call" "wallpaper" "toggle"; }
     Mod+S { spawn "spotify"; }        
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
-    Mod+B { spawn "noctalia-shell" "ipc" "call" "bar" "toggle"; }
-    Mod+Alt+V { spawn "noctalia-shell" "ipc" "call" "launcher" "clipboard"; }
-    Mod+R { spawn "noctalia-shell" "ipc" "call" "wallpaper" "random"; }
+    Mod+B { spawn "noctalia-shell" "ipc" "--any-display" "call" "bar" "toggle"; }
+    Mod+Alt+V { spawn "noctalia-shell" "ipc" "--any-display" "call" "launcher" "clipboard"; }
+    Mod+R { spawn "noctalia-shell" "ipc" "--any-display" "call" "wallpaper" "random"; }
     Mod+O {spawn "obsidian"; }
 
     Mod+C repeat=false { close-window; }
@@ -368,12 +368,12 @@ binds {
     Mod+Alt+L { spawn "wl-copy" "https://www.linkedin.com/in/rupan-sunderapandyan/"; }
     Mod+Alt+A { spawn "wl-copy" "538 West Washington Ave Apt 504"; }
 
-    XF86AudioRaiseVolume { spawn "noctalia-shell" "ipc" "call" "volume" "increase"; }
-    XF86AudioLowerVolume { spawn "noctalia-shell" "ipc" "call" "volume" "decrease"; }
-    XF86AudioMute { spawn "noctalia-shell" "ipc" "call" "volume" "muteOutput"; }
+    XF86AudioRaiseVolume { spawn "noctalia-shell" "ipc" "--any-display" "call" "volume" "increase"; }
+    XF86AudioLowerVolume { spawn "noctalia-shell" "ipc" "--any-display" "call" "volume" "decrease"; }
+    XF86AudioMute { spawn "noctalia-shell" "ipc" "--any-display" "call" "volume" "muteOutput"; }
 
-    XF86MonBrightnessUp { spawn "noctalia-shell" "ipc" "call" "brightness" "increase"; }
-    XF86MonBrightnessDown { spawn "noctalia-shell" "ipc" "call" "brightness" "decrease"; }
+    XF86MonBrightnessUp { spawn "noctalia-shell" "ipc" "--any-display" "call" "brightness" "increase"; }
+    XF86MonBrightnessDown { spawn "noctalia-shell" "ipc" "--any-display" "call" "brightness" "decrease"; }
 
 
     // Screenshots
