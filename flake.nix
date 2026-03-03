@@ -15,7 +15,7 @@
     };
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
     noctalia = {
-      url = "github:noctalia-dev/noctalia-shell/niri-blur";
+      url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixvim = {
