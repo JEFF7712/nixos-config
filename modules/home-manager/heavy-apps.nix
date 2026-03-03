@@ -26,6 +26,7 @@
       blender
       f3d
       google-chrome
+      hexchat
     ];
   };
 }

@@ -2,7 +2,7 @@
 
 {
   options.terminal.enable = lib.mkEnableOption "user terminal config";
-  imports = [ inputs.nixvim.homeManagerModules.nixvim ];
+  imports = [ inputs.nixvim.homeModules.nixvim ];
 
   config = lib.mkIf config.terminal.enable {
 
