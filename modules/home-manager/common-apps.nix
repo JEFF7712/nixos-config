@@ -1,4 +1,4 @@
-{ pkgs, lib, config, inputs, ... }: 
+{ pkgs, pkgs-stable, lib, config, inputs, ... }:
 let
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.system};
 in
@@ -12,6 +12,7 @@ in
       vesktop
       pywalfox-native
       zoom
+      pkgs-stable.calibre
     ];
 
     programs.firefox = {
