@@ -41,6 +41,8 @@
         code-cursor
         gh
         glab
+        bun
+        pnpm
       ];
     }
   );
