@@ -39,6 +39,8 @@
         cloc
         codex
         code-cursor
+        gh
+        glab
       ];
     }
   );
