@@ -11,6 +11,7 @@
       parted
       smartmontools
       ncdu
+      ranger
     ];
   };
 }
