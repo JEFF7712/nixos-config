@@ -64,7 +64,8 @@
         gc = "nix-collect-garbage -d";
         cniri="sudo $EDITOR $HOME/nixos/modules/home-manager/configs/niri/config.kdl";
         ls = "eza --icons";      
-        ll = "eza -l --icons";   
+        ll = "eza -l --icons";
+        l = "eza --icons";   
         lt = "eza --tree --level=2 --icons"; 
         la = "eza -a --icons";     
         lla = "eza -la --icons"; 
