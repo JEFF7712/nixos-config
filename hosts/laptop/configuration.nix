@@ -28,7 +28,10 @@
   airplay.enable = true;
   vpn.enable = true;
 
-  environment.shells = with pkgs; [ fish ];
+  environment.shells = with pkgs; [ fish bash ];
+  system.activationScripts.binbash = lib.stringAfter [ "usrbinenv" ] ''
+    ln -sf ${pkgs.bash}/bin/bash /bin/bash
+  '';
   users.users.rupan.shell = pkgs.fish;
   users.users.rupan.ignoreShellProgramCheck = true;
 
