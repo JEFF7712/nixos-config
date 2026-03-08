@@ -3,10 +3,7 @@
 {
   options.dev.enable = lib.mkEnableOption "dev";
 
-  config = lib.mkIf config.dev.enable (
-    let
-      claudeDesktop = inputs.claude-desktop.packages.${pkgs.system}.claude-desktop-with-fhs;
-    in {
+  config = lib.mkIf config.dev.enable {
       programs.direnv = {
         enable = true;
         nix-direnv.enable = true;
@@ -24,16 +21,7 @@
         dig
         glab
         claude-code
-        (writeShellScriptBin "claude-desktop" ''
-          export NIXOS_OZONE_WL=0
-          export ELECTRON_OZONE_PLATFORM_HINT=x11
-          exec ${claudeDesktop}/bin/claude-desktop \
-            --ozone-platform=x11 \
-            --use-gl=swiftshader \
-            --enable-unsafe-swiftshader \
-            --disable-gpu \
-            "$@"
-        '')
+        claude-desktop-fhs
         opencode
         nodejs_24
         cloc
@@ -44,6 +32,5 @@
         bun
         pnpm
       ];
-    }
-  );
+  };
 }

@@ -24,7 +24,7 @@
     };
     globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
     claude-desktop = {
-      url = "github:k3d3/claude-desktop-linux-flake";
+      url = "github:aaddrick/claude-desktop-debian";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
@@ -37,7 +37,13 @@
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-        overlays = [ nix-vscode-extensions.overlays.default ];
+        config.permittedInsecurePackages = [
+          "electron-37.10.3"
+        ];
+        overlays = [
+          nix-vscode-extensions.overlays.default
+          inputs.claude-desktop.overlays.default
+        ];
       };
 
       pkgs-stable = import nixpkgs-stable {
