@@ -89,6 +89,8 @@
     wget
     neovim
     pciutils
+    qemu_kvm
+    virtiofsd
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
