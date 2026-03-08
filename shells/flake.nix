@@ -51,6 +51,7 @@
               pkgs.python3Packages.imbalanced-learn
               pkgs.python3Packages.openmm
               pkgs.python3Packages.mdtraj
+              pkgs.python3Packages.plotly
             ];
 
             shellHook = ''
