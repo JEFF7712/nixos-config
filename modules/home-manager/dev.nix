@@ -31,6 +31,7 @@
         glab
         bun
         pnpm
+        ags
       ];
   };
 }
