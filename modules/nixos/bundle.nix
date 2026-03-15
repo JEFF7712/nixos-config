@@ -16,6 +16,7 @@
     ./niri.nix
     ./nvidia.nix
     ./podman.nix
+    ./screenshot-cleanup.nix
     ./waydroid.nix
     ./airplay.nix
     ./vpn.nix
