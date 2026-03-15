@@ -8,7 +8,11 @@
 
   nix = {
     package = pkgs.nix;
-    settings.experimental-features = [ "nix-command" "flakes" ];
+    settings = {
+      experimental-features = [ "nix-command" "flakes" ];
+      max-jobs = 1;
+      cores = 2;
+    };
   };
 
   nvidia.enable = true;
@@ -18,6 +22,7 @@
   ctls.enable = true; 
   bluetooth.enable = true;
   filemanager.enable = true;
+  screenshot-cleanup.enable = true;
   podman.enable = true;
   distrobox.enable = true;
   file-utils.enable = true;  
@@ -147,4 +152,3 @@
  
   system.stateVersion = "25.11"; #DO NOT EDIT
 }
-
