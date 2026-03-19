@@ -456,5 +456,12 @@
         };
       };
     };
+
+    # Only start noctalia-shell when the noctalia profile is active.
+    # ExecCondition exits non-zero → service is skipped (not failed) on rebuild
+    # when the user is on a different profile.
+    systemd.user.services.noctalia-shell = {
+      Service.ExecCondition = "${pkgs.bash}/bin/bash -c '[ \"$(cat %h/.config/desktop-profiles/active 2>/dev/null || echo noctalia)\" = \"noctalia\" ]'";
+    };
   };
 }
