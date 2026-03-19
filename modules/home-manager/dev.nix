@@ -28,6 +28,7 @@
         bun
         pnpm
         ags
+        uv
       ];
   };
 }
