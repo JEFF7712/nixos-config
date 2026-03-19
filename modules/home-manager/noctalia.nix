@@ -163,7 +163,7 @@
 
         wallpaper = {
           enabled = true;
-          directory = "/home/rupan/nixos/modules/home-manager/assets/wallpapers";
+          directory = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/noctalia";
           panelPosition = "follow_bar";
           randomEnabled = true;
           randomIntervalSec = 3600;
