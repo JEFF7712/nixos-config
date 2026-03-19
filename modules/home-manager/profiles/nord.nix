@@ -37,6 +37,7 @@ in {
     niri = {
       gaps               = 20;
       borderOff          = true;
+      focusRingOff       = true;
       shadowSoftness     = 20;
       shadowSpread       = 3;
       shadowOffsetX      = 0;
@@ -47,6 +48,8 @@ in {
       tabIndicatorOff    = false;
       tabIndicatorActiveColor   = nord8;
       tabIndicatorInactiveColor = nord3;
+      focusRingOff       = true;
+      borderOff          = true;
       windowOpacity      = 0.95;
       windowHighlightOff = true;
     };
