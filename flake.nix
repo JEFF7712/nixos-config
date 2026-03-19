@@ -47,6 +47,7 @@
         overlays = [
           nix-vscode-extensions.overlays.default
           inputs.claude-desktop.overlays.default
+          (import ./overlays/claude-desktop-cowork.nix)
         ];
       };
 
