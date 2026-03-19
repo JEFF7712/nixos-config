@@ -1,0 +1,48 @@
+# Noctalia desktop profile.
+# Colors are all null — noctalia-shell manages them dynamically at runtime.
+# Only niri settings, cursor, bar, and wallpaperDir are meaningful here.
+{ ... }:
+
+{
+  desktopProfiles.profiles.noctalia = {
+    bar = "noctalia";
+
+    cursor = {
+      theme = "Adwaita";
+      size  = 28;
+    };
+
+    wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers";
+
+    niri = {
+      gaps               = 5;
+      borderOff          = true;
+      borderWidth        = 1;
+      borderActiveColor  = "rgba(220,220,220,0.9)";
+      borderInactiveColor = "rgba(20,20,20,0.8)";
+      urgentColor        = "#9b0000";
+      focusRingActiveColor   = "rgba(220,220,220,0.9)";
+      focusRingInactiveColor = "rgba(20,20,20,0.8)";
+      shadowSoftness     = 30;
+      shadowSpread       = 5;
+      shadowOffsetX      = 0;
+      shadowOffsetY      = 5;
+      shadowColor        = "#00000070";
+      shadowInactiveColor = "#00000054";
+      shadowDrawBehindWindow = true;
+      tabIndicatorOff    = true;
+      tabIndicatorActiveColor   = "rgba(220,220,220,0.9)";
+      tabIndicatorInactiveColor = "rgba(20,20,20,0.5)";
+      windowOpacity      = 1.0;
+    };
+
+    colors = {
+      gtk3     = null;
+      gtk4     = null;
+      qt6      = null;
+      kitty    = null;
+      fish     = null;
+      starship = null;
+    };
+  };
+}
