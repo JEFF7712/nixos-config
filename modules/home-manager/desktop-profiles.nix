@@ -43,6 +43,7 @@ let
         tabIndicatorActiveColor   = lib.mkOption { type = lib.types.str; default = "#b1c6ff"; };
         tabIndicatorInactiveColor = lib.mkOption { type = lib.types.str; default = "#4c566a"; };
         windowOpacity       = lib.mkOption { type = lib.types.float;  default = 1.0; };
+        windowHighlightOff  = lib.mkOption { type = lib.types.bool;   default = false; };
       };
 
       colors = {
@@ -113,6 +114,8 @@ let
     window-rule {
         opacity ${toString profile.niri.windowOpacity}
     }
+
+    ${lib.optionalString profile.niri.windowHighlightOff "recent-windows { highlight { off } }"}
   '';
 
   orEmpty = v: if v != null then v else "";

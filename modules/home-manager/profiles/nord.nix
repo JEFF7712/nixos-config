@@ -48,6 +48,7 @@ in {
       tabIndicatorActiveColor   = nord8;
       tabIndicatorInactiveColor = nord3;
       windowOpacity      = 0.95;
+      windowHighlightOff = true;
     };
 
     colors = {
