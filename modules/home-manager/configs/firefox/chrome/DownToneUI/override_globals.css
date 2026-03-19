@@ -1,7 +1,11 @@
 * {
   --dtui-theme-color-scheme: dark;
-  --dtui-theme-main-color: 16, 16, 16;
-  --dtui-theme-secondary-color: 16, 16, 16;
-  --dtui-theme-accent-color: 200, 200, 200;
-  --dtui-theme-text-color: 240, 240, 240;
+  /* Nord0 #2e3440 */
+  --dtui-theme-main-color: 46, 52, 64;
+  /* Nord1 #3b4252 */
+  --dtui-theme-secondary-color: 59, 66, 82;
+  /* Nord8 #88c0d0 */
+  --dtui-theme-accent-color: 136, 192, 208;
+  /* Nord4 #d8dee9 */
+  --dtui-theme-text-color: 216, 222, 233;
 }

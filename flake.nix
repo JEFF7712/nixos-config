@@ -32,6 +32,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
+    niri-blur = {
+      url = "github:niri-wm/niri?ref=refs/heads/wip/branch";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nix-vscode-extensions, nixvim, globalprotect-openconnect,... }@inputs:
@@ -48,6 +52,7 @@
           nix-vscode-extensions.overlays.default
           inputs.claude-desktop.overlays.default
           (import ./overlays/claude-desktop-cowork.nix)
+          inputs.niri-blur.overlays.default
         ];
       };
 
