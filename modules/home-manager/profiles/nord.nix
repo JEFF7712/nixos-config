@@ -21,7 +21,7 @@ let
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
 in {
-  home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi ];
+  home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal ];
 
   desktopProfiles.profiles.nord = {
     bar = "waybar";
