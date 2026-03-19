@@ -198,6 +198,7 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
+    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "rofi-profile"; }
     Mod+Space hotkey-overlay-title="App Launcher" { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"nord\" ]; then rofi -show drun -theme material; else noctalia-shell ipc --any-display call launcher toggle; fi"; }
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "--any-display" "call" "lockScreen" "lock"; }
     Mod+F { spawn "firefox"; }

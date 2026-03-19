@@ -1,0 +1,81 @@
+/* Nord-themed profile switcher with screenshot previews */
+
+* {
+    font:                   "JetBrainsMono Nerd Font 11";
+    background-color:       #2e3440;
+    text-color:             #d8dee9;
+    border-color:           #4c566a;
+    selected-normal-background: #3b4252;
+    selected-normal-foreground: #88c0d0;
+    normal-background:      #2e3440;
+    normal-foreground:      #d8dee9;
+}
+
+window {
+    width:              700px;
+    border:             2px solid;
+    border-color:       #4c566a;
+    border-radius:      8px;
+    padding:            12px;
+    background-color:   #2e3440;
+}
+
+mainbox {
+    spacing:            0;
+    children:           [ inputbar, listview ];
+}
+
+inputbar {
+    padding:            8px 12px;
+    margin:             0 0 10px 0;
+    background-color:   #3b4252;
+    border-radius:      6px;
+    children:           [ prompt, entry ];
+}
+
+prompt {
+    text-color:         #88c0d0;
+    padding:            0 8px 0 0;
+}
+
+entry {
+    text-color:         #d8dee9;
+    placeholder:        "Switch profile…";
+    placeholder-color:  #4c566a;
+}
+
+listview {
+    columns:            2;
+    lines:              2;
+    spacing:            10px;
+    fixed-height:       false;
+    scrollbar:          false;
+}
+
+element {
+    orientation:        vertical;
+    padding:            10px;
+    spacing:            8px;
+    border-radius:      6px;
+    background-color:   #3b4252;
+    cursor:             pointer;
+}
+
+element selected {
+    background-color:   #434c5e;
+    border:             2px solid;
+    border-color:       #88c0d0;
+}
+
+element-icon {
+    size:               220px;
+    border-radius:      4px;
+    horizontal-align:   0.5;
+}
+
+element-text {
+    horizontal-align:   0.5;
+    vertical-align:     0.5;
+    text-color:         inherit;
+    font:               "JetBrainsMono Nerd Font 12";
+}
