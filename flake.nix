@@ -22,6 +22,10 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    deepagents = {
+      url = "github:langchain-ai/deepagents";
+      flake = false;
+    };
     globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
     claude-desktop = {
       url = "github:aaddrick/claude-desktop-debian";

@@ -2,6 +2,7 @@
 
 {
   imports = [
+    ./ai-tools.nix
     ./cli/cli-tools.nix
     ./cli/cli-toys.nix
     ./common-apps.nix

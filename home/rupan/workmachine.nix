@@ -16,6 +16,7 @@
   terminal.enable = true;
   common-apps.enable = true;
   cli-tools.enable = true;
+  ai-tools.enable = true;
   dev.enable = true;
 
   programs.fish.shellAliases.bnix = "cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#workmachine && git commit -m 'Updates' && git push";
