@@ -21,7 +21,7 @@ let
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
 in {
-  home.packages = [ pkgs.waybar ];
+  home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi ];
 
   desktopProfiles.profiles.nord = {
     bar = "waybar";
@@ -48,8 +48,6 @@ in {
       tabIndicatorOff    = false;
       tabIndicatorActiveColor   = nord8;
       tabIndicatorInactiveColor = nord3;
-      focusRingOff       = true;
-      borderOff          = true;
       windowOpacity      = 0.95;
       windowHighlightOff = true;
     };
