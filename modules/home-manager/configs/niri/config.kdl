@@ -167,7 +167,7 @@ window-rule {
 }
 window-rule {
     match is-active=false
-    opacity 0.70
+    opacity 0.85
 }
 window-rule {
     match title="Waypaper"
