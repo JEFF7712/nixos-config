@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, config, ... }:
 
 {
   imports = [
@@ -26,6 +26,11 @@
     recursive = true;
     executable = true;
   };
+
+  # Rofi configs (out-of-store so they're editable without rebuild)
+  xdg.configFile."rofi".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/nixos/modules/home-manager/configs/rofi";
 
   home.sessionPath = [ "$HOME/.local/bin" ];
 }

@@ -2,6 +2,7 @@
 
 # waybar is required by this profile.
 # nordzy cursor/icon themes are used when available.
+# mako handles notifications (noctalia manages its own when active).
 
 let
   nord0  = "#2e3440";
@@ -21,7 +22,33 @@ let
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
 in {
-  home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal ];
+  home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
+
+  xdg.configFile."mako/config".text = ''
+    font=JetBrainsMono Nerd Font 11
+    background-color=#2e3440
+    text-color=#d8dee9
+    border-color=#88c0d0
+    border-size=2
+    border-radius=8
+    width=320
+    padding=12
+    margin=10
+    default-timeout=5000
+    icons=1
+    max-icon-size=48
+    layer=overlay
+
+    [urgency=low]
+    border-color=#4c566a
+    default-timeout=3000
+
+    [urgency=high]
+    background-color=#3b4252
+    border-color=#bf616a
+    text-color=#eceff4
+    default-timeout=0
+  '';
 
   desktopProfiles.profiles.nord = {
     bar = "waybar";
@@ -193,7 +220,9 @@ in {
           "layer": "top",
           "height": 28,
           "modules-left": [
-            "niri/workspaces"
+            "niri/workspaces",
+            "cpu",
+            "memory"
           ],
           "modules-center": [
             "clock"
@@ -293,6 +322,16 @@ in {
               "10": []
             },
             "sort-by-number": true
+          },
+          "cpu": {
+            "interval": 3,
+            "format": "󰻠 {usage}%",
+            "tooltip": false
+          },
+          "memory": {
+            "interval": 3,
+            "format": "󰍛 {percentage}%",
+            "tooltip-format": "{used:0.1f}G / {total:0.1f}G"
           }
         }
       '';
@@ -306,6 +345,7 @@ in {
         #workspaces button:hover { background: rgba(255,255,255,0.05); color: #e5e9f0; }
         #clock { color: #88c0d0; font-weight: bold; }
         #battery, #bluetooth, #network, #pulseaudio, #tray { color: #d8dee9; padding: 0 8px; }
+        #cpu, #memory { color: #a3be8c; padding: 0 8px; }
         #workspaces { padding: 0 4px; }
         #workspaces button { padding: 0 8px; background: transparent; color: #4c566a; border-bottom: 2px solid transparent; }
         #workspaces button.active { color: #88c0d0; border-bottom: 2px solid #88c0d0; }

@@ -65,6 +65,8 @@ elif [ "$CURRENT_BAR" = "waybar" ]; then
   done
   # Clean up waybar configs so a stale Nord config doesn't persist
   rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
+  # Stop mako (nord uses mako; noctalia manages its own notifications)
+  pkill -x mako 2>/dev/null || true
 fi
 
 # 2. Copy color files (skip for noctalia — it manages its own colors)
@@ -115,6 +117,9 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
     cp "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css"   2>/dev/null || true
   fi
   waybar 2>/dev/null &
+  disown
+  # Start mako for nord notifications
+  mako 2>/dev/null &
   disown
 fi
 
