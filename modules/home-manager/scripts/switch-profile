@@ -47,7 +47,7 @@ fi
 TARGET_BAR=$(jq -r '.bar' "$TARGET_DIR/meta.json")
 TARGET_CURSOR=$(jq -r '.cursor' "$TARGET_DIR/meta.json")
 TARGET_CURSOR_SIZE=$(jq -r '.cursorSize' "$TARGET_DIR/meta.json")
-TARGET_WALLPAPER_DIR=$(cat "$TARGET_DIR/wallpaper-dir")
+TARGET_WALLPAPER_DIR=$(cat "$TARGET_DIR/wallpaper-dir" 2>/dev/null || echo "")
 
 echo "Switching to profile: $TARGET"
 
@@ -99,8 +99,8 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
   echo "  Starting waybar..."
   if [ -f "$TARGET_DIR/waybar-config.jsonc" ]; then
     mkdir -p "$HOME/.config/waybar"
-    cp "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc"
-    cp "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css" 2>/dev/null || true
+    cp "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc" 2>/dev/null || true
+    cp "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css"   2>/dev/null || true
   fi
   waybar 2>/dev/null &
   disown
