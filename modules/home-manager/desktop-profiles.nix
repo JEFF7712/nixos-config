@@ -179,7 +179,7 @@ in {
         $DRY_RUN_CMD ln -s "$PROFILES_DIR/$DEFAULT/niri-overrides.kdl" "$ACTIVE_LINK"
       fi
       if [ ! -e "$ACTIVE_FILE" ]; then
-        $DRY_RUN_CMD printf '%s\n' "$DEFAULT" > "$ACTIVE_FILE"
+        echo "$DEFAULT" | $DRY_RUN_CMD tee "$ACTIVE_FILE" > /dev/null
       fi
     '';
   };
