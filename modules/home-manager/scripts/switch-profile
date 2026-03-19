@@ -119,8 +119,19 @@ if [ "$TARGET" = "noctalia" ]; then
   while IFS= read -r screen; do
     noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
   done < <(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
-  # Reload kitty after noctalia finishes color generation (runs async in background)
-  (sleep 6 && pkill -USR1 -x kitty 2>/dev/null || true) &
+  # Wait for noctalia to generate colors.json, then apply user templates (including kitty)
+  (
+    sleep 4
+    NOCSHELL=$(readlink -f "$(which noctalia-shell)")
+    NOCBASE="${NOCSHELL%/bin/noctalia-shell}"
+    SCRIPTS="$NOCBASE/share/noctalia-shell/Scripts/python/src/theming"
+    if [ -f "$SCRIPTS/template-processor.py" ] && [ -f "$HOME/.config/noctalia/colors.json" ]; then
+      cd "$SCRIPTS" && python3 template-processor.py \
+        --scheme "$HOME/.config/noctalia/colors.json" \
+        --config "$HOME/.config/noctalia/user-templates.toml" \
+        --mode dark 2>/dev/null || true
+    fi
+  ) &
 elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   WALLPAPER=$(find "$TARGET_WALLPAPER_DIR" -maxdepth 1 \
     -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
@@ -132,7 +143,7 @@ elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   fi
 fi
 
-# 8. Signal kitty to reload colors (only for static profiles — noctalia signals kitty itself after color generation)
+# 8. Signal kitty to reload colors (noctalia handles this via template-processor post_hook)
 if [ "$TARGET" != "noctalia" ]; then
   pkill -USR1 -x kitty 2>/dev/null || true
 fi
