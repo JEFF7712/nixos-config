@@ -20,12 +20,8 @@
         age
         dig
         glab
-        claude-code
-        claude-desktop-fhs
-        opencode
         nodejs_24
         cloc
-        codex
         code-cursor
         gh
         glab

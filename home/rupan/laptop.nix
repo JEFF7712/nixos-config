@@ -18,6 +18,7 @@
   heavy-apps.enable = true;
   cli-toys.enable = true;
   cli-tools.enable = true;
+  ai-tools.enable = true;
   dev.enable = true;
 
   programs.fish.shellAliases.bnix = "cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#laptop && git commit -m 'Updates' && git push";
