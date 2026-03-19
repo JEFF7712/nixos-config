@@ -94,13 +94,15 @@ echo "  Applying cursor..."
 gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
 
-# 6. Start new bar (before wallpaper so noctalia IPC is available)
+# 6. Start new bar + manage swww (noctalia has its own wallpaper engine; waybar needs swww)
 if [ "$TARGET_BAR" = "noctalia" ]; then
   echo "  Starting noctalia-shell..."
+  systemctl --user stop swww 2>/dev/null || true  # noctalia owns the wallpaper layer
   systemctl --user start noctalia-shell 2>/dev/null || true
   sleep 1  # allow noctalia to come up before IPC call
 elif [ "$TARGET_BAR" = "waybar" ]; then
   echo "  Starting waybar..."
+  systemctl --user start swww 2>/dev/null || true  # swww needed for static wallpapers
   if [ -f "$TARGET_DIR/waybar-config.jsonc" ]; then
     mkdir -p "$HOME/.config/waybar"
     cp "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc" 2>/dev/null || true
