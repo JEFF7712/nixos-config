@@ -14,7 +14,7 @@ if [ "${ROFI_OUTSIDE:-}" != "1" ] && [ -z "$ROFI_RETV" ]; then
   ROFI_OUTSIDE=1 rofi \
     -show-icons \
     -icon-theme Adwaita \
-    -modi "profile:ROFI_OUTSIDE=1 $0" \
+    -modi "profile:env ROFI_OUTSIDE=1 $0" \
     -show profile \
     -theme "$THEME"
   exit 0
