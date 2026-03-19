@@ -7,27 +7,26 @@ PREVIEW_DIR="$HOME/nixos/modules/home-manager/assets/previews"
 ACTIVE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "")
 THEME="$HOME/nixos/modules/home-manager/configs/rofi/profile-switcher.rasi"
 
-# Build entry list with optional preview icons
-entries=""
-for dir in "$PROFILES_DIR"/*/; do
-  [ -d "$dir" ] || continue
-  name=$(basename "$dir")
-  label="$name"
-  [ "$name" = "$ACTIVE" ] && label="$name (active)"
-  preview="$PREVIEW_DIR/$name.png"
-  if [ -f "$preview" ]; then
-    entries+="$(printf "%s\0icon\x1f%s" "$label" "$preview")"$'\n'
-  else
-    entries+="$label"$'\n'
-  fi
-done
-
-# Show rofi; it closes as soon as the user picks or hits Esc
-selected=$(printf "%s" "$entries" | rofi \
-  -dmenu \
-  -show-icons \
-  -icon-theme Adwaita \
-  -theme "$THEME")
+# Pipe entries directly to rofi — null bytes in the icon format are preserved
+# through a pipe but get stripped by $() command substitution.
+selected=$(
+  for dir in "$PROFILES_DIR"/*/; do
+    [ -d "$dir" ] || continue
+    name=$(basename "$dir")
+    label="$name"
+    [ "$name" = "$ACTIVE" ] && label="$name (active)"
+    preview="$PREVIEW_DIR/$name.png"
+    if [ -f "$preview" ]; then
+      printf "%s\0icon\x1f%s\n" "$label" "$preview"
+    else
+      printf "%s\n" "$label"
+    fi
+  done | rofi \
+    -dmenu \
+    -show-icons \
+    -icon-theme Adwaita \
+    -theme "$THEME"
+)
 
 [ -z "$selected" ] && exit 0
 
