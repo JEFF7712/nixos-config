@@ -13,6 +13,7 @@ in
       pywalfox-native
       zoom
       pkgs-stable.calibre
+      zed-editor
     ];
 
     programs.firefox = {

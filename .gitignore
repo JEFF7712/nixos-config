@@ -4,3 +4,6 @@
 /tmp
 *.cache
 /result
+/docs
+/.venv
+/.claude
