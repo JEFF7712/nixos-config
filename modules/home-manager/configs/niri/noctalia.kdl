@@ -27,9 +27,3 @@ layout {
     }
 }
 
-recent-windows {
-    highlight {
-        active-color "#65d3ff"
-        urgent-color "#ffb4ab"
-    }
-}
