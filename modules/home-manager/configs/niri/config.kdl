@@ -14,14 +14,6 @@ environment {
     NIXOS_OZONE_WL "1"
 }
 
-cursor {
-    xcursor-theme "Adwaita"
-    xcursor-size 28
-
-    hide-when-typing
-    hide-after-inactive-ms 5000
-}
-
 output "eDP-1" {
     mode "2880x1800@60"
     scale 2
@@ -69,7 +61,6 @@ layout {
 
     background-color "transparent"
 
-    gaps 5
     struts {
         left -4
         right -4
@@ -92,48 +83,6 @@ layout {
         proportion 0.5
         proportion 0.66667
     }
-
-    focus-ring {
-        on
-        width 0.5
-        active-color "rgba(220,220,220,0.9)"
-        inactive-color "rgba(20,20,20,0.8)"
-        urgent-color "#9b0000"
-    }
-
-    border {
-        off
-        width 1
-        active-color "rgba(220,220,220,0.9)"
-        inactive-color "rgba(20,20,20,0.8)"
-        urgent-color "#9b0000"
-    }
-
-    shadow {
-        on
-        softness 30
-        spread 5
-        offset x=0 y=5
-        draw-behind-window true
-        color "#00000070"
-        inactive-color "#00000054"
-    }
-
-    tab-indicator {
-        off
-        hide-when-single-tab
-        place-within-column
-        gap 5
-        width 4
-        length total-proportion=1.0
-        position "right"
-        gaps-between-tabs 2
-        corner-radius 8
-        active-color "red"
-        inactive-color "gray"
-        urgent-color "blue"
-        
-    }    
 
 }
 
@@ -196,6 +145,8 @@ animations {
     }
 }
 
+include "/home/rupan/.config/desktop-profiles/active-niri-overrides.kdl"
+
 // --- Window Rules ---
 window-rule {
     open-maximized true
@@ -207,7 +158,7 @@ window-rule {
     open-maximized false
 }
 window-rule {
-    geometry-corner-radius 5
+    geometry-corner-radius 10
     clip-to-geometry true
 }
 window-rule {
