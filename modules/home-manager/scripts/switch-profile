@@ -116,7 +116,7 @@ if [ "$TARGET" = "noctalia" ]; then
   # wallpaper random requires a screen argument; call it for each connected output
   while IFS= read -r screen; do
     noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
-  done < <(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output "\(.*\)" (.*/\1/')
+  done < <(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
   # Reload kitty after noctalia finishes color generation (runs async in background)
   (sleep 6 && pkill -USR1 -x kitty 2>/dev/null || true) &
 elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
