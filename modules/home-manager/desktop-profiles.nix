@@ -115,7 +115,7 @@ let
         opacity ${toString profile.niri.windowOpacity}
     }
 
-    ${lib.optionalString profile.niri.windowHighlightOff "recent-windows { highlight { off } }"}
+    ${lib.optionalString profile.niri.windowHighlightOff "recent-windows { highlight off }"}
   '';
 
   orEmpty = v: if v != null then v else "";
