@@ -16,6 +16,7 @@
 
     niri = {
       gaps               = 5;
+      focusRingOff       = true;
       borderOff          = true;
       borderWidth        = 1;
       borderActiveColor  = "rgba(220,220,220,0.9)";

@@ -30,6 +30,7 @@ let
         borderActiveColor   = lib.mkOption { type = lib.types.str;    default = "#b1c6ff"; };
         borderInactiveColor = lib.mkOption { type = lib.types.str;    default = "#121316"; };
         urgentColor         = lib.mkOption { type = lib.types.str;    default = "#ffb4ab"; };
+        focusRingOff           = lib.mkOption { type = lib.types.bool;  default = false; };
         focusRingActiveColor   = lib.mkOption { type = lib.types.str; default = "#b1c6ff"; };
         focusRingInactiveColor = lib.mkOption { type = lib.types.str; default = "#121316"; };
         shadowSoftness      = lib.mkOption { type = lib.types.int;    default = 30; };
@@ -72,6 +73,7 @@ let
         gaps ${toString profile.niri.gaps}
 
         focus-ring {
+            ${if profile.niri.focusRingOff then "off" else ""}
             active-color "${profile.niri.focusRingActiveColor}"
             inactive-color "${profile.niri.focusRingInactiveColor}"
             urgent-color "${profile.niri.urgentColor}"
