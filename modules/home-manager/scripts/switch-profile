@@ -102,7 +102,10 @@ echo "  Applying cursor..."
 gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
 
-# 6. Start new bar + manage swww (noctalia has its own wallpaper engine; waybar needs swww)
+# 6. Record active profile NOW so ExecCondition sees the right profile when starting noctalia-shell
+echo "$TARGET" > "$ACTIVE_FILE"
+
+# 6b. Start new bar + manage swww (noctalia has its own wallpaper engine; waybar needs swww)
 if [ "$TARGET_BAR" = "noctalia" ]; then
   echo "  Starting noctalia-shell..."
   systemctl --user stop swww 2>/dev/null || true  # noctalia owns the wallpaper layer
@@ -159,8 +162,6 @@ if [ "$TARGET" != "noctalia" ]; then
   pkill -USR1 -x kitty 2>/dev/null || true
 fi
 
-# 9. Record active profile
-echo "$TARGET" > "$ACTIVE_FILE"
-
+# 9. Notify
 notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
 echo "Done. Profile '$TARGET' is now active."
