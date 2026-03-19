@@ -21,7 +21,7 @@
         telescope.enable = true;
         treesitter.enable = true;
         neo-tree.enable = true;
-        
+
         cmp = {
           enable = true;
           settings.sources = [
@@ -47,7 +47,7 @@
     };
 
     home.packages = with pkgs; [
-      eza 
+      eza
       bat
       tealdeer
       fzf
@@ -63,12 +63,12 @@
       shellAliases = {
         gc = "nix-collect-garbage -d";
         cniri="sudo $EDITOR $HOME/nixos/modules/home-manager/configs/niri/config.kdl";
-        ls = "eza --icons";      
+        ls = "eza --icons";
         ll = "eza -l --icons";
-        l = "eza --icons";   
-        lt = "eza --tree --level=2 --icons"; 
-        la = "eza -a --icons";     
-        lla = "eza -la --icons"; 
+        l = "eza --icons";
+        lt = "eza --tree --level=2 --icons";
+        la = "eza -a --icons";
+        lla = "eza -la --icons";
         cd = "z";
         cds = "zi";
         tf="terragrunt";
@@ -77,6 +77,7 @@
         gg="git add . && gmc && git push";
         cities="env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/cities-skylines-II/Cities2.exe";
         stellaris="env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/stellaris/stellaris.exe";
+        zed="zeditor";
       };
       shellAbbrs = {
         sp = "switch-profile";
@@ -90,7 +91,7 @@
     programs.starship = {
       enable = true;
     };
-    
+
     programs.zoxide = {
       enable = true;
       enableFishIntegration = true;

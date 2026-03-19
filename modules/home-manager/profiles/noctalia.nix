@@ -20,7 +20,7 @@
       borderWidth        = 1;
       borderActiveColor  = "rgba(220,220,220,0.9)";
       borderInactiveColor = "rgba(20,20,20,0.8)";
-      urgentColor        = "#9b0000";
+      urgentColor        = "#ffb4ab";
       focusRingActiveColor   = "rgba(220,220,220,0.9)";
       focusRingInactiveColor = "rgba(20,20,20,0.8)";
       shadowSoftness     = 30;
@@ -32,7 +32,7 @@
       shadowDrawBehindWindow = true;
       tabIndicatorOff    = true;
       tabIndicatorActiveColor   = "rgba(220,220,220,0.9)";
-      tabIndicatorInactiveColor = "rgba(20,20,20,0.5)";
+      tabIndicatorInactiveColor = "rgba(20,20,20,0.8)";
       windowOpacity      = 1.0;
     };
 
