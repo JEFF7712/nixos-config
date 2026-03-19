@@ -18,7 +18,6 @@
       vlc
       avidemux
       telegram-desktop
-      antigravity
       obsidian
       ovito
       pkgs-stable.avogadro2
@@ -26,7 +25,6 @@
       blender
       f3d
       google-chrome
-      hexchat
     ];
   };
 }
