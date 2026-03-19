@@ -128,8 +128,10 @@ elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   fi
 fi
 
-# 8. Signal kitty to reload colors
-pkill -USR1 -x kitty 2>/dev/null || true
+# 8. Signal kitty to reload colors (only for static profiles — noctalia signals kitty itself after color generation)
+if [ "$TARGET" != "noctalia" ]; then
+  pkill -USR1 -x kitty 2>/dev/null || true
+fi
 
 # 9. Record active profile
 echo "$TARGET" > "$ACTIVE_FILE"
