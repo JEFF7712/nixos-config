@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROFILES_DIR="$HOME/.config/desktop-profiles"
+ACTIVE_FILE="$PROFILES_DIR/active"
+ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
+REPO="$HOME/nixos/modules/home-manager"
+
+list_profiles() {
+  local current=""
+  [ -f "$ACTIVE_FILE" ] && current=$(cat "$ACTIVE_FILE")
+  echo "Available profiles:"
+  for dir in "$PROFILES_DIR"/*/; do
+    [ -d "$dir" ] || continue
+    name=$(basename "$dir")
+    if [ "$name" = "$current" ]; then
+      echo "  * $name (active)"
+    else
+      echo "    $name"
+    fi
+  done
+}
+
+if [ $# -eq 0 ]; then
+  list_profiles
+  exit 0
+fi
+
+TARGET="$1"
+TARGET_DIR="$PROFILES_DIR/$TARGET"
+
+if [ ! -d "$TARGET_DIR" ]; then
+  echo "Error: profile '$TARGET' not found." >&2
+  list_profiles
+  exit 1
+fi
+
+# Read currently running bar from active profile
+CURRENT_BAR="noctalia"
+if [ -f "$ACTIVE_FILE" ]; then
+  CURRENT=$(cat "$ACTIVE_FILE")
+  if [ -f "$PROFILES_DIR/$CURRENT/meta.json" ]; then
+    CURRENT_BAR=$(jq -r '.bar' "$PROFILES_DIR/$CURRENT/meta.json")
+  fi
+fi
+
+TARGET_BAR=$(jq -r '.bar' "$TARGET_DIR/meta.json")
+TARGET_CURSOR=$(jq -r '.cursor' "$TARGET_DIR/meta.json")
+TARGET_CURSOR_SIZE=$(jq -r '.cursorSize' "$TARGET_DIR/meta.json")
+TARGET_WALLPAPER_DIR=$(cat "$TARGET_DIR/wallpaper-dir")
+
+echo "Switching to profile: $TARGET"
+
+# 1. Stop current bar
+if [ "$CURRENT_BAR" = "noctalia" ]; then
+  echo "  Stopping noctalia-shell..."
+  systemctl --user stop noctalia-shell 2>/dev/null || true
+elif [ "$CURRENT_BAR" = "waybar" ]; then
+  echo "  Stopping waybar..."
+  pkill -x waybar 2>/dev/null || true
+  sleep 0.3
+  # Clean up waybar configs so a stale Nord config doesn't persist
+  rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
+fi
+
+# 2. Copy color files (skip for noctalia — it manages its own colors)
+if [ "$TARGET" != "noctalia" ]; then
+  echo "  Applying color files..."
+  [ -s "$TARGET_DIR/gtk-3.0.css" ]       && cp "$TARGET_DIR/gtk-3.0.css"       "$REPO/configs/gtk-3.0/noctalia.css"
+  [ -s "$TARGET_DIR/gtk-4.0.css" ]       && cp "$TARGET_DIR/gtk-4.0.css"       "$REPO/configs/gtk-4.0/noctalia.css"
+  [ -s "$TARGET_DIR/qt6ct.conf" ]        && cp "$TARGET_DIR/qt6ct.conf"        "$REPO/configs/qt6ct/colors/noctalia.conf"
+  # Kitty: configs/kitty is an out-of-store symlink to the repo, so writing
+  # to the repo path is immediately reflected at ~/.config/kitty/colors.conf
+  [ -s "$TARGET_DIR/kitty-colors.conf" ] && cp "$TARGET_DIR/kitty-colors.conf" "$REPO/configs/kitty/colors.conf"
+  [ -s "$TARGET_DIR/fish-theme.fish" ]   && cp "$TARGET_DIR/fish-theme.fish"   "$HOME/.config/fish/conf.d/matugen_theme.fish"
+  [ -s "$TARGET_DIR/starship.toml" ]     && cp "$TARGET_DIR/starship.toml"     "$HOME/.config/starship_matugen.toml"
+fi
+
+# 3. Update niri overrides symlink atomically (tmp + mv avoids missing-file window)
+echo "  Updating niri overrides..."
+TMPLINK=$(mktemp -u "$PROFILES_DIR/.active-niri-overrides.XXXXXX")
+ln -s "$TARGET_DIR/niri-overrides.kdl" "$TMPLINK"
+mv "$TMPLINK" "$ACTIVE_LINK"
+
+# 4. Reload niri (picks up new cursor, borders, shadow, tab-indicator, opacity)
+niri msg action reload-config 2>/dev/null || true
+
+# 5. Apply cursor to GTK/XDG layer
+echo "  Applying cursor..."
+gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
+gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
+
+# 6. Start new bar (before wallpaper so noctalia IPC is available)
+if [ "$TARGET_BAR" = "noctalia" ]; then
+  echo "  Starting noctalia-shell..."
+  systemctl --user start noctalia-shell 2>/dev/null || true
+  sleep 1  # allow noctalia to come up before IPC call
+elif [ "$TARGET_BAR" = "waybar" ]; then
+  echo "  Starting waybar..."
+  if [ -f "$TARGET_DIR/waybar-config.jsonc" ]; then
+    mkdir -p "$HOME/.config/waybar"
+    cp "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc"
+    cp "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css" 2>/dev/null || true
+  fi
+  waybar 2>/dev/null &
+  disown
+fi
+
+# 7. Set wallpaper (after bar start so noctalia IPC is available)
+echo "  Setting wallpaper..."
+if [ "$TARGET" = "noctalia" ]; then
+  noctalia-shell ipc --any-display call wallpaper random 2>/dev/null || true
+elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
+  WALLPAPER=$(find "$TARGET_WALLPAPER_DIR" -maxdepth 1 \
+    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
+    | shuf -n 1)
+  if [ -n "$WALLPAPER" ]; then
+    swww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
+  else
+    echo "  Warning: no wallpaper images found in $TARGET_WALLPAPER_DIR"
+  fi
+fi
+
+# 8. Signal kitty to reload colors
+pkill -USR1 -x kitty 2>/dev/null || true
+
+# 9. Record active profile
+echo "$TARGET" > "$ACTIVE_FILE"
+
+notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
+echo "Done. Profile '$TARGET' is now active."
