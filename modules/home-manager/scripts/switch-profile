@@ -57,10 +57,10 @@ if [ "$CURRENT_BAR" = "noctalia" ]; then
   systemctl --user stop noctalia-shell 2>/dev/null || true
 elif [ "$CURRENT_BAR" = "waybar" ]; then
   echo "  Stopping waybar..."
-  pkill -x waybar 2>/dev/null || true
+  pkill -f waybar 2>/dev/null || true
   # Wait up to 2s for waybar to fully exit before proceeding
   for _ in $(seq 1 20); do
-    pgrep -x waybar >/dev/null 2>&1 || break
+    pgrep -f waybar >/dev/null 2>&1 || break
     sleep 0.1
   done
   # Clean up waybar configs so a stale Nord config doesn't persist
