@@ -78,6 +78,12 @@ if [ "$TARGET" != "noctalia" ]; then
   [ -s "$TARGET_DIR/kitty-colors.conf" ] && cp "$TARGET_DIR/kitty-colors.conf" "$REPO/configs/kitty/colors.conf"
   [ -s "$TARGET_DIR/fish-theme.fish" ]   && cp "$TARGET_DIR/fish-theme.fish"   "$HOME/.config/fish/conf.d/matugen_theme.fish"
   [ -s "$TARGET_DIR/starship.toml" ]     && cp "$TARGET_DIR/starship.toml"     "$HOME/.config/starship_matugen.toml"
+  # Generate pywal cache and push colors to Firefox via pywalfox
+  if command -v wal >/dev/null 2>&1; then
+    echo "  Generating pywal colors..."
+    wal --theme nord -q 2>/dev/null || true
+    command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
+  fi
 fi
 
 # 3. Update niri overrides symlink atomically (tmp + mv avoids missing-file window)
