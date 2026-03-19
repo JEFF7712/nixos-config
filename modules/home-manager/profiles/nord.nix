@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 # waybar is required by this profile.
-# nordzy-cursor-theme not found in nixpkgs, using Adwaita fallback.
+# nordzy cursor/icon themes are used when available.
 
 let
   nord0  = "#2e3440";
@@ -20,7 +20,6 @@ let
   nord13 = "#ebcb8b";
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
-
 in {
   home.packages = [ pkgs.waybar ];
 
@@ -28,22 +27,16 @@ in {
     bar = "waybar";
 
     cursor = {
-      theme   = "Adwaita";
+      theme   = "Nordzy-cursors";
       size    = 24;
-      package = null;
+      package = pkgs.nordzy-cursor-theme;
     };
 
     wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/nord";
 
     niri = {
       gaps               = 20;
-      borderOff          = false;
-      borderWidth        = 2;
-      borderActiveColor  = nord8;
-      borderInactiveColor = nord1;
-      urgentColor        = nord11;
-      focusRingActiveColor   = nord8;
-      focusRingInactiveColor = nord1;
+      borderOff          = true;
       shadowSoftness     = 20;
       shadowSpread       = 3;
       shadowOffsetX      = 0;
@@ -196,34 +189,109 @@ in {
       config = ''
         {
           "layer": "top",
-          "position": "top",
-          "height": 30,
-          "spacing": 4,
-          "modules-left": ["niri/workspaces", "niri/window"],
-          "modules-center": ["clock"],
-          "modules-right": ["pulseaudio", "network", "cpu", "memory", "battery", "tray"],
-          "niri/workspaces": { "format": "{index}" },
-          "niri/window": { "max-length": 50 },
+          "height": 28,
+          "modules-left": [
+            "niri/workspaces"
+          ],
+          "modules-center": [
+            "clock"
+          ],
           "clock": {
-            "format": "{:%a %b %d  %H:%M}",
-            "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+            "interval": 30,
+            "format": "{:%I:%M %p}",
+            "tooltip-format": "{:%a, %d %b %G}"
           },
-          "cpu":    { "format": " {usage}%", "interval": 3 },
-          "memory": { "format": " {percentage}%", "interval": 3 },
-          "battery": {
-            "format": "{icon} {capacity}%",
-            "format-icons": ["", "", "", "", ""]
+          "modules-right": [
+            "niri/language",
+            "pulseaudio",
+            "bluetooth",
+            "network",
+            "battery"
+          ],
+          "niri/window": {
+            "max-length": 30
           },
-          "network": {
-            "format-wifi": " {signalStrength}%",
-            "format-ethernet": "",
-            "format-disconnected": "⚠"
+          "niri/language": {
+            "format-en": "En",
+            "format-ru": "Ru"
+          },
+          "tray": {
+            "icon-size": 20,
+            "spacing": 8
           },
           "pulseaudio": {
-            "format": "{icon} {volume}%",
-            "format-icons": { "default": ["", "", ""] }
+            "format-source": "󰍬",
+            "format-source-muted": "󰍭",
+            "format": "{format_source} 󰕾 {volume}%",
+            "format-bluetooth": "{format_source} 󰂰 {volume}%",
+            "format-muted": "{format_source} 󰸈",
+            "on-click": "foot-popup pulsemixer",
+            "max-volume": 150,
+            "scroll-step": 1
           },
-          "tray": { "spacing": 8 }
+          "bluetooth": {
+            "format": "",
+            "format-disabled": "",
+            "format-off": "",
+            "format-on": "󰂯",
+            "format-connected": "󰂱 {device_alias}",
+            "max-length": 16
+          },
+          "network": {
+            "format": "{ifname}",
+            "format-wifi": "󰖩 {essid}",
+            "format-ethernet": "󰈀 {ipaddr}",
+            "format-disconnected": "Disconnected",
+            "max-length": 32
+          },
+          "battery": {
+            "interval": 60,
+            "format-time": "{H}:{m}",
+            "format-icons": [
+              "󰁺",
+              "󰁻",
+              "󰁼",
+              "󰁽",
+              "󰁾",
+              "󰁿",
+              "󰂀",
+              "󰂁",
+              "󰂂",
+              "󰁹"
+            ],
+            "format-discharging": "{icon} {capacity}% ({time})",
+            "format-charging": "󰂄 {capacity}%",
+            "format": ""
+          },
+          "niri/workspaces": {
+            "format": "{icon}",
+            "on-click": "activate",
+            "format-icons": {
+              "1": "⼀",
+              "2": "二",
+              "3": "三",
+              "4": "四",
+              "5": "五",
+              "6": "六",
+              "7": "七",
+              "8": "八",
+              "9": "九",
+              "10": "十"
+            },
+            "persistent-workspaces": {
+              "1": [],
+              "2": [],
+              "3": [],
+              "4": [],
+              "5": [],
+              "6": [],
+              "7": [],
+              "8": [],
+              "9": [],
+              "10": []
+            },
+            "sort-by-number": true
+          }
         }
       '';
 
@@ -235,7 +303,11 @@ in {
         #workspaces button.active { color: #88c0d0; border-bottom: 2px solid #88c0d0; }
         #workspaces button:hover { background: rgba(255,255,255,0.05); color: #e5e9f0; }
         #clock { color: #88c0d0; font-weight: bold; }
-        #battery, #cpu, #memory, #network, #pulseaudio, #tray { color: #d8dee9; padding: 0 8px; }
+        #battery, #bluetooth, #network, #pulseaudio, #tray { color: #d8dee9; padding: 0 8px; }
+        #workspaces { padding: 0 4px; }
+        #workspaces button { padding: 0 8px; background: transparent; color: #4c566a; border-bottom: 2px solid transparent; }
+        #workspaces button.active { color: #88c0d0; border-bottom: 2px solid #88c0d0; }
+        #workspaces button:hover { background: rgba(255,255,255,0.05); color: #e5e9f0; }
         #battery.critical { color: #bf616a; }
       '';
     };
