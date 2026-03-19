@@ -1,43 +1,36 @@
 #!/usr/bin/env bash
-# Profile switcher for rofi script mode.
-# Usage: called by rofi as a script source.
-#   - No args: lists profiles with preview icons
-#   - With arg: switches to that profile
+# Profile switcher using rofi dmenu mode.
+# Rofi closes immediately after selection, then switch-profile runs in background.
 
 PROFILES_DIR="$HOME/.config/desktop-profiles"
 PREVIEW_DIR="$HOME/nixos/modules/home-manager/assets/previews"
 ACTIVE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "")
 THEME="$HOME/nixos/modules/home-manager/configs/rofi/profile-switcher.rasi"
 
-# Direct invocation (not via rofi): launch rofi with this script as source
-if [ "${ROFI_OUTSIDE:-}" != "1" ] && [ -z "$ROFI_RETV" ]; then
-  ROFI_OUTSIDE=1 rofi \
-    -show-icons \
-    -icon-theme Adwaita \
-    -modi "profile:env ROFI_OUTSIDE=1 $0" \
-    -show profile \
-    -theme "$THEME"
-  exit 0
-fi
-
-# Called by rofi with a selection
-if [ -n "$1" ]; then
-  # Strip the " (active)" suffix if present
-  name="${1% (active)}"
-  switch-profile "$name" &
-  exit 0
-fi
-
-# List profiles
+# Build entry list with optional preview icons
+entries=""
 for dir in "$PROFILES_DIR"/*/; do
   [ -d "$dir" ] || continue
   name=$(basename "$dir")
-  preview="$PREVIEW_DIR/$name.png"
   label="$name"
   [ "$name" = "$ACTIVE" ] && label="$name (active)"
+  preview="$PREVIEW_DIR/$name.png"
   if [ -f "$preview" ]; then
-    printf "%s\0icon\x1f%s\n" "$label" "$preview"
+    entries+="$(printf "%s\0icon\x1f%s" "$label" "$preview")"$'\n'
   else
-    printf "%s\n" "$label"
+    entries+="$label"$'\n'
   fi
 done
+
+# Show rofi; it closes as soon as the user picks or hits Esc
+selected=$(printf "%s" "$entries" | rofi \
+  -dmenu \
+  -show-icons \
+  -icon-theme Adwaita \
+  -theme "$THEME")
+
+[ -z "$selected" ] && exit 0
+
+name="${selected% (active)}"
+switch-profile "$name" >/dev/null 2>&1 </dev/null &
+disown
