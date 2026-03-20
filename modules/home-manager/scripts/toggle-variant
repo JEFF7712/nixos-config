@@ -60,7 +60,7 @@ BAR=$(python3 -c "import json; print(json.load(open('$PROFILE_DIR/meta.json'))['
 if [ "$BAR" = "waybar" ]; then
   WAYBAR_STYLE=$(pick "$PROFILE_DIR/waybar-style.css" "$PROFILE_DIR/waybar-style-light.css")
   if [ -s "$WAYBAR_STYLE" ]; then
-    cp "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
+    cp --remove-destination "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
     pkill -SIGUSR2 waybar 2>/dev/null || true
   fi
 fi
@@ -202,9 +202,9 @@ fi
 
 # System color-scheme preference
 if [ "$NEW" = "light" ]; then
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
 else
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
 fi
 
 # Save new variant
