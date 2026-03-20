@@ -80,7 +80,8 @@ in {
       package = pkgs.capitaine-cursors-themed;
     };
 
-    wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/gruvbox";
+    wallpaperDir      = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/gruvbox";
+    wallpaperDirLight = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/gruvbox-light";
 
     niri = {
       gaps               = 20;

@@ -69,7 +69,8 @@ in {
       package = pkgs.catppuccin-cursors.mochaMauve;
     };
 
-    wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/catppuccin";
+    wallpaperDir      = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/catppuccin";
+    wallpaperDirLight = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/catppuccin-light";
 
     niri = {
       gaps               = 18;
