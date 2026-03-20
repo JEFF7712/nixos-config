@@ -84,7 +84,11 @@ if [ "$TARGET" != "noctalia" ]; then
   # Generate pywal cache and push colors to Firefox via pywalfox
   if command -v wal >/dev/null 2>&1; then
     echo "  Generating pywal colors..."
-    wal --theme base16-nord -q 2>/dev/null || true
+    case "$TARGET" in
+      gruvbox) WAL_THEME="base16-gruvbox-dark-hard" ;;
+      *)       WAL_THEME="base16-nord" ;;
+    esac
+    wal --theme "$WAL_THEME" -q 2>/dev/null || true
     command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
   fi
 fi
@@ -169,6 +173,8 @@ if [ -f "$ZED_SETTINGS" ]; then
   case "$TARGET" in
     catppuccin) ZED_THEME="Catppuccin Mocha" ;;
     nord)       ZED_THEME="Nord Dark" ;;
+    noctalia)   ZED_THEME="Ayu Dark" ;;
+    gruvbox)    ZED_THEME="Gruvbox Dark" ;;
     *)          ZED_THEME="" ;;
   esac
   if [ -n "$ZED_THEME" ]; then
@@ -176,6 +182,6 @@ if [ -f "$ZED_SETTINGS" ]; then
   fi
 fi
 
-# 11. Notify
+# 10. Notify
 notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
 echo "Done. Profile '$TARGET' is now active."

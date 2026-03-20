@@ -1,14 +1,12 @@
-/* Nord-themed profile switcher with screenshot previews */
-
 * {
-    font:                   "JetBrainsMono Nerd Font 11";
-    background-color:       #2e3440;
-    text-color:             #d8dee9;
-    border-color:           #4c566a;
-    selected-normal-background: #3b4252;
-    selected-normal-foreground: #88c0d0;
-    normal-background:      #2e3440;
-    normal-foreground:      #d8dee9;
+    font:                        "JetBrainsMono Nerd Font 11";
+    background-color:            #2e3440;
+    text-color:                  #d8dee9;
+    border-color:                #4c566a;
+    selected-normal-background:  #3b4252;
+    selected-normal-foreground:  #88c0d0;
+    normal-background:           #2e3440;
+    normal-foreground:           #d8dee9;
 }
 
 window {
