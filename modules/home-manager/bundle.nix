@@ -11,6 +11,7 @@
     ./heavy-apps.nix
     ./niri.nix
     ./noctalia.nix
+    ./quickshell-bar.nix
     ./profiles/catppuccin.nix
     ./profiles/everforest.nix
     ./profiles/gruvbox.nix
