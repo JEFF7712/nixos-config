@@ -25,6 +25,7 @@ in
     xdg.mimeApps = {
       enable = true;
       defaultApplications = {
+        "inode/directory" = "thunar.desktop";
         "text/html" = "firefox.desktop";
         "x-scheme-handler/http" = "firefox.desktop";
         "x-scheme-handler/https" = "firefox.desktop";

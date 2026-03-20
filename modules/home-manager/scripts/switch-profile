@@ -256,6 +256,51 @@ if [ -f "$ZED_SETTINGS" ]; then
   fi
 fi
 
-# 10. Notify
+# 10. Update Vesktop theme
+VESKTOP_SETTINGS="$HOME/.config/vesktop/settings/settings.json"
+if [ -f "$VESKTOP_SETTINGS" ]; then
+  case "$TARGET" in
+    nord)       VESKTOP_THEME="nord.theme.css" ;;
+    catppuccin) VESKTOP_THEME="catppuccin.theme.css" ;;
+    gruvbox)    VESKTOP_THEME="gruvbox.theme.css" ;;
+    noctalia)   VESKTOP_THEME="noctalia.theme.css" ;;
+    *)          VESKTOP_THEME="" ;;
+  esac
+  if [ -n "$VESKTOP_THEME" ]; then
+    # Replace enabledThemes array with the single target theme
+    python3 -c "
+import json, sys
+with open('$VESKTOP_SETTINGS', 'r') as f:
+    s = json.load(f)
+s['enabledThemes'] = ['$VESKTOP_THEME']
+with open('$VESKTOP_SETTINGS', 'w') as f:
+    json.dump(s, f, indent=4)
+" 2>/dev/null || true
+  fi
+fi
+
+# 11. Update Obsidian Minimal Theme dark scheme
+OBSIDIAN_MINIMAL="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
+if [ -f "$OBSIDIAN_MINIMAL" ]; then
+  case "$TARGET" in
+    nord)       OBS_SCHEME="minimal-nord-dark" ;;
+    catppuccin) OBS_SCHEME="minimal-catppuccin-dark" ;;
+    gruvbox)    OBS_SCHEME="minimal-gruvbox-dark" ;;
+    noctalia)   OBS_SCHEME="minimal-flexoki-dark" ;;
+    *)          OBS_SCHEME="" ;;
+  esac
+  if [ -n "$OBS_SCHEME" ]; then
+    python3 -c "
+import json
+with open('$OBSIDIAN_MINIMAL', 'r') as f:
+    s = json.load(f)
+s['darkScheme'] = '$OBS_SCHEME'
+with open('$OBSIDIAN_MINIMAL', 'w') as f:
+    json.dump(s, f, indent=4)
+" 2>/dev/null || true
+  fi
+fi
+
+# 12. Notify
 notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
 echo "Done. Profile '$TARGET' is now active."
