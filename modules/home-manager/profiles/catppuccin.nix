@@ -139,45 +139,45 @@ in {
       '';
 
       kitty = ''
-        # Catppuccin Kitty
-        cursor ${text}
-        cursor_text_color ${base}
-        foreground ${text}
-        background ${base}
-        selection_foreground ${base}
-        selection_background ${rosewater}
-        color0  ${surface1}
-        color8  ${surface2}
-        color1  ${red}
-        color9  ${red}
-        color2  ${green}
-        color10 ${green}
-        color3  ${yellow}
-        color11 ${yellow}
-        color4  ${blue}
-        color12 ${blue}
-        color5  ${pink}
-        color13 ${pink}
-        color6  ${teal}
-        color14 ${teal}
-        color7  ${subtext1}
-        color15 ${subtext0}
+        # Catppuccin Kitty (Monochrome Pink/Purple)
+        cursor #f5c2e7
+        cursor_text_color #1a1623
+        foreground #f2d5ff
+        background #181424
+        selection_foreground #181424
+        selection_background #cba6f7
+        color0  #2a2238
+        color8  #4a3a66
+        color1  #f38ba8
+        color9  #f7a8c3
+        color2  #cba6f7
+        color10 #d7b8ff
+        color3  #e0b3ff
+        color11 #ebc5ff
+        color4  #b58cff
+        color12 #c7a3ff
+        color5  #f5c2e7
+        color13 #ffd0f0
+        color6  #d9a6ff
+        color14 #e4b8ff
+        color7  #e9d5ff
+        color15 #f2e6ff
       '';
 
       fish = ''
         set -g fish_color_normal ${text}
-        set -g fish_color_command ${blue}
-        set -g fish_color_keyword ${mauve}
-        set -g fish_color_quote ${green}
-        set -g fish_color_redirection ${teal}
+        set -g fish_color_command ${mauve}
+        set -g fish_color_keyword ${pink}
+        set -g fish_color_quote ${lavender}
+        set -g fish_color_redirection ${mauve}
         set -g fish_color_end ${pink}
         set -g fish_color_error ${red}
         set -g fish_color_param ${text}
         set -g fish_color_comment ${overlay0}
         set -g fish_color_selection --background=${surface1}
         set -g fish_color_search_match --background=${surface0}
-        set -g fish_color_operator ${sky}
-        set -g fish_color_escape ${peach}
+        set -g fish_color_operator ${mauve}
+        set -g fish_color_escape ${pink}
         set -g fish_color_autosuggestion ${overlay0}
       '';
 
@@ -185,17 +185,17 @@ in {
         format = "$all"
 
         [character]
-        success_symbol = "[❯](${green})"
+        success_symbol = "[❯](${pink})"
         error_symbol = "[❯](${red})"
 
         [directory]
-        style = "bold ${blue}"
-
-        [git_branch]
         style = "bold ${mauve}"
 
+        [git_branch]
+        style = "bold ${pink}"
+
         [cmd_duration]
-        style = "bold ${yellow}"
+        style = "bold ${lavender}"
       '';
     };
 
@@ -346,7 +346,7 @@ in {
           color: ${pink};
           padding: 0 10px;
         }
-        #battery.critical { color: ${red}; }
+        #battery.critical { color: ${pink}; }
       '';
     };
   };
