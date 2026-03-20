@@ -1,154 +1,109 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
+import Quickshell.Services.Mpris
 import ".."
-import "../popups"
 
 Rectangle {
     id: root
-    height: 28
+    implicitHeight: 28
     radius: 14
-    color: Qt.rgba(
-        parseInt(Theme.surface.slice(1,3), 16) / 255,
-        parseInt(Theme.surface.slice(3,5), 16) / 255,
-        parseInt(Theme.surface.slice(5,7), 16) / 255,
-        0.85
-    )
-    border.color: Qt.rgba(
-        parseInt(Theme.border.slice(1,3), 16) / 255,
-        parseInt(Theme.border.slice(3,5), 16) / 255,
-        parseInt(Theme.border.slice(5,7), 16) / 255,
-        0.2
-    )
+    color: Theme.withAlpha(Theme.surface, 0.85)
+    border.color: Theme.withAlpha(Theme.border, 0.3)
     border.width: 1
     implicitWidth: row.implicitWidth + 24
 
-    // PowerMenu cannot be a child of a Rectangle (it needs to be a PopupWindow
-    // at the ShellRoot/Bar level). Signal bubbles up to Bar.qml instead.
+    signal volumeRequested()
+    signal brightnessRequested()
+    signal musicRequested()
+    signal quickSettingsRequested()
     signal powerRequested()
 
-    // Popup visibility flags — wired to actual popup components in Tasks 16-19
-    property bool musicVisible:         false
-    property bool volumeVisible:        false
-    property bool brightnessVisible:    false
-    property bool quickSettingsVisible: false
-
-    property string musicTitle: ""
-
-    function closeAll() {
-        musicVisible        = false
-        volumeVisible       = false
-        brightnessVisible   = false
-        quickSettingsVisible = false
-    }
+    // Mpris: show first active player
+    property var player: Mpris.players.length > 0 ? Mpris.players[0] : null
+    property string musicTitle: player ? (player.trackTitle ?? "") : ""
 
     RowLayout {
         id: row
         anchors.centerIn: parent
         spacing: 8
 
-        // Music pill — hidden when no track is playing
+        // Music mini pill
         Text {
             visible: root.musicTitle !== ""
-            text: "♪ " + (root.musicTitle.length > 20
-                ? root.musicTitle.slice(0, 18) + "…"
+            text: "\uf001  " + (root.musicTitle.length > 20
+                ? root.musicTitle.slice(0, 18) + "\u2026"
                 : root.musicTitle)
             color: Theme.success
             font.pixelSize: 11
-            MouseArea {
-                anchors.fill: parent
-                onClicked: { root.closeAll(); root.musicVisible = true }
-            }
+            font.family: "JetBrainsMono Nerd Font"
+            MouseArea { anchors.fill: parent; onClicked: root.musicRequested() }
         }
 
         Rectangle {
-            width: 1; height: 16
-            color: Theme.border; opacity: 0.4
+            width: 1; height: 16; color: Theme.border; opacity: 0.4
             visible: root.musicTitle !== ""
         }
 
-        // Volume icon
+        // Volume
         Text {
-            text: "🔊"
+            text: "\uf028"
+            color: Theme.text
             font.pixelSize: 13
+            font.family: "JetBrainsMono Nerd Font"
             MouseArea {
                 anchors.fill: parent
-                onClicked: { root.closeAll(); root.volumeVisible = !root.volumeVisible }
+                onClicked: root.volumeRequested()
                 onWheel: event => {
-                    const delta = event.angleDelta.y > 0 ? 5 : -5
-                    volumeProc.command = [
-                        "pactl", "set-sink-volume", "@DEFAULT_SINK@",
-                        (delta > 0 ? "+" : "") + Math.abs(delta) + "%"
-                    ]
-                    volumeProc.running = true
+                    const d = event.angleDelta.y > 0 ? 5 : -5
+                    volWheel.command = ["pactl", "set-sink-volume", "@DEFAULT_SINK@",
+                        (d > 0 ? "+" : "") + Math.abs(d) + "%"]
+                    volWheel.running = true
                 }
             }
         }
 
-        // Brightness icon
+        // Brightness
         Text {
-            text: "☀"
+            text: "\uf185"
+            color: Theme.text
             font.pixelSize: 13
+            font.family: "JetBrainsMono Nerd Font"
             MouseArea {
                 anchors.fill: parent
-                onClicked: { root.closeAll(); root.brightnessVisible = !root.brightnessVisible }
+                onClicked: root.brightnessRequested()
                 onWheel: event => {
-                    const delta = event.angleDelta.y > 0 ? 5 : -5
-                    brightnessProc.command = [
-                        "brightnessctl", "set",
-                        (delta > 0 ? "+" : "") + Math.abs(delta) + "%"
-                    ]
-                    brightnessProc.running = true
+                    const d = event.angleDelta.y > 0 ? 5 : -5
+                    briWheel.command = ["brightnessctl", "set",
+                        (d > 0 ? "+" : "") + Math.abs(d) + "%"]
+                    briWheel.running = true
                 }
             }
         }
 
         Rectangle { width: 1; height: 16; color: Theme.border; opacity: 0.4 }
 
-        // Network / quick settings icon
+        // Indicators / quick settings
         Text {
-            text: "📶"
+            text: "\uf1eb"
+            color: Theme.text
             font.pixelSize: 12
-            MouseArea {
-                anchors.fill: parent
-                onClicked: { root.closeAll(); root.quickSettingsVisible = !root.quickSettingsVisible }
-            }
+            font.family: "JetBrainsMono Nerd Font"
+            MouseArea { anchors.fill: parent; onClicked: root.quickSettingsRequested() }
         }
 
         Rectangle { width: 1; height: 16; color: Theme.border; opacity: 0.4 }
 
-        // Power button
+        // Power
         Text {
-            text: "⏻"
+            text: "\uf011"
             color: Theme.error
             font.pixelSize: 13
-            MouseArea {
-                anchors.fill: parent
-                onClicked: { root.closeAll(); root.powerRequested() }
-            }
+            font.family: "JetBrainsMono Nerd Font"
+            MouseArea { anchors.fill: parent; onClicked: root.powerRequested() }
         }
     }
 
-    // Scroll-wheel volume / brightness processes
-    Process { id: volumeProc;     command: [] }
-    Process { id: brightnessProc; command: [] }
-
-    // Popups — plain Rectangles, safe as children
-    VolumePopup {
-        visible: root.volumeVisible
-        onCloseRequested: root.volumeVisible = false
-    }
-    BrightnessPopup {
-        visible: root.brightnessVisible
-        onCloseRequested: root.brightnessVisible = false
-    }
-    MusicPopup {
-        visible: root.musicVisible
-        onCloseRequested: root.musicVisible = false
-        onTitleChanged: title => root.musicTitle = title
-    }
-    QuickSettings {
-        visible: root.quickSettingsVisible
-        onCloseRequested: root.quickSettingsVisible = false
-    }
+    Process { id: volWheel; command: [] }
+    Process { id: briWheel; command: [] }
 }

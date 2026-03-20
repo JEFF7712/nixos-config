@@ -5,12 +5,9 @@ import ".."
 
 Rectangle {
     id: root
-    signal closeRequested()
-
     width: 200; height: 72; radius: 12
     color: Theme.surfaceVariant
     border.color: Theme.border; border.width: 1
-    x: -100; y: 36
 
     property int brightnessLevel: 80
     property int maxBrightness: 100
@@ -42,8 +39,8 @@ Rectangle {
 
         Row {
             spacing: 8
-            Text { text: "☀"; color: Theme.text; font.pixelSize: 14 }
-            Text { text: root.pct + "%"; color: Theme.textSubtle; font.pixelSize: 12 }
+            Text { text: "\uf185"; color: Theme.text; font.pixelSize: 14; font.family: "JetBrainsMono Nerd Font" }
+            Text { text: root.pct + "%"; color: Theme.textSubtle; font.pixelSize: 12; font.family: "JetBrainsMono Nerd Font" }
         }
 
         Slider {
@@ -58,9 +55,4 @@ Rectangle {
     }
 
     Process { id: setBri; command: [] }
-
-    MouseArea {
-        parent: root.parent; anchors.fill: parent; z: -1
-        onClicked: root.closeRequested()
-    }
 }

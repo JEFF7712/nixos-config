@@ -4,12 +4,9 @@ import ".."
 
 Rectangle {
     id: root
-    signal closeRequested()
-
     width: 220; height: 200; radius: 12
     color: Theme.surfaceVariant
     border.color: Theme.border; border.width: 1
-    y: 36; x: -90
 
     property date displayMonth: new Date()
 
@@ -32,17 +29,20 @@ Rectangle {
         RowLayout {
             width: parent.width
             Text {
-                text: "‹"; color: Theme.accent; font.pixelSize: 16
+                text: "\u2039"; color: Theme.accent; font.pixelSize: 18
+                font.family: "JetBrainsMono Nerd Font"
                 MouseArea { anchors.fill: parent; onClicked: root.displayMonth = new Date(root.displayMonth.getFullYear(), root.displayMonth.getMonth()-1, 1) }
             }
             Text {
                 Layout.fillWidth: true
                 text: root.monthNames[root.displayMonth.getMonth()] + " " + root.displayMonth.getFullYear()
                 color: Theme.text; font.pixelSize: 12; font.bold: true
+                font.family: "JetBrainsMono Nerd Font"
                 horizontalAlignment: Text.AlignHCenter
             }
             Text {
-                text: "›"; color: Theme.accent; font.pixelSize: 16
+                text: "\u203a"; color: Theme.accent; font.pixelSize: 18
+                font.family: "JetBrainsMono Nerd Font"
                 MouseArea { anchors.fill: parent; onClicked: root.displayMonth = new Date(root.displayMonth.getFullYear(), root.displayMonth.getMonth()+1, 1) }
             }
         }
@@ -52,7 +52,11 @@ Rectangle {
             property var dayNames: ["Su","Mo","Tu","We","Th","Fr","Sa"]
             Repeater {
                 model: parent.dayNames
-                Text { width: 26; text: modelData; color: Theme.textSubtle; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
+                Text {
+                    width: 26; text: modelData; color: Theme.textSubtle
+                    font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font"
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
         }
 
@@ -81,14 +85,10 @@ Rectangle {
                         text: parent.valid ? parent.day : ""
                         color: parent.isToday ? Theme.accentText : Theme.text
                         font.pixelSize: 11
+                        font.family: "JetBrainsMono Nerd Font"
                     }
                 }
             }
         }
-    }
-
-    MouseArea {
-        parent: root.parent; anchors.fill: parent; z: -1
-        onClicked: root.closeRequested()
     }
 }

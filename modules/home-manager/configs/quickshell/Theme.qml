@@ -1,24 +1,31 @@
 pragma Singleton
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 QtObject {
     id: theme
 
-    property string background:     "#1e1e2e"
-    property string surface:        "#313244"
-    property string surfaceVariant: "#45475a"
-    property string border:         "#585b70"
-    property string text:           "#cdd6f4"
-    property string textSubtle:     "#bac2de"
-    property string accent:         "#89b4fa"
-    property string accentText:     "#1e1e2e"
-    property string success:        "#a6e3a1"
-    property string warning:        "#f9e2af"
-    property string error:          "#f38ba8"
+    // Color type properties — use directly as QML colors.
+    // withAlpha(c, a) for semi-transparent variants.
+    property color background:     "#1e1e2e"
+    property color surface:        "#313244"
+    property color surfaceVariant: "#45475a"
+    property color border:         "#585b70"
+    property color text:           "#cdd6f4"
+    property color textSubtle:     "#bac2de"
+    property color accent:         "#89b4fa"
+    property color accentText:     "#1e1e2e"
+    property color success:        "#a6e3a1"
+    property color warning:        "#f9e2af"
+    property color error:          "#f38ba8"
 
-    // Called whenever colors.json changes on disk
+    function withAlpha(c, a) {
+        return Qt.rgba(c.r, c.g, c.b, a)
+    }
+
     function _applyColors(raw) {
+        if (!raw) return
         try {
             const c = JSON.parse(raw)
             if (c.background)     theme.background     = c.background
@@ -38,9 +45,13 @@ QtObject {
     }
 
     property FileView _colorFile: FileView {
-        // FileView.text() is a function; textChanged fires when the file
-        // is (re)loaded. We call text() inside the handler to get the content.
         path: Quickshell.env("HOME") + "/.local/state/quickshell/colors.json"
         onTextChanged: theme._applyColors(_colorFile.text())
+    }
+
+    Component.onCompleted: {
+        // FileView may not fire onTextChanged for a file that already exists
+        // before quickshell starts — force an initial read.
+        Qt.callLater(() => theme._applyColors(_colorFile.text()))
     }
 }

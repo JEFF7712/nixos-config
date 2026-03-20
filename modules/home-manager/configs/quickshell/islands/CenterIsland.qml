@@ -1,29 +1,17 @@
 import QtQuick
 import QtQuick.Layouts
 import ".."
-import "../popups"
 
 Rectangle {
     id: root
-    height: 28
+    implicitHeight: 28
     radius: 14
-    color: Qt.rgba(
-        parseInt(Theme.surface.slice(1,3), 16) / 255,
-        parseInt(Theme.surface.slice(3,5), 16) / 255,
-        parseInt(Theme.surface.slice(5,7), 16) / 255,
-        0.85
-    )
-    border.color: Qt.rgba(
-        parseInt(Theme.border.slice(1,3), 16) / 255,
-        parseInt(Theme.border.slice(3,5), 16) / 255,
-        parseInt(Theme.border.slice(5,7), 16) / 255,
-        0.2
-    )
+    color: Theme.withAlpha(Theme.surface, 0.85)
+    border.color: Theme.withAlpha(Theme.border, 0.3)
     border.width: 1
     implicitWidth: col.implicitWidth + 32
 
-    // calendarVisible is wired to CalendarPopup in Task 18
-    property bool calendarVisible: false
+    signal calendarRequested()
 
     function updateTime() {
         const now = new Date()
@@ -32,10 +20,7 @@ Rectangle {
     }
 
     Timer {
-        interval: 30000
-        running: true
-        repeat: true
-        triggeredOnStart: true
+        interval: 30000; running: true; repeat: true; triggeredOnStart: true
         onTriggered: root.updateTime()
     }
 
@@ -49,8 +34,8 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "00:00"
             color: Theme.text
-            font.pixelSize: 13
-            font.bold: true
+            font.pixelSize: 13; font.bold: true
+            font.family: "JetBrainsMono Nerd Font"
         }
 
         Text {
@@ -59,16 +44,12 @@ Rectangle {
             text: ""
             color: Theme.textSubtle
             font.pixelSize: 9
+            font.family: "JetBrainsMono Nerd Font"
         }
     }
 
     MouseArea {
         anchors.fill: parent
-        onClicked: root.calendarVisible = !root.calendarVisible
-    }
-
-    CalendarPopup {
-        visible: root.calendarVisible
-        onCloseRequested: root.calendarVisible = false
+        onClicked: root.calendarRequested()
     }
 }
