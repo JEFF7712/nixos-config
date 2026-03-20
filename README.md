@@ -1,6 +1,6 @@
 # This is my NixOS Configuration
 
-https://github.com/user-attachments/assets/86beb071-240c-4ced-907f-d1d5e281a17e
+https://github.com/user-attachments/assets/7353f7df-9e9b-4f9d-a3ef-53f3f6bb75a5
 
 ## Try it out yourself!
 
