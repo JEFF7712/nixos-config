@@ -203,7 +203,7 @@ in {
       config = ''
         {
           "layer": "top",
-          "height": 28,
+          "height": 20,
           "modules-left": [
             "niri/workspaces",
             "cpu",
@@ -218,17 +218,12 @@ in {
             "tooltip-format": "{:%a, %d %b %G}"
           },
           "modules-right": [
-            "niri/language",
             "pulseaudio",
             "bluetooth",
             "network",
             "battery"
           ],
           "niri/window": { "max-length": 30 },
-          "niri/language": {
-            "format-en": "En",
-            "format-ru": "Ru"
-          },
           "tray": {
             "icon-size": 20,
             "spacing": 8
@@ -322,11 +317,11 @@ in {
       style = ''
         * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
         window#waybar {
-          background-color: ${mantle};
+          background-color: rgba(24, 24, 37, 0.6);
           color: ${pink};
           border: 1px solid ${surface0};
           border-radius: 16px;
-          margin: 10px 220px 0 220px;
+          margin: 15px 220px 0 220px;
           box-shadow: 0 10px 30px rgba(17, 17, 27, 0.45);
         }
         .modules-left, .modules-center, .modules-right { padding: 0 10px; }

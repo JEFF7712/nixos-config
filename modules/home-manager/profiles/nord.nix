@@ -233,7 +233,6 @@ in {
             "tooltip-format": "{:%a, %d %b %G}"
           },
           "modules-right": [
-            "niri/language",
             "pulseaudio",
             "bluetooth",
             "network",
@@ -241,10 +240,6 @@ in {
           ],
           "niri/window": {
             "max-length": 30
-          },
-          "niri/language": {
-            "format-en": "En",
-            "format-ru": "Ru"
           },
           "tray": {
             "icon-size": 20,
