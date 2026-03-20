@@ -55,6 +55,27 @@ STARSHIP=$(pick "$PROFILE_DIR/starship.toml"       "$PROFILE_DIR/starship-light.
 # Reload kitty
 pkill -USR1 -x kitty 2>/dev/null || true
 
+# Wallpaper
+if [ "$NEW" = "light" ]; then
+  WALLPAPER_DIR=$(cat "$PROFILE_DIR/wallpaper-dir-light" 2>/dev/null || echo "")
+else
+  WALLPAPER_DIR=$(cat "$PROFILE_DIR/wallpaper-dir" 2>/dev/null || echo "")
+fi
+if [ -d "$WALLPAPER_DIR" ]; then
+  WALLPAPER=$(find "$WALLPAPER_DIR" -maxdepth 1 \
+    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
+    | shuf -n 1)
+  if [ -n "$WALLPAPER" ]; then
+    swww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
+    WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
+    if [ -f "$WAYPAPER_CFG" ]; then
+      WAYPAPER_FOLDER="${WALLPAPER_DIR/#$HOME/\~}"
+      sed -i "s|^folder = .*|folder = $WAYPAPER_FOLDER|" "$WAYPAPER_CFG"
+      sed -i "s|^wallpaper = .*|wallpaper = ${WALLPAPER/#$HOME/\~}|" "$WAYPAPER_CFG"
+    fi
+  fi
+fi
+
 # Waybar style (only for waybar profiles)
 BAR=$(python3 -c "import json; print(json.load(open('$PROFILE_DIR/meta.json'))['bar'])" 2>/dev/null || echo "")
 if [ "$BAR" = "waybar" ]; then
