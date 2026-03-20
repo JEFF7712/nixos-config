@@ -1,0 +1,4 @@
+module islands
+LeftIsland 1.0 LeftIsland.qml
+CenterIsland 1.0 CenterIsland.qml
+RightIsland 1.0 RightIsland.qml
