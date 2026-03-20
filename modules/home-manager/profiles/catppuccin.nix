@@ -197,6 +197,88 @@ in {
         [cmd_duration]
         style = "bold ${subtext1}"
       '';
+
+      rofi = ''
+        * {
+            font:                        "JetBrainsMono Nerd Font 11";
+            background-color:            ${base};
+            text-color:                  ${text};
+            border-color:                ${surface1};
+            selected-normal-background:  ${surface0};
+            selected-normal-foreground:  ${mauve};
+            normal-background:           ${base};
+            normal-foreground:           ${text};
+        }
+
+        window {
+            width:              700px;
+            border:             2px solid;
+            border-color:       ${surface1};
+            border-radius:      8px;
+            padding:            12px;
+            background-color:   ${base};
+        }
+
+        mainbox {
+            spacing:            0;
+            children:           [ inputbar, listview ];
+        }
+
+        inputbar {
+            padding:            8px 12px;
+            margin:             0 0 10px 0;
+            background-color:   ${mantle};
+            border-radius:      6px;
+            children:           [ prompt, entry ];
+        }
+
+        prompt {
+            text-color:         ${mauve};
+            padding:            0 8px 0 0;
+        }
+
+        entry {
+            text-color:         ${text};
+            placeholder:        "Switch profile…";
+            placeholder-color:  ${surface1};
+        }
+
+        listview {
+            columns:            2;
+            lines:              2;
+            spacing:            10px;
+            fixed-height:       false;
+            scrollbar:          false;
+        }
+
+        element {
+            orientation:        vertical;
+            padding:            10px;
+            spacing:            8px;
+            border-radius:      6px;
+            background-color:   ${surface0};
+            cursor:             pointer;
+        }
+
+        element selected {
+            background-color:   ${surface1};
+            border:             2px solid;
+            border-color:       ${mauve};
+        }
+
+        element-icon {
+            size:               220px;
+            border-radius:      4px;
+            horizontal-align:   0.5;
+        }
+
+        element-text {
+            horizontal-align:   0.5;
+            vertical-align:     0.5;
+            text-color:         inherit;
+            font:               "JetBrainsMono Nerd Font 12";
+        }
+      '';
     };
 
     waybar = {

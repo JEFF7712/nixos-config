@@ -78,6 +78,7 @@ if [ "$TARGET" != "noctalia" ]; then
   # Kitty: configs/kitty is an out-of-store symlink to the repo, so writing
   # to the repo path is immediately reflected at ~/.config/kitty/colors.conf
   [ -s "$TARGET_DIR/kitty-colors.conf" ] && cp "$TARGET_DIR/kitty-colors.conf" "$REPO/configs/kitty/colors.conf"
+  [ -s "$TARGET_DIR/rofi-theme.rasi" ]   && cp "$TARGET_DIR/rofi-theme.rasi"   "$REPO/configs/rofi/profile-switcher.rasi"
   [ -s "$TARGET_DIR/fish-theme.fish" ]   && cp "$TARGET_DIR/fish-theme.fish"   "$HOME/.config/fish/conf.d/matugen_theme.fish"
   [ -s "$TARGET_DIR/starship.toml" ]     && cp "$TARGET_DIR/starship.toml"     "$HOME/.config/starship_matugen.toml"
   # Generate pywal cache and push colors to Firefox via pywalfox
