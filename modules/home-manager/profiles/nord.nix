@@ -303,6 +303,7 @@ in {
           "height": 28,
           "modules-left": [
             "niri/workspaces",
+            "power-profiles-daemon",
             "cpu",
             "memory"
           ],
@@ -400,6 +401,16 @@ in {
             },
             "sort-by-number": true
           },
+          "power-profiles-daemon": {
+            "format": "{icon}",
+            "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
+            "format-icons": {
+              "default": "󰾆",
+              "performance": "󱐌",
+              "balanced": "󰾆",
+              "power-saver": "󰾄"
+            }
+          },
           "cpu": {
             "interval": 3,
             "format": "󰻠 {usage}%",
@@ -423,6 +434,10 @@ in {
         #clock { color: #d8dee9; font-weight: bold; }
         #battery, #bluetooth, #network, #pulseaudio, #tray { color: #d8dee9; padding: 0 8px; }
         #cpu, #memory { color: #d8dee9; padding: 0 8px; }
+        #power-profiles-daemon { color: #d8dee9; padding: 0 8px; }
+        #power-profiles-daemon.performance { color: #bf616a; }
+        #power-profiles-daemon.balanced { color: #88c0d0; }
+        #power-profiles-daemon.power-saver { color: #a3be8c; }
         #workspaces { padding: 0 4px; }
         #workspaces button { padding: 0 8px; background: transparent; color: #d8dee9; border-bottom: 2px solid transparent; }
         #workspaces button.active { color: #d8dee9; border-bottom: 2px solid #88c0d0; }

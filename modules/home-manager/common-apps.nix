@@ -43,10 +43,9 @@ in
       BROWSER = "firefox";
     };
 
-    home.file.".mozilla/firefox/09longn9.default-release/chrome" = {
-      source = ./configs/firefox/chrome;
-      recursive = true;
-    };
+    home.file.".mozilla/firefox/09longn9.default-release/chrome".source =
+      config.lib.file.mkOutOfStoreSymlink
+        "${config.home.homeDirectory}/nixos/modules/home-manager/configs/firefox/chrome";
 
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);

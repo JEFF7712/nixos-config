@@ -79,6 +79,70 @@ if [ "$TARGET" != "noctalia" ]; then
   # to the repo path is immediately reflected at ~/.config/kitty/colors.conf
   [ -s "$TARGET_DIR/kitty-colors.conf" ] && cp "$TARGET_DIR/kitty-colors.conf" "$REPO/configs/kitty/colors.conf"
   [ -s "$TARGET_DIR/rofi-theme.rasi" ]   && cp "$TARGET_DIR/rofi-theme.rasi"   "$REPO/configs/rofi/profile-switcher.rasi"
+  # Firefox: configs/firefox/chrome is now an out-of-store symlink so writing
+  # to the repo path is immediately reflected in the browser (reload userChrome).
+  FF_GLOBALS="$REPO/configs/firefox/chrome/DownToneUI/_globals.css"
+  case "$TARGET" in
+    nord)
+      FF_MAIN="46, 52, 64"; FF_SEC="59, 66, 82"
+      FF_ACCENT="136, 192, 208"; FF_TEXT="216, 222, 233"
+      FF_ACCENT_HSL="hsl(193, 43%, 78%)" ;;
+    catppuccin)
+      FF_MAIN="30, 30, 46"; FF_SEC="24, 24, 37"
+      FF_ACCENT="203, 166, 247"; FF_TEXT="205, 214, 244"
+      FF_ACCENT_HSL="hsl(267, 84%, 81%)" ;;
+    gruvbox)
+      FF_MAIN="40, 40, 40"; FF_SEC="60, 56, 54"
+      FF_ACCENT="250, 189, 47"; FF_TEXT="235, 219, 178"
+      FF_ACCENT_HSL="hsl(43, 95%, 58%)" ;;
+  esac
+  cat > "$FF_GLOBALS" << EOF
+/* ============================================================================
+ * Shared: should be copied to Sidebery settings > Styles editor
+ * ========================================================================= */
+
+* {
+  --dtui-theme-color-scheme: dark;
+  --dtui-theme-main-color: $FF_MAIN;
+  --dtui-theme-secondary-color: $FF_SEC;
+  --dtui-theme-accent-color: $FF_ACCENT;
+  --dtui-theme-text-color: $FF_TEXT;
+
+  --dtui-theme-accent-low-alpha: 0.5;
+  --dtui-theme-accent-mid-alpha: 0.75;
+  --dtui-theme-accent-high-contrast: $FF_ACCENT_HSL;
+  --dtui-theme-text-low-alpha: 0.5;
+  --dtui-theme-text-mid-alpha: 0.75;
+
+  --dtui-theme-separator-color: rgba(var(--dtui-theme-text-color), 0.1);
+  --dtui-theme-border-color: rgba(var(--dtui-theme-text-color), 0);
+  --dtui-theme-border-width: 2px;
+  --dtui-theme-border-radius: 6px;
+
+  --dtui-sidebar-hover-debounce: 0ms;
+  --dtui-sidebar-animation-speed: 300ms;
+}
+
+/* ============================================================================
+ * Others
+ * ========================================================================= */
+
+* {
+  --dtui-theme-shadow-margin: 6px;
+  --dtui-theme-shadow: 0px 0px var(--dtui-theme-shadow-margin) hsla(0, 0%, 0%, 0.4);
+
+  --dtui-sidebar-collapsed-width: 34px;
+  --dtui-sidebar-no-extend-width: 34px;
+  --dtui-sidebar-extended-width: 270px;
+  --dtui-bookmarks-hover-debounce: 200ms;
+  --dtui-bookmarks-animation-speed: 200ms;
+  --dtui-menu-animation-speed: 250ms;
+  --dtui-window-animation-speed: 350ms;
+  --dtui-urlbar-animation-speed: 300ms;
+
+  --dtui-bookmarks-inner-height: 20px;
+}
+EOF
   [ -s "$TARGET_DIR/fish-theme.fish" ]   && cp "$TARGET_DIR/fish-theme.fish"   "$HOME/.config/fish/conf.d/matugen_theme.fish"
   [ -s "$TARGET_DIR/starship.toml" ]     && cp "$TARGET_DIR/starship.toml"     "$HOME/.config/starship_matugen.toml"
   # Generate pywal cache and push colors to Firefox via pywalfox
@@ -160,6 +224,13 @@ elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   else
     echo "  Warning: no wallpaper images found in $TARGET_WALLPAPER_DIR"
   fi
+  # Update waypaper config so its folder picker opens the right directory
+  WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
+  if [ -f "$WAYPAPER_CFG" ] && [ -n "$TARGET_WALLPAPER_DIR" ]; then
+    WAYPAPER_FOLDER="${TARGET_WALLPAPER_DIR/#$HOME/\~}"
+    sed -i "s|^folder = .*|folder = $WAYPAPER_FOLDER|" "$WAYPAPER_CFG"
+    [ -n "$WALLPAPER" ] && sed -i "s|^wallpaper = .*|wallpaper = ${WALLPAPER/#$HOME/\~}|" "$WAYPAPER_CFG"
+  fi
 fi
 
 # 8. Signal kitty to reload colors (noctalia handles this via template-processor post_hook)
@@ -167,18 +238,21 @@ if [ "$TARGET" != "noctalia" ]; then
   pkill -USR1 -x kitty 2>/dev/null || true
 fi
 
-# 9. Update Zed theme
+# 9. Update Zed theme + icon theme
 ZED_SETTINGS="$HOME/.config/zed/settings.json"
 if [ -f "$ZED_SETTINGS" ]; then
   case "$TARGET" in
-    catppuccin) ZED_THEME="Catppuccin Mocha" ;;
-    nord)       ZED_THEME="Nord Dark" ;;
-    noctalia)   ZED_THEME="Ayu Dark" ;;
-    gruvbox)    ZED_THEME="Gruvbox Dark" ;;
-    *)          ZED_THEME="" ;;
+    catppuccin) ZED_THEME="Catppuccin Mocha" ; ZED_ICON="Catppuccin Mocha" ;;
+    nord)       ZED_THEME="Nord Dark"         ; ZED_ICON="Zed (Default)" ;;
+    noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
+    gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Zed (Default)" ;;
+    *)          ZED_THEME=""                  ; ZED_ICON="" ;;
   esac
   if [ -n "$ZED_THEME" ]; then
-    sed -i "s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+    sed -i "/\"theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+  fi
+  if [ -n "$ZED_ICON" ]; then
+    sed -i "/\"icon_theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_ICON\"/" "$ZED_SETTINGS"
   fi
 fi
 
