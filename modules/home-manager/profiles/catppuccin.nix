@@ -1,7 +1,8 @@
 { pkgs, ... }:
 
-# Catppuccin desktop profile for the Mocha palette.
+# Catppuccin desktop profile — Mocha (dark) + Latte (light).
 let
+  # ── Mocha (dark) ────────────────────────────────────────────────────────────
   rosewater = "#f5e0dc";
   flamingo  = "#f2cdcd";
   pink      = "#f5c2e7";
@@ -28,6 +29,34 @@ let
   base      = "#1e1e2e";
   mantle    = "#181825";
   crust     = "#11111b";
+
+  # ── Latte (light) ───────────────────────────────────────────────────────────
+  l_rosewater = "#dc8a78";
+  l_flamingo  = "#dd7878";
+  l_pink      = "#ea76cb";
+  l_mauve     = "#8839ef";
+  l_red       = "#d20f39";
+  l_maroon    = "#e64553";
+  l_peach     = "#fe640b";
+  l_yellow    = "#df8e1d";
+  l_green     = "#40a02b";
+  l_teal      = "#179299";
+  l_sky       = "#04a5e5";
+  l_sapphire  = "#209fb5";
+  l_blue      = "#1e66f5";
+  l_lavender  = "#7287fd";
+  l_text      = "#4c4f69";
+  l_subtext1  = "#5c5f77";
+  l_subtext0  = "#6c6f85";
+  l_overlay2  = "#7c7f93";
+  l_overlay1  = "#8c8fa1";
+  l_overlay0  = "#9ca0b0";
+  l_surface2  = "#acb0be";
+  l_surface1  = "#bcc0cc";
+  l_surface0  = "#ccd0da";
+  l_base      = "#eff1f5";
+  l_mantle    = "#e6e9ef";
+  l_crust     = "#dce0e8";
 in {
   home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
 
@@ -447,5 +476,254 @@ in {
         #battery.critical { color: ${pink}; }
       '';
     };
+
+    colorsLight = {
+      gtk3 = ''
+        /* Catppuccin Latte */
+        @define-color accent_color ${l_mauve};
+        @define-color accent_bg_color ${l_mauve};
+        @define-color accent_fg_color ${l_base};
+        @define-color destructive_bg_color ${l_red};
+        @define-color destructive_fg_color ${l_base};
+        @define-color error_bg_color ${l_red};
+        @define-color error_fg_color ${l_base};
+        @define-color window_bg_color ${l_base};
+        @define-color window_fg_color ${l_text};
+        @define-color view_bg_color ${l_base};
+        @define-color view_fg_color ${l_text};
+        @define-color headerbar_bg_color ${l_mantle};
+        @define-color headerbar_fg_color ${l_text};
+        @define-color headerbar_backdrop_color @window_bg_color;
+        @define-color popover_bg_color ${l_mantle};
+        @define-color popover_fg_color ${l_text};
+        @define-color card_bg_color ${l_surface0};
+        @define-color card_fg_color ${l_text};
+        @define-color dialog_bg_color ${l_mantle};
+        @define-color dialog_fg_color ${l_text};
+        @define-color sidebar_bg_color ${l_mantle};
+        @define-color sidebar_fg_color ${l_text};
+        @define-color sidebar_backdrop_color @window_bg_color;
+        @define-color sidebar_border_color ${l_surface1};
+        @define-color secondary_sidebar_bg_color ${l_base};
+        @define-color secondary_sidebar_fg_color ${l_subtext1};
+        @define-color theme_unfocused_fg_color ${l_subtext0};
+        @define-color theme_unfocused_text_color ${l_overlay2};
+        @define-color theme_unfocused_bg_color ${l_base};
+        @define-color theme_unfocused_base_color ${l_base};
+        @define-color theme_unfocused_selected_bg_color ${l_surface1};
+        @define-color theme_unfocused_selected_fg_color ${l_base};
+      '';
+
+      gtk4 = ''
+        /* Catppuccin Latte */
+        @define-color accent_color ${l_mauve};
+        @define-color accent_bg_color ${l_mauve};
+        @define-color accent_fg_color ${l_base};
+        @define-color destructive_bg_color ${l_red};
+        @define-color destructive_fg_color ${l_base};
+        @define-color error_bg_color ${l_red};
+        @define-color error_fg_color ${l_base};
+        @define-color window_bg_color ${l_base};
+        @define-color window_fg_color ${l_text};
+        @define-color view_bg_color ${l_base};
+        @define-color view_fg_color ${l_text};
+        @define-color headerbar_bg_color ${l_mantle};
+        @define-color headerbar_fg_color ${l_text};
+        @define-color headerbar_backdrop_color @window_bg_color;
+        @define-color popover_bg_color ${l_mantle};
+        @define-color popover_fg_color ${l_text};
+        @define-color card_bg_color ${l_surface0};
+        @define-color card_fg_color ${l_text};
+        @define-color dialog_bg_color ${l_mantle};
+        @define-color dialog_fg_color ${l_text};
+        @define-color sidebar_bg_color ${l_mantle};
+        @define-color sidebar_fg_color ${l_text};
+        @define-color sidebar_backdrop_color @window_bg_color;
+        @define-color sidebar_border_color ${l_surface1};
+        @define-color secondary_sidebar_bg_color ${l_base};
+        @define-color secondary_sidebar_fg_color ${l_subtext1};
+      '';
+
+      qt6 = ''
+        [ColorScheme]
+        active_colors=${l_text}, ${l_mantle}, #ffffff, ${l_overlay1}, ${l_surface0}, ${l_surface0}, ${l_text}, #ffffff, ${l_text}, ${l_base}, ${l_base}, #000000, ${l_mauve}, ${l_surface1}, ${l_mauve}, ${l_blue}, ${l_surface0}, ${l_crust}, ${l_surface0}, ${l_text}, ${l_subtext1}, ${l_mauve}
+        disabled_colors=${l_overlay0}, ${l_mantle}, #ffffff, ${l_overlay1}, ${l_surface0}, ${l_surface0}, ${l_overlay0}, #ffffff, ${l_overlay0}, ${l_base}, ${l_base}, #000000, ${l_surface2}, ${l_surface1}, ${l_surface2}, ${l_blue}, ${l_surface0}, ${l_crust}, ${l_surface0}, ${l_overlay0}, ${l_overlay1}, ${l_surface2}
+        inactive_colors=${l_text}, ${l_mantle}, #ffffff, ${l_overlay1}, ${l_surface0}, ${l_surface0}, ${l_subtext1}, #ffffff, ${l_text}, ${l_base}, ${l_base}, #000000, ${l_mauve}, ${l_surface1}, ${l_mauve}, ${l_blue}, ${l_surface0}, ${l_crust}, ${l_surface0}, ${l_text}, ${l_subtext1}, ${l_mauve}
+      '';
+
+      kitty = ''
+        # Catppuccin Latte Kitty
+        cursor ${l_mauve}
+        cursor_text_color ${l_base}
+        foreground ${l_text}
+        background ${l_base}
+        selection_foreground ${l_base}
+        selection_background ${l_mauve}
+        color0  ${l_surface1}
+        color8  ${l_surface2}
+        color1  ${l_red}
+        color9  ${l_red}
+        color2  ${l_green}
+        color10 ${l_green}
+        color3  ${l_yellow}
+        color11 ${l_yellow}
+        color4  ${l_blue}
+        color12 ${l_blue}
+        color5  ${l_mauve}
+        color13 ${l_mauve}
+        color6  ${l_teal}
+        color14 ${l_teal}
+        color7  ${l_subtext1}
+        color15 ${l_text}
+      '';
+
+      fish = ''
+        set -g fish_color_normal ${l_text}
+        set -g fish_color_command ${l_mauve}
+        set -g fish_color_keyword ${l_pink}
+        set -g fish_color_quote ${l_green}
+        set -g fish_color_redirection ${l_teal}
+        set -g fish_color_end ${l_pink}
+        set -g fish_color_error ${l_red}
+        set -g fish_color_param ${l_text}
+        set -g fish_color_comment ${l_overlay0}
+        set -g fish_color_selection --background=${l_surface1}
+        set -g fish_color_search_match --background=${l_surface0}
+        set -g fish_color_operator ${l_mauve}
+        set -g fish_color_escape ${l_pink}
+        set -g fish_color_autosuggestion ${l_overlay1}
+      '';
+
+      starship = ''
+        format = "$all"
+
+        [character]
+        success_symbol = "[❯](${l_mauve})"
+        error_symbol = "[❯](${l_red})"
+
+        [directory]
+        style = "bold ${l_blue}"
+
+        [git_branch]
+        style = "bold ${l_pink}"
+
+        [cmd_duration]
+        style = "bold ${l_subtext1}"
+      '';
+
+      rofi = ''
+        * {
+            font:                        "JetBrainsMono Nerd Font 11";
+            background-color:            ${l_base};
+            text-color:                  ${l_text};
+            border-color:                ${l_surface1};
+            selected-normal-background:  ${l_surface0};
+            selected-normal-foreground:  ${l_mauve};
+            normal-background:           ${l_base};
+            normal-foreground:           ${l_text};
+        }
+
+        window {
+            width:              900px;
+            border:             2px solid;
+            border-color:       ${l_surface1};
+            border-radius:      8px;
+            padding:            12px;
+            background-color:   ${l_base};
+        }
+
+        mainbox {
+            spacing:            0;
+            children:           [ inputbar, listview ];
+        }
+
+        inputbar {
+            padding:            8px 12px;
+            margin:             0 0 10px 0;
+            background-color:   ${l_mantle};
+            border-radius:      6px;
+            children:           [ prompt, entry ];
+        }
+
+        prompt {
+            text-color:         ${l_mauve};
+            padding:            0 8px 0 0;
+        }
+
+        entry {
+            text-color:         ${l_text};
+            placeholder:        "Switch profile…";
+            placeholder-color:  ${l_surface2};
+        }
+
+        listview {
+            columns:            3;
+            lines:              2;
+            spacing:            10px;
+            fixed-height:       false;
+            scrollbar:          false;
+        }
+
+        element {
+            orientation:        vertical;
+            padding:            10px;
+            spacing:            8px;
+            border-radius:      6px;
+            background-color:   ${l_surface0};
+            cursor:             pointer;
+        }
+
+        element selected {
+            background-color:   ${l_surface1};
+            border:             2px solid;
+            border-color:       ${l_mauve};
+        }
+
+        element-icon {
+            size:               160px;
+            border-radius:      4px;
+            horizontal-align:   0.5;
+        }
+
+        element-text {
+            horizontal-align:   0.5;
+            vertical-align:     0.5;
+            text-color:         inherit;
+            font:               "JetBrainsMono Nerd Font 12";
+        }
+      '';
+    };
+
+    waybarLight.style = ''
+      * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
+      window#waybar {
+        background-color: rgba(239, 241, 245, 0.85);
+        color: ${l_mauve};
+        border: 1px solid ${l_surface1};
+        border-radius: 50px;
+        box-shadow: 0 10px 30px rgba(220, 224, 232, 0.6);
+      }
+      .modules-left, .modules-center, .modules-right { padding: 0 10px; }
+      #workspaces { padding: 0px 2px; }
+      #workspaces button {
+        padding: 0 10px;
+        margin: 0px 2px;
+        background: transparent;
+        color: ${l_mauve};
+        border-radius: 10px;
+        border-bottom: 2px solid transparent;
+      }
+      #workspaces button.active { color: ${l_mauve}; background: ${l_surface0}; }
+      #workspaces button:hover { background: ${l_surface0}; color: ${l_mauve}; }
+      #clock { color: ${l_mauve}; font-weight: bold; padding: 0 10px; }
+      #pulseaudio, #bluetooth, #network, #battery, #tray, #cpu, #memory, #language {
+        color: ${l_text}; padding: 0 10px;
+      }
+      #power-profiles-daemon { color: ${l_text}; padding: 0 10px; }
+      #power-profiles-daemon.performance { color: ${l_red}; }
+      #power-profiles-daemon.balanced { color: ${l_mauve}; }
+      #power-profiles-daemon.power-saver { color: ${l_green}; }
+      #battery.critical { color: ${l_red}; }
+    '';
   };
 }

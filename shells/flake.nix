@@ -28,12 +28,12 @@
             packages = [ pythonEnv ];
             shellHook = ''echo "Python Shell ready." '';
           };
-          
+
           cbe = pkgs.mkShell {
-            packages = [ 
+            packages = [
               pythonEnv
-              pkgs.python3Packages.scikit-learn 
-              pkgs.openblas 
+              pkgs.python3Packages.scikit-learn
+              pkgs.openblas
             ];
             shellHook = ''echo "CBE Shell ready." '';
           };
@@ -68,25 +68,23 @@
               export LD_LIBRARY_PATH="/run/opengl-driver/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.libGL}/lib:$LD_LIBRARY_PATH"
 
               unset SOURCE_DATE_EPOCH
-              
+
               echo "Virtual environment (.venv) activated."
               echo "Machine Learning Python Shell ready."
             '';
           };
 
           homelab = pkgs.mkShell {
-            packages = with pkgs; [ 
+            packages = with pkgs; [
               kubectl
               terraform
               terragrunt
               ansible
-              fluxcd
               talosctl
               cilium-cli
               kubernetes-helm
               argocd
               k9s
-              glab
               kubeseal
             ];
             shellHook = ''echo "Welcome to the homelab Development Shell."'';

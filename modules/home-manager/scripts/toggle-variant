@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROFILES_DIR="$HOME/.config/desktop-profiles"
+ACTIVE_FILE="$PROFILES_DIR/active"
+VARIANT_FILE="$PROFILES_DIR/active-variant"
+REPO="$HOME/nixos/modules/home-manager"
+
+PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+[ -z "$PROFILE" ] && { echo "No active profile." >&2; exit 1; }
+
+PROFILE_DIR="$PROFILES_DIR/$PROFILE"
+HAS_LIGHT=$(python3 -c "import json; d=json.load(open('$PROFILE_DIR/meta.json')); print(str(d.get('hasLightVariant', False)).lower())" 2>/dev/null || echo "false")
+
+if [ "$HAS_LIGHT" != "true" ]; then
+  echo "Profile '$PROFILE' has no light variant — nothing to do."
+  exit 0
+fi
+
+CURRENT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+if [ "$CURRENT" = "dark" ]; then
+  NEW="light"
+else
+  NEW="dark"
+fi
+
+echo "Switching $PROFILE: $CURRENT → $NEW"
+
+# Pick the right file for the new variant (fall back to dark file if light missing)
+pick() {
+  local dark_f="$1" light_f="$2"
+  if [ "$NEW" = "light" ] && [ -s "$light_f" ]; then
+    echo "$light_f"
+  else
+    echo "$dark_f"
+  fi
+}
+
+GTK3=$(pick    "$PROFILE_DIR/gtk-3.0.css"         "$PROFILE_DIR/gtk-3.0-light.css")
+GTK4=$(pick    "$PROFILE_DIR/gtk-4.0.css"         "$PROFILE_DIR/gtk-4.0-light.css")
+QT6=$(pick     "$PROFILE_DIR/qt6ct.conf"           "$PROFILE_DIR/qt6ct-light.conf")
+KITTY=$(pick   "$PROFILE_DIR/kitty-colors.conf"    "$PROFILE_DIR/kitty-colors-light.conf")
+ROFI=$(pick    "$PROFILE_DIR/rofi-theme.rasi"      "$PROFILE_DIR/rofi-theme-light.rasi")
+FISH=$(pick    "$PROFILE_DIR/fish-theme.fish"      "$PROFILE_DIR/fish-theme-light.fish")
+STARSHIP=$(pick "$PROFILE_DIR/starship.toml"       "$PROFILE_DIR/starship-light.toml")
+
+[ -s "$GTK3" ]    && cp "$GTK3"    "$REPO/configs/gtk-3.0/noctalia.css"
+[ -s "$GTK4" ]    && cp "$GTK4"    "$REPO/configs/gtk-4.0/noctalia.css"
+[ -s "$QT6" ]     && cp "$QT6"     "$REPO/configs/qt6ct/colors/noctalia.conf"
+[ -s "$KITTY" ]   && cp "$KITTY"   "$REPO/configs/kitty/colors.conf"
+[ -s "$ROFI" ]    && cp "$ROFI"    "$REPO/configs/rofi/profile-switcher.rasi"
+[ -s "$FISH" ]    && cp "$FISH"    "$HOME/.config/fish/conf.d/matugen_theme.fish"
+[ -s "$STARSHIP" ] && cp "$STARSHIP" "$HOME/.config/starship_matugen.toml"
+
+# Reload kitty
+pkill -USR1 -x kitty 2>/dev/null || true
+
+# Waybar style (only for waybar profiles)
+BAR=$(python3 -c "import json; print(json.load(open('$PROFILE_DIR/meta.json'))['bar'])" 2>/dev/null || echo "")
+if [ "$BAR" = "waybar" ]; then
+  WAYBAR_STYLE=$(pick "$PROFILE_DIR/waybar-style.css" "$PROFILE_DIR/waybar-style-light.css")
+  if [ -s "$WAYBAR_STYLE" ]; then
+    cp "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
+    pkill -SIGUSR2 waybar 2>/dev/null || true
+  fi
+fi
+
+# Firefox _globals.css
+FF_GLOBALS="$REPO/configs/firefox/chrome/DownToneUI/_globals.css"
+COLOR_SCHEME="dark"
+[ "$NEW" = "light" ] && COLOR_SCHEME="light"
+
+case "$PROFILE:$NEW" in
+  catppuccin:dark)
+    FF_MAIN="30, 30, 46";       FF_SEC="24, 24, 37"
+    FF_ACCENT="203, 166, 247";  FF_TEXT="205, 214, 244"
+    FF_ACCENT_HSL="hsl(267, 84%, 81%)" ;;
+  catppuccin:light)
+    FF_MAIN="239, 241, 245";    FF_SEC="230, 233, 239"
+    FF_ACCENT="136, 57, 239";   FF_TEXT="76, 79, 105"
+    FF_ACCENT_HSL="hsl(266, 85%, 58%)" ;;
+  gruvbox:dark)
+    FF_MAIN="40, 40, 40";       FF_SEC="60, 56, 54"
+    FF_ACCENT="250, 189, 47";   FF_TEXT="235, 219, 178"
+    FF_ACCENT_HSL="hsl(43, 95%, 58%)" ;;
+  gruvbox:light)
+    FF_MAIN="251, 241, 199";    FF_SEC="235, 219, 178"
+    FF_ACCENT="181, 118, 20";   FF_TEXT="60, 56, 54"
+    FF_ACCENT_HSL="hsl(38, 80%, 39%)" ;;
+  rosepine:dark)
+    FF_MAIN="25, 23, 36";       FF_SEC="31, 29, 46"
+    FF_ACCENT="196, 167, 231";  FF_TEXT="224, 222, 244"
+    FF_ACCENT_HSL="hsl(267, 57%, 78%)" ;;
+  rosepine:light)
+    FF_MAIN="250, 244, 237";    FF_SEC="255, 250, 243"
+    FF_ACCENT="144, 122, 169";  FF_TEXT="87, 82, 121"
+    FF_ACCENT_HSL="hsl(270, 21%, 57%)" ;;
+  everforest:dark)
+    FF_MAIN="39, 46, 51";       FF_SEC="46, 56, 60"
+    FF_ACCENT="167, 192, 128";  FF_TEXT="211, 198, 170"
+    FF_ACCENT_HSL="hsl(96, 27%, 63%)" ;;
+  everforest:light)
+    FF_MAIN="255, 249, 232";    FF_SEC="244, 240, 217"
+    FF_ACCENT="141, 161, 1";    FF_TEXT="92, 106, 114"
+    FF_ACCENT_HSL="hsl(75, 99%, 32%)" ;;
+  *)
+    FF_MAIN=""; FF_SEC=""; FF_ACCENT=""; FF_TEXT=""; FF_ACCENT_HSL="" ;;
+esac
+
+if [ -n "$FF_MAIN" ]; then
+  cat > "$FF_GLOBALS" << EOF
+/* ============================================================================
+ * Shared: should be copied to Sidebery settings > Styles editor
+ * ========================================================================= */
+
+* {
+  --dtui-theme-color-scheme: ${COLOR_SCHEME};
+  --dtui-theme-main-color: $FF_MAIN;
+  --dtui-theme-secondary-color: $FF_SEC;
+  --dtui-theme-accent-color: $FF_ACCENT;
+  --dtui-theme-text-color: $FF_TEXT;
+
+  --dtui-theme-accent-low-alpha: 0.5;
+  --dtui-theme-accent-mid-alpha: 0.75;
+  --dtui-theme-accent-high-contrast: $FF_ACCENT_HSL;
+  --dtui-theme-text-low-alpha: 0.5;
+  --dtui-theme-text-mid-alpha: 0.75;
+
+  --dtui-theme-separator-color: rgba(var(--dtui-theme-text-color), 0.1);
+  --dtui-theme-border-color: rgba(var(--dtui-theme-text-color), 0);
+  --dtui-theme-border-width: 2px;
+  --dtui-theme-border-radius: 6px;
+
+  --dtui-sidebar-hover-debounce: 0ms;
+  --dtui-sidebar-animation-speed: 300ms;
+}
+
+/* ============================================================================
+ * Others
+ * ========================================================================= */
+
+* {
+  --dtui-theme-shadow-margin: 6px;
+  --dtui-theme-shadow: 0px 0px var(--dtui-theme-shadow-margin) hsla(0, 0%, 0%, 0.4);
+
+  --dtui-sidebar-collapsed-width: 34px;
+  --dtui-sidebar-no-extend-width: 34px;
+  --dtui-sidebar-extended-width: 270px;
+  --dtui-bookmarks-hover-debounce: 200ms;
+  --dtui-bookmarks-animation-speed: 200ms;
+  --dtui-menu-animation-speed: 250ms;
+  --dtui-window-animation-speed: 350ms;
+  --dtui-urlbar-animation-speed: 300ms;
+
+  --dtui-bookmarks-inner-height: 20px;
+}
+EOF
+fi
+
+# Zed theme
+ZED_SETTINGS="$HOME/.config/zed/settings.json"
+if [ -f "$ZED_SETTINGS" ]; then
+  case "$PROFILE:$NEW" in
+    catppuccin:dark)    ZED_THEME="Catppuccin Mocha (Blur)" ;;
+    catppuccin:light)   ZED_THEME="Catppuccin Latte (Blur)" ;;
+    gruvbox:dark)       ZED_THEME="Gruvbox Dark" ;;
+    gruvbox:light)      ZED_THEME="Gruvbox Light" ;;
+    rosepine:dark)      ZED_THEME="Rosé Pine" ;;
+    rosepine:light)     ZED_THEME="Rosé Pine Dawn" ;;
+    everforest:dark)    ZED_THEME="Everforest Dark Hard (blur)" ;;
+    everforest:light)   ZED_THEME="Everforest Light Hard (blur)" ;;
+    *)                  ZED_THEME="" ;;
+  esac
+  [ -n "$ZED_THEME" ] && sed -i "/\"theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+fi
+
+# Obsidian Minimal Theme
+OBSIDIAN_MINIMAL="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
+if [ -f "$OBSIDIAN_MINIMAL" ]; then
+  case "$PROFILE:$NEW" in
+    catppuccin:dark)    OBS_SCHEME="minimal-catppuccin-dark" ;;
+    catppuccin:light)   OBS_SCHEME="minimal-catppuccin-light" ;;
+    gruvbox:dark)       OBS_SCHEME="minimal-gruvbox-dark" ;;
+    gruvbox:light)      OBS_SCHEME="minimal-gruvbox-light" ;;
+    rosepine:dark)      OBS_SCHEME="minimal-rose-pine-dark" ;;
+    rosepine:light)     OBS_SCHEME="minimal-rose-pine-light" ;;
+    everforest:dark)    OBS_SCHEME="minimal-everforest-dark" ;;
+    everforest:light)   OBS_SCHEME="minimal-everforest-light" ;;
+    *)                  OBS_SCHEME="" ;;
+  esac
+  if [ -n "$OBS_SCHEME" ]; then
+    python3 -c "
+import json
+with open('$OBSIDIAN_MINIMAL', 'r') as f:
+    s = json.load(f)
+s['darkScheme'] = '$OBS_SCHEME'
+with open('$OBSIDIAN_MINIMAL', 'w') as f:
+    json.dump(s, f, indent=4)
+" 2>/dev/null || true
+  fi
+fi
+
+# Save new variant
+echo "$NEW" > "$VARIANT_FILE"
+
+notify-send "Desktop Profile" "$PROFILE → $NEW" 2>/dev/null || true
+echo "Done. $PROFILE is now $NEW."
