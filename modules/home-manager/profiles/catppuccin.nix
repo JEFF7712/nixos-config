@@ -320,19 +320,19 @@ in {
           background-color: rgba(24, 24, 37, 0.6);
           color: ${pink};
           border: 1px solid ${surface0};
-          border-radius: 40px;
+          border-radius: 50px;
           margin: 25px 220px 0 220px;
           box-shadow: 0 10px 30px rgba(17, 17, 27, 0.45);
         }
         .modules-left, .modules-center, .modules-right { padding: 0 10px; }
-        #workspaces { padding: 4px 2px; }
+        #workspaces { padding: 0px 2px; }
         #workspaces button {
           padding: 0 10px;
-          margin: 2px 3px;
+          margin: 0px 2px;
           background: transparent;
           color: ${pink};
           border-radius: 10px;
-          border-bottom: 2px solid transparent;
+          border-bottom: inset 0 -2px transparent;
         }
         #workspaces button.active {
           color: ${pink};
