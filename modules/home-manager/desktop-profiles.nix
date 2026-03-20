@@ -14,7 +14,7 @@ let
   profileType = lib.types.submodule {
     options = {
       bar = lib.mkOption {
-        type = lib.types.enum [ "noctalia" "waybar" ];
+        type = lib.types.enum [ "noctalia" "waybar" "quickshell" ];
         description = "Which bar to run for this profile.";
       };
 
@@ -76,6 +76,11 @@ let
 
       waybarLight = {
         style = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+      };
+
+      quickshell = {
+        colors      = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+        colorsLight = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
       };
     };
   };
@@ -186,7 +191,16 @@ let
         } // lib.optionalAttrs (profile.waybarLight.style != null) {
           ".config/desktop-profiles/${name}/waybar-style-light.css".text = profile.waybarLight.style;
         });
-    in base // lightFiles // waybarFiles;
+      quickshellFiles = lib.optionalAttrs
+        (profile.bar == "quickshell" && profile.quickshell.colors != null) {
+          ".config/desktop-profiles/${name}/quickshell-colors.json".text =
+            profile.quickshell.colors;
+        } // lib.optionalAttrs
+        (profile.bar == "quickshell" && profile.quickshell.colorsLight != null) {
+          ".config/desktop-profiles/${name}/quickshell-colors-light.json".text =
+            profile.quickshell.colorsLight;
+        };
+    in base // lightFiles // waybarFiles // quickshellFiles;
 
 in {
   options.desktopProfiles = {
