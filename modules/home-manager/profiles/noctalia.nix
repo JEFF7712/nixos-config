@@ -30,7 +30,7 @@
       shadowInactiveColor = "#00000054";
       shadowDrawBehindWindow = true;
       tabIndicatorOff    = true;
-      windowOpacity      = 1.0;
+      windowOpacity      = 0.8;
     };
 
     colors = {

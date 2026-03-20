@@ -321,20 +321,35 @@ in {
 
       style = ''
         * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-        window#waybar { background-color: ${crust}; color: ${text}; }
-        .modules-left, .modules-center, .modules-right { padding: 0 4px; }
-        #workspaces button { padding: 0 8px; background: transparent; color: ${overlay0}; border-bottom: 2px solid transparent; }
-        #workspaces button.active { color: ${mauve}; border-bottom: 2px solid ${mauve}; }
-        #workspaces button:hover { background: ${surface0}; color: ${text}; }
-        #clock { color: ${lavender}; font-weight: bold; }
-        #pulseaudio { color: ${sky}; padding: 0 8px; }
-        #bluetooth { color: ${blue}; padding: 0 8px; }
-        #network { color: ${teal}; padding: 0 8px; }
-        #battery { color: ${peach}; padding: 0 8px; }
-        #tray { color: ${subtext1}; padding: 0 8px; }
-        #cpu { color: ${green}; padding: 0 8px; }
-        #memory { color: ${yellow}; padding: 0 8px; }
-        #workspaces { padding: 0 4px; }
+        window#waybar {
+          background-color: ${mantle};
+          color: ${pink};
+          border: 1px solid ${surface0};
+          border-radius: 16px;
+          margin: 10px 220px 0 220px;
+          box-shadow: 0 10px 30px rgba(17, 17, 27, 0.45);
+        }
+        .modules-left, .modules-center, .modules-right { padding: 0 10px; }
+        #workspaces { padding: 4px 2px; }
+        #workspaces button {
+          padding: 0 10px;
+          margin: 5px 3px;
+          background: transparent;
+          color: ${pink};
+          border-radius: 10px;
+          border-bottom: 2px solid transparent;
+        }
+        #workspaces button.active {
+          color: ${pink};
+          background: ${surface0};
+          border-bottom: 2px solid ${pink};
+        }
+        #workspaces button:hover { background: ${surface0}; color: ${pink}; }
+        #clock { color: ${pink}; font-weight: bold; padding: 0 10px; }
+        #pulseaudio, #bluetooth, #network, #battery, #tray, #cpu, #memory, #language {
+          color: ${pink};
+          padding: 0 10px;
+        }
         #battery.critical { color: ${red}; }
       '';
     };
