@@ -339,7 +339,6 @@ in {
         #workspaces button.active {
           color: ${pink};
           background: ${surface0};
-          border-bottom: 2px solid ${pink};
         }
         #workspaces button:hover { background: ${surface0}; color: ${pink}; }
         #clock { color: ${pink}; font-weight: bold; padding: 0 10px; }
