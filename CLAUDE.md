@@ -4,16 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A NixOS flake-based system configuration managing multiple hosts (laptop, workmachine, iso) with home-manager integration. The repo lives at `~/nixos` and is the single source of truth for system and user configuration.
+A NixOS flake-based system configuration managing multiple hosts (laptop, iso) with home-manager integration. The repo lives at `~/nixos` and is the single source of truth for system and user configuration.
 
 ## Build & Deploy Commands
 
 ```bash
 # Build and switch to new configuration (laptop)
 sudo nixos-rebuild switch --flake .#laptop
-
-# Build and switch (workmachine)
-sudo nixos-rebuild switch --flake .#workmachine
 
 # Build without switching (dry run)
 nixos-rebuild build --flake .#<host>
@@ -24,7 +21,6 @@ nix build .#nixosConfigurations.iso.config.system.build.isoImage
 # Enter a dev shell (python is default)
 nix develop ./shells
 nix develop ./shells#ml
-nix develop ./shells#homelab
 ```
 
 The fish alias `bnix` does: `git add . && sudo nixos-rebuild switch --flake .#laptop && git commit -m 'Updates' && git push`
@@ -33,9 +29,8 @@ The fish alias `bnix` does: `git add . && sudo nixos-rebuild switch --flake .#la
 
 ### Flake Entry Point (`flake.nix`)
 
-Defines three NixOS configurations using a `mkSystem` helper:
+Defines two NixOS configurations using a `mkSystem` helper:
 - **laptop** — Primary machine with NVIDIA, gaming, heavy apps, VPN
-- **workmachine** — Slimmer setup without heavy-apps, cli-toys, gaming, waydroid
 - **iso** — Live installation image that auto-clones this repo on boot
 
 Each host pulls from `hosts/<name>/configuration.nix` + `hardware-configuration.nix` and a corresponding home config from `home/rupan/<name>.nix`.

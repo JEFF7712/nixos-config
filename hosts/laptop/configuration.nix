@@ -11,21 +11,21 @@
     settings = {
       experimental-features = [ "nix-command" "flakes" ];
       max-jobs = 1;
-      cores = 2;
+      cores = 4;
     };
   };
 
   nvidia.enable = true;
   niri.enable = true;
-  general-laptop.enable = true;  
+  general-laptop.enable = true;
   audio.enable = true;
-  ctls.enable = true; 
+  ctls.enable = true;
   bluetooth.enable = true;
   filemanager.enable = true;
   screenshot-cleanup.enable = true;
   podman.enable = true;
   distrobox.enable = true;
-  file-utils.enable = true;  
+  file-utils.enable = true;
   docker.enable = true;
   netbird.enable = true;
   waydroid.enable = true;
@@ -55,12 +55,12 @@
   services.power-profiles-daemon.enable = true;
   services.tlp.enable = false;
   services.auto-cpufreq.enable = false;
- 
+
   fonts = {
     fontDir.enable = true;
     enableDefaultPackages = true;
   };
-  
+
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -108,10 +108,10 @@
 
   hardware.graphics = {
     enable = true;
-    enable32Bit = true; 
+    enable32Bit = true;
 
     extraPackages = with pkgs; [
-      intel-compute-runtime 
+      intel-compute-runtime
       intel-media-driver
     ];
   };
@@ -145,10 +145,10 @@
   nix.gc = {
     automatic = true;
     dates = "daily";
-    options = "--delete-older-than 7d"; 
+    options = "--delete-older-than 7d";
   };
 
   nix.settings.auto-optimise-store = true;
- 
+
   system.stateVersion = "25.11"; #DO NOT EDIT
 }
