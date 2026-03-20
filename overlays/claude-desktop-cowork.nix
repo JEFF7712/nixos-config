@@ -31,9 +31,7 @@ from pathlib import Path
 path = Path(os.environ["CLAUDE_FHS_LAUNCHER"])
 text = path.read_text()
 needle = '  "''${x11_args[@]}"\n'
-replacement = needle + """  --dir /usr/local
-  --dir /usr/local/bin
-  --symlink '${final.claude-code}/bin/claude' /usr/local/bin/claude
+replacement = needle + """  --ro-bind /usr/local /usr/local
 """
 
 if needle not in text:

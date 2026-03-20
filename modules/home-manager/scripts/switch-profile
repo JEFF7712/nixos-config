@@ -222,9 +222,8 @@ elif [ "$TARGET_BAR" = "quickshell" ]; then
   echo "  Starting quickshell..."
   systemctl --user start swww 2>/dev/null || true
   if [ -f "$TARGET_DIR/quickshell-colors.json" ]; then
-    # mkdir -p because ~/.config/quickshell may not exist on first run
-    mkdir -p "$HOME/.config/quickshell"
-    cp --remove-destination "$TARGET_DIR/quickshell-colors.json" "$HOME/.config/quickshell/colors.json"
+    mkdir -p "$HOME/.local/state/quickshell"
+    cp --remove-destination "$TARGET_DIR/quickshell-colors.json" "$HOME/.local/state/quickshell/colors.json"
   fi
   systemctl --user start quickshell-bar 2>/dev/null || true
   mako 2>/dev/null &
