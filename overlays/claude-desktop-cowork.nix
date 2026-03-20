@@ -24,20 +24,47 @@ in {
       cp "${original}/bin/claude-desktop" "$out/libexec/claude-desktop-fhs"
       chmod u+w "$out/libexec/claude-desktop-fhs"
       export CLAUDE_FHS_LAUNCHER="$out/libexec/claude-desktop-fhs"
+      export CLAUDE_CUSTOM_ROOTFS="$out/libexec/claude-desktop-fhsenv-rootfs"
       ${pythonBin} - <<'PY'
 import os
 from pathlib import Path
 
 path = Path(os.environ["CLAUDE_FHS_LAUNCHER"])
+custom_rootfs = Path(os.environ["CLAUDE_CUSTOM_ROOTFS"])
 text = path.read_text()
-needle = '  "''${x11_args[@]}"\n'
-replacement = needle + """  --ro-bind /usr/local /usr/local
-"""
 
-if needle not in text:
-    raise SystemExit("Failed to patch claude-desktop FHS launcher")
+prefix = 'for i in '
+suffix = '/*; do'
+rootfs = None
+for line in text.splitlines():
+    if line.startswith(prefix) and line.endswith(suffix):
+        rootfs = line[len(prefix):-len(suffix)]
+        break
 
-path.write_text(text.replace(needle, replacement, 1))
+if rootfs is None:
+    raise SystemExit('Failed to locate original rootfs path')
+
+orig_rootfs = Path(rootfs)
+custom_rootfs.mkdir(parents=True, exist_ok=True)
+
+for child in orig_rootfs.iterdir():
+    target = custom_rootfs / child.name
+    if child.name == 'usr':
+        target.mkdir(exist_ok=True)
+        for usr_child in child.iterdir():
+            usr_target = target / usr_child.name
+            if not usr_target.exists():
+                usr_target.symlink_to(usr_child)
+        (target / 'local').mkdir(exist_ok=True)
+        (target / 'local' / 'bin').mkdir(exist_ok=True)
+        claude_link = target / 'local' / 'bin' / 'claude'
+        if claude_link.exists() or claude_link.is_symlink():
+            claude_link.unlink()
+        claude_link.symlink_to(Path('${final.claude-code}/bin/claude'))
+    elif not target.exists():
+        target.symlink_to(child)
+
+path.write_text(text.replace(rootfs, str(custom_rootfs)))
 PY
       chmod +x "$out/libexec/claude-desktop-fhs"
       cat > "$out/libexec/claude-cowork-node-shim.js" <<'EOF'
