@@ -257,7 +257,7 @@ if [ -f "$ZED_SETTINGS" ]; then
     noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
     gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Zed (Default)" ;;
     rosepine)   ZED_THEME="Rosé Pine"        ; ZED_ICON="Zed (Default)" ;;
-    everforest) ZED_THEME="Everforest Dark"  ; ZED_ICON="Zed (Default)" ;;
+    everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
     *)          ZED_THEME=""                  ; ZED_ICON="" ;;
   esac
   if [ -n "$ZED_THEME" ]; then
