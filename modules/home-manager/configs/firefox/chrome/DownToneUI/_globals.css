@@ -4,14 +4,14 @@
 
 * {
   --dtui-theme-color-scheme: dark;
-  --dtui-theme-main-color: 46, 52, 64;
-  --dtui-theme-secondary-color: 59, 66, 82;
-  --dtui-theme-accent-color: 136, 192, 208;
-  --dtui-theme-text-color: 216, 222, 233;
+  --dtui-theme-main-color: 30, 30, 46;
+  --dtui-theme-secondary-color: 24, 24, 37;
+  --dtui-theme-accent-color: 203, 166, 247;
+  --dtui-theme-text-color: 205, 214, 244;
 
   --dtui-theme-accent-low-alpha: 0.5;
   --dtui-theme-accent-mid-alpha: 0.75;
-  --dtui-theme-accent-high-contrast: hsl(193, 43%, 78%);
+  --dtui-theme-accent-high-contrast: hsl(267, 84%, 81%);
   --dtui-theme-text-low-alpha: 0.5;
   --dtui-theme-text-mid-alpha: 0.75;
 

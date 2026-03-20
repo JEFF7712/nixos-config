@@ -214,7 +214,7 @@ binds {
     Mod+R { spawn "noctalia-shell" "ipc" "--any-display" "call" "wallpaper" "random"; }
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }
-    Mod+Shift+L { spawn "toggle-variant"; }
+    Mod+Shift+T { spawn "toggle-variant"; }
 
     Mod+C repeat=false { close-window; }
     Mod+Alt+O { toggle-window-rule-opacity; }
