@@ -332,7 +332,7 @@ in {
           background: transparent;
           color: ${pink};
           border-radius: 10px;
-          border-bottom: inset 0 -2px transparent;
+          border-bottom: 2px solid transparent;
         }
         #workspaces button.active {
           color: ${pink};
