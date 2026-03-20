@@ -72,6 +72,14 @@ elif [ "$CURRENT_BAR" = "waybar" ]; then
   rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
   # Stop mako (nord uses mako; noctalia manages its own notifications)
   pkill -x mako 2>/dev/null || true
+elif [ "$CURRENT_BAR" = "quickshell" ]; then
+  echo "  Stopping quickshell..."
+  pkill -f quickshell 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    pgrep -f quickshell >/dev/null 2>&1 || break
+    sleep 0.1
+  done
+  pkill -x mako 2>/dev/null || true
 fi
 
 # 2. Copy color files (skip for noctalia — it manages its own colors)
@@ -208,6 +216,17 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
   waybar 2>/dev/null &
   disown
   # Start mako for nord notifications
+  mako 2>/dev/null &
+  disown
+elif [ "$TARGET_BAR" = "quickshell" ]; then
+  echo "  Starting quickshell..."
+  systemctl --user start swww 2>/dev/null || true
+  if [ -f "$TARGET_DIR/quickshell-colors.json" ]; then
+    # mkdir -p because ~/.config/quickshell may not exist on first run
+    mkdir -p "$HOME/.config/quickshell"
+    cp "$TARGET_DIR/quickshell-colors.json" "$HOME/.config/quickshell/colors.json"
+  fi
+  systemctl --user start quickshell-bar 2>/dev/null || true
   mako 2>/dev/null &
   disown
 fi
