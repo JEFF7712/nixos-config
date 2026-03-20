@@ -12,6 +12,7 @@
     ./niri.nix
     ./noctalia.nix
     ./profiles/catppuccin.nix
+    ./profiles/gruvbox.nix
     ./profiles/noctalia.nix
     ./profiles/nord.nix
     ./terminal.nix
