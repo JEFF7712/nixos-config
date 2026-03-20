@@ -14,6 +14,7 @@ in
       zoom
       pkgs-stable.calibre
       zed-editor
+      spotify-player
     ];
 
     programs.firefox = {
