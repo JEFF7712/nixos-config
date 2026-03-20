@@ -204,6 +204,9 @@ in {
         {
           "layer": "top",
           "height": 20,
+          "margin-top": 15,
+          "margin-left": 220,
+          "margin-right": 220,
           "modules-left": [
             "niri/workspaces",
             "cpu",
@@ -321,7 +324,7 @@ in {
           color: ${pink};
           border: 1px solid ${surface0};
           border-radius: 50px;
-          margin: 25px 220px 0 220px;
+#           margin: 25px 220px 0 220px;
           box-shadow: 0 10px 30px rgba(17, 17, 27, 0.45);
         }
         .modules-left, .modules-center, .modules-right { padding: 0 10px; }
