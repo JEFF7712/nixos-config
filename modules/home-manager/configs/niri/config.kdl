@@ -160,14 +160,17 @@ window-rule {
 window-rule {
     geometry-corner-radius 10
     clip-to-geometry true
+    background-effect {
+        blur true
+    }
 }
 window-rule {
     match is-active=true
-    opacity 1.0
+    opacity 0.8
 }
 window-rule {
     match is-active=false
-    opacity 0.85
+    opacity 0.6
 }
 window-rule {
     match title="Waypaper"
@@ -203,7 +206,7 @@ binds {
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "--any-display" "call" "lockScreen" "lock"; }
     Mod+F { spawn "firefox"; }
     Mod+W { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call wallpaper toggle; else waypaper; fi"; }
-    Mod+S { spawn "spotify"; }        
+    Mod+S { spawn "spotify"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "noctalia-shell" "ipc" "--any-display" "call" "bar" "toggle"; }
@@ -224,7 +227,7 @@ binds {
     Mod+Shift+Page_Down  { move-window-down; }
     Mod+Shift+Page_Up    { move-window-up; }
     Mod+Shift+Right { move-column-right; }
-    
+
     Mod+Ctrl+Left  { focus-monitor-left; }
     Mod+Ctrl+Page_Down  { focus-monitor-down; }
     Mod+Ctrl+Page_Up    { focus-monitor-up; }
@@ -304,14 +307,14 @@ binds {
     Mod+Equal { set-column-width "+10%"; }
     Mod+Shift+Minus { set-window-height "-10%"; }
     Mod+Shift+Equal { set-window-height "+10%"; }
-    
+
     Mod+Alt+F { maximize-column; }
     Mod+Shift+F { fullscreen-window; }
     Mod+Ctrl+F { expand-column-to-available-width; }
 
     Mod+Shift+C { center-column; }
     Mod+Ctrl+C { center-visible-columns; }
-    
+
     Mod+V       { toggle-window-floating; }
     Mod+Shift+V { switch-focus-between-floating-and-tiling; }
 
@@ -350,7 +353,7 @@ binds {
     // Powers off the monitors. To turn them back on, do any input like
     // moving the mouse or pressing any other key.
     Mod+Shift+P { power-off-monitors; }
-    
+
     Mod+Z { spawn "/home/rupan/nixos/scripts/focus-mode.sh"; }
 }
 include "./noctalia.kdl"
