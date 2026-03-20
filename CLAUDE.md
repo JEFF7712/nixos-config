@@ -60,7 +60,6 @@ The `noctalia` input provides a Material Design 3 theming system that generates 
 ## Important Patterns
 
 - Config files in `modules/home-manager/configs/` are symlinked out-of-store — they are editable without rebuild
-- The `scripts/focus-mode.sh` toggles a minimal distraction-free theme across kitty, fish, starship, and niri
 - Dev shells are defined in `shells/flake.nix`, not the main flake
 - The ISO build workflow (`.github/workflows/build-iso.yml`) triggers on git tags matching `v*`
 - GPU setup uses Intel iGPU + NVIDIA Prime offload with optional performance mode
