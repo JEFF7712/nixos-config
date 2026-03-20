@@ -203,10 +203,10 @@ in {
       config = ''
         {
           "layer": "top",
-          "height": 25,
-          "margin-top": 10,
-          "margin-left": 80,
-          "margin-right": 80,
+          "height": 30,
+          "margin-top": 5,
+          "margin-left": 40,
+          "margin-right": 40,
           "modules-left": [
             "niri/workspaces",
             "cpu",
