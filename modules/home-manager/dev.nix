@@ -29,6 +29,7 @@
         pnpm
         ags
         uv
+        glab
       ];
   };
 }

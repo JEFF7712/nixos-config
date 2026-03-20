@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 let
-  # Gruvbox Dark Hard
+  # ── Gruvbox Dark Hard ────────────────────────────────────────────────────────
   bg0h  = "#1d2021";
   bg0   = "#282828";
   bg1   = "#3c3836";
@@ -21,6 +21,27 @@ let
   aqua  = "#8ec07c";
   orange = "#fe8019";
   gray  = "#928374";
+
+  # ── Gruvbox Light Hard ───────────────────────────────────────────────────────
+  l_bg0h   = "#f9f5d7";
+  l_bg0    = "#fbf1c7";
+  l_bg1    = "#ebdbb2";
+  l_bg2    = "#d5c4a1";
+  l_bg3    = "#bdae93";
+  l_bg4    = "#a89984";
+  l_fg0    = "#282828";
+  l_fg1    = "#3c3836";
+  l_fg2    = "#504945";
+  l_fg3    = "#665c54";
+  l_fg4    = "#7c6f64";
+  l_red    = "#9d0006";
+  l_green  = "#79740e";
+  l_yellow = "#b57614";
+  l_blue   = "#076678";
+  l_purple = "#8f3f71";
+  l_aqua   = "#427b58";
+  l_orange = "#af3a03";
+  l_gray   = "#928374";
 in {
   home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
 
@@ -405,5 +426,213 @@ in {
         #battery.critical { color: ${red}; }
       '';
     };
+
+    colorsLight = {
+      gtk3 = ''
+        /* Gruvbox Light Hard */
+        @define-color accent_color ${l_yellow};
+        @define-color accent_bg_color ${l_yellow};
+        @define-color accent_fg_color ${l_fg0};
+        @define-color destructive_bg_color ${l_red};
+        @define-color destructive_fg_color ${l_bg0};
+        @define-color error_bg_color ${l_red};
+        @define-color error_fg_color ${l_bg0};
+        @define-color window_bg_color ${l_bg0};
+        @define-color window_fg_color ${l_fg1};
+        @define-color view_bg_color ${l_bg0};
+        @define-color view_fg_color ${l_fg1};
+        @define-color headerbar_bg_color ${l_bg1};
+        @define-color headerbar_fg_color ${l_fg1};
+        @define-color headerbar_backdrop_color @window_bg_color;
+        @define-color popover_bg_color ${l_bg1};
+        @define-color popover_fg_color ${l_fg1};
+        @define-color card_bg_color ${l_bg1};
+        @define-color card_fg_color ${l_fg1};
+        @define-color dialog_bg_color ${l_bg0};
+        @define-color dialog_fg_color ${l_fg1};
+        @define-color sidebar_bg_color ${l_bg1};
+        @define-color sidebar_fg_color ${l_fg1};
+        @define-color sidebar_backdrop_color @window_bg_color;
+        @define-color sidebar_border_color ${l_bg2};
+        @define-color secondary_sidebar_bg_color ${l_bg0};
+        @define-color secondary_sidebar_fg_color ${l_fg2};
+        @define-color theme_unfocused_fg_color ${l_fg3};
+        @define-color theme_unfocused_text_color ${l_fg4};
+        @define-color theme_unfocused_bg_color ${l_bg0};
+        @define-color theme_unfocused_base_color ${l_bg0};
+        @define-color theme_unfocused_selected_bg_color ${l_bg2};
+        @define-color theme_unfocused_selected_fg_color ${l_fg1};
+      '';
+
+      gtk4 = ''
+        /* Gruvbox Light Hard */
+        @define-color accent_color ${l_yellow};
+        @define-color accent_bg_color ${l_yellow};
+        @define-color accent_fg_color ${l_fg0};
+        @define-color destructive_bg_color ${l_red};
+        @define-color destructive_fg_color ${l_bg0};
+        @define-color error_bg_color ${l_red};
+        @define-color error_fg_color ${l_bg0};
+        @define-color window_bg_color ${l_bg0};
+        @define-color window_fg_color ${l_fg1};
+        @define-color view_bg_color ${l_bg0};
+        @define-color view_fg_color ${l_fg1};
+        @define-color headerbar_bg_color ${l_bg1};
+        @define-color headerbar_fg_color ${l_fg1};
+        @define-color headerbar_backdrop_color @window_bg_color;
+        @define-color popover_bg_color ${l_bg1};
+        @define-color popover_fg_color ${l_fg1};
+        @define-color card_bg_color ${l_bg1};
+        @define-color card_fg_color ${l_fg1};
+        @define-color dialog_bg_color ${l_bg0};
+        @define-color dialog_fg_color ${l_fg1};
+        @define-color sidebar_bg_color ${l_bg1};
+        @define-color sidebar_fg_color ${l_fg1};
+        @define-color sidebar_backdrop_color @window_bg_color;
+        @define-color sidebar_border_color ${l_bg2};
+        @define-color secondary_sidebar_bg_color ${l_bg0};
+        @define-color secondary_sidebar_fg_color ${l_fg2};
+      '';
+
+      qt6 = ''
+        [ColorScheme]
+        active_colors=${l_fg1}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg1}, #ffffff, ${l_fg1}, ${l_bg0}, ${l_bg0}, #000000, ${l_yellow}, ${l_bg0}, ${l_yellow}, ${l_blue}, ${l_bg1}, ${l_bg0h}, ${l_bg1}, ${l_fg1}, ${l_fg4}, ${l_yellow}
+        disabled_colors=${l_fg4}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg4}, #ffffff, ${l_fg4}, ${l_bg0}, ${l_bg0}, #000000, ${l_bg3}, ${l_bg2}, ${l_bg3}, ${l_blue}, ${l_bg1}, ${l_bg0h}, ${l_bg1}, ${l_fg4}, ${l_gray}, ${l_bg3}
+        inactive_colors=${l_fg2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg2}, #ffffff, ${l_fg2}, ${l_bg0}, ${l_bg0}, #000000, ${l_yellow}, ${l_bg0}, ${l_yellow}, ${l_blue}, ${l_bg1}, ${l_bg0h}, ${l_bg1}, ${l_fg2}, ${l_fg4}, ${l_yellow}
+      '';
+
+      kitty = ''
+        # Gruvbox Light Hard Kitty
+        cursor ${l_fg1}
+        cursor_text_color ${l_bg0}
+        foreground ${l_fg1}
+        background ${l_bg0}
+        selection_foreground ${l_bg0}
+        selection_background ${l_yellow}
+        color0  ${l_bg1}
+        color8  ${l_bg3}
+        color1  ${l_red}
+        color9  ${l_red}
+        color2  ${l_green}
+        color10 ${l_green}
+        color3  ${l_yellow}
+        color11 ${l_yellow}
+        color4  ${l_blue}
+        color12 ${l_blue}
+        color5  ${l_purple}
+        color13 ${l_purple}
+        color6  ${l_aqua}
+        color14 ${l_aqua}
+        color7  ${l_fg4}
+        color15 ${l_fg1}
+      '';
+
+      fish = ''
+        set -g fish_color_normal ${l_fg1}
+        set -g fish_color_command ${l_yellow}
+        set -g fish_color_keyword ${l_orange}
+        set -g fish_color_quote ${l_green}
+        set -g fish_color_redirection ${l_aqua}
+        set -g fish_color_end ${l_fg4}
+        set -g fish_color_error ${l_red}
+        set -g fish_color_param ${l_fg2}
+        set -g fish_color_comment ${l_bg4}
+        set -g fish_color_selection --background=${l_bg2}
+        set -g fish_color_search_match --background=${l_bg1}
+        set -g fish_color_operator ${l_orange}
+        set -g fish_color_escape ${l_purple}
+        set -g fish_color_autosuggestion ${l_bg4}
+      '';
+
+      starship = ''
+        format = "$all"
+
+        [character]
+        success_symbol = "[❯](${l_yellow})"
+        error_symbol = "[❯](${l_red})"
+
+        [directory]
+        style = "bold ${l_blue}"
+
+        [git_branch]
+        style = "bold ${l_orange}"
+
+        [cmd_duration]
+        style = "bold ${l_fg4}"
+      '';
+
+      rofi = ''
+        * {
+            font:                        "JetBrainsMono Nerd Font 11";
+            background-color:            ${l_bg0};
+            text-color:                  ${l_fg1};
+            border-color:                ${l_bg2};
+            selected-normal-background:  ${l_bg1};
+            selected-normal-foreground:  ${l_yellow};
+            normal-background:           ${l_bg0};
+            normal-foreground:           ${l_fg1};
+        }
+
+        window {
+            width:              900px;
+            border:             2px solid;
+            border-color:       ${l_bg2};
+            border-radius:      8px;
+            padding:            12px;
+            background-color:   ${l_bg0};
+        }
+
+        mainbox { spacing: 0; children: [ inputbar, listview ]; }
+
+        inputbar {
+            padding:            8px 12px;
+            margin:             0 0 10px 0;
+            background-color:   ${l_bg1};
+            border-radius:      6px;
+            children:           [ prompt, entry ];
+        }
+
+        prompt { text-color: ${l_yellow}; padding: 0 8px 0 0; }
+
+        entry {
+            text-color:         ${l_fg1};
+            placeholder:        "Switch profile…";
+            placeholder-color:  ${l_bg3};
+        }
+
+        listview { columns: 3; lines: 2; spacing: 10px; fixed-height: false; scrollbar: false; }
+
+        element {
+            orientation: vertical; padding: 10px; spacing: 8px;
+            border-radius: 6px; background-color: ${l_bg1}; cursor: pointer;
+        }
+
+        element selected { background-color: ${l_bg2}; border: 2px solid; border-color: ${l_yellow}; }
+
+        element-icon { size: 160px; border-radius: 4px; horizontal-align: 0.5; }
+
+        element-text {
+            horizontal-align: 0.5; vertical-align: 0.5;
+            text-color: inherit; font: "JetBrainsMono Nerd Font 12";
+        }
+      '';
+    };
+
+    waybarLight.style = ''
+      * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
+      window#waybar { background-color: transparent; color: ${l_fg1}; }
+      .modules-left, .modules-center, .modules-right { padding: 0 4px; }
+      #workspaces button { padding: 0 8px; background: transparent; color: ${l_fg1}; border-bottom: 2px solid transparent; }
+      #workspaces button.active { color: ${l_yellow}; border-bottom: 2px solid ${l_yellow}; }
+      #workspaces button:hover { background: rgba(0,0,0,0.05); color: ${l_fg1}; }
+      #clock { color: ${l_yellow}; font-weight: bold; }
+      #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${l_fg1}; padding: 0 8px; }
+      #cpu, #memory { color: ${l_fg1}; padding: 0 8px; }
+      #power-profiles-daemon { color: ${l_fg1}; padding: 0 8px; }
+      #power-profiles-daemon.performance { color: ${l_red}; }
+      #power-profiles-daemon.balanced { color: ${l_yellow}; }
+      #power-profiles-daemon.power-saver { color: ${l_green}; }
+      #battery.critical { color: ${l_red}; }
+    '';
   };
 }

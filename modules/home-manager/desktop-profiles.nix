@@ -1,6 +1,16 @@
 { pkgs, lib, config, ... }:
 
 let
+  colorOptions = {
+    gtk3     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+    gtk4     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+    qt6      = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+    kitty    = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+    fish     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+    starship = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+    rofi     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+  };
+
   profileType = lib.types.submodule {
     options = {
       bar = lib.mkOption {
@@ -21,6 +31,12 @@ let
       wallpaperDir = lib.mkOption {
         type = lib.types.str;
         description = "Absolute path to wallpaper directory.";
+      };
+
+      wallpaperDirLight = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Wallpaper directory for the light variant. Falls back to wallpaperDir if null.";
       };
 
       niri = {
@@ -47,19 +63,19 @@ let
         windowHighlightOff  = lib.mkOption { type = lib.types.bool;   default = false; };
       };
 
-      colors = {
-        gtk3     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-        gtk4     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-        qt6      = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-        kitty    = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-        fish     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-        starship = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-        rofi     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-      };
+      # Dark variant colors (the profile default)
+      colors = colorOptions;
+
+      # Light variant colors — leave all null if no light variant exists
+      colorsLight = colorOptions;
 
       waybar = {
         config = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
         style  = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+      };
+
+      waybarLight = {
+        style = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
       };
     };
   };
@@ -130,31 +146,47 @@ let
 
   orEmpty = v: if v != null then v else "";
 
+  hasLight = profile: profile.colorsLight.kitty != null || profile.colorsLight.gtk3 != null;
+
   generateProfileFiles = name: profile:
     let
       base = {
         ".config/desktop-profiles/${name}/meta.json".text =
           builtins.toJSON {
-            bar = profile.bar;
-            cursor = profile.cursor.theme;
-            cursorSize = profile.cursor.size;
+            bar            = profile.bar;
+            cursor         = profile.cursor.theme;
+            cursorSize     = profile.cursor.size;
+            hasLightVariant = hasLight profile;
           };
-        ".config/desktop-profiles/${name}/wallpaper-dir".text = profile.wallpaperDir;
-        ".config/desktop-profiles/${name}/gtk-3.0.css".text   = orEmpty profile.colors.gtk3;
-        ".config/desktop-profiles/${name}/gtk-4.0.css".text   = orEmpty profile.colors.gtk4;
-        ".config/desktop-profiles/${name}/qt6ct.conf".text    = orEmpty profile.colors.qt6;
-        ".config/desktop-profiles/${name}/kitty-colors.conf".text  = orEmpty profile.colors.kitty;
-        ".config/desktop-profiles/${name}/fish-theme.fish".text    = orEmpty profile.colors.fish;
-        ".config/desktop-profiles/${name}/starship.toml".text      = orEmpty profile.colors.starship;
-        ".config/desktop-profiles/${name}/rofi-theme.rasi".text    = orEmpty profile.colors.rofi;
-        ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides profile;
+        ".config/desktop-profiles/${name}/wallpaper-dir".text       = profile.wallpaperDir;
+        ".config/desktop-profiles/${name}/wallpaper-dir-light".text =
+          if profile.wallpaperDirLight != null then profile.wallpaperDirLight else profile.wallpaperDir;
+        ".config/desktop-profiles/${name}/gtk-3.0.css".text         = orEmpty profile.colors.gtk3;
+        ".config/desktop-profiles/${name}/gtk-4.0.css".text         = orEmpty profile.colors.gtk4;
+        ".config/desktop-profiles/${name}/qt6ct.conf".text          = orEmpty profile.colors.qt6;
+        ".config/desktop-profiles/${name}/kitty-colors.conf".text   = orEmpty profile.colors.kitty;
+        ".config/desktop-profiles/${name}/fish-theme.fish".text     = orEmpty profile.colors.fish;
+        ".config/desktop-profiles/${name}/starship.toml".text       = orEmpty profile.colors.starship;
+        ".config/desktop-profiles/${name}/rofi-theme.rasi".text     = orEmpty profile.colors.rofi;
+        ".config/desktop-profiles/${name}/niri-overrides.kdl".text  = generateNiriOverrides profile;
+      };
+      lightFiles = lib.optionalAttrs (hasLight profile) {
+        ".config/desktop-profiles/${name}/gtk-3.0-light.css".text       = orEmpty profile.colorsLight.gtk3;
+        ".config/desktop-profiles/${name}/gtk-4.0-light.css".text       = orEmpty profile.colorsLight.gtk4;
+        ".config/desktop-profiles/${name}/qt6ct-light.conf".text        = orEmpty profile.colorsLight.qt6;
+        ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
+        ".config/desktop-profiles/${name}/fish-theme-light.fish".text   = orEmpty profile.colorsLight.fish;
+        ".config/desktop-profiles/${name}/starship-light.toml".text     = orEmpty profile.colorsLight.starship;
+        ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text   = orEmpty profile.colorsLight.rofi;
       };
       waybarFiles = lib.optionalAttrs
-        (profile.bar == "waybar" && profile.waybar.config != null) {
+        (profile.bar == "waybar" && profile.waybar.config != null) ({
           ".config/desktop-profiles/${name}/waybar-config.jsonc".text = profile.waybar.config;
           ".config/desktop-profiles/${name}/waybar-style.css".text    = orEmpty profile.waybar.style;
-        };
-    in base // waybarFiles;
+        } // lib.optionalAttrs (profile.waybarLight.style != null) {
+          ".config/desktop-profiles/${name}/waybar-style-light.css".text = profile.waybarLight.style;
+        });
+    in base // lightFiles // waybarFiles;
 
 in {
   options.desktopProfiles = {
@@ -187,6 +219,7 @@ in {
       PROFILES_DIR="$HOME/.config/desktop-profiles"
       ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
       ACTIVE_FILE="$PROFILES_DIR/active"
+      VARIANT_FILE="$PROFILES_DIR/active-variant"
       DEFAULT="${config.desktopProfiles.defaultProfile}"
 
       if [ ! -e "$ACTIVE_LINK" ]; then
@@ -194,6 +227,9 @@ in {
       fi
       if [ ! -e "$ACTIVE_FILE" ]; then
         echo "$DEFAULT" | $DRY_RUN_CMD tee "$ACTIVE_FILE" > /dev/null
+      fi
+      if [ ! -e "$VARIANT_FILE" ]; then
+        echo "dark" | $DRY_RUN_CMD tee "$VARIANT_FILE" > /dev/null
       fi
     '';
   };

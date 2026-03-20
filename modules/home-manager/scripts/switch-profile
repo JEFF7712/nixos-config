@@ -3,6 +3,7 @@ set -euo pipefail
 
 PROFILES_DIR="$HOME/.config/desktop-profiles"
 ACTIVE_FILE="$PROFILES_DIR/active"
+VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
 REPO="$HOME/nixos/modules/home-manager"
 
@@ -181,8 +182,9 @@ echo "  Applying cursor..."
 gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
 
-# 6. Record active profile NOW so ExecCondition sees the right profile when starting noctalia-shell
+# 6. Record active profile and reset variant to dark
 echo "$TARGET" > "$ACTIVE_FILE"
+echo "dark" > "$VARIANT_FILE"
 
 # 6b. Start new bar + manage swww (noctalia has its own wallpaper engine; waybar needs swww)
 if [ "$TARGET_BAR" = "noctalia" ]; then
