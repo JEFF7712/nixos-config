@@ -33,7 +33,6 @@ in
     home.packages = (
       with pkgs; [
         claude-code
-        claude-desktop-fhs
         opencode
         codex
         deepagents

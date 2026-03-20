@@ -26,13 +26,8 @@
       url = "github:langchain-ai/deepagents";
       flake = false;
     };
-    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.1.1";
+    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.1.2";
     globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
-    claude-desktop = {
-      url = "github:aaddrick/claude-desktop-debian";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
     niri-blur = {
       url = "github:niri-wm/niri?ref=refs/heads/wip/branch";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -55,8 +50,6 @@
         ];
         overlays = [
           nix-vscode-extensions.overlays.default
-          inputs.claude-desktop.overlays.default
-          (import ./overlays/claude-desktop-cowork.nix)
           inputs.niri-blur.overlays.default
         ];
       };
