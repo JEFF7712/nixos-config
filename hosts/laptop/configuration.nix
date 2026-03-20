@@ -37,6 +37,10 @@
   system.activationScripts.binbash = lib.stringAfter [ "usrbinenv" ] ''
     ln -sf ${pkgs.bash}/bin/bash /bin/bash
   '';
+  system.activationScripts.claudecli = lib.stringAfter [ "usrbinenv" ] ''
+    mkdir -p /usr/local/bin
+    ln -sf ${pkgs.claude-code}/bin/claude /usr/local/bin/claude
+  '';
   users.users.rupan.shell = pkgs.fish;
   users.users.rupan.ignoreShellProgramCheck = true;
 
