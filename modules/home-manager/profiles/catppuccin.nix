@@ -185,17 +185,17 @@ in {
         format = "$all"
 
         [character]
-        success_symbol = "[❯](${pink})"
+        success_symbol = "[❯](${flamingo})"
         error_symbol = "[❯](${red})"
 
         [directory]
-        style = "bold ${mauve}"
+        style = "bold ${lavender}"
 
         [git_branch]
         style = "bold ${pink}"
 
         [cmd_duration]
-        style = "bold ${lavender}"
+        style = "bold ${subtext1}"
       '';
     };
 
