@@ -226,7 +226,7 @@ in {
         }
 
         window {
-            width:              700px;
+            width:              900px;
             border:             2px solid;
             border-color:       ${nord3};
             border-radius:      8px;
@@ -259,7 +259,7 @@ in {
         }
 
         listview {
-            columns:            2;
+            columns:            3;
             lines:              2;
             spacing:            10px;
             fixed-height:       false;
@@ -282,7 +282,7 @@ in {
         }
 
         element-icon {
-            size:               220px;
+            size:               160px;
             border-radius:      4px;
             horizontal-align:   0.5;
         }
