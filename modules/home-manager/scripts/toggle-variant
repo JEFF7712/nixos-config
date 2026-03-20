@@ -88,8 +88,8 @@ fi
 if [ "$BAR" = "quickshell" ]; then
   QS_COLORS=$(pick "$PROFILE_DIR/quickshell-colors.json" "$PROFILE_DIR/quickshell-colors-light.json")
   if [ -s "$QS_COLORS" ]; then
-    mkdir -p "$HOME/.config/quickshell"
-    cp --remove-destination "$QS_COLORS" "$HOME/.config/quickshell/colors.json"
+    mkdir -p "$HOME/.local/state/quickshell"
+    cp --remove-destination "$QS_COLORS" "$HOME/.local/state/quickshell/colors.json"
     # Theme.qml watches colors.json via FileView — no signal or restart needed
   fi
 fi

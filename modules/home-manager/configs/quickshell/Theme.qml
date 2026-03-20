@@ -40,7 +40,7 @@ QtObject {
     property FileView _colorFile: FileView {
         // FileView.text() is a function; textChanged fires when the file
         // is (re)loaded. We call text() inside the handler to get the content.
-        path: Quickshell.env("HOME") + "/.config/quickshell/colors.json"
+        path: Quickshell.env("HOME") + "/.local/state/quickshell/colors.json"
         onTextChanged: theme._applyColors(_colorFile.text())
     }
 }
