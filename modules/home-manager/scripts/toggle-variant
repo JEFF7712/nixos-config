@@ -200,6 +200,13 @@ with open('$OBSIDIAN_MINIMAL', 'w') as f:
   fi
 fi
 
+# System color-scheme preference
+if [ "$NEW" = "light" ]; then
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
+else
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+fi
+
 # Save new variant
 echo "$NEW" > "$VARIANT_FILE"
 

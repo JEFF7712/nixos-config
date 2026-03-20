@@ -185,6 +185,7 @@ gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/
 # 6. Record active profile and reset variant to dark
 echo "$TARGET" > "$ACTIVE_FILE"
 echo "dark" > "$VARIANT_FILE"
+gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
 
 # 6b. Start new bar + manage swww (noctalia has its own wallpaper engine; waybar needs swww)
 if [ "$TARGET_BAR" = "noctalia" ]; then
