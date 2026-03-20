@@ -54,6 +54,7 @@ let
         kitty    = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
         fish     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
         starship = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
+        rofi     = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
       };
 
       waybar = {
@@ -145,6 +146,7 @@ let
         ".config/desktop-profiles/${name}/kitty-colors.conf".text  = orEmpty profile.colors.kitty;
         ".config/desktop-profiles/${name}/fish-theme.fish".text    = orEmpty profile.colors.fish;
         ".config/desktop-profiles/${name}/starship.toml".text      = orEmpty profile.colors.starship;
+        ".config/desktop-profiles/${name}/rofi-theme.rasi".text    = orEmpty profile.colors.rofi;
         ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides profile;
       };
       waybarFiles = lib.optionalAttrs

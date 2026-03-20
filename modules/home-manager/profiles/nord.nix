@@ -212,6 +212,88 @@ in {
         [cmd_duration]
         style = "bold ${nord3}"
       '';
+
+      rofi = ''
+        * {
+            font:                        "JetBrainsMono Nerd Font 11";
+            background-color:            ${nord0};
+            text-color:                  ${nord4};
+            border-color:                ${nord3};
+            selected-normal-background:  ${nord1};
+            selected-normal-foreground:  ${nord8};
+            normal-background:           ${nord0};
+            normal-foreground:           ${nord4};
+        }
+
+        window {
+            width:              700px;
+            border:             2px solid;
+            border-color:       ${nord3};
+            border-radius:      8px;
+            padding:            12px;
+            background-color:   ${nord0};
+        }
+
+        mainbox {
+            spacing:            0;
+            children:           [ inputbar, listview ];
+        }
+
+        inputbar {
+            padding:            8px 12px;
+            margin:             0 0 10px 0;
+            background-color:   ${nord1};
+            border-radius:      6px;
+            children:           [ prompt, entry ];
+        }
+
+        prompt {
+            text-color:         ${nord8};
+            padding:            0 8px 0 0;
+        }
+
+        entry {
+            text-color:         ${nord4};
+            placeholder:        "Switch profile…";
+            placeholder-color:  ${nord3};
+        }
+
+        listview {
+            columns:            2;
+            lines:              2;
+            spacing:            10px;
+            fixed-height:       false;
+            scrollbar:          false;
+        }
+
+        element {
+            orientation:        vertical;
+            padding:            10px;
+            spacing:            8px;
+            border-radius:      6px;
+            background-color:   ${nord1};
+            cursor:             pointer;
+        }
+
+        element selected {
+            background-color:   ${nord2};
+            border:             2px solid;
+            border-color:       ${nord8};
+        }
+
+        element-icon {
+            size:               220px;
+            border-radius:      4px;
+            horizontal-align:   0.5;
+        }
+
+        element-text {
+            horizontal-align:   0.5;
+            vertical-align:     0.5;
+            text-color:         inherit;
+            font:               "JetBrainsMono Nerd Font 12";
+        }
+      '';
     };
 
     waybar = {
