@@ -321,7 +321,7 @@ in {
           color: ${pink};
           border: 1px solid ${surface0};
           border-radius: 40px;
-          margin: 15px 220px 0 220px;
+          margin: 25px 220px 0 220px;
           box-shadow: 0 10px 30px rgba(17, 17, 27, 0.45);
         }
         .modules-left, .modules-center, .modules-right { padding: 0 10px; }
