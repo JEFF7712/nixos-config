@@ -11,6 +11,7 @@
     ./heavy-apps.nix
     ./niri.nix
     ./noctalia.nix
+    ./profiles/catppuccin.nix
     ./profiles/noctalia.nix
     ./profiles/nord.nix
     ./terminal.nix
