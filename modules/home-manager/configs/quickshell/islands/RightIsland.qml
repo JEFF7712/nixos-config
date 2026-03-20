@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
 import ".."
+import "../popups"
 
 Rectangle {
     id: root
@@ -131,4 +132,23 @@ Rectangle {
     // Scroll-wheel volume / brightness processes
     Process { id: volumeProc;     command: [] }
     Process { id: brightnessProc; command: [] }
+
+    // Popups — plain Rectangles, safe as children
+    VolumePopup {
+        visible: root.volumeVisible
+        onCloseRequested: root.volumeVisible = false
+    }
+    BrightnessPopup {
+        visible: root.brightnessVisible
+        onCloseRequested: root.brightnessVisible = false
+    }
+    MusicPopup {
+        visible: root.musicVisible
+        onCloseRequested: root.musicVisible = false
+        onTitleChanged: title => root.musicTitle = title
+    }
+    QuickSettings {
+        visible: root.quickSettingsVisible
+        onCloseRequested: root.quickSettingsVisible = false
+    }
 }

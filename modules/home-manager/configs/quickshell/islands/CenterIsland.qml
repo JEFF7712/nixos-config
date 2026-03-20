@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import ".."
+import "../popups"
 
 Rectangle {
     id: root
@@ -64,5 +65,10 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         onClicked: root.calendarVisible = !root.calendarVisible
+    }
+
+    CalendarPopup {
+        visible: root.calendarVisible
+        onCloseRequested: root.calendarVisible = false
     }
 }
