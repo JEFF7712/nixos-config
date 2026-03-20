@@ -30,12 +30,17 @@ in
   options.ai-tools.enable = lib.mkEnableOption "ai-tools";
 
   config = lib.mkIf config.ai-tools.enable {
-    home.packages = with pkgs; [
-      claude-code
-      claude-desktop-fhs
-      opencode
-      codex
-      deepagents
+    home.packages = (
+      with pkgs; [
+        claude-code
+        claude-desktop-fhs
+        opencode
+        codex
+        deepagents
+        mcp-nixos
+      ]
+    ) ++ [
+      inputs.nix-agent.packages.${pkgs.system}.default
     ];
   };
 }

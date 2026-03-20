@@ -26,6 +26,7 @@
       url = "github:langchain-ai/deepagents";
       flake = false;
     };
+    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.1.0";
     globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
     claude-desktop = {
       url = "github:aaddrick/claude-desktop-debian";
