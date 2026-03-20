@@ -15,8 +15,8 @@ PanelWindow {
         left: true
         right: true
     }
-    height: 36
-    exclusiveZone: height
+    implicitHeight: 36
+    exclusiveZone: 36
     color: "transparent"
 
     RowLayout {

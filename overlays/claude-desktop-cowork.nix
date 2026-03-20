@@ -21,6 +21,27 @@ in {
     postBuild = ''
       rm -f "$out/bin/claude-desktop"
       mkdir -p "$out/libexec"
+      cp "${original}/bin/claude-desktop" "$out/libexec/claude-desktop-fhs"
+      chmod u+w "$out/libexec/claude-desktop-fhs"
+      export CLAUDE_FHS_LAUNCHER="$out/libexec/claude-desktop-fhs"
+      ${pythonBin} - <<'PY'
+import os
+from pathlib import Path
+
+path = Path(os.environ["CLAUDE_FHS_LAUNCHER"])
+text = path.read_text()
+needle = '  "''${x11_args[@]}"\n'
+replacement = needle + """  --dir /usr/local
+  --dir /usr/local/bin
+  --symlink '${final.claude-code}/bin/claude' /usr/local/bin/claude
+"""
+
+if needle not in text:
+    raise SystemExit("Failed to patch claude-desktop FHS launcher")
+
+path.write_text(text.replace(needle, replacement, 1))
+PY
+      chmod +x "$out/libexec/claude-desktop-fhs"
       cat > "$out/libexec/claude-cowork-node-shim.js" <<'EOF'
 Object.defineProperty(process, 'resourcesPath', {
   value: '${resourcesDir}',
@@ -122,7 +143,7 @@ if not healthy(sock):
         time.sleep(0.2)
 PY
 
-exec '${original}/bin/claude-desktop' "$@"
+exec "$out_dir/libexec/claude-desktop-fhs" "$@"
 EOF
       chmod +x "$out/bin/claude-desktop"
     '';
