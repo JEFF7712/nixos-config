@@ -242,7 +242,7 @@ fi
 ZED_SETTINGS="$HOME/.config/zed/settings.json"
 if [ -f "$ZED_SETTINGS" ]; then
   case "$TARGET" in
-    catppuccin) ZED_THEME="Catppuccin Mocha" ; ZED_ICON="Catppuccin Mocha" ;;
+    catppuccin) ZED_THEME="Catppuccin Mocha (Blur)" ; ZED_ICON="Catppuccin Mocha" ;;
     nord)       ZED_THEME="Nord Dark"         ; ZED_ICON="Zed (Default)" ;;
     noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
     gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Zed (Default)" ;;
