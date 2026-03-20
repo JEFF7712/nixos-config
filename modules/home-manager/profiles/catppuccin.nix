@@ -45,11 +45,11 @@ in {
       gaps               = 18;
       borderOff          = true;
       borderActiveColor  = mauve;
-      borderInactiveColor = overlay0;
+      borderInactiveColor = surface1;
       urgentColor        = red;
       focusRingOff       = true;
       focusRingActiveColor   = mauve;
-      focusRingInactiveColor = overlay0;
+      focusRingInactiveColor = surface1;
       shadowSoftness     = 22;
       shadowSpread       = 3;
       shadowOffsetX      = 0;
@@ -59,7 +59,7 @@ in {
       shadowDrawBehindWindow = true;
       tabIndicatorOff    = false;
       tabIndicatorActiveColor   = mauve;
-      tabIndicatorInactiveColor = overlay0;
+      tabIndicatorInactiveColor = surface1;
       windowOpacity      = 0.97;
       windowHighlightOff = true;
     };
@@ -69,35 +69,35 @@ in {
         /* Catppuccin Mocha */
         @define-color accent_color ${mauve};
         @define-color accent_bg_color ${mauve};
-        @define-color accent_fg_color ${crust};
+        @define-color accent_fg_color ${base};
         @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${surface0};
+        @define-color destructive_fg_color ${base};
         @define-color error_bg_color ${red};
-        @define-color error_fg_color ${text};
+        @define-color error_fg_color ${base};
         @define-color window_bg_color ${base};
         @define-color window_fg_color ${text};
-        @define-color view_bg_color ${surface0};
+        @define-color view_bg_color ${base};
         @define-color view_fg_color ${text};
-        @define-color headerbar_bg_color ${surface1};
+        @define-color headerbar_bg_color ${mantle};
         @define-color headerbar_fg_color ${text};
         @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${surface1};
+        @define-color popover_bg_color ${mantle};
         @define-color popover_fg_color ${text};
-        @define-color card_bg_color ${surface2};
+        @define-color card_bg_color ${surface0};
         @define-color card_fg_color ${text};
-        @define-color dialog_bg_color ${surface0};
+        @define-color dialog_bg_color ${mantle};
         @define-color dialog_fg_color ${text};
-        @define-color sidebar_bg_color ${surface1};
+        @define-color sidebar_bg_color ${mantle};
         @define-color sidebar_fg_color ${text};
         @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${overlay1};
-        @define-color secondary_sidebar_bg_color ${surface0};
+        @define-color sidebar_border_color ${surface1};
+        @define-color secondary_sidebar_bg_color ${base};
         @define-color secondary_sidebar_fg_color ${subtext1};
         @define-color theme_unfocused_fg_color ${subtext0};
         @define-color theme_unfocused_text_color ${overlay2};
         @define-color theme_unfocused_bg_color ${base};
         @define-color theme_unfocused_base_color ${base};
-        @define-color theme_unfocused_selected_bg_color ${mauve};
+        @define-color theme_unfocused_selected_bg_color ${surface1};
         @define-color theme_unfocused_selected_fg_color ${base};
       '';
 
@@ -105,37 +105,37 @@ in {
         /* Catppuccin Mocha */
         @define-color accent_color ${mauve};
         @define-color accent_bg_color ${mauve};
-        @define-color accent_fg_color ${crust};
+        @define-color accent_fg_color ${base};
         @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${text};
+        @define-color destructive_fg_color ${base};
         @define-color error_bg_color ${red};
-        @define-color error_fg_color ${text};
+        @define-color error_fg_color ${base};
         @define-color window_bg_color ${base};
         @define-color window_fg_color ${text};
-        @define-color view_bg_color ${surface0};
+        @define-color view_bg_color ${base};
         @define-color view_fg_color ${text};
-        @define-color headerbar_bg_color ${surface1};
+        @define-color headerbar_bg_color ${mantle};
         @define-color headerbar_fg_color ${text};
         @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${surface1};
+        @define-color popover_bg_color ${mantle};
         @define-color popover_fg_color ${text};
-        @define-color card_bg_color ${surface2};
+        @define-color card_bg_color ${surface0};
         @define-color card_fg_color ${text};
-        @define-color dialog_bg_color ${surface0};
+        @define-color dialog_bg_color ${mantle};
         @define-color dialog_fg_color ${text};
-        @define-color sidebar_bg_color ${surface1};
+        @define-color sidebar_bg_color ${mantle};
         @define-color sidebar_fg_color ${text};
         @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${overlay1};
-        @define-color secondary_sidebar_bg_color ${surface0};
+        @define-color sidebar_border_color ${surface1};
+        @define-color secondary_sidebar_bg_color ${base};
         @define-color secondary_sidebar_fg_color ${subtext1};
       '';
 
       qt6 = ''
         [ColorScheme]
-        active_colors=${text}, ${surface1}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${text}, #ffffff, ${text}, ${base}, ${base}, #000000, ${mauve}, ${surface0}, ${mauve}, ${blue}, ${surface0}, ${base}, ${surface0}, ${text}, ${text}, ${mauve}
-        disabled_colors=${overlay0}, ${surface1}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${overlay0}, #ffffff, ${overlay0}, ${base}, ${base}, #000000, ${mauve}, ${surface0}, ${mauve}, ${blue}, ${surface0}, ${base}, ${surface0}, ${overlay0}, ${overlay0}, ${mauve}
-        inactive_colors=${text}, ${surface1}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${text}, #ffffff, ${text}, ${base}, ${base}, #000000, ${mauve}, ${surface0}, ${mauve}, ${blue}, ${surface0}, ${base}, ${surface0}, ${text}, ${text}, ${mauve}
+        active_colors=${text}, ${mantle}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${text}, #ffffff, ${text}, ${base}, ${base}, #000000, ${mauve}, ${surface1}, ${mauve}, ${blue}, ${surface0}, ${crust}, ${surface0}, ${text}, ${subtext1}, ${mauve}
+        disabled_colors=${overlay0}, ${mantle}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${overlay0}, #ffffff, ${overlay0}, ${base}, ${base}, #000000, ${surface2}, ${surface1}, ${surface2}, ${blue}, ${surface0}, ${crust}, ${surface0}, ${overlay0}, ${overlay1}, ${surface2}
+        inactive_colors=${text}, ${mantle}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${subtext1}, #ffffff, ${text}, ${base}, ${base}, #000000, ${mauve}, ${surface1}, ${mauve}, ${blue}, ${surface0}, ${crust}, ${surface0}, ${text}, ${subtext1}, ${mauve}
       '';
 
       kitty = ''
@@ -145,7 +145,7 @@ in {
         foreground ${text}
         background ${base}
         selection_foreground ${base}
-        selection_background ${mauve}
+        selection_background ${rosewater}
         color0  ${surface1}
         color8  ${surface2}
         color1  ${red}
@@ -161,23 +161,23 @@ in {
         color6  ${teal}
         color14 ${teal}
         color7  ${subtext1}
-        color15 ${text}
+        color15 ${subtext0}
       '';
 
       fish = ''
         set -g fish_color_normal ${text}
-        set -g fish_color_command ${mauve}
-        set -g fish_color_keyword ${blue}
-        set -g fish_color_quote ${pink}
-        set -g fish_color_redirection ${text}
-        set -g fish_color_end ${surface0}
+        set -g fish_color_command ${blue}
+        set -g fish_color_keyword ${mauve}
+        set -g fish_color_quote ${green}
+        set -g fish_color_redirection ${teal}
+        set -g fish_color_end ${pink}
         set -g fish_color_error ${red}
         set -g fish_color_param ${text}
-        set -g fish_color_comment ${overlay1}
-        set -g fish_color_selection --background=${surface0}
+        set -g fish_color_comment ${overlay0}
+        set -g fish_color_selection --background=${surface1}
         set -g fish_color_search_match --background=${surface0}
-        set -g fish_color_operator ${mauve}
-        set -g fish_color_escape ${yellow}
+        set -g fish_color_operator ${sky}
+        set -g fish_color_escape ${peach}
         set -g fish_color_autosuggestion ${overlay0}
       '';
 
@@ -185,17 +185,17 @@ in {
         format = "$all"
 
         [character]
-        success_symbol = "[❯](${mauve})"
+        success_symbol = "[❯](${green})"
         error_symbol = "[❯](${red})"
 
         [directory]
         style = "bold ${blue}"
 
         [git_branch]
-        style = "bold ${sky}"
+        style = "bold ${mauve}"
 
         [cmd_duration]
-        style = "bold ${surface2}"
+        style = "bold ${yellow}"
       '';
     };
 
@@ -321,14 +321,19 @@ in {
 
       style = ''
         * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-        window#waybar { background-color: ${mantle}; color: ${text}; }
+        window#waybar { background-color: ${crust}; color: ${text}; }
         .modules-left, .modules-center, .modules-right { padding: 0 4px; }
-        #workspaces button { padding: 0 8px; background: transparent; color: ${surface0}; border-bottom: 2px solid transparent; }
+        #workspaces button { padding: 0 8px; background: transparent; color: ${overlay0}; border-bottom: 2px solid transparent; }
         #workspaces button.active { color: ${mauve}; border-bottom: 2px solid ${mauve}; }
-        #workspaces button:hover { background: rgba(255,255,255,0.05); color: ${text}; }
-        #clock { color: ${blue}; font-weight: bold; }
-        #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${text}; padding: 0 8px; }
-        #cpu, #memory { color: ${green}; padding: 0 8px; }
+        #workspaces button:hover { background: ${surface0}; color: ${text}; }
+        #clock { color: ${lavender}; font-weight: bold; }
+        #pulseaudio { color: ${sky}; padding: 0 8px; }
+        #bluetooth { color: ${blue}; padding: 0 8px; }
+        #network { color: ${teal}; padding: 0 8px; }
+        #battery { color: ${peach}; padding: 0 8px; }
+        #tray { color: ${subtext1}; padding: 0 8px; }
+        #cpu { color: ${green}; padding: 0 8px; }
+        #memory { color: ${yellow}; padding: 0 8px; }
         #workspaces { padding: 0 4px; }
         #battery.critical { color: ${red}; }
       '';
