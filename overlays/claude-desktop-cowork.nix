@@ -9,6 +9,7 @@ let
     final.virtiofsd
     final.socat
   ];
+  resourcesDir = "${app}/lib/claude-desktop/resources";
   daemonScript = "${app}/lib/claude-desktop/resources/app.asar.unpacked/cowork-vm-service.js";
   electronBin = "${prev.electron}/bin/electron";
   pythonBin = "${final.python3}/bin/python";
@@ -18,16 +19,28 @@ in {
     paths = [ original ];
     postBuild = ''
       rm -f "$out/bin/claude-desktop"
+      mkdir -p "$out/libexec"
+      cat > "$out/libexec/claude-cowork-node-shim.js" <<'EOF'
+Object.defineProperty(process, 'resourcesPath', {
+  value: '${resourcesDir}',
+  configurable: true,
+  enumerable: true,
+  writable: false,
+});
+EOF
       cat > "$out/bin/claude-desktop" <<'EOF'
 #!${final.bash}/bin/bash
 set -euo pipefail
 
 export PATH='${runtimePath}':"$PATH"
 
+out_dir="$(dirname "$(dirname "$(readlink -f "$0")")")"
+
 vm_src="$HOME/.config/Claude/vm_bundles/claudevm.bundle"
 vm_dst="$HOME/.local/share/claude-desktop/vm"
 daemon='${daemonScript}'
 electron='${electronBin}'
+node_shim="$out_dir/libexec/claude-cowork-node-shim.js"
 
 if [ -n "''${XDG_RUNTIME_DIR:-}" ]; then
   sock="$XDG_RUNTIME_DIR/cowork-vm-service.sock"
@@ -53,6 +66,7 @@ fi
 export SOCK="$sock"
 export DAEMON="$daemon"
 export ELECTRON="$electron"
+export NODE_SHIM="$node_shim"
 
 ${pythonBin} - <<'PY'
 import os
@@ -63,6 +77,7 @@ import time
 sock = os.path.expanduser(os.environ['SOCK'])
 daemon = os.path.expanduser(os.environ['DAEMON'])
 electron = os.path.expanduser(os.environ['ELECTRON'])
+node_shim = os.path.expanduser(os.environ['NODE_SHIM'])
 
 def healthy(path):
     if not os.path.exists(path):
@@ -86,6 +101,7 @@ if not healthy(sock):
 
     env = os.environ.copy()
     env['ELECTRON_RUN_AS_NODE'] = '1'
+    env['NODE_OPTIONS'] = f'--require={node_shim}'
     subprocess.Popen(
         [electron, daemon],
         env=env,
