@@ -1,34 +1,32 @@
 { pkgs, ... }:
 
 let
-  # Gruvbox Dark Hard
-  bg0h  = "#1d2021";
-  bg0   = "#282828";
-  bg1   = "#3c3836";
-  bg2   = "#504945";
-  bg3   = "#665c54";
-  bg4   = "#7c6f64";
-  fg0   = "#fbf1c7";
-  fg1   = "#ebdbb2";
-  fg2   = "#d5c4a1";
-  fg3   = "#bdae93";
-  fg4   = "#a89984";
-  red   = "#fb4934";
-  green = "#b8bb26";
-  yellow = "#fabd2f";
-  blue  = "#83a598";
-  purple = "#d3869b";
-  aqua  = "#8ec07c";
-  orange = "#fe8019";
-  gray  = "#928374";
+  # Everforest Dark Hard
+  bg0    = "#272e33";
+  bg1    = "#2e383c";
+  bg2    = "#374145";
+  bg3    = "#414b50";
+  bg4    = "#495156";
+  bg5    = "#4f5b58";
+  fg     = "#d3c6aa";
+  red    = "#e67e80";
+  orange = "#e69875";
+  yellow = "#dbbc7f";
+  green  = "#a7c080";
+  aqua   = "#83c092";
+  blue   = "#7fbbb3";
+  purple = "#d699b6";
+  grey0  = "#7a8478";
+  grey1  = "#859289";
+  grey2  = "#9da9a0";
 in {
   home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
 
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=${bg0}
-    text-color=${fg1}
-    border-color=${yellow}
+    text-color=${fg}
+    border-color=${green}
     border-size=2
     border-radius=8
     width=320
@@ -40,29 +38,28 @@ in {
     layer=overlay
 
     [urgency=low]
-    border-color=${bg3}
+    border-color=${bg4}
     default-timeout=3000
 
     [urgency=high]
     background-color=${bg1}
     border-color=${red}
-    text-color=${fg0}
+    text-color=${fg}
     default-timeout=0
   '';
 
-  desktopProfiles.profiles.gruvbox = {
+  desktopProfiles.profiles.everforest = {
     bar = "waybar";
 
     cursor = {
-      theme   = "Capitaine Cursors (Gruvbox)";
-      size    = 24;
-      package = pkgs.capitaine-cursors-themed;
+      theme = "Adwaita";
+      size  = 24;
     };
 
-    wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/gruvbox";
+    wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/everforest";
 
     niri = {
-      gaps               = 20;
+      gaps               = 18;
       borderOff          = true;
       focusRingOff       = true;
       shadowSoftness     = 20;
@@ -73,96 +70,96 @@ in {
       shadowInactiveColor = "#00000040";
       shadowDrawBehindWindow = true;
       tabIndicatorOff    = false;
-      tabIndicatorActiveColor   = yellow;
-      tabIndicatorInactiveColor = bg2;
+      tabIndicatorActiveColor   = green;
+      tabIndicatorInactiveColor = bg3;
       windowOpacity      = 0.96;
       windowHighlightOff = true;
     };
 
     colors = {
       gtk3 = ''
-        /* Gruvbox Dark */
-        @define-color accent_color ${yellow};
-        @define-color accent_bg_color ${yellow};
+        /* Everforest Dark Hard */
+        @define-color accent_color ${green};
+        @define-color accent_bg_color ${green};
         @define-color accent_fg_color ${bg0};
         @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${fg0};
+        @define-color destructive_fg_color ${fg};
         @define-color error_bg_color ${red};
-        @define-color error_fg_color ${fg0};
+        @define-color error_fg_color ${fg};
         @define-color window_bg_color ${bg0};
-        @define-color window_fg_color ${fg1};
+        @define-color window_fg_color ${fg};
         @define-color view_bg_color ${bg0};
-        @define-color view_fg_color ${fg1};
+        @define-color view_fg_color ${fg};
         @define-color headerbar_bg_color ${bg1};
-        @define-color headerbar_fg_color ${fg1};
+        @define-color headerbar_fg_color ${fg};
         @define-color headerbar_backdrop_color @window_bg_color;
         @define-color popover_bg_color ${bg1};
-        @define-color popover_fg_color ${fg1};
+        @define-color popover_fg_color ${fg};
         @define-color card_bg_color ${bg1};
-        @define-color card_fg_color ${fg1};
+        @define-color card_fg_color ${fg};
         @define-color dialog_bg_color ${bg0};
-        @define-color dialog_fg_color ${fg1};
+        @define-color dialog_fg_color ${fg};
         @define-color sidebar_bg_color ${bg1};
-        @define-color sidebar_fg_color ${fg1};
+        @define-color sidebar_fg_color ${fg};
         @define-color sidebar_backdrop_color @window_bg_color;
         @define-color sidebar_border_color ${bg2};
         @define-color secondary_sidebar_bg_color ${bg0};
-        @define-color secondary_sidebar_fg_color ${fg2};
-        @define-color theme_unfocused_fg_color ${fg3};
-        @define-color theme_unfocused_text_color ${fg4};
+        @define-color secondary_sidebar_fg_color ${grey2};
+        @define-color theme_unfocused_fg_color ${grey2};
+        @define-color theme_unfocused_text_color ${grey1};
         @define-color theme_unfocused_bg_color ${bg0};
         @define-color theme_unfocused_base_color ${bg0};
         @define-color theme_unfocused_selected_bg_color ${bg2};
-        @define-color theme_unfocused_selected_fg_color ${fg1};
+        @define-color theme_unfocused_selected_fg_color ${fg};
       '';
 
       gtk4 = ''
-        /* Gruvbox Dark */
-        @define-color accent_color ${yellow};
-        @define-color accent_bg_color ${yellow};
+        /* Everforest Dark Hard */
+        @define-color accent_color ${green};
+        @define-color accent_bg_color ${green};
         @define-color accent_fg_color ${bg0};
         @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${fg0};
+        @define-color destructive_fg_color ${fg};
         @define-color error_bg_color ${red};
-        @define-color error_fg_color ${fg0};
+        @define-color error_fg_color ${fg};
         @define-color window_bg_color ${bg0};
-        @define-color window_fg_color ${fg1};
+        @define-color window_fg_color ${fg};
         @define-color view_bg_color ${bg0};
-        @define-color view_fg_color ${fg1};
+        @define-color view_fg_color ${fg};
         @define-color headerbar_bg_color ${bg1};
-        @define-color headerbar_fg_color ${fg1};
+        @define-color headerbar_fg_color ${fg};
         @define-color headerbar_backdrop_color @window_bg_color;
         @define-color popover_bg_color ${bg1};
-        @define-color popover_fg_color ${fg1};
+        @define-color popover_fg_color ${fg};
         @define-color card_bg_color ${bg1};
-        @define-color card_fg_color ${fg1};
+        @define-color card_fg_color ${fg};
         @define-color dialog_bg_color ${bg0};
-        @define-color dialog_fg_color ${fg1};
+        @define-color dialog_fg_color ${fg};
         @define-color sidebar_bg_color ${bg1};
-        @define-color sidebar_fg_color ${fg1};
+        @define-color sidebar_fg_color ${fg};
         @define-color sidebar_backdrop_color @window_bg_color;
         @define-color sidebar_border_color ${bg2};
         @define-color secondary_sidebar_bg_color ${bg0};
-        @define-color secondary_sidebar_fg_color ${fg2};
+        @define-color secondary_sidebar_fg_color ${grey2};
       '';
 
       qt6 = ''
         [ColorScheme]
-        active_colors=${fg1}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg1}, #ffffff, ${fg1}, ${bg0}, ${bg0}, #000000, ${yellow}, ${bg0}, ${yellow}, ${blue}, ${bg1}, ${bg0h}, ${bg1}, ${fg1}, ${fg4}, ${yellow}
-        disabled_colors=${fg4}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg4}, #ffffff, ${fg4}, ${bg0}, ${bg0}, #000000, ${bg3}, ${bg2}, ${bg3}, ${blue}, ${bg1}, ${bg0h}, ${bg1}, ${fg4}, ${gray}, ${bg3}
-        inactive_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${yellow}, ${bg0}, ${yellow}, ${blue}, ${bg1}, ${bg0h}, ${bg1}, ${fg2}, ${fg4}, ${yellow}
+        active_colors=${fg}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg}, #ffffff, ${fg}, ${bg0}, ${bg0}, #000000, ${green}, ${bg0}, ${green}, ${blue}, ${bg1}, ${bg0}, ${bg1}, ${fg}, ${grey1}, ${green}
+        disabled_colors=${grey1}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${grey1}, #ffffff, ${grey1}, ${bg0}, ${bg0}, #000000, ${bg3}, ${bg2}, ${bg3}, ${blue}, ${bg1}, ${bg0}, ${bg1}, ${grey1}, ${grey0}, ${bg3}
+        inactive_colors=${grey2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${grey2}, #ffffff, ${grey2}, ${bg0}, ${bg0}, #000000, ${green}, ${bg0}, ${green}, ${blue}, ${bg1}, ${bg0}, ${bg1}, ${grey2}, ${grey1}, ${green}
       '';
 
       kitty = ''
-        # Gruvbox Dark Kitty
-        cursor ${fg1}
+        # Everforest Dark Hard Kitty
+        cursor ${fg}
         cursor_text_color ${bg0}
-        foreground ${fg1}
+        foreground ${fg}
         background ${bg0}
         selection_foreground ${bg0}
-        selection_background ${yellow}
-        color0  ${bg1}
-        color8  ${bg3}
+        selection_background ${green}
+        color0  ${bg3}
+        color8  ${bg5}
         color1  ${red}
         color9  ${red}
         color2  ${green}
@@ -175,54 +172,54 @@ in {
         color13 ${purple}
         color6  ${aqua}
         color14 ${aqua}
-        color7  ${fg4}
-        color15 ${fg1}
+        color7  ${grey2}
+        color15 ${fg}
       '';
 
       fish = ''
-        set -g fish_color_normal ${fg1}
-        set -g fish_color_command ${yellow}
-        set -g fish_color_keyword ${orange}
-        set -g fish_color_quote ${green}
-        set -g fish_color_redirection ${aqua}
-        set -g fish_color_end ${fg4}
+        set -g fish_color_normal ${fg}
+        set -g fish_color_command ${green}
+        set -g fish_color_keyword ${aqua}
+        set -g fish_color_quote ${yellow}
+        set -g fish_color_redirection ${blue}
+        set -g fish_color_end ${grey1}
         set -g fish_color_error ${red}
-        set -g fish_color_param ${fg2}
-        set -g fish_color_comment ${bg4}
+        set -g fish_color_param ${fg}
+        set -g fish_color_comment ${grey0}
         set -g fish_color_selection --background=${bg2}
         set -g fish_color_search_match --background=${bg1}
-        set -g fish_color_operator ${orange}
-        set -g fish_color_escape ${purple}
-        set -g fish_color_autosuggestion ${bg4}
+        set -g fish_color_operator ${aqua}
+        set -g fish_color_escape ${orange}
+        set -g fish_color_autosuggestion ${grey0}
       '';
 
       starship = ''
         format = "$all"
 
         [character]
-        success_symbol = "[❯](${yellow})"
+        success_symbol = "[❯](${green})"
         error_symbol = "[❯](${red})"
 
         [directory]
-        style = "bold ${blue}"
+        style = "bold ${aqua}"
 
         [git_branch]
-        style = "bold ${orange}"
+        style = "bold ${yellow}"
 
         [cmd_duration]
-        style = "bold ${fg4}"
+        style = "bold ${grey1}"
       '';
 
       rofi = ''
         * {
             font:                        "JetBrainsMono Nerd Font 11";
             background-color:            ${bg0};
-            text-color:                  ${fg1};
+            text-color:                  ${fg};
             border-color:                ${bg2};
             selected-normal-background:  ${bg1};
-            selected-normal-foreground:  ${yellow};
+            selected-normal-foreground:  ${green};
             normal-background:           ${bg0};
-            normal-foreground:           ${fg1};
+            normal-foreground:           ${fg};
         }
 
         window {
@@ -248,12 +245,12 @@ in {
         }
 
         prompt {
-            text-color:         ${yellow};
+            text-color:         ${green};
             padding:            0 8px 0 0;
         }
 
         entry {
-            text-color:         ${fg1};
+            text-color:         ${fg};
             placeholder:        "Switch profile…";
             placeholder-color:  ${bg3};
         }
@@ -278,7 +275,7 @@ in {
         element selected {
             background-color:   ${bg2};
             border:             2px solid;
-            border-color:       ${yellow};
+            border-color:       ${green};
         }
 
         element-icon {
@@ -390,18 +387,18 @@ in {
 
       style = ''
         * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-        window#waybar { background-color: transparent; color: ${fg1}; }
+        window#waybar { background-color: transparent; color: ${fg}; }
         .modules-left, .modules-center, .modules-right { padding: 0 4px; }
-        #workspaces button { padding: 0 8px; background: transparent; color: ${fg1}; border-bottom: 2px solid transparent; }
-        #workspaces button.active { color: ${yellow}; border-bottom: 2px solid ${yellow}; }
-        #workspaces button:hover { background: rgba(255,255,255,0.05); color: ${fg1}; }
+        #workspaces button { padding: 0 8px; background: transparent; color: ${fg}; border-bottom: 2px solid transparent; }
+        #workspaces button.active { color: ${green}; border-bottom: 2px solid ${green}; }
+        #workspaces button:hover { background: rgba(255,255,255,0.05); color: ${fg}; }
         #clock { color: ${yellow}; font-weight: bold; }
-        #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${fg1}; padding: 0 8px; }
-        #cpu, #memory { color: ${fg1}; padding: 0 8px; }
-        #power-profiles-daemon { color: ${fg1}; padding: 0 8px; }
+        #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${fg}; padding: 0 8px; }
+        #cpu, #memory { color: ${fg}; padding: 0 8px; }
+        #power-profiles-daemon { color: ${fg}; padding: 0 8px; }
         #power-profiles-daemon.performance { color: ${red}; }
-        #power-profiles-daemon.balanced { color: ${yellow}; }
-        #power-profiles-daemon.power-saver { color: ${green}; }
+        #power-profiles-daemon.balanced { color: ${green}; }
+        #power-profiles-daemon.power-saver { color: ${aqua}; }
         #battery.critical { color: ${red}; }
       '';
     };
