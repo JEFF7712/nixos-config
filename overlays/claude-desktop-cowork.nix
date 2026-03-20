@@ -10,6 +10,7 @@ let
     final.socat
   ];
   resourcesDir = "${app}/lib/claude-desktop/resources";
+  smolBinVhdx = "${app}/lib/claude-desktop/resources/smol-bin.x64.vhdx";
   daemonScript = "${app}/lib/claude-desktop/resources/app.asar.unpacked/cowork-vm-service.js";
   electronBin = "${prev.electron}/bin/electron";
   pythonBin = "${final.python3}/bin/python";
@@ -55,6 +56,10 @@ for name in rootfs.vhdx vmlinuz initrd rootfs.vhdx.zst vmlinuz.zst initrd.zst; d
     ln -sfn "$vm_src/$name" "$vm_dst/$name"
   fi
 done
+
+if [ -e '${smolBinVhdx}' ]; then
+  ln -sfn '${smolBinVhdx}' "$vm_src/smol-bin.vhdx"
+fi
 
 if [ -e "$vm_dst/rootfs.vhdx" ] && [ ! -e "$vm_dst/rootfs.qcow2" ]; then
   tmp_qcow2="$vm_dst/rootfs.qcow2.tmp"
