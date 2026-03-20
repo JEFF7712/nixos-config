@@ -43,7 +43,7 @@ let
   l_orange = "#af3a03";
   l_gray   = "#928374";
 in {
-  home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
+  home.packages = [ pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
 
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
@@ -72,7 +72,35 @@ in {
   '';
 
   desktopProfiles.profiles.gruvbox = {
-    bar = "waybar";
+    bar = "quickshell";
+
+    quickshell.colors = builtins.toJSON {
+      background     = bg0;
+      surface        = bg1;
+      surfaceVariant = bg2;
+      border         = bg3;
+      text           = fg1;
+      textSubtle     = fg2;
+      accent         = blue;
+      accentText     = bg0;
+      success        = green;
+      warning        = yellow;
+      error          = red;
+    };
+
+    quickshell.colorsLight = builtins.toJSON {
+      background     = l_bg0;
+      surface        = l_bg1;
+      surfaceVariant = l_bg2;
+      border         = l_bg3;
+      text           = l_fg1;
+      textSubtle     = l_fg2;
+      accent         = l_blue;
+      accentText     = l_bg0;
+      success        = l_green;
+      warning        = l_yellow;
+      error          = l_red;
+    };
 
     cursor = {
       theme   = "Capitaine Cursors (Gruvbox)";
@@ -318,116 +346,6 @@ in {
       '';
     };
 
-    waybar = {
-      config = ''
-        {
-          "layer": "top",
-          "height": 28,
-          "modules-left": [
-            "niri/workspaces",
-            "power-profiles-daemon",
-            "cpu",
-            "memory"
-          ],
-          "modules-center": [
-            "clock"
-          ],
-          "clock": {
-            "interval": 30,
-            "format": "{:%I:%M %p}",
-            "tooltip-format": "{:%a, %d %b %G}"
-          },
-          "modules-right": [
-            "pulseaudio",
-            "bluetooth",
-            "network",
-            "battery"
-          ],
-          "niri/window": { "max-length": 30 },
-          "tray": { "icon-size": 20, "spacing": 8 },
-          "pulseaudio": {
-            "format-source": "󰍬",
-            "format-source-muted": "󰍭",
-            "format": "{format_source} 󰕾 {volume}%",
-            "format-bluetooth": "{format_source} 󰂰 {volume}%",
-            "format-muted": "{format_source} 󰸈",
-            "on-click": "foot-popup pulsemixer",
-            "max-volume": 150,
-            "scroll-step": 1
-          },
-          "bluetooth": {
-            "format": "",
-            "format-disabled": "",
-            "format-off": "",
-            "format-on": "󰂯",
-            "format-connected": "󰂱 {device_alias}",
-            "max-length": 16
-          },
-          "network": {
-            "format": "{ifname}",
-            "format-wifi": "󰖩 {essid}",
-            "format-ethernet": "󰈀 {ipaddr}",
-            "format-disconnected": "Disconnected",
-            "max-length": 32
-          },
-          "battery": {
-            "interval": 60,
-            "format-time": "{H}:{m}",
-            "format-icons": ["󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹"],
-            "format-discharging": "{icon} {capacity}% ({time})",
-            "format-charging": "󰂄 {capacity}%",
-            "format": ""
-          },
-          "niri/workspaces": {
-            "format": "{icon}",
-            "on-click": "activate",
-            "format-icons": {
-              "1": "1","2": "2","3": "3","4": "4","5": "5",
-              "6": "6","7": "7","8": "8","9": "9","10": "10"
-            },
-            "persistent-workspaces": {
-              "1": [],"2": [],"3": [],"4": [],"5": [],
-              "6": [],"7": [],"8": [],"9": [],"10": []
-            },
-            "sort-by-number": true
-          },
-          "power-profiles-daemon": {
-            "format": "{icon}",
-            "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
-            "format-icons": {
-              "default": "󰾆",
-              "performance": "󱐌",
-              "balanced": "󰾆",
-              "power-saver": "󰾄"
-            }
-          },
-          "cpu": { "interval": 3, "format": "󰻠 {usage}%", "tooltip": false },
-          "memory": {
-            "interval": 3,
-            "format": "󰍛 {percentage}%",
-            "tooltip-format": "{used:0.1f}G / {total:0.1f}G"
-          }
-        }
-      '';
-
-      style = ''
-        * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-        window#waybar { background-color: transparent; color: ${fg1}; }
-        .modules-left, .modules-center, .modules-right { padding: 0 4px; }
-        #workspaces button { padding: 0 8px; background: transparent; color: ${fg1}; border-bottom: 2px solid transparent; }
-        #workspaces button.active { color: ${yellow}; border-bottom: 2px solid ${yellow}; }
-        #workspaces button:hover { background: rgba(255,255,255,0.05); color: ${fg1}; }
-        #clock { color: ${yellow}; font-weight: bold; }
-        #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${fg1}; padding: 0 8px; }
-        #cpu, #memory { color: ${fg1}; padding: 0 8px; }
-        #power-profiles-daemon { color: ${fg1}; padding: 0 8px; }
-        #power-profiles-daemon.performance { color: ${red}; }
-        #power-profiles-daemon.balanced { color: ${yellow}; }
-        #power-profiles-daemon.power-saver { color: ${green}; }
-        #battery.critical { color: ${red}; }
-      '';
-    };
-
     colorsLight = {
       gtk3 = ''
         /* Gruvbox Light Hard */
@@ -619,21 +537,5 @@ in {
       '';
     };
 
-    waybarLight.style = ''
-      * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-      window#waybar { background-color: transparent; color: ${l_fg1}; }
-      .modules-left, .modules-center, .modules-right { padding: 0 4px; }
-      #workspaces button { padding: 0 8px; background: transparent; color: ${l_fg1}; border-bottom: 2px solid transparent; }
-      #workspaces button.active { color: ${l_yellow}; border-bottom: 2px solid ${l_yellow}; }
-      #workspaces button:hover { background: rgba(0,0,0,0.05); color: ${l_fg1}; }
-      #clock { color: ${l_yellow}; font-weight: bold; }
-      #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${l_fg1}; padding: 0 8px; }
-      #cpu, #memory { color: ${l_fg1}; padding: 0 8px; }
-      #power-profiles-daemon { color: ${l_fg1}; padding: 0 8px; }
-      #power-profiles-daemon.performance { color: ${l_red}; }
-      #power-profiles-daemon.balanced { color: ${l_yellow}; }
-      #power-profiles-daemon.power-saver { color: ${l_green}; }
-      #battery.critical { color: ${l_red}; }
-    '';
   };
 }

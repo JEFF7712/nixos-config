@@ -1,6 +1,6 @@
 { pkgs, ... }:
 
-# waybar is required by this profile.
+# quickshell is required by this profile.
 # nordzy cursor/icon themes are used when available.
 # mako handles notifications (noctalia manages its own when active).
 
@@ -22,7 +22,7 @@ let
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
 in {
-  home.packages = [ pkgs.waybar pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
+  home.packages = [ pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
 
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
@@ -51,7 +51,21 @@ in {
   '';
 
   desktopProfiles.profiles.nord = {
-    bar = "waybar";
+    bar = "quickshell";
+
+    quickshell.colors = builtins.toJSON {
+      background     = nord0;
+      surface        = nord1;
+      surfaceVariant = nord2;
+      border         = nord3;
+      text           = nord6;
+      textSubtle     = nord4;
+      accent         = nord8;
+      accentText     = nord0;
+      success        = nord14;
+      warning        = nord13;
+      error          = nord11;
+    };
 
     cursor = {
       theme   = "Nordzy-cursors";
@@ -296,154 +310,5 @@ in {
       '';
     };
 
-    waybar = {
-      config = ''
-        {
-          "layer": "top",
-          "height": 28,
-          "modules-left": [
-            "niri/workspaces",
-            "power-profiles-daemon",
-            "cpu",
-            "memory"
-          ],
-          "modules-center": [
-            "clock"
-          ],
-          "clock": {
-            "interval": 30,
-            "format": "{:%I:%M %p}",
-            "tooltip-format": "{:%a, %d %b %G}"
-          },
-          "modules-right": [
-            "pulseaudio",
-            "bluetooth",
-            "network",
-            "battery"
-          ],
-          "niri/window": {
-            "max-length": 30
-          },
-          "tray": {
-            "icon-size": 20,
-            "spacing": 8
-          },
-          "pulseaudio": {
-            "format-source": "󰍬",
-            "format-source-muted": "󰍭",
-            "format": "{format_source} 󰕾 {volume}%",
-            "format-bluetooth": "{format_source} 󰂰 {volume}%",
-            "format-muted": "{format_source} 󰸈",
-            "on-click": "foot-popup pulsemixer",
-            "max-volume": 150,
-            "scroll-step": 1
-          },
-          "bluetooth": {
-            "format": "",
-            "format-disabled": "",
-            "format-off": "",
-            "format-on": "󰂯",
-            "format-connected": "󰂱 {device_alias}",
-            "max-length": 16
-          },
-          "network": {
-            "format": "{ifname}",
-            "format-wifi": "󰖩 {essid}",
-            "format-ethernet": "󰈀 {ipaddr}",
-            "format-disconnected": "Disconnected",
-            "max-length": 32
-          },
-          "battery": {
-            "interval": 60,
-            "format-time": "{H}:{m}",
-            "format-icons": [
-              "󰁺",
-              "󰁻",
-              "󰁼",
-              "󰁽",
-              "󰁾",
-              "󰁿",
-              "󰂀",
-              "󰂁",
-              "󰂂",
-              "󰁹"
-            ],
-            "format-discharging": "{icon} {capacity}% ({time})",
-            "format-charging": "󰂄 {capacity}%",
-            "format": ""
-          },
-          "niri/workspaces": {
-            "format": "{icon}",
-            "on-click": "activate",
-            "format-icons": {
-              "1": "1",
-              "2": "2",
-              "3": "3",
-              "4": "4",
-              "5": "5",
-              "6": "6",
-              "7": "7",
-              "8": "8",
-              "9": "9",
-              "10": "10"
-            },
-            "persistent-workspaces": {
-              "1": [],
-              "2": [],
-              "3": [],
-              "4": [],
-              "5": [],
-              "6": [],
-              "7": [],
-              "8": [],
-              "9": [],
-              "10": []
-            },
-            "sort-by-number": true
-          },
-          "power-profiles-daemon": {
-            "format": "{icon}",
-            "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
-            "format-icons": {
-              "default": "󰾆",
-              "performance": "󱐌",
-              "balanced": "󰾆",
-              "power-saver": "󰾄"
-            }
-          },
-          "cpu": {
-            "interval": 3,
-            "format": "󰻠 {usage}%",
-            "tooltip": false
-          },
-          "memory": {
-            "interval": 3,
-            "format": "󰍛 {percentage}%",
-            "tooltip-format": "{used:0.1f}G / {total:0.1f}G"
-          }
-        }
-      '';
-
-      style = ''
-        * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-        window#waybar { background-color: transparent; color: #d8dee9; }
-        .modules-left, .modules-center, .modules-right { padding: 0 4px; }
-        #workspaces button { padding: 0 8px; background: transparent; color: #d8dee9; border-bottom: 2px solid transparent; }
-        #workspaces button.active { color: #d8dee9; border-bottom: 2px solid #88c0d0; }
-        #workspaces button:hover { background: rgba(255,255,255,0.05); color: #d8dee9; }
-        #clock { color: #d8dee9; font-weight: bold; }
-        #battery, #bluetooth, #network, #pulseaudio, #tray { color: #d8dee9; padding: 0 8px; }
-        #cpu, #memory { color: #d8dee9; padding: 0 8px; }
-        #power-profiles-daemon { color: #d8dee9; padding: 0 8px; }
-        #power-profiles-daemon.performance { color: #bf616a; }
-        #power-profiles-daemon.balanced { color: #88c0d0; }
-        #power-profiles-daemon.power-saver { color: #a3be8c; }
-        #workspaces { padding: 0 4px; }
-        #workspaces button { padding: 0 8px; background: transparent; color: #d8dee9; border-bottom: 2px solid transparent; }
-        #workspaces button.active { color: #d8dee9; border-bottom: 2px solid #88c0d0; }
-        #workspaces button:hover { background: rgba(255,255,255,0.05); color: #d8dee9; }
-        #battery.critical { color: #bf616a; }
-      '';
-    };
   };
 }
