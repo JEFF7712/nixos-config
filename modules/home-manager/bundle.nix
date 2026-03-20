@@ -15,6 +15,7 @@
     ./profiles/gruvbox.nix
     ./profiles/noctalia.nix
     ./profiles/nord.nix
+    ./profiles/rosepine.nix
     ./terminal.nix
   ];
 
