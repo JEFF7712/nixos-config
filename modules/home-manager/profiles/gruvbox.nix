@@ -54,8 +54,9 @@ in {
     bar = "waybar";
 
     cursor = {
-      theme = "Adwaita";
-      size  = 24;
+      theme   = "Capitaine Cursors (Gruvbox)";
+      size    = 24;
+      package = pkgs.capitaine-cursors-themed;
     };
 
     wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/gruvbox";

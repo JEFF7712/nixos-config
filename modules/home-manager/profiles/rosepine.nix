@@ -50,8 +50,9 @@ in {
     bar = "waybar";
 
     cursor = {
-      theme = "Adwaita";
-      size  = 24;
+      theme   = "BreezeX-RosePine-Linux";
+      size    = 24;
+      package = pkgs.rose-pine-cursor;
     };
 
     wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/rosepine";

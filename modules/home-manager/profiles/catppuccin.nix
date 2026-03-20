@@ -35,8 +35,9 @@ in {
     bar = "waybar";
 
     cursor = {
-      theme = "Adwaita";
-      size  = 28;
+      theme   = "catppuccin-mocha-mauve-cursors";
+      size    = 28;
+      package = pkgs.catppuccin-cursors.mochaMauve;
     };
 
     wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/catppuccin";
