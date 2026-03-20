@@ -4,7 +4,7 @@
 let
   qs = inputs.quickshell.packages.${pkgs.system}.default;
 in {
-  home.packages = [ qs pkgs.brightnessctl ];
+  home.packages = [ qs pkgs.brightnessctl pkgs.playerctl ];
 
   # Symlink the QML source directory as out-of-store so it's editable without rebuild.
   xdg.configFile."quickshell".source =

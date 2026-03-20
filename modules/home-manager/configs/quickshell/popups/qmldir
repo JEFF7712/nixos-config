@@ -1,0 +1,6 @@
+module popups
+VolumePopup 1.0 VolumePopup.qml
+BrightnessPopup 1.0 BrightnessPopup.qml
+MusicPopup 1.0 MusicPopup.qml
+CalendarPopup 1.0 CalendarPopup.qml
+QuickSettings 1.0 QuickSettings.qml
