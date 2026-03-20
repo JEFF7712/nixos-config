@@ -291,6 +291,7 @@ in {
           "margin-right": 40,
           "modules-left": [
             "niri/workspaces",
+            "power-profiles-daemon",
             "cpu",
             "memory"
           ],
@@ -386,6 +387,16 @@ in {
             },
             "sort-by-number": true
           },
+          "power-profiles-daemon": {
+            "format": "{icon}",
+            "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
+            "format-icons": {
+              "default": "󰾆",
+              "performance": "󱐌",
+              "balanced": "󰾆",
+              "power-saver": "󰾄"
+            }
+          },
           "cpu": {
             "interval": 3,
             "format": "󰻠 {usage}%",
@@ -428,6 +439,10 @@ in {
           color: ${pink};
           padding: 0 10px;
         }
+        #power-profiles-daemon { color: ${pink}; padding: 0 10px; }
+        #power-profiles-daemon.performance { color: ${red}; }
+        #power-profiles-daemon.balanced { color: ${mauve}; }
+        #power-profiles-daemon.power-saver { color: ${green}; }
         #battery.critical { color: ${pink}; }
       '';
     };
