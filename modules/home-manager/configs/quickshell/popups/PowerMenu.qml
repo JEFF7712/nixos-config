@@ -22,12 +22,13 @@ PanelWindow {
     // Transparent backing — the dim overlay is drawn inside by the Rectangle below
     color: "transparent"
 
-    // Dismiss on Escape
-    Keys.onEscapePressed: root.showing = false
-
     Rectangle {
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0.6)
+        focus: true  // receive key events
+
+        // Dismiss on Escape
+        Keys.onEscapePressed: root.showing = false
 
         // Click the backdrop to dismiss
         MouseArea {
