@@ -163,6 +163,19 @@ if [ "$TARGET" != "noctalia" ]; then
   pkill -USR1 -x kitty 2>/dev/null || true
 fi
 
-# 9. Notify
+# 9. Update Zed theme
+ZED_SETTINGS="$HOME/.config/zed/settings.json"
+if [ -f "$ZED_SETTINGS" ]; then
+  case "$TARGET" in
+    catppuccin) ZED_THEME="Catppuccin Mocha" ;;
+    nord)       ZED_THEME="Nord Dark" ;;
+    *)          ZED_THEME="" ;;
+  esac
+  if [ -n "$ZED_THEME" ]; then
+    sed -i "s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+  fi
+fi
+
+# 11. Notify
 notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
 echo "Done. Profile '$TARGET' is now active."

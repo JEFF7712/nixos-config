@@ -1,0 +1,61 @@
+/* Minimal icon grid launcher */
+
+* {
+    background-color:   transparent;
+    text-color:         transparent;
+}
+
+window {
+    width:              520px;
+    border:             1px solid;
+    border-color:       rgba(255,255,255,0.08);
+    border-radius:      12px;
+    padding:            14px;
+    background-color:   rgba(20,20,30,0.88);
+}
+
+mainbox {
+    spacing:            10px;
+    padding:            0;
+    children:           [ inputbar, listview ];
+}
+
+inputbar {
+    padding:            6px 10px;
+    background-color:   rgba(255,255,255,0.06);
+    border-radius:      8px;
+    children:           [ entry ];
+}
+
+entry {
+    text-color:         rgba(255,255,255,0.70);
+    placeholder:        "Search…";
+    placeholder-color:  rgba(255,255,255,0.25);
+}
+
+listview {
+    columns:            8;
+    lines:              3;
+    spacing:            6px;
+    fixed-height:       false;
+    scrollbar:          false;
+}
+
+element {
+    orientation:        vertical;
+    padding:            8px;
+    spacing:            0;
+    border-radius:      8px;
+    background-color:   transparent;
+    cursor:             pointer;
+    children:           [ element-icon ];
+}
+
+element selected {
+    background-color:   rgba(255,255,255,0.10);
+}
+
+element-icon {
+    size:               48px;
+    horizontal-align:   0.5;
+}
