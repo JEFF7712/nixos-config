@@ -43,8 +43,6 @@ let
   l_orange = "#af3a03";
   l_gray   = "#928374";
 in {
-  home.packages = [ pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
-
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=${bg0}

@@ -58,8 +58,6 @@ let
   l_mantle    = "#e6e9ef";
   l_crust     = "#dce0e8";
 in {
-  home.packages = [ pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
-
   desktopProfiles.profiles.catppuccin = {
     bar = "waybar";
 

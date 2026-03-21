@@ -35,8 +35,6 @@ let
   d_highlightMed  = "#dfdad9";
   d_highlightHigh = "#cecacd";
 in {
-  home.packages = [ pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
-
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=${base}
