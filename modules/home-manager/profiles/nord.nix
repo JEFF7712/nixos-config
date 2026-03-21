@@ -22,8 +22,6 @@ let
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
 in {
-  home.packages = [ pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
-
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=#2e3440
