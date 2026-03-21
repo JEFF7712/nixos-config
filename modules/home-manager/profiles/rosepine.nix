@@ -64,7 +64,7 @@ in {
   '';
 
   desktopProfiles.profiles.rosepine = {
-    bar = "quickshell";
+    bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
       background     = base;

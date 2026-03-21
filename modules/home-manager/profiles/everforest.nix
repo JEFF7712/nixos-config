@@ -68,7 +68,7 @@ in {
   '';
 
   desktopProfiles.profiles.everforest = {
-    bar = "quickshell";
+    bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
       background     = "#2d353b";

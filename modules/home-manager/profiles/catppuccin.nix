@@ -61,7 +61,7 @@ in {
   home.packages = [ pkgs.waypaper pkgs.rofi pkgs.python3Packages.pywal pkgs.mako ];
 
   desktopProfiles.profiles.catppuccin = {
-    bar = "quickshell";
+    bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
       background     = base;
