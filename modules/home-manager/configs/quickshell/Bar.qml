@@ -19,6 +19,7 @@ PanelWindow {
         anchors.left: parent.left
         anchors.leftMargin: 8
         anchors.verticalCenter: parent.verticalCenter
+        outputName: root.screen ? root.screen.name : ""
     }
 
     // Center island: clock
