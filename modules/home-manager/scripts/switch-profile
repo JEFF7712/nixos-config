@@ -74,7 +74,9 @@ elif [ "$CURRENT_BAR" = "waybar" ]; then
   pkill -x mako 2>/dev/null || true
 elif [ "$CURRENT_BAR" = "quickshell" ]; then
   echo "  Stopping quickshell..."
-  pkill -f quickshell 2>/dev/null || true
+  # Use systemctl stop so systemd doesn't treat SIGTERM as a crash and auto-restart
+  systemctl --user stop quickshell-bar 2>/dev/null || true
+  pkill -f quickshell 2>/dev/null || true  # belt-and-suspenders in case service wasn't tracked
   for _ in $(seq 1 20); do
     pgrep -f quickshell >/dev/null 2>&1 || break
     sleep 0.1
@@ -225,6 +227,8 @@ elif [ "$TARGET_BAR" = "quickshell" ]; then
     mkdir -p "$HOME/.local/state/quickshell"
     cp --remove-destination "$TARGET_DIR/quickshell-colors.json" "$HOME/.local/state/quickshell/colors.json"
   fi
+  # Clear any failed state from a previous run before starting
+  systemctl --user reset-failed quickshell-bar 2>/dev/null || true
   systemctl --user start quickshell-bar 2>/dev/null || true
   mako 2>/dev/null &
   disown
