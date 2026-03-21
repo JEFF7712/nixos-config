@@ -4,38 +4,47 @@ import "."
 import "./popups"
 
 ShellRoot {
-    id: root
+    Variants {
+        model: Quickshell.screens
 
-    Bar { id: bar; screen: Quickshell.screens[0] }
+        delegate: QtObject {
+            required property var modelData
 
-    CalendarPopup {
-        shown: bar.activePopup === "calendar"
-        screen: Quickshell.screens[0]
-        onClose: bar.activePopup = ""
-    }
-    VolumePopup {
-        shown: bar.activePopup === "volume"
-        screen: Quickshell.screens[0]
-        onClose: bar.activePopup = ""
-    }
-    BrightnessPopup {
-        shown: bar.activePopup === "brightness"
-        screen: Quickshell.screens[0]
-        onClose: bar.activePopup = ""
-    }
-    MusicPopup {
-        shown: bar.activePopup === "music"
-        screen: Quickshell.screens[0]
-        onClose: bar.activePopup = ""
-    }
-    QuickSettings {
-        shown: bar.activePopup === "quickSettings"
-        screen: Quickshell.screens[0]
-        onClose: bar.activePopup = ""
-    }
-    PowerMenu {
-        showing: bar.activePopup === "power"
-        screen: Quickshell.screens[0]
-        onClose: bar.activePopup = ""
+            property var _bar: Bar {
+                id: bar
+                screen: modelData
+            }
+
+            property var _cal: CalendarPopup {
+                shown: bar.activePopup === "calendar"
+                screen: modelData
+                onClose: bar.activePopup = ""
+            }
+            property var _vol: VolumePopup {
+                shown: bar.activePopup === "volume"
+                screen: modelData
+                onClose: bar.activePopup = ""
+            }
+            property var _bri: BrightnessPopup {
+                shown: bar.activePopup === "brightness"
+                screen: modelData
+                onClose: bar.activePopup = ""
+            }
+            property var _music: MusicPopup {
+                shown: bar.activePopup === "music"
+                screen: modelData
+                onClose: bar.activePopup = ""
+            }
+            property var _qs: QuickSettings {
+                shown: bar.activePopup === "quickSettings"
+                screen: modelData
+                onClose: bar.activePopup = ""
+            }
+            property var _power: PowerMenu {
+                showing: bar.activePopup === "power"
+                screen: modelData
+                onClose: bar.activePopup = ""
+            }
+        }
     }
 }

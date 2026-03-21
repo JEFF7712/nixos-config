@@ -12,6 +12,7 @@ Rectangle {
     border.width: 1
     implicitWidth: row.implicitWidth + 16
 
+    property string outputName: ""
     property var workspaces: []
 
     Timer {
@@ -25,7 +26,10 @@ Rectangle {
         stdout: SplitParser {
             onRead: data => {
                 try {
-                    root.workspaces = JSON.parse(data).sort((a, b) => a.idx - b.idx)
+                    const all = JSON.parse(data)
+                    root.workspaces = all
+                        .filter(w => root.outputName === "" || w.output === root.outputName)
+                        .sort((a, b) => a.idx - b.idx)
                 } catch(e) {}
             }
         }
@@ -34,28 +38,24 @@ Rectangle {
     RowLayout {
         id: row
         anchors.centerIn: parent
-        spacing: 4
+        spacing: 6
 
         Repeater {
             model: root.workspaces
             delegate: Rectangle {
                 required property var modelData
-                width: 22; height: 22; radius: 6
+                width: modelData.is_focused ? 18 : 8
+                height: 8
+                radius: 4
                 color: modelData.is_focused
                     ? Theme.accent
-                    : Theme.withAlpha(Theme.accent, 0.25)
+                    : Theme.withAlpha(Theme.accent, 0.35)
 
-                Text {
-                    anchors.centerIn: parent
-                    text: modelData.idx
-                    color: modelData.is_focused ? Theme.accentText : Theme.textSubtle
-                    font.pixelSize: 11
-                    font.bold: modelData.is_focused
-                    font.family: "JetBrainsMono Nerd Font"
-                }
+                Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
                 MouseArea {
                     anchors.fill: parent
+                    anchors.margins: -4
                     onClicked: {
                         switchProc.command = ["/run/current-system/sw/bin/niri", "msg",
                             "action", "focus-workspace", String(modelData.idx)]
