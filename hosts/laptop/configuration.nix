@@ -88,6 +88,22 @@
     ];
   };
 
+  security.sudo.extraRules = [
+    {
+      users = [ "rupan" ];
+      commands = [
+        {
+          command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild dry-activate --flake *";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake *";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
+  ];
+
   # List packages installed in system profile.
   # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
