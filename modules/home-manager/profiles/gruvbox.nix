@@ -72,7 +72,7 @@ in {
   '';
 
   desktopProfiles.profiles.gruvbox = {
-    bar = "quickshell";
+    bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
       background     = bg0;

@@ -51,7 +51,7 @@ in {
   '';
 
   desktopProfiles.profiles.nord = {
-    bar = "quickshell";
+    bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
       background     = nord0;
