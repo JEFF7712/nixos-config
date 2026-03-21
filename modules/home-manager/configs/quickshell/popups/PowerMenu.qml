@@ -4,12 +4,12 @@ import Quickshell
 import Quickshell.Io
 import ".."
 
-// Full-screen overlay — must be instantiated at ShellRoot level.
-// PanelWindow with all four anchors and exclusiveZone: -1 acts as an overlay.
 PanelWindow {
     id: root
 
     property bool showing: false
+    signal close()
+
     visible: showing
 
     anchors { top: true; bottom: true; left: true; right: true }
@@ -22,11 +22,11 @@ PanelWindow {
         color: Qt.rgba(0, 0, 0, 0.65)
         focus: true
 
-        Keys.onEscapePressed: root.showing = false
+        Keys.onEscapePressed: root.close()
 
         MouseArea {
             anchors.fill: parent
-            onClicked: root.showing = false
+            onClicked: root.close()
         }
 
         Column {
@@ -70,7 +70,7 @@ PanelWindow {
                         onClicked: {
                             actionProc.command = modelData.cmd
                             actionProc.running = true
-                            root.showing = false
+                            root.close()
                         }
                     }
                 }
