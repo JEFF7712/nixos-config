@@ -3,7 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../modules/nixos/bundle.nix
+    (inputs.import-tree ../../modules/nixos)
   ];
 
   nix = {
@@ -32,6 +32,7 @@
   game.enable = true;
   airplay.enable = true;
   vpn.enable = true;
+  git.enable = true;
 
   environment.shells = with pkgs; [ fish bash ];
   system.activationScripts.binbash = lib.stringAfter [ "usrbinenv" ] ''

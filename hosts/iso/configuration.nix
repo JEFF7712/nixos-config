@@ -1,9 +1,9 @@
-{ config, lib, pkgs, modulesPath, self, ... }:
+{ config, lib, pkgs, inputs, modulesPath, self, ... }:
 
 {
   imports = [
     "${modulesPath}/installer/cd-dvd/installation-cd-graphical-base.nix"
-    ../../modules/nixos/bundle.nix
+    (inputs.import-tree ../../modules/nixos)
   ];
 
   boot.loader.systemd-boot.enable = lib.mkForce false;
@@ -36,7 +36,8 @@
   ctls.enable = true; 
   bluetooth.enable = true;
   filemanager.enable = true;
-  file-utils.enable = true;  
+  file-utils.enable = true;
+  git.enable = true;
 
   users.users.rupan = {
     isNormalUser = true;
