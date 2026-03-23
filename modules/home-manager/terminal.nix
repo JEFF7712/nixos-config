@@ -67,7 +67,6 @@
     programs.fish = {
       enable = true;
       shellAliases = {
-        gc = "nix-collect-garbage -d";
         cniri = "sudo $EDITOR $HOME/nixos/home/configs/niri/config.kdl";
         ls = "eza --icons";
         ll = "eza -l --icons";

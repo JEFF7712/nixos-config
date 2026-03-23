@@ -38,18 +38,21 @@
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    stasis = {
+      url = "github:saltnpepper97/stasis";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      nixpkgs-stable,
-      home-manager,
-      nix-vscode-extensions,
-      nixvim,
-      globalprotect-openconnect,
-      ...
+    { self
+    , nixpkgs
+    , nixpkgs-stable
+    , home-manager
+    , nix-vscode-extensions
+    , nixvim
+    , globalprotect-openconnect
+    , ...
     }@inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" ];

@@ -284,7 +284,7 @@ if [ -f "$ZED_SETTINGS" ]; then
     catppuccin) ZED_THEME="Catppuccin Mocha (Blur)" ; ZED_ICON="Catppuccin Mocha" ;;
     nord)       ZED_THEME="Nord Dark"         ; ZED_ICON="Zed (Default)" ;;
     noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
-    gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Zed (Default)" ;;
+    gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
     rosepine)   ZED_THEME="Rosé Pine"        ; ZED_ICON="Zed (Default)" ;;
     everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
     *)          ZED_THEME=""                  ; ZED_ICON="" ;;

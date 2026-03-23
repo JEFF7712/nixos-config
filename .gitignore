@@ -9,3 +9,5 @@
 /.claude
 /.worktrees
 CLAUDE.md
+.mcp.json
+/.superpowers

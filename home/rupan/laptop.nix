@@ -1,16 +1,32 @@
-{
-  pkgs,
-  inputs,
-  lib,
-  config,
-  ...
+{ pkgs
+, inputs
+, lib
+, config
+, ...
 }:
 
 {
   imports = [
     ./home.nix
     (inputs.import-tree ../../modules/home-manager)
+    inputs.stasis.homeModules.default
   ];
+
+  services.stasis = {
+    enable = true;
+    extraConfig = ''
+      default:
+        lock_screen:
+          timeout 300
+          command "noctalia-shell ipc --any-display call lockScreen lock"
+        end
+        suspend:
+          timeout 600
+          command "systemctl suspend"
+        end
+      end
+    '';
+  };
 
   home.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
