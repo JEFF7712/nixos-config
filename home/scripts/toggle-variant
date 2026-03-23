@@ -4,7 +4,7 @@ set -euo pipefail
 PROFILES_DIR="$HOME/.config/desktop-profiles"
 ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"
-REPO="$HOME/nixos/modules/home-manager"
+REPO="$HOME/nixos/home"
 
 PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 [ -z "$PROFILE" ] && { echo "No active profile." >&2; exit 1; }
