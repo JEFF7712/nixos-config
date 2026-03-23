@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Wrapper that locks with noctalia when active, swaylock-effects otherwise.
+set -euo pipefail
+
+ACTIVE_FILE="$HOME/.config/desktop-profiles/active"
+PROFILE=""
+[ -f "$ACTIVE_FILE" ] && PROFILE=$(cat "$ACTIVE_FILE")
+
+if [ "$PROFILE" = "noctalia" ]; then
+  exec noctalia-shell ipc --any-display call lockScreen lock
+else
+  exec swaylock \
+    --screenshots \
+    --clock \
+    --indicator \
+    --effect-blur 7x5 \
+    --effect-vignette 0.5:0.5 \
+    --grace 2 \
+    --fade-in 0.2
+fi
