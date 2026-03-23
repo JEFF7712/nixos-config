@@ -71,7 +71,7 @@ in {
       package = pkgs.nordzy-cursor-theme;
     };
 
-    wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/nord";
+    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/nord";
 
     niri = {
       gaps               = 20;

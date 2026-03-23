@@ -12,7 +12,7 @@
       size  = 28;
     };
 
-    wallpaperDir = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/noctalia";
+    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/noctalia";
 
     niri = {
       gaps               = 5;

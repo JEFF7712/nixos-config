@@ -101,8 +101,8 @@ in {
       size  = 24;
     };
 
-    wallpaperDir      = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/everforest";
-    wallpaperDirLight = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/everforest-light";
+    wallpaperDir      = "/home/rupan/nixos/home/assets/wallpapers/everforest";
+    wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/everforest-light";
 
     niri = {
       gaps               = 18;

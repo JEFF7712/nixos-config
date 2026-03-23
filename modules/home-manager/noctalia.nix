@@ -163,7 +163,7 @@
 
         wallpaper = {
           enabled = true;
-          directory = "/home/rupan/nixos/modules/home-manager/assets/wallpapers/noctalia";
+          directory = "/home/rupan/nixos/home/assets/wallpapers/noctalia";
           panelPosition = "follow_bar";
           randomEnabled = true;
           randomIntervalSec = 3600;
@@ -255,7 +255,7 @@
         general = {
           animationDisabled = false;
           animationSpeed = 1;
-          avatarImage = "/home/rupan/nixos/modules/home-manager/assets/Sponge.jpg";
+          avatarImage = "/home/rupan/nixos/home/assets/Sponge.jpg";
           boxRadiusRatio = 1;
           compactLockScreen = true;
           dimmerOpacity = 0.2;
