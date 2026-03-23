@@ -3,9 +3,9 @@
 # Rofi closes immediately after selection, then switch-profile runs in background.
 
 PROFILES_DIR="$HOME/.config/desktop-profiles"
-PREVIEW_DIR="$HOME/nixos/modules/home-manager/assets/previews"
+PREVIEW_DIR="$HOME/nixos/home/assets/previews"
 ACTIVE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "")
-THEME="$HOME/nixos/modules/home-manager/configs/rofi/profile-switcher.rasi"
+THEME="$HOME/nixos/home/configs/rofi/profile-switcher.rasi"
 
 # Pipe entries directly to rofi — null bytes in the icon format are preserved
 # through a pipe but get stripped by $() command substitution.
