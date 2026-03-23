@@ -56,13 +56,13 @@
 
     programs.bash = {
       enable = true;
-      initExtra = builtins.readFile ./configs/bashrc/.bashrc;
+      initExtra = builtins.readFile ../../home/configs/bashrc/.bashrc;
     };
     programs.fish = {
       enable = true;
       shellAliases = {
         gc = "nix-collect-garbage -d";
-        cniri="sudo $EDITOR $HOME/nixos/modules/home-manager/configs/niri/config.kdl";
+        cniri="sudo $EDITOR $HOME/nixos/home/configs/niri/config.kdl";
         ls = "eza --icons";
         ll = "eza -l --icons";
         l = "eza --icons";
