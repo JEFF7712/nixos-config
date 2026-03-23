@@ -52,7 +52,7 @@ in
     };
 
     home.file.".mozilla/firefox/09longn9.default-release/chrome".source =
-      config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/home/configs/firefox/chrome";
+      config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/firefox/chrome";
 
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
@@ -98,7 +98,7 @@ in
     };
 
     xdg.configFile."Code/User/settings.json" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/home/configs/vscode/settings.json";
+      source = config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vscode/settings.json";
       force = true;
     };
   };

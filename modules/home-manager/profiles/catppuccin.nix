@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 # Catppuccin desktop profile — Mocha (dark) + Latte (light).
 let
@@ -96,8 +96,8 @@ in
       package = pkgs.catppuccin-cursors.mochaMauve;
     };
 
-    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/catppuccin";
-    wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/catppuccin-light";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/catppuccin";
+    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/catppuccin-light";
 
     niri = {
       gaps = 18;

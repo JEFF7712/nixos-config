@@ -22,7 +22,7 @@ in
 
     # Symlink the QML source directory as out-of-store so it's editable without rebuild.
     xdg.configFile."quickshell".source =
-      config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/home/configs/quickshell";
+      config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/quickshell";
 
     # Systemd user service — only starts when the active profile is NOT noctalia.
     systemd.user.services.quickshell-bar = {

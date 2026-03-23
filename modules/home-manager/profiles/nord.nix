@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 # quickshell is required by this profile.
 # nordzy cursor/icon themes are used when available.
@@ -72,7 +72,7 @@ in
       package = pkgs.nordzy-cursor-theme;
     };
 
-    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/nord";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/nord";
 
     niri = {
       gaps = 20;

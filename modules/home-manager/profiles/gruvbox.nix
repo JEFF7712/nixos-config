@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 let
   # ── Gruvbox Dark Hard ────────────────────────────────────────────────────────
@@ -107,8 +107,8 @@ in
       package = pkgs.capitaine-cursors-themed;
     };
 
-    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/gruvbox";
-    wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/gruvbox-light";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/gruvbox";
+    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/gruvbox-light";
 
     niri = {
       gaps = 20;
