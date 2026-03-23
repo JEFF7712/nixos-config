@@ -2,39 +2,40 @@
 
 let
   # ── Rosé Pine Main (dark) ────────────────────────────────────────────────────
-  base          = "#191724";
-  surface       = "#1f1d2e";
-  overlay       = "#26233a";
-  muted         = "#6e6a86";
-  subtle        = "#908caa";
-  text          = "#e0def4";
-  love          = "#eb6f92";  # red/pink
-  gold          = "#f6c177";  # yellow/gold
-  rose          = "#ebbcba";  # rose/pink
-  pine          = "#31748f";  # teal/blue
-  foam          = "#9ccfd8";  # cyan
-  iris          = "#c4a7e7";  # purple — main accent
-  highlightLow  = "#21202e";
-  highlightMed  = "#403d52";
+  base = "#191724";
+  surface = "#1f1d2e";
+  overlay = "#26233a";
+  muted = "#6e6a86";
+  subtle = "#908caa";
+  text = "#e0def4";
+  love = "#eb6f92"; # red/pink
+  gold = "#f6c177"; # yellow/gold
+  rose = "#ebbcba"; # rose/pink
+  pine = "#31748f"; # teal/blue
+  foam = "#9ccfd8"; # cyan
+  iris = "#c4a7e7"; # purple — main accent
+  highlightLow = "#21202e";
+  highlightMed = "#403d52";
   highlightHigh = "#524f67";
 
   # ── Rosé Pine Dawn (light) ───────────────────────────────────────────────────
-  d_base          = "#faf4ed";
-  d_surface       = "#fffaf3";
-  d_overlay       = "#f2e9e1";
-  d_muted         = "#9893a5";
-  d_subtle        = "#797593";
-  d_text          = "#575279";
-  d_love          = "#b4637a";
-  d_gold          = "#ea9d34";
-  d_rose          = "#d7827e";
-  d_pine          = "#286983";
-  d_foam          = "#56949f";
-  d_iris          = "#907aa9";
-  d_highlightLow  = "#f4ede8";
-  d_highlightMed  = "#dfdad9";
+  d_base = "#faf4ed";
+  d_surface = "#fffaf3";
+  d_overlay = "#f2e9e1";
+  d_muted = "#9893a5";
+  d_subtle = "#797593";
+  d_text = "#575279";
+  d_love = "#b4637a";
+  d_gold = "#ea9d34";
+  d_rose = "#d7827e";
+  d_pine = "#286983";
+  d_foam = "#56949f";
+  d_iris = "#907aa9";
+  d_highlightLow = "#f4ede8";
+  d_highlightMed = "#dfdad9";
   d_highlightHigh = "#cecacd";
-in {
+in
+{
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=${base}
@@ -65,57 +66,57 @@ in {
     bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
-      background     = base;
-      surface        = surface;
+      background = base;
+      surface = surface;
       surfaceVariant = overlay;
-      border         = highlightMed;
-      text           = text;
-      textSubtle     = subtle;
-      accent         = iris;
-      accentText     = base;
-      success        = foam;
-      warning        = gold;
-      error          = love;
+      border = highlightMed;
+      text = text;
+      textSubtle = subtle;
+      accent = iris;
+      accentText = base;
+      success = foam;
+      warning = gold;
+      error = love;
     };
 
     quickshell.colorsLight = builtins.toJSON {
-      background     = d_base;
-      surface        = d_surface;
+      background = d_base;
+      surface = d_surface;
       surfaceVariant = d_overlay;
-      border         = d_highlightMed;
-      text           = d_text;
-      textSubtle     = d_subtle;
-      accent         = d_iris;
-      accentText     = d_base;
-      success        = d_foam;
-      warning        = d_gold;
-      error          = d_love;
+      border = d_highlightMed;
+      text = d_text;
+      textSubtle = d_subtle;
+      accent = d_iris;
+      accentText = d_base;
+      success = d_foam;
+      warning = d_gold;
+      error = d_love;
     };
 
     cursor = {
-      theme   = "BreezeX-RosePine-Linux";
-      size    = 24;
+      theme = "BreezeX-RosePine-Linux";
+      size = 24;
       package = pkgs.rose-pine-cursor;
     };
 
-    wallpaperDir      = "/home/rupan/nixos/home/assets/wallpapers/rosepine";
+    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/rosepine";
     wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/rosepine-light";
 
     niri = {
-      gaps               = 18;
-      borderOff          = true;
-      focusRingOff       = true;
-      shadowSoftness     = 22;
-      shadowSpread       = 3;
-      shadowOffsetX      = 0;
-      shadowOffsetY      = 4;
-      shadowColor        = "#00000088";
+      gaps = 18;
+      borderOff = true;
+      focusRingOff = true;
+      shadowSoftness = 22;
+      shadowSpread = 3;
+      shadowOffsetX = 0;
+      shadowOffsetY = 4;
+      shadowColor = "#00000088";
       shadowInactiveColor = "#00000055";
       shadowDrawBehindWindow = true;
-      tabIndicatorOff    = false;
-      tabIndicatorActiveColor   = iris;
+      tabIndicatorOff = false;
+      tabIndicatorActiveColor = iris;
       tabIndicatorInactiveColor = highlightMed;
-      windowOpacity      = 0.97;
+      windowOpacity = 0.97;
       windowHighlightOff = true;
     };
 

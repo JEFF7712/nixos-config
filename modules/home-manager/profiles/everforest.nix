@@ -2,43 +2,44 @@
 
 let
   # ── Everforest Dark Hard ─────────────────────────────────────────────────────
-  bg0    = "#272e33";
-  bg1    = "#2e383c";
-  bg2    = "#374145";
-  bg3    = "#414b50";
-  bg4    = "#495156";
-  bg5    = "#4f5b58";
-  fg     = "#d3c6aa";
-  red    = "#e67e80";
+  bg0 = "#272e33";
+  bg1 = "#2e383c";
+  bg2 = "#374145";
+  bg3 = "#414b50";
+  bg4 = "#495156";
+  bg5 = "#4f5b58";
+  fg = "#d3c6aa";
+  red = "#e67e80";
   orange = "#e69875";
   yellow = "#dbbc7f";
-  green  = "#a7c080";
-  aqua   = "#83c092";
-  blue   = "#7fbbb3";
+  green = "#a7c080";
+  aqua = "#83c092";
+  blue = "#7fbbb3";
   purple = "#d699b6";
-  grey0  = "#7a8478";
-  grey1  = "#859289";
-  grey2  = "#9da9a0";
+  grey0 = "#7a8478";
+  grey1 = "#859289";
+  grey2 = "#9da9a0";
 
   # ── Everforest Light Hard ────────────────────────────────────────────────────
-  l_bg0    = "#fff9e8";
-  l_bg1    = "#f4f0d9";
-  l_bg2    = "#efebd4";
-  l_bg3    = "#e6e2cc";
-  l_bg4    = "#e0dcc7";
-  l_bg5    = "#bec5b2";
-  l_fg     = "#5c6a72";
-  l_red    = "#f85552";
+  l_bg0 = "#fff9e8";
+  l_bg1 = "#f4f0d9";
+  l_bg2 = "#efebd4";
+  l_bg3 = "#e6e2cc";
+  l_bg4 = "#e0dcc7";
+  l_bg5 = "#bec5b2";
+  l_fg = "#5c6a72";
+  l_red = "#f85552";
   l_orange = "#f57d26";
   l_yellow = "#dfa000";
-  l_green  = "#8da101";
-  l_aqua   = "#35a77c";
-  l_blue   = "#3a94c5";
+  l_green = "#8da101";
+  l_aqua = "#35a77c";
+  l_blue = "#3a94c5";
   l_purple = "#df69ba";
-  l_grey0  = "#a6b0a0";
-  l_grey1  = "#939f91";
-  l_grey2  = "#829181";
-in {
+  l_grey0 = "#a6b0a0";
+  l_grey1 = "#939f91";
+  l_grey2 = "#829181";
+in
+{
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=${bg0}
@@ -69,56 +70,56 @@ in {
     bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
-      background     = "#2d353b";
-      surface        = "#343f44";
+      background = "#2d353b";
+      surface = "#343f44";
       surfaceVariant = "#3d484d";
-      border         = "#475258";
-      text           = fg;
-      textSubtle     = grey1;
-      accent         = blue;
-      accentText     = "#2d353b";
-      success        = green;
-      warning        = yellow;
-      error          = red;
+      border = "#475258";
+      text = fg;
+      textSubtle = grey1;
+      accent = blue;
+      accentText = "#2d353b";
+      success = green;
+      warning = yellow;
+      error = red;
     };
 
     quickshell.colorsLight = builtins.toJSON {
-      background     = l_bg0;
-      surface        = "#f3ead3";
+      background = l_bg0;
+      surface = "#f3ead3";
       surfaceVariant = "#eae4ca";
-      border         = "#e0dab5";
-      text           = l_fg;
-      textSubtle     = "#708090";
-      accent         = l_blue;
-      accentText     = l_bg0;
-      success        = l_green;
-      warning        = l_yellow;
-      error          = l_red;
+      border = "#e0dab5";
+      text = l_fg;
+      textSubtle = "#708090";
+      accent = l_blue;
+      accentText = l_bg0;
+      success = l_green;
+      warning = l_yellow;
+      error = l_red;
     };
 
     cursor = {
       theme = "Adwaita";
-      size  = 24;
+      size = 24;
     };
 
-    wallpaperDir      = "/home/rupan/nixos/home/assets/wallpapers/everforest";
+    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/everforest";
     wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/everforest-light";
 
     niri = {
-      gaps               = 18;
-      borderOff          = true;
-      focusRingOff       = true;
-      shadowSoftness     = 20;
-      shadowSpread       = 3;
-      shadowOffsetX      = 0;
-      shadowOffsetY      = 4;
-      shadowColor        = "#00000080";
+      gaps = 18;
+      borderOff = true;
+      focusRingOff = true;
+      shadowSoftness = 20;
+      shadowSpread = 3;
+      shadowOffsetX = 0;
+      shadowOffsetY = 4;
+      shadowColor = "#00000080";
       shadowInactiveColor = "#00000040";
       shadowDrawBehindWindow = true;
-      tabIndicatorOff    = false;
-      tabIndicatorActiveColor   = green;
+      tabIndicatorOff = false;
+      tabIndicatorActiveColor = green;
       tabIndicatorInactiveColor = bg3;
-      windowOpacity      = 0.96;
+      windowOpacity = 0.96;
       windowHighlightOff = true;
     };
 

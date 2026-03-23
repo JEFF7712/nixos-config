@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 {
   options.bluetooth.enable = lib.mkEnableOption "bluetooth";
@@ -6,7 +11,7 @@
   config = lib.mkIf config.bluetooth.enable {
     hardware.bluetooth = {
       enable = true;
-      powerOnBoot = true; 
+      powerOnBoot = true;
       settings = {
         General = {
           Experimental = true;

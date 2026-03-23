@@ -1,4 +1,10 @@
-{ inputs, pkgs, lib, config, ... }:
+{
+  inputs,
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 {
   options.terminal.enable = lib.mkEnableOption "user terminal config";
@@ -62,7 +68,7 @@
       enable = true;
       shellAliases = {
         gc = "nix-collect-garbage -d";
-        cniri="sudo $EDITOR $HOME/nixos/home/configs/niri/config.kdl";
+        cniri = "sudo $EDITOR $HOME/nixos/home/configs/niri/config.kdl";
         ls = "eza --icons";
         ll = "eza -l --icons";
         l = "eza --icons";
@@ -71,17 +77,17 @@
         lla = "eza -la --icons";
         cd = "z";
         cds = "zi";
-        kprune="kubectl delete pods -A --field-selector=status.phase=Failed,status.phase=Succeeded,status.phase==Completed";
-        gg="git add . && gmc && git push";
-        cities="env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/cities-skylines-II/Cities2.exe";
-        stellaris="env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/stellaris/stellaris.exe";
-        zed="zeditor";
-        gs="git status --short";
+        kprune = "kubectl delete pods -A --field-selector=status.phase=Failed,status.phase=Succeeded,status.phase==Completed";
+        gg = "git add . && gmc && git push";
+        cities = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/cities-skylines-II/Cities2.exe";
+        stellaris = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/stellaris/stellaris.exe";
+        zed = "zeditor";
+        gs = "git status --short";
       };
       shellAbbrs = {
         sp = "switch-profile";
-        k="kubectl";
-        tf="terragrunt";
+        k = "kubectl";
+        tf = "terragrunt";
       };
       interactiveShellInit = ''
         set fish_greeting ""

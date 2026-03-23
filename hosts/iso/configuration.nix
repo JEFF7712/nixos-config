@@ -1,4 +1,12 @@
-{ config, lib, pkgs, inputs, modulesPath, self, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  modulesPath,
+  self,
+  ...
+}:
 
 {
   imports = [
@@ -9,7 +17,7 @@
   boot.loader.systemd-boot.enable = lib.mkForce false;
 
   environment.etc."nixos-config-source".source = self;
-  
+
   system.activationScripts.copyConfig = ''
     if [ ! -d /home/rupan/nixos ]; then
       mkdir -p /home/rupan
@@ -21,19 +29,22 @@
   isoImage.squashfsCompression = lib.mkForce "zstd";
 
   networking.hostName = "rupan-live-iso";
-  
+
   networking.networkmanager.enable = true;
   networking.wireless.enable = lib.mkForce false;
 
   nix = {
     package = pkgs.nix;
-    settings.experimental-features = [ "nix-command" "flakes" ];
+    settings.experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
   };
 
   niri.enable = true;
-  general-laptop.enable = true;  
+  general-laptop.enable = true;
   audio.enable = true;
-  ctls.enable = true; 
+  ctls.enable = true;
   bluetooth.enable = true;
   filemanager.enable = true;
   file-utils.enable = true;
@@ -41,10 +52,14 @@
 
   users.users.rupan = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "video" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "video"
+    ];
     shell = pkgs.fish;
     ignoreShellProgramCheck = true;
-    initialHashedPassword = ""; 
+    initialHashedPassword = "";
     packages = with pkgs; [ tree ];
   };
 
@@ -53,8 +68,8 @@
 
   environment.shells = with pkgs; [ fish ];
   environment.systemPackages = with pkgs; [
-    wget 
-    neovim 
+    wget
+    neovim
     pciutils
     rsync
     git
@@ -85,13 +100,19 @@
   services.printing.enable = true;
   services.libinput.enable = true;
   services.openssh.enable = true;
-  
-  services.xserver.videoDrivers = [ "modesetting" "fbdev" ];
+
+  services.xserver.videoDrivers = [
+    "modesetting"
+    "fbdev"
+  ];
 
   time.timeZone = "America/Chicago";
 
-  networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+  networking.nameservers = [
+    "1.1.1.1"
+    "8.8.8.8"
+  ];
   networking.networkmanager.dns = "none";
 
-  system.stateVersion = "25.11"; 
+  system.stateVersion = "25.11";
 }

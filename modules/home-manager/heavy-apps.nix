@@ -1,4 +1,10 @@
-{ pkgs, lib, config, pkgs-stable, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  pkgs-stable,
+  ...
+}:
 
 {
   options.heavy-apps.enable = lib.mkEnableOption "heavy-apps";
@@ -8,7 +14,7 @@
     home.packages = with pkgs; [
       davinci-resolve
       bitwarden-desktop
-      libreoffice-qt-fresh  
+      libreoffice-qt-fresh
       netflix
       obs-studio
       localsend
