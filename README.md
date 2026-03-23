@@ -10,8 +10,10 @@ This repo is the source of truth for my NixOS system, home-manager setup, deskto
 - `hosts/` - machine-specific NixOS configs
 - `home/rupan/` - user home-manager entrypoints
 - `modules/nixos/` - reusable system modules
-- `modules/home-manager/` - reusable user modules and editable configs
-- `modules/home-manager/configs/` - mutable runtime configs symlinked into `$HOME`
+- `modules/home-manager/` - reusable user modules (auto-imported via import-tree)
+- `home/configs/` - mutable runtime configs symlinked into `$HOME`
+- `home/scripts/` - user scripts symlinked into `~/.local/bin`
+- `home/assets/` - wallpapers, previews, and other assets
 - `shells/` - dev shells, including ML and homelab environments
 
 ## Try The ISO
