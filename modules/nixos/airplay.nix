@@ -1,11 +1,16 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 {
   options.airplay.enable = lib.mkEnableOption "airplay";
 
   config = lib.mkIf config.airplay.enable {
-    environment.systemPackages = with pkgs; [ 
-      uxplay 
+    environment.systemPackages = with pkgs; [
+      uxplay
     ];
 
     services.avahi = {
@@ -20,8 +25,19 @@
     };
 
     networking.firewall = {
-      allowedTCPPorts = [ 7000 7001 7100 ];
-      allowedUDPPorts = [ 5353 6000 6001 6002 6003 7011 ];
+      allowedTCPPorts = [
+        7000
+        7001
+        7100
+      ];
+      allowedUDPPorts = [
+        5353
+        6000
+        6001
+        6002
+        6003
+        7011
+      ];
     };
   };
 }

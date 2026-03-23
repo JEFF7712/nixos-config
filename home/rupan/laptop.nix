@@ -1,4 +1,10 @@
-{ pkgs, inputs, lib, config, ... }:
+{
+  pkgs,
+  inputs,
+  lib,
+  config,
+  ...
+}:
 
 {
   imports = [
@@ -31,8 +37,7 @@
 
   # Rofi configs (out-of-store so they're editable without rebuild)
   xdg.configFile."rofi".source =
-    config.lib.file.mkOutOfStoreSymlink
-      "${config.home.homeDirectory}/nixos/home/configs/rofi";
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/home/configs/rofi";
 
   home.sessionPath = [ "$HOME/.local/bin" ];
 

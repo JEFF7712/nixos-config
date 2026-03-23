@@ -1,4 +1,11 @@
-{ pkgs, pkgs-stable, lib, config, inputs, ... }:
+{
+  pkgs,
+  pkgs-stable,
+  lib,
+  config,
+  inputs,
+  ...
+}:
 let
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.system};
 in
@@ -19,7 +26,7 @@ in
 
     programs.firefox = {
       enable = true;
-      profiles."09longn9.default-release" = {};
+      profiles."09longn9.default-release" = { };
     };
 
     xdg.mimeApps = {
@@ -45,8 +52,7 @@ in
     };
 
     home.file.".mozilla/firefox/09longn9.default-release/chrome".source =
-      config.lib.file.mkOutOfStoreSymlink
-        "${config.home.homeDirectory}/nixos/home/configs/firefox/chrome";
+      config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/home/configs/firefox/chrome";
 
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
@@ -54,9 +60,9 @@ in
 
     programs.spicetify = {
       enable = true;
-    
+
       theme = spicePkgs.themes.comfy;
-      colorScheme = "Spotify"; 
+      colorScheme = "Spotify";
 
       enabledExtensions = with spicePkgs.extensions; [
         fullAppDisplay
@@ -70,13 +76,13 @@ in
 
     programs.vscode = {
       enable = true;
-      mutableExtensionsDir = true; 
-      
+      mutableExtensionsDir = true;
+
       profiles.default = {
         extensions = with pkgs.vscode-marketplace; [
-          jnoortheen.nix-ide       
-          ms-python.python   
-          github.copilot     
+          jnoortheen.nix-ide
+          ms-python.python
+          github.copilot
           hashicorp.terraform
           pjmiravalle.terraform-advanced-syntax-highlighting
           redhat.vscode-yaml
@@ -84,10 +90,10 @@ in
           kdl-org.kdl
           ms-azuretools.vscode-docker
           rust-lang.rust-analyzer
-	        tauri-apps.tauri-vscode
+          tauri-apps.tauri-vscode
           llvm-vs-code-extensions.vscode-clangd
           ms-vscode.cmake-tools
-        ];        
+        ];
       };
     };
 

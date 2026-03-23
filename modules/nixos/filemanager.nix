@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 {
   options.filemanager.enable = lib.mkEnableOption "thunar file manager";
@@ -13,8 +18,8 @@
     };
 
     programs.xfconf.enable = true;
-    services.gvfs.enable = true; 
-    services.tumbler.enable = true; 
+    services.gvfs.enable = true;
+    services.tumbler.enable = true;
 
     xdg.mime.defaultApplications = {
       "inode/directory" = "thunar.desktop";

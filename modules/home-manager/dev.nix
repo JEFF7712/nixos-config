@@ -1,35 +1,41 @@
-{ pkgs, lib, config, inputs, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
+}:
 
 {
   options.dev.enable = lib.mkEnableOption "dev";
 
   config = lib.mkIf config.dev.enable {
-      programs.direnv = {
-        enable = true;
-        nix-direnv.enable = true;
-      };
+    programs.direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+    };
 
-      home.packages = with pkgs; [
-        geminicommit
-        jq
-        yq
-        net-tools
-        openssl_oqs
-        tcpdump
-        sops
-        age
-        dig
-        glab
-        nodejs_24
-        cloc
-        code-cursor
-        gh
-        glab
-        bun
-        pnpm
-        ags
-        uv
-        glab
-      ];
+    home.packages = with pkgs; [
+      geminicommit
+      jq
+      yq
+      net-tools
+      openssl_oqs
+      tcpdump
+      sops
+      age
+      dig
+      glab
+      nodejs_24
+      cloc
+      code-cursor
+      gh
+      glab
+      bun
+      pnpm
+      ags
+      uv
+      glab
+    ];
   };
 }

@@ -1,10 +1,15 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 {
   options.niri.enable = lib.mkEnableOption "niri window manager";
 
   config = lib.mkIf config.niri.enable {
-    
+
     programs.niri = {
       enable = true;
     };

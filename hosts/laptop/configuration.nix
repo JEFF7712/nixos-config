@@ -1,4 +1,10 @@
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
   imports = [
@@ -9,7 +15,10 @@
   nix = {
     package = pkgs.nix;
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       max-jobs = 1;
       cores = 4;
     };
@@ -34,7 +43,10 @@
   vpn.enable = true;
   git.enable = true;
 
-  environment.shells = with pkgs; [ fish bash ];
+  environment.shells = with pkgs; [
+    fish
+    bash
+  ];
   system.activationScripts.binbash = lib.stringAfter [ "usrbinenv" ] ''
     ln -sf ${pkgs.bash}/bin/bash /bin/bash
   '';
@@ -144,15 +156,22 @@
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 53317 ];
-    allowedUDPPorts = [ 53317 53 5353 22054 ];
+    allowedUDPPorts = [
+      53317
+      53
+      5353
+      22054
+    ];
   };
 
-  networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+  networking.nameservers = [
+    "1.1.1.1"
+    "8.8.8.8"
+  ];
   networking.networkmanager.dns = "none";
   networking.networkmanager.wifi.scanRandMacAddress = false;
   networking.networkmanager.wifi.macAddress = "preserve";
   networking.wireless.iwd.enable = false;
-
 
   system.autoUpgrade = {
     enable = true;
@@ -167,5 +186,5 @@
 
   nix.settings.auto-optimise-store = true;
 
-  system.stateVersion = "25.11"; #DO NOT EDIT
+  system.stateVersion = "25.11"; # DO NOT EDIT
 }

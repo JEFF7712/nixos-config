@@ -1,18 +1,28 @@
 # modules/home-manager/quickshell-bar.nix
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 let
   qs = inputs.quickshell.packages.${pkgs.system}.default;
-in {
+in
+{
   options.quickshell-bar.enable = lib.mkEnableOption "quickshell bar";
 
   config = lib.mkIf config.quickshell-bar.enable {
-    home.packages = [ qs pkgs.brightnessctl pkgs.playerctl ];
+    home.packages = [
+      qs
+      pkgs.brightnessctl
+      pkgs.playerctl
+    ];
 
     # Symlink the QML source directory as out-of-store so it's editable without rebuild.
     xdg.configFile."quickshell".source =
-      config.lib.file.mkOutOfStoreSymlink
-        "${config.home.homeDirectory}/nixos/home/configs/quickshell";
+      config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixos/home/configs/quickshell";
 
     # Systemd user service — only starts when the active profile is NOT noctalia.
     systemd.user.services.quickshell-bar = {

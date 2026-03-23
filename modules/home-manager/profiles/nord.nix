@@ -5,23 +5,24 @@
 # mako handles notifications (noctalia manages its own when active).
 
 let
-  nord0  = "#2e3440";
-  nord1  = "#3b4252";
-  nord2  = "#434c5e";
-  nord3  = "#4c566a";
-  nord4  = "#d8dee9";
-  nord5  = "#e5e9f0";
-  nord6  = "#eceff4";
-  nord7  = "#8fbcbb";
-  nord8  = "#88c0d0";
-  nord9  = "#81a1c1";
+  nord0 = "#2e3440";
+  nord1 = "#3b4252";
+  nord2 = "#434c5e";
+  nord3 = "#4c566a";
+  nord4 = "#d8dee9";
+  nord5 = "#e5e9f0";
+  nord6 = "#eceff4";
+  nord7 = "#8fbcbb";
+  nord8 = "#88c0d0";
+  nord9 = "#81a1c1";
   nord10 = "#5e81ac";
   nord11 = "#bf616a";
   nord12 = "#d08770";
   nord13 = "#ebcb8b";
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
-in {
+in
+{
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=#2e3440
@@ -52,42 +53,42 @@ in {
     bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
-      background     = nord0;
-      surface        = nord1;
+      background = nord0;
+      surface = nord1;
       surfaceVariant = nord2;
-      border         = nord3;
-      text           = nord6;
-      textSubtle     = nord4;
-      accent         = nord8;
-      accentText     = nord0;
-      success        = nord14;
-      warning        = nord13;
-      error          = nord11;
+      border = nord3;
+      text = nord6;
+      textSubtle = nord4;
+      accent = nord8;
+      accentText = nord0;
+      success = nord14;
+      warning = nord13;
+      error = nord11;
     };
 
     cursor = {
-      theme   = "Nordzy-cursors";
-      size    = 24;
+      theme = "Nordzy-cursors";
+      size = 24;
       package = pkgs.nordzy-cursor-theme;
     };
 
     wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/nord";
 
     niri = {
-      gaps               = 20;
-      borderOff          = true;
-      focusRingOff       = true;
-      shadowSoftness     = 20;
-      shadowSpread       = 3;
-      shadowOffsetX      = 0;
-      shadowOffsetY      = 4;
-      shadowColor        = "#00000080";
+      gaps = 20;
+      borderOff = true;
+      focusRingOff = true;
+      shadowSoftness = 20;
+      shadowSpread = 3;
+      shadowOffsetX = 0;
+      shadowOffsetY = 4;
+      shadowColor = "#00000080";
       shadowInactiveColor = "#00000040";
       shadowDrawBehindWindow = true;
-      tabIndicatorOff    = false;
-      tabIndicatorActiveColor   = nord8;
+      tabIndicatorOff = false;
+      tabIndicatorActiveColor = nord8;
       tabIndicatorInactiveColor = nord3;
-      windowOpacity      = 0.95;
+      windowOpacity = 0.95;
       windowHighlightOff = true;
     };
 

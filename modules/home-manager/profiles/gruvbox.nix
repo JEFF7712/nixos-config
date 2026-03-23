@@ -2,47 +2,48 @@
 
 let
   # ── Gruvbox Dark Hard ────────────────────────────────────────────────────────
-  bg0h  = "#1d2021";
-  bg0   = "#282828";
-  bg1   = "#3c3836";
-  bg2   = "#504945";
-  bg3   = "#665c54";
-  bg4   = "#7c6f64";
-  fg0   = "#fbf1c7";
-  fg1   = "#ebdbb2";
-  fg2   = "#d5c4a1";
-  fg3   = "#bdae93";
-  fg4   = "#a89984";
-  red   = "#fb4934";
+  bg0h = "#1d2021";
+  bg0 = "#282828";
+  bg1 = "#3c3836";
+  bg2 = "#504945";
+  bg3 = "#665c54";
+  bg4 = "#7c6f64";
+  fg0 = "#fbf1c7";
+  fg1 = "#ebdbb2";
+  fg2 = "#d5c4a1";
+  fg3 = "#bdae93";
+  fg4 = "#a89984";
+  red = "#fb4934";
   green = "#b8bb26";
   yellow = "#fabd2f";
-  blue  = "#83a598";
+  blue = "#83a598";
   purple = "#d3869b";
-  aqua  = "#8ec07c";
+  aqua = "#8ec07c";
   orange = "#fe8019";
-  gray  = "#928374";
+  gray = "#928374";
 
   # ── Gruvbox Light Hard ───────────────────────────────────────────────────────
-  l_bg0h   = "#f9f5d7";
-  l_bg0    = "#fbf1c7";
-  l_bg1    = "#ebdbb2";
-  l_bg2    = "#d5c4a1";
-  l_bg3    = "#bdae93";
-  l_bg4    = "#a89984";
-  l_fg0    = "#282828";
-  l_fg1    = "#3c3836";
-  l_fg2    = "#504945";
-  l_fg3    = "#665c54";
-  l_fg4    = "#7c6f64";
-  l_red    = "#9d0006";
-  l_green  = "#79740e";
+  l_bg0h = "#f9f5d7";
+  l_bg0 = "#fbf1c7";
+  l_bg1 = "#ebdbb2";
+  l_bg2 = "#d5c4a1";
+  l_bg3 = "#bdae93";
+  l_bg4 = "#a89984";
+  l_fg0 = "#282828";
+  l_fg1 = "#3c3836";
+  l_fg2 = "#504945";
+  l_fg3 = "#665c54";
+  l_fg4 = "#7c6f64";
+  l_red = "#9d0006";
+  l_green = "#79740e";
   l_yellow = "#b57614";
-  l_blue   = "#076678";
+  l_blue = "#076678";
   l_purple = "#8f3f71";
-  l_aqua   = "#427b58";
+  l_aqua = "#427b58";
   l_orange = "#af3a03";
-  l_gray   = "#928374";
-in {
+  l_gray = "#928374";
+in
+{
   xdg.configFile."mako/config".text = ''
     font=JetBrainsMono Nerd Font 11
     background-color=${bg0}
@@ -73,57 +74,57 @@ in {
     bar = "waybar";
 
     quickshell.colors = builtins.toJSON {
-      background     = bg0;
-      surface        = bg1;
+      background = bg0;
+      surface = bg1;
       surfaceVariant = bg2;
-      border         = bg3;
-      text           = fg1;
-      textSubtle     = fg2;
-      accent         = blue;
-      accentText     = bg0;
-      success        = green;
-      warning        = yellow;
-      error          = red;
+      border = bg3;
+      text = fg1;
+      textSubtle = fg2;
+      accent = blue;
+      accentText = bg0;
+      success = green;
+      warning = yellow;
+      error = red;
     };
 
     quickshell.colorsLight = builtins.toJSON {
-      background     = l_bg0;
-      surface        = l_bg1;
+      background = l_bg0;
+      surface = l_bg1;
       surfaceVariant = l_bg2;
-      border         = l_bg3;
-      text           = l_fg1;
-      textSubtle     = l_fg2;
-      accent         = l_blue;
-      accentText     = l_bg0;
-      success        = l_green;
-      warning        = l_yellow;
-      error          = l_red;
+      border = l_bg3;
+      text = l_fg1;
+      textSubtle = l_fg2;
+      accent = l_blue;
+      accentText = l_bg0;
+      success = l_green;
+      warning = l_yellow;
+      error = l_red;
     };
 
     cursor = {
-      theme   = "Capitaine Cursors (Gruvbox)";
-      size    = 24;
+      theme = "Capitaine Cursors (Gruvbox)";
+      size = 24;
       package = pkgs.capitaine-cursors-themed;
     };
 
-    wallpaperDir      = "/home/rupan/nixos/home/assets/wallpapers/gruvbox";
+    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/gruvbox";
     wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/gruvbox-light";
 
     niri = {
-      gaps               = 20;
-      borderOff          = true;
-      focusRingOff       = true;
-      shadowSoftness     = 20;
-      shadowSpread       = 3;
-      shadowOffsetX      = 0;
-      shadowOffsetY      = 4;
-      shadowColor        = "#00000080";
+      gaps = 20;
+      borderOff = true;
+      focusRingOff = true;
+      shadowSoftness = 20;
+      shadowSpread = 3;
+      shadowOffsetX = 0;
+      shadowOffsetY = 4;
+      shadowColor = "#00000080";
       shadowInactiveColor = "#00000040";
       shadowDrawBehindWindow = true;
-      tabIndicatorOff    = false;
-      tabIndicatorActiveColor   = yellow;
+      tabIndicatorOff = false;
+      tabIndicatorActiveColor = yellow;
       tabIndicatorInactiveColor = bg2;
-      windowOpacity      = 0.96;
+      windowOpacity = 0.96;
       windowHighlightOff = true;
     };
 
