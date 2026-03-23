@@ -39,11 +39,11 @@ Each host pulls from `hosts/<name>/configuration.nix` + `hardware-configuration.
 
 All modules use the `lib.mkEnableOption` / `lib.mkIf config.<name>.enable` pattern and are toggled per-host.
 
-**NixOS modules** (`modules/nixos/`): System-level — nvidia, niri, audio, bluetooth, docker, podman, distrobox, waydroid, game, vpn, netbird, etc. `bundle.nix` imports them all.
+**NixOS modules** (`modules/nixos/`): System-level — nvidia, niri, audio, bluetooth, docker, podman, distrobox, waydroid, game, vpn, netbird, etc. Auto-imported via `import-tree`.
 
-**Home-manager modules** (`modules/home-manager/`): User-level — niri (DE config), terminal (nixvim, fish, starship), common-apps, heavy-apps, dev, noctalia (theming), cli-tools, cli-toys. `bundle.nix` imports them all.
+**Home-manager modules** (`modules/home-manager/`): User-level — niri (DE config), terminal (nixvim, fish, starship), common-apps, heavy-apps, dev, noctalia (theming), cli-tools, cli-toys. Auto-imported via `import-tree`.
 
-### Configuration Files (`modules/home-manager/configs/`)
+### Configuration Files (`home/configs/`)
 
 Real config files (KDL, CSS, TOML, conf) that get symlinked into the home directory via `mkOutOfStoreSymlink`. This means they are **mutable at runtime** — edits to these files take effect without a rebuild. Includes configs for: niri, kitty, GTK 2/3/4, Qt 5/6, VS Code, fish, starship, Firefox.
 
@@ -54,12 +54,14 @@ The `noctalia` input provides a Material Design 3 theming system that generates 
 ### Key Inputs
 
 - `nixpkgs` (unstable) + `nixpkgs-stable` (25.11)
+- `flake-parts` (flake output structure), `import-tree` (automatic module discovery)
 - `home-manager`, `nixvim`, `spicetify-nix`, `nix-vscode-extensions`
-- `noctalia` (dynamic theming), `claude-desktop`, `globalprotect-openconnect`
+- `noctalia` (dynamic theming), `globalprotect-openconnect`
 
 ## Important Patterns
 
-- Config files in `modules/home-manager/configs/` are symlinked out-of-store — they are editable without rebuild
+- Config files in `home/configs/` are symlinked out-of-store — they are editable without rebuild
+- Modules are auto-discovered via `import-tree` — adding a new `.nix` file to `modules/nixos/` or `modules/home-manager/` is enough, no import list to update
 - Dev shells are defined in `shells/flake.nix`, not the main flake
 - The ISO build workflow (`.github/workflows/build-iso.yml`) triggers on git tags matching `v*`
 - GPU setup uses Intel iGPU + NVIDIA Prime offload with optional performance mode
