@@ -105,7 +105,6 @@ This module will be auto-imported by import-tree. All Nix modules then use `conf
 | File | Lines | What changes |
 |------|-------|-------------|
 | `modules/home-manager/noctalia.nix` | 166, 258 | wallpaper dir, avatar image |
-| `modules/home-manager/terminal.nix` | 65 | cniri alias |
 | `modules/home-manager/profiles/noctalia.nix` | 15 | wallpaperDir |
 | `modules/home-manager/profiles/everforest.nix` | 104-105 | wallpaperDir, wallpaperDirLight |
 | `modules/home-manager/profiles/rosepine.nix` | 101-102 | wallpaperDir, wallpaperDirLight |
@@ -120,13 +119,16 @@ This module will be auto-imported by import-tree. All Nix modules then use `conf
 | `home/configs/bashrc/.bashrc` | 11 | Uses `$HOME/nixos/...` — shell variable, can't use Nix options |
 | `home/configs/niri/config.kdl` | 205, 217 | Uses `$HOME/nixos/...` — KDL config, runtime |
 | `home/scripts/rofi-profile` | 6, 8 | Uses `$HOME/nixos/...` — shell script, runtime |
+| `modules/home-manager/terminal.nix` | 65 | cniri alias uses `$HOME` — shell variable, not a Nix path |
+| `modules/nixos/git.nix` | 15 | `safe.directory` — NixOS module, `config.repoPath` is home-manager scoped |
+| `hosts/iso/configuration.nix` | 14-17, 66 | Shell script strings for ISO activation, runtime paths |
 
 **Note on `terminal.nix:59`:** The `builtins.readFile ../../home/configs/bashrc/.bashrc` is a Nix eval-time relative path — it does not reference the repo by name, so no change needed.
 
 ### Files
 
 - Create: `modules/home-manager/repo-path.nix`
-- Modify: 13 files listed in inventory above
+- Modify: 11 files listed in inventory above
 
 ---
 
@@ -142,7 +144,10 @@ Create `.github/workflows/check.yml`:
 
 ```yaml
 name: Check
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   check:
@@ -157,16 +162,15 @@ jobs:
         run: nix flake check
       - name: Check formatting
         run: nix fmt -- --check
-      - name: Evaluate laptop config
-        run: nix eval .#nixosConfigurations.laptop.config.system.build.toplevel --impure
 ```
 
 **What each step catches:**
-- `nix flake check` — flake structure issues, broken inputs
+- `nix flake check` — flake structure issues, broken inputs, evaluates checks
 - `nix fmt -- --check` — unformatted Nix files (requires treefmt feature)
-- `nix eval --impure` — config evaluation errors (missing modules, type errors, broken references) without building derivations
 
-The `--impure` flag is needed because NixOS system evaluation may reference system-level paths. The existing `.github/workflows/build-iso.yml` is unaffected.
+**Why no `nix eval` step:** Full config evaluation depends on hardware-configuration.nix (disk UUIDs, kernel modules) which may not work on a generic CI runner. `nix flake check` already validates flake structure and treefmt checks. Full config eval can be added later with caching if needed.
+
+**Trigger pattern:** `push` only on `main` + all PRs avoids duplicate CI runs when pushing to a PR branch. The existing `.github/workflows/build-iso.yml` is unaffected.
 
 ### Files
 
