@@ -107,7 +107,7 @@
         {
           nixosConfigurations = {
             laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
-            iso = mkSystem "iso" ./home/rupan/laptop.nix;
+            iso = mkSystem "iso" ./home/rupan/iso.nix;
           };
         };
     };
