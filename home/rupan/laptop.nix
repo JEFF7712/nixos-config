@@ -1,8 +1,9 @@
-{ pkgs
-, inputs
-, lib
-, config
-, ...
+{
+  pkgs,
+  inputs,
+  lib,
+  config,
+  ...
 }:
 
 {
@@ -18,7 +19,7 @@
       default:
         lock_screen:
           timeout 300
-          command "noctalia-shell ipc --any-display call lockScreen lock"
+          command "lock-screen"
         end
         suspend:
           timeout 600
@@ -31,6 +32,7 @@
   home.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
     papirus-icon-theme
+    swaylock-effects
   ];
 
   niri.enable = true;

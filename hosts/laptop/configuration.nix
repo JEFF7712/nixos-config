@@ -36,7 +36,7 @@
   distrobox.enable = true;
   file-utils.enable = true;
   docker.enable = true;
-  netbird.enable = true;
+  netbird.enable = false; # temporarily disabled — netbird 0.65.3 fails to build (Go/gvisor version conflict)
   waydroid.enable = true;
   game.enable = true;
   airplay.enable = true;
@@ -130,6 +130,8 @@
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
+  security.pam.services.swaylock = { };
+
   programs.gnupg.agent = {
     enable = true;
     enableSSHSupport = true;

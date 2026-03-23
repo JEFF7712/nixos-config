@@ -19,7 +19,7 @@ let
       wheel
     ];
 
-    pythonRelaxDeps = [ "langchain-anthropic" ];
+    pythonRelaxDeps = [ "langchain-anthropic" "langchain-core" ];
 
     dependencies = with pkgs.python3Packages; [
       langchain
