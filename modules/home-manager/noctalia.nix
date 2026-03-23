@@ -169,7 +169,7 @@
 
         wallpaper = {
           enabled = true;
-          directory = "/home/rupan/nixos/home/assets/wallpapers/noctalia";
+          directory = "${config.repoPath}/home/assets/wallpapers/noctalia";
           panelPosition = "follow_bar";
           randomEnabled = true;
           randomIntervalSec = 3600;
@@ -336,7 +336,7 @@
         general = {
           animationDisabled = false;
           animationSpeed = 1;
-          avatarImage = "/home/rupan/nixos/home/assets/Sponge.jpg";
+          avatarImage = "${config.repoPath}/home/assets/Sponge.jpg";
           boxRadiusRatio = 1;
           compactLockScreen = true;
           dimmerOpacity = 0.2;

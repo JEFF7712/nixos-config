@@ -1,7 +1,7 @@
 # Noctalia desktop profile.
 # Colors are all null — noctalia-shell manages them dynamically at runtime.
 # Only niri settings, cursor, bar, and wallpaperDir are meaningful here.
-{ ... }:
+{ config, ... }:
 
 {
   desktopProfiles.profiles.noctalia = {
@@ -12,7 +12,7 @@
       size = 28;
     };
 
-    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/noctalia";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/noctalia";
 
     niri = {
       gaps = 5;

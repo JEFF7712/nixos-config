@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 let
   # ── Everforest Dark Hard ─────────────────────────────────────────────────────
@@ -102,8 +102,8 @@ in
       size = 24;
     };
 
-    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/everforest";
-    wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/everforest-light";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/everforest";
+    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/everforest-light";
 
     niri = {
       gaps = 18;

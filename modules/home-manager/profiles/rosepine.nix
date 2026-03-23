@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 let
   # ── Rosé Pine Main (dark) ────────────────────────────────────────────────────
@@ -99,8 +99,8 @@ in
       package = pkgs.rose-pine-cursor;
     };
 
-    wallpaperDir = "/home/rupan/nixos/home/assets/wallpapers/rosepine";
-    wallpaperDirLight = "/home/rupan/nixos/home/assets/wallpapers/rosepine-light";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/rosepine";
+    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/rosepine-light";
 
     niri = {
       gaps = 18;
