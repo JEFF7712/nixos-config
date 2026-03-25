@@ -24,6 +24,7 @@
       python3Packages.pywal
       mako
       waybar
+      ia-writer-quattro
     ];
 
     systemd.user.services.swww = {
