@@ -20,13 +20,34 @@
           config.allowUnfree = true;
         };
 
-        pythonEnv = pkgs.python3.withPackages (
+        myPython = pkgs.python3.override {
+          packageOverrides = pySelf: pySuper: {
+            mdtraj = pySuper.mdtraj.overridePythonAttrs (old: {
+              doCheck = false;
+            });
+            imbalanced-learn = pySuper.imbalanced-learn.overridePythonAttrs (old: {
+              propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [ pySelf.sklearn-compat ];
+            });
+          };
+        };
+
+        pythonEnv = myPython.withPackages (
           ps: with ps; [
             numpy
             pandas
             requests
             matplotlib
             openpyxl
+            scikit-learn
+            scipy
+            torch
+            torch-geometric
+            openmm
+            mdtraj
+            plotly
+            jupyterlab
+            pip
+            virtualenv
           ]
         );
       in
@@ -40,7 +61,6 @@
           cbe = pkgs.mkShell {
             packages = [
               pythonEnv
-              pkgs.python3Packages.scikit-learn
               pkgs.openblas
             ];
             shellHook = ''echo "CBE Shell ready." '';
@@ -49,17 +69,6 @@
           ml = pkgs.mkShell {
             packages = [
               pythonEnv
-              pkgs.python3Packages.pip
-              pkgs.python3Packages.virtualenv
-              pkgs.python3Packages.jupyterlab
-              pkgs.python3Packages.scikit-learn
-              pkgs.python3Packages.scipy
-              pkgs.python3Packages.torch
-              pkgs.python3Packages.torch-geometric
-              pkgs.python3Packages.imbalanced-learn
-              pkgs.python3Packages.openmm
-              pkgs.python3Packages.mdtraj
-              pkgs.python3Packages.plotly
             ];
 
             shellHook = ''
