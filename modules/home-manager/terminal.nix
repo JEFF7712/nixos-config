@@ -89,7 +89,8 @@
         tf = "terragrunt";
         zz = "zeditor .";
         gs = "git status --short";
-        gc = "nix-collect-garbage -d";
+        ngc = "nix-collect-garbage -d";
+        gp = "git push";
       };
       interactiveShellInit = ''
         set fish_greeting ""
