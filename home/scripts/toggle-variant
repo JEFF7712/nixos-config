@@ -132,6 +132,14 @@ case "$PROFILE:$NEW" in
     FF_MAIN="255, 249, 232";    FF_SEC="244, 240, 217"
     FF_ACCENT="141, 161, 1";    FF_TEXT="92, 106, 114"
     FF_ACCENT_HSL="hsl(75, 99%, 32%)" ;;
+  minimal:dark)
+    FF_MAIN="20, 20, 20";       FF_SEC="28, 28, 28"
+    FF_ACCENT="224, 224, 224";  FF_TEXT="242, 242, 242"
+    FF_ACCENT_HSL="hsl(0, 0%, 88%)" ;;
+  minimal:light)
+    FF_MAIN="250, 250, 250";    FF_SEC="240, 240, 240"
+    FF_ACCENT="26, 26, 26";     FF_TEXT="20, 20, 20"
+    FF_ACCENT_HSL="hsl(0, 0%, 10%)" ;;
   *)
     FF_MAIN=""; FF_SEC=""; FF_ACCENT=""; FF_TEXT=""; FF_ACCENT_HSL="" ;;
 esac
