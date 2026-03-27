@@ -1,6 +1,7 @@
 { pkgs, config, ... }:
 
 let
+  waybar = import ../../../lib/waybar.nix;
   # ── Rosé Pine Main (dark) ────────────────────────────────────────────────────
   base = "#191724";
   surface = "#1f1d2e";
@@ -338,135 +339,20 @@ in
     };
 
     waybar = {
-      config = ''
-        {
-          "layer": "top",
-          "height": 30,
-          "margin-top": 5,
-          "margin-left": 40,
-          "margin-right": 40,
-          "modules-left": [
-            "niri/workspaces",
-            "power-profiles-daemon",
-            "cpu",
-            "memory"
-          ],
-          "modules-center": [
-            "clock"
-          ],
-          "clock": {
-            "interval": 30,
-            "format": "{:%I:%M %p}",
-            "tooltip-format": "{:%a, %d %b %G}"
-          },
-          "modules-right": [
-            "pulseaudio",
-            "bluetooth",
-            "network",
-            "battery"
-          ],
-          "niri/window": { "max-length": 30 },
-          "tray": { "icon-size": 20, "spacing": 8 },
-          "pulseaudio": {
-            "format-source": "󰍬",
-            "format-source-muted": "󰍭",
-            "format": "{format_source} 󰕾 {volume}%",
-            "format-bluetooth": "{format_source} 󰂰 {volume}%",
-            "format-muted": "{format_source} 󰸈",
-            "on-click": "foot-popup pulsemixer",
-            "max-volume": 150,
-            "scroll-step": 1
-          },
-          "bluetooth": {
-            "format": "",
-            "format-disabled": "",
-            "format-off": "",
-            "format-on": "󰂯",
-            "format-connected": "󰂱 {device_alias}",
-            "max-length": 16
-          },
-          "network": {
-            "format": "{ifname}",
-            "format-wifi": "󰖩 {essid}",
-            "format-ethernet": "󰈀 {ipaddr}",
-            "format-disconnected": "Disconnected",
-            "max-length": 32
-          },
-          "battery": {
-            "interval": 60,
-            "format-time": "{H}:{m}",
-            "format-icons": ["󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹"],
-            "format-discharging": "{icon} {capacity}% ({time})",
-            "format-charging": "󰂄 {capacity}%",
-            "format": ""
-          },
-          "niri/workspaces": {
-            "format": "{icon}",
-            "on-click": "activate",
-            "format-icons": {
-              "1": "1","2": "2","3": "3","4": "4","5": "5",
-              "6": "6","7": "7","8": "8","9": "9","10": "10"
-            },
-            "persistent-workspaces": {
-              "1": [],"2": [],"3": [],"4": [],"5": [],
-              "6": [],"7": [],"8": [],"9": [],"10": []
-            },
-            "sort-by-number": true
-          },
-          "power-profiles-daemon": {
-            "format": "{icon}",
-            "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
-            "format-icons": {
-              "default": "󰾆",
-              "performance": "󱐌",
-              "balanced": "󰾆",
-              "power-saver": "󰾄"
-            }
-          },
-          "cpu": { "interval": 3, "format": "󰻠 {usage}%", "tooltip": false },
-          "memory": {
-            "interval": 3,
-            "format": "󰍛 {percentage}%",
-            "tooltip-format": "{used:0.1f}G / {total:0.1f}G"
-          }
-        }
-      '';
-
-      style = ''
-        * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-        window#waybar {
-          background-color: rgba(25, 23, 36, 0.6);
-          color: ${iris};
-          border: 1px solid ${highlightMed};
-          border-radius: 50px;
-          box-shadow: 0 10px 30px rgba(16, 14, 24, 0.45);
-        }
-        .modules-left, .modules-center, .modules-right { padding: 0 10px; }
-        #workspaces { padding: 0px 2px; }
-        #workspaces button {
-          padding: 0 10px;
-          margin: 0px 2px;
-          background: transparent;
-          color: ${iris};
-          border-radius: 10px;
-          border-bottom: 2px solid transparent;
-        }
-        #workspaces button.active {
-          color: ${iris};
-          background: ${overlay};
-        }
-        #workspaces button:hover { background: ${overlay}; color: ${rose}; }
-        #clock { color: ${rose}; font-weight: bold; padding: 0 10px; }
-        #pulseaudio, #bluetooth, #network, #battery, #tray, #cpu, #memory, #language {
-          color: ${iris};
-          padding: 0 10px;
-        }
-        #power-profiles-daemon { color: ${iris}; padding: 0 10px; }
-        #power-profiles-daemon.performance { color: ${love}; }
-        #power-profiles-daemon.balanced { color: ${iris}; }
-        #power-profiles-daemon.power-saver { color: ${pine}; }
-        #battery.critical { color: ${love}; }
-      '';
+      config = waybar.mkConfig { floating = true; };
+      style = waybar.mkFloatingStyle {
+        windowBg = "rgba(25, 23, 36, 0.6)";
+        primary = iris;
+        borderColor = highlightMed;
+        shadowColor = "rgba(16, 14, 24, 0.45)";
+        activeBg = overlay;
+        hoverColor = rose;
+        clockColor = rose;
+        performanceColor = love;
+        balancedColor = iris;
+        powerSaverColor = pine;
+        criticalColor = love;
+      };
     };
 
     colorsLight = {
@@ -637,32 +523,19 @@ in
       '';
     };
 
-    waybarLight.style = ''
-      * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
-      window#waybar {
-        background-color: rgba(250, 244, 237, 0.85);
-        color: ${d_iris};
-        border: 1px solid ${d_highlightMed};
-        border-radius: 50px;
-        box-shadow: 0 10px 30px rgba(223, 218, 217, 0.5);
-      }
-      .modules-left, .modules-center, .modules-right { padding: 0 10px; }
-      #workspaces { padding: 0px 2px; }
-      #workspaces button {
-        padding: 0 10px; margin: 0px 2px; background: transparent;
-        color: ${d_iris}; border-radius: 10px; border-bottom: 2px solid transparent;
-      }
-      #workspaces button.active { color: ${d_iris}; background: ${d_overlay}; }
-      #workspaces button:hover { background: ${d_overlay}; color: ${d_rose}; }
-      #clock { color: ${d_rose}; font-weight: bold; padding: 0 10px; }
-      #pulseaudio, #bluetooth, #network, #battery, #tray, #cpu, #memory, #language {
-        color: ${d_text}; padding: 0 10px;
-      }
-      #power-profiles-daemon { color: ${d_text}; padding: 0 10px; }
-      #power-profiles-daemon.performance { color: ${d_love}; }
-      #power-profiles-daemon.balanced { color: ${d_iris}; }
-      #power-profiles-daemon.power-saver { color: ${d_pine}; }
-      #battery.critical { color: ${d_love}; }
-    '';
+    waybarLight.style = waybar.mkFloatingStyle {
+      windowBg = "rgba(250, 244, 237, 0.85)";
+      primary = d_iris;
+      borderColor = d_highlightMed;
+      shadowColor = "rgba(223, 218, 217, 0.5)";
+      activeBg = d_overlay;
+      hoverColor = d_rose;
+      clockColor = d_rose;
+      textColor = d_text;
+      performanceColor = d_love;
+      balancedColor = d_iris;
+      powerSaverColor = d_pine;
+      criticalColor = d_love;
+    };
   };
 }
