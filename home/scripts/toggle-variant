@@ -225,8 +225,8 @@ if [ -f "$OBSIDIAN_MINIMAL" ]; then
     rosepine:light)     OBS_SCHEME="minimal-rose-pine-light" ;;
     everforest:dark)    OBS_SCHEME="minimal-everforest-dark" ;;
     everforest:light)   OBS_SCHEME="minimal-everforest-light" ;;
-    minimal:dark)       OBS_SCHEME="minimal-eink-dark" ;;
-    minimal:light)      OBS_SCHEME="minimal-eink-light" ;;
+    minimal:dark)       OBS_SCHEME="minimal-flexoki-dark" ;;
+    minimal:light)      OBS_SCHEME="minimal-flexoki-light" ;;
     *)                  OBS_SCHEME="" ;;
   esac
   if [ -n "$OBS_SCHEME" ]; then
