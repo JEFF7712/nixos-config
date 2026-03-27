@@ -91,6 +91,7 @@
         gs = "git status --short";
         ngc = "nix-collect-garbage -d";
         gp = "git push";
+        cc = "cursor .";
       };
       interactiveShellInit = ''
         set fish_greeting ""
