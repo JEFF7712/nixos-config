@@ -1,21 +1,21 @@
 * {
     font:                        "JetBrainsMono Nerd Font 11";
-    background-color:            #2e3440;
-    text-color:                  #d8dee9;
-    border-color:                #4c566a;
-    selected-normal-background:  #3b4252;
-    selected-normal-foreground:  #88c0d0;
-    normal-background:           #2e3440;
-    normal-foreground:           #d8dee9;
+    background-color:            #272e33;
+    text-color:                  #d3c6aa;
+    border-color:                #374145;
+    selected-normal-background:  #2e383c;
+    selected-normal-foreground:  #a7c080;
+    normal-background:           #272e33;
+    normal-foreground:           #d3c6aa;
 }
 
 window {
     width:              900px;
     border:             2px solid;
-    border-color:       #4c566a;
+    border-color:       #374145;
     border-radius:      8px;
     padding:            12px;
-    background-color:   #2e3440;
+    background-color:   #272e33;
 }
 
 mainbox {
@@ -26,20 +26,20 @@ mainbox {
 inputbar {
     padding:            8px 12px;
     margin:             0 0 10px 0;
-    background-color:   #3b4252;
+    background-color:   #2e383c;
     border-radius:      6px;
     children:           [ prompt, entry ];
 }
 
 prompt {
-    text-color:         #88c0d0;
+    text-color:         #a7c080;
     padding:            0 8px 0 0;
 }
 
 entry {
-    text-color:         #d8dee9;
+    text-color:         #d3c6aa;
     placeholder:        "Switch profile…";
-    placeholder-color:  #4c566a;
+    placeholder-color:  #414b50;
 }
 
 listview {
@@ -55,14 +55,14 @@ element {
     padding:            10px;
     spacing:            8px;
     border-radius:      6px;
-    background-color:   #3b4252;
+    background-color:   #2e383c;
     cursor:             pointer;
 }
 
 element selected {
-    background-color:   #434c5e;
+    background-color:   #374145;
     border:             2px solid;
-    border-color:       #88c0d0;
+    border-color:       #a7c080;
 }
 
 element-icon {

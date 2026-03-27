@@ -118,6 +118,10 @@ if [ "$TARGET" != "noctalia" ]; then
       FF_MAIN="39, 46, 51"; FF_SEC="46, 56, 60"
       FF_ACCENT="167, 192, 128"; FF_TEXT="211, 198, 170"
       FF_ACCENT_HSL="hsl(96, 27%, 63%)" ;;
+    minimal)
+      FF_MAIN="20, 20, 20"; FF_SEC="28, 28, 28"
+      FF_ACCENT="224, 224, 224"; FF_TEXT="242, 242, 242"
+      FF_ACCENT_HSL="hsl(0, 0%, 88%)" ;;
   esac
   cat > "$FF_GLOBALS" << EOF
 /* ============================================================================
@@ -175,6 +179,7 @@ EOF
       gruvbox)  WAL_THEME="base16-gruvbox-dark-hard" ;;
       rosepine)   WAL_THEME="base16-rose-pine" ;;
       everforest) WAL_THEME="base16-everforest" ;;
+      minimal)    WAL_THEME="base16-grayscale" ;;
       *)          WAL_THEME="base16-nord" ;;
     esac
     wal --theme "$WAL_THEME" -q 2>/dev/null || true
