@@ -54,6 +54,9 @@ in
     home.file.".mozilla/firefox/09longn9.default-release/chrome".source =
       config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/firefox/chrome";
 
+    xdg.configFile."vesktop/themes/minimal.theme.css".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vesktop/themes/minimal.theme.css";
+
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
     '';
