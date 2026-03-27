@@ -292,6 +292,7 @@ if [ -f "$ZED_SETTINGS" ]; then
     gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
     rosepine)   ZED_THEME="Rosé Pine"        ; ZED_ICON="Zed (Default)" ;;
     everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
+    minimal)    ZED_THEME="One Dark"          ; ZED_ICON="Zed (Default)" ;;
     *)          ZED_THEME=""                  ; ZED_ICON="" ;;
   esac
   if [ -n "$ZED_THEME" ]; then
@@ -312,6 +313,7 @@ if [ -f "$VESKTOP_SETTINGS" ]; then
     noctalia)   VESKTOP_THEME="noctalia.theme.css" ;;
     rosepine)   VESKTOP_THEME="rosepine.theme.css" ;;
     everforest) VESKTOP_THEME="everforest.theme.css" ;;
+    minimal)    VESKTOP_THEME="minimal.theme.css" ;;
     *)          VESKTOP_THEME="" ;;
   esac
   if [ -n "$VESKTOP_THEME" ]; then
@@ -337,6 +339,7 @@ if [ -f "$OBSIDIAN_MINIMAL" ]; then
     noctalia)   OBS_SCHEME="minimal-flexoki-dark" ;;
     rosepine)   OBS_SCHEME="minimal-rose-pine-dark" ;;
     everforest) OBS_SCHEME="minimal-everforest-dark" ;;
+    minimal)    OBS_SCHEME="minimal-flexoki-dark" ;;
     *)          OBS_SCHEME="" ;;
   esac
   if [ -n "$OBS_SCHEME" ]; then

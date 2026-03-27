@@ -206,6 +206,8 @@ if [ -f "$ZED_SETTINGS" ]; then
     rosepine:light)     ZED_THEME="Rosé Pine Dawn" ;;
     everforest:dark)    ZED_THEME="Everforest Dark Hard (blur)" ;;
     everforest:light)   ZED_THEME="Everforest Light Hard (blur)" ;;
+    minimal:dark)       ZED_THEME="One Dark" ;;
+    minimal:light)      ZED_THEME="One Light" ;;
     *)                  ZED_THEME="" ;;
   esac
   [ -n "$ZED_THEME" ] && sed -i "/\"theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
@@ -223,6 +225,8 @@ if [ -f "$OBSIDIAN_MINIMAL" ]; then
     rosepine:light)     OBS_SCHEME="minimal-rose-pine-light" ;;
     everforest:dark)    OBS_SCHEME="minimal-everforest-dark" ;;
     everforest:light)   OBS_SCHEME="minimal-everforest-light" ;;
+    minimal:dark)       OBS_SCHEME="minimal-eink-dark" ;;
+    minimal:light)      OBS_SCHEME="minimal-eink-light" ;;
     *)                  OBS_SCHEME="" ;;
   esac
   if [ -n "$OBS_SCHEME" ]; then
