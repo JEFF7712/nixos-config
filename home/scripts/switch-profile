@@ -292,7 +292,7 @@ if [ -f "$ZED_SETTINGS" ]; then
     gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
     rosepine)   ZED_THEME="Rosé Pine"        ; ZED_ICON="Zed (Default)" ;;
     everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
-    minimal)    ZED_THEME="One Dark"          ; ZED_ICON="Zed (Default)" ;;
+    minimal)    ZED_THEME="The Dark Side"          ; ZED_ICON="Zed (Default)" ;;
     *)          ZED_THEME=""                  ; ZED_ICON="" ;;
   esac
   if [ -n "$ZED_THEME" ]; then
