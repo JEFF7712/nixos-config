@@ -36,7 +36,7 @@
   distrobox.enable = true;
   file-utils.enable = true;
   docker.enable = true;
-  netbird.enable = false; # temporarily disabled — netbird 0.65.3 fails to build (Go/gvisor version conflict)
+  netbird.enable = true;
   waydroid.enable = true;
   game.enable = true;
   airplay.enable = true;
