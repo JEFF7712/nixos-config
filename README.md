@@ -18,7 +18,7 @@ This repo is the source of truth for my NixOS system, home-manager setup, deskto
 
 ## Try The ISO
 
-1. Download the ISO from `https://nix.rupan.dev`
+1. Download the ISO from https://nix.rupan.dev
 2. Flash it to a USB drive
 3. Boot from the USB drive
 4. Connect to Wi-Fi with `nmtui`
