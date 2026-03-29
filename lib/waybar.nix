@@ -44,6 +44,7 @@
           "tooltip-format": "{:%a, %d %b %G}"
         },
         "modules-right": [
+          "backlight",
           "pulseaudio",
           "bluetooth",
           "network",
@@ -51,6 +52,12 @@
         ],
         "niri/window": { "max-length": 30 },
         "tray": { "icon-size": 20, "spacing": 8 },
+        "backlight": {
+          "format": "󰃠 {percent}%",
+          "on-scroll-up": "brightnessctl set 5%+",
+          "on-scroll-down": "brightnessctl set 5%-",
+          "tooltip": false
+        },
         "pulseaudio": {
           "format-source": "󰍬",
           "format-source-muted": "󰍭",
@@ -146,7 +153,7 @@
       #workspaces button.active { color: ${activeText}; border-bottom: 2px solid ${activeUnderline}; }
       #workspaces button:hover { background: ${hoverBg}; color: ${fg}; }
       #clock { color: ${clockColor}; font-weight: bold; }
-      #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${fg}; padding: 0 8px; }
+      #backlight, #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${fg}; padding: 0 8px; }
       #cpu, #memory, #disk { color: ${fg}; padding: 0 8px; }
       #power-profiles-daemon { color: ${fg}; padding: 0 8px; }
       #power-profiles-daemon.performance { color: ${performanceColor}; }
@@ -196,7 +203,7 @@
       }
       #workspaces button:hover { background: ${activeBg}; color: ${hoverColor}; }
       #clock { color: ${clockColor}; font-weight: bold; padding: 0 10px; }
-      #pulseaudio, #bluetooth, #network, #battery, #tray, #cpu, #memory, #disk, #language {
+      #backlight, #pulseaudio, #bluetooth, #network, #battery, #tray, #cpu, #memory, #disk, #language {
         color: ${textColor};
         padding: 0 10px;
       }
