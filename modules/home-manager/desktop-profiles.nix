@@ -43,7 +43,6 @@ let
         type = lib.types.enum [
           "noctalia"
           "waybar"
-          "quickshell"
         ];
         description = "Which bar to run for this profile.";
       };
@@ -186,16 +185,6 @@ let
         };
       };
 
-      quickshell = {
-        colors = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-        colorsLight = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-      };
     };
   };
 
@@ -307,16 +296,8 @@ let
           ".config/desktop-profiles/${name}/waybar-style-light.css".text = profile.waybarLight.style;
         }
       );
-      quickshellFiles =
-        lib.optionalAttrs (profile.bar == "quickshell" && profile.quickshell.colors != null) {
-          ".config/desktop-profiles/${name}/quickshell-colors.json".text = profile.quickshell.colors;
-        }
-        // lib.optionalAttrs (profile.bar == "quickshell" && profile.quickshell.colorsLight != null) {
-          ".config/desktop-profiles/${name}/quickshell-colors-light.json".text =
-            profile.quickshell.colorsLight;
-        };
     in
-    base // lightFiles // waybarFiles // quickshellFiles;
+    base // lightFiles // waybarFiles;
 
 in
 {

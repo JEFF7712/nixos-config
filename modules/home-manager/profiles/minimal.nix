@@ -137,34 +137,6 @@ in
   desktopProfiles.profiles.minimal = {
     bar = "waybar";
 
-    quickshell.colors = builtins.toJSON {
-      background = bg0;
-      surface = bg1;
-      surfaceVariant = bg2;
-      border = bg3;
-      text = fg0;
-      textSubtle = fg2;
-      accent = accent;
-      accentText = bg0;
-      success = fg1;
-      warning = fg2;
-      error = err;
-    };
-
-    quickshell.colorsLight = builtins.toJSON {
-      background = l_bg0;
-      surface = l_bg1;
-      surfaceVariant = l_bg2;
-      border = l_bg3;
-      text = l_fg0;
-      textSubtle = l_fg2;
-      accent = l_accent;
-      accentText = l_bg0;
-      success = l_fg1;
-      warning = l_fg2;
-      error = l_err;
-    };
-
     cursor = {
       theme = "Adwaita";
       size = 24;
