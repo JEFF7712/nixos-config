@@ -85,14 +85,6 @@ if [ "$BAR" = "waybar" ]; then
     pkill -SIGUSR2 waybar 2>/dev/null || true
   fi
 fi
-if [ "$BAR" = "quickshell" ]; then
-  QS_COLORS=$(pick "$PROFILE_DIR/quickshell-colors.json" "$PROFILE_DIR/quickshell-colors-light.json")
-  if [ -s "$QS_COLORS" ]; then
-    mkdir -p "$HOME/.local/state/quickshell"
-    cp --remove-destination "$QS_COLORS" "$HOME/.local/state/quickshell/colors.json"
-    # Theme.qml watches colors.json via FileView — no signal or restart needed
-  fi
-fi
 
 # Firefox _globals.css
 FF_GLOBALS="$REPO/configs/firefox/chrome/DownToneUI/_globals.css"

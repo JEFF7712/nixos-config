@@ -70,34 +70,6 @@ in
   desktopProfiles.profiles.everforest = {
     bar = "waybar";
 
-    quickshell.colors = builtins.toJSON {
-      background = "#2d353b";
-      surface = "#343f44";
-      surfaceVariant = "#3d484d";
-      border = "#475258";
-      text = fg;
-      textSubtle = grey1;
-      accent = blue;
-      accentText = "#2d353b";
-      success = green;
-      warning = yellow;
-      error = red;
-    };
-
-    quickshell.colorsLight = builtins.toJSON {
-      background = l_bg0;
-      surface = "#f3ead3";
-      surfaceVariant = "#eae4ca";
-      border = "#e0dab5";
-      text = l_fg;
-      textSubtle = "#708090";
-      accent = l_blue;
-      accentText = l_bg0;
-      success = l_green;
-      warning = l_yellow;
-      error = l_red;
-    };
-
     cursor = {
       theme = "Adwaita";
       size = 24;

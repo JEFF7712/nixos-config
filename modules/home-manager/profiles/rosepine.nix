@@ -66,34 +66,6 @@ in
   desktopProfiles.profiles.rosepine = {
     bar = "waybar";
 
-    quickshell.colors = builtins.toJSON {
-      background = base;
-      surface = surface;
-      surfaceVariant = overlay;
-      border = highlightMed;
-      text = text;
-      textSubtle = subtle;
-      accent = iris;
-      accentText = base;
-      success = foam;
-      warning = gold;
-      error = love;
-    };
-
-    quickshell.colorsLight = builtins.toJSON {
-      background = d_base;
-      surface = d_surface;
-      surfaceVariant = d_overlay;
-      border = d_highlightMed;
-      text = d_text;
-      textSubtle = d_subtle;
-      accent = d_iris;
-      accentText = d_base;
-      success = d_foam;
-      warning = d_gold;
-      error = d_love;
-    };
-
     cursor = {
       theme = "BreezeX-RosePine-Linux";
       size = 24;

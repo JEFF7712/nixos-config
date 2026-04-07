@@ -74,34 +74,6 @@ in
   desktopProfiles.profiles.gruvbox = {
     bar = "waybar";
 
-    quickshell.colors = builtins.toJSON {
-      background = bg0;
-      surface = bg1;
-      surfaceVariant = bg2;
-      border = bg3;
-      text = fg1;
-      textSubtle = fg2;
-      accent = blue;
-      accentText = bg0;
-      success = green;
-      warning = yellow;
-      error = red;
-    };
-
-    quickshell.colorsLight = builtins.toJSON {
-      background = l_bg0;
-      surface = l_bg1;
-      surfaceVariant = l_bg2;
-      border = l_bg3;
-      text = l_fg1;
-      textSubtle = l_fg2;
-      accent = l_blue;
-      accentText = l_bg0;
-      success = l_green;
-      warning = l_yellow;
-      error = l_red;
-    };
-
     cursor = {
       theme = "Capitaine Cursors (Gruvbox)";
       size = 24;

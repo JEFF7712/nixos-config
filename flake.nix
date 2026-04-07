@@ -34,10 +34,6 @@
       url = "github:niri-wm/niri?ref=refs/heads/wip/branch";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    quickshell = {
-      url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     stasis = {
       url = "github:saltnpepper97/stasis";
       inputs.nixpkgs.follows = "nixpkgs";

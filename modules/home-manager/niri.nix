@@ -14,7 +14,7 @@
     home.packages = with pkgs; [
       grim
       slurp
-      swww
+      awww
       wl-clipboard
       nwg-look
       kdePackages.qt6ct
@@ -27,14 +27,14 @@
       ia-writer-quattro
     ];
 
-    systemd.user.services.swww = {
+    systemd.user.services.awww = {
       Unit = {
         Description = "Wayland wallpaper daemon";
         PartOf = [ "graphical-session.target" ];
         After = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = "${pkgs.swww}/bin/swww-daemon --no-cache";
+        ExecStart = "${pkgs.awww}/bin/awww-daemon --no-cache";
         Restart = "on-failure";
         RestartSec = 3;
       };

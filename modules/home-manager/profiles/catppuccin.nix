@@ -63,34 +63,6 @@ in
   desktopProfiles.profiles.catppuccin = {
     bar = "waybar";
 
-    quickshell.colors = builtins.toJSON {
-      background = base;
-      surface = surface0;
-      surfaceVariant = surface1;
-      border = surface2;
-      text = text;
-      textSubtle = subtext1;
-      accent = blue;
-      accentText = base;
-      success = green;
-      warning = yellow;
-      error = red;
-    };
-
-    quickshell.colorsLight = builtins.toJSON {
-      background = l_base;
-      surface = l_surface0;
-      surfaceVariant = l_surface1;
-      border = l_surface2;
-      text = l_text;
-      textSubtle = l_subtext1;
-      accent = l_blue;
-      accentText = l_base;
-      success = l_green;
-      warning = l_yellow;
-      error = l_red;
-    };
-
     cursor = {
       theme = "catppuccin-mocha-mauve-cursors";
       size = 28;

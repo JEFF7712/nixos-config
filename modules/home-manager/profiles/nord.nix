@@ -1,6 +1,5 @@
 { pkgs, config, ... }:
 
-# quickshell is required by this profile.
 # nordzy cursor/icon themes are used when available.
 # mako handles notifications (noctalia manages its own when active).
 
@@ -52,20 +51,6 @@ in
 
   desktopProfiles.profiles.nord = {
     bar = "waybar";
-
-    quickshell.colors = builtins.toJSON {
-      background = nord0;
-      surface = nord1;
-      surfaceVariant = nord2;
-      border = nord3;
-      text = nord6;
-      textSubtle = nord4;
-      accent = nord8;
-      accentText = nord0;
-      success = nord14;
-      warning = nord13;
-      error = nord11;
-    };
 
     cursor = {
       theme = "Nordzy-cursors";
