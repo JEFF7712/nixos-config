@@ -78,7 +78,7 @@ in
     };
 
     programs.vscode = {
-      enable = false; # temporarily disabled — VSCode CDN returning 503
+      enable = true;
       mutableExtensionsDir = true;
 
       profiles.default = {
