@@ -108,34 +108,34 @@ let
   '';
 in
 {
-  xdg.configFile."mako/config".text = ''
-    font=JetBrainsMono Nerd Font 11
-    background-color=${bg0}
-    text-color=${fg1}
-    border-color=${bg3}
-    border-size=1
-    border-radius=4
-    width=320
-    padding=12
-    margin=10
-    default-timeout=5000
-    icons=1
-    max-icon-size=48
-    layer=overlay
-
-    [urgency=low]
-    border-color=${bg2}
-    default-timeout=3000
-
-    [urgency=high]
-    background-color=${bg1}
-    border-color=${err}
-    text-color=${fg0}
-    default-timeout=0
-  '';
-
   desktopProfiles.profiles.minimal = {
     bar = "waybar";
+
+    makoConfig = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${bg0}
+      text-color=${fg1}
+      border-color=${bg3}
+      border-size=1
+      border-radius=4
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${bg2}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${bg1}
+      border-color=${err}
+      text-color=${fg0}
+      default-timeout=0
+    '';
 
     cursor = {
       theme = "Adwaita";
@@ -310,6 +310,7 @@ in
         performanceColor = fg2;
         balancedColor = fg1;
         powerSaverColor = fg2;
+        warningColor = accent;
         criticalColor = fg0;
         hoverBg = "rgba(255,255,255,0.06)";
       };
@@ -460,6 +461,7 @@ in
       performanceColor = l_fg2;
       balancedColor = l_fg1;
       powerSaverColor = l_fg2;
+      warningColor = l_accent;
       criticalColor = l_fg0;
       hoverBg = "rgba(0,0,0,0.06)";
     };

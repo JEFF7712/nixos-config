@@ -87,6 +87,10 @@
         },
         "battery": {
           "interval": 60,
+          "states": {
+            "warning": 20,
+            "critical": 10
+          },
           "format-time": "{H}:{m}",
           "format-icons": ["󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹"],
           "format-discharging": "{icon} {capacity}% ({time})",
@@ -141,6 +145,7 @@
       performanceColor, # power-profiles performance
       balancedColor, # power-profiles balanced
       powerSaverColor, # power-profiles power-saver
+      warningColor ? criticalColor, # battery warning
       criticalColor, # battery critical
       hoverBg ? "rgba(255,255,255,0.05)", # workspace hover background
     }:
@@ -159,6 +164,7 @@
       #power-profiles-daemon.performance { color: ${performanceColor}; }
       #power-profiles-daemon.balanced { color: ${balancedColor}; }
       #power-profiles-daemon.power-saver { color: ${powerSaverColor}; }
+      #battery.warning { color: ${warningColor}; }
       #battery.critical { color: ${criticalColor}; }
     '';
 
@@ -176,6 +182,7 @@
       performanceColor, # power-profiles performance
       balancedColor, # power-profiles balanced
       powerSaverColor, # power-profiles power-saver
+      warningColor ? criticalColor, # battery warning
       criticalColor, # battery critical
     }:
     ''
@@ -211,6 +218,7 @@
       #power-profiles-daemon.performance { color: ${performanceColor}; }
       #power-profiles-daemon.balanced { color: ${balancedColor}; }
       #power-profiles-daemon.power-saver { color: ${powerSaverColor}; }
+      #battery.warning { color: ${warningColor}; }
       #battery.critical { color: ${criticalColor}; }
     '';
 }
