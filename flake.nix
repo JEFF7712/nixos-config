@@ -24,10 +24,6 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    deepagents = {
-      url = "github:langchain-ai/deepagents";
-      flake = false;
-    };
     nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.2.0";
     globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
     niri-blur = {
