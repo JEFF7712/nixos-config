@@ -41,34 +41,34 @@ let
   l_grey2 = "#829181";
 in
 {
-  xdg.configFile."mako/config".text = ''
-    font=JetBrainsMono Nerd Font 11
-    background-color=${bg0}
-    text-color=${fg}
-    border-color=${green}
-    border-size=2
-    border-radius=8
-    width=320
-    padding=12
-    margin=10
-    default-timeout=5000
-    icons=1
-    max-icon-size=48
-    layer=overlay
-
-    [urgency=low]
-    border-color=${bg4}
-    default-timeout=3000
-
-    [urgency=high]
-    background-color=${bg1}
-    border-color=${red}
-    text-color=${fg}
-    default-timeout=0
-  '';
-
   desktopProfiles.profiles.everforest = {
     bar = "waybar";
+
+    makoConfig = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${bg0}
+      text-color=${fg}
+      border-color=${green}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${bg4}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${bg1}
+      border-color=${red}
+      text-color=${fg}
+      default-timeout=0
+    '';
 
     cursor = {
       theme = "Adwaita";
@@ -323,6 +323,7 @@ in
         performanceColor = red;
         balancedColor = green;
         powerSaverColor = aqua;
+        warningColor = yellow;
         criticalColor = red;
       };
     };
@@ -499,6 +500,7 @@ in
       performanceColor = l_red;
       balancedColor = l_green;
       powerSaverColor = l_aqua;
+      warningColor = l_yellow;
       criticalColor = l_red;
       hoverBg = "rgba(0,0,0,0.05)";
     };

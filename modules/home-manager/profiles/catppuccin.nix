@@ -63,6 +63,32 @@ in
   desktopProfiles.profiles.catppuccin = {
     bar = "waybar";
 
+    makoConfig = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${base}
+      text-color=${text}
+      border-color=${mauve}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${surface1}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${mantle}
+      border-color=${red}
+      text-color=${text}
+      default-timeout=0
+    '';
+
     cursor = {
       theme = "catppuccin-mocha-mauve-cursors";
       size = 28;
@@ -322,6 +348,7 @@ in
         performanceColor = red;
         balancedColor = mauve;
         powerSaverColor = green;
+        warningColor = yellow;
         criticalColor = pink;
       };
     };
@@ -553,6 +580,7 @@ in
       performanceColor = l_red;
       balancedColor = l_mauve;
       powerSaverColor = l_green;
+      warningColor = l_yellow;
       criticalColor = l_red;
     };
   };

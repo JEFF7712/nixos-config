@@ -23,34 +23,34 @@ let
   nord15 = "#b48ead";
 in
 {
-  xdg.configFile."mako/config".text = ''
-    font=JetBrainsMono Nerd Font 11
-    background-color=#2e3440
-    text-color=#d8dee9
-    border-color=#88c0d0
-    border-size=2
-    border-radius=8
-    width=320
-    padding=12
-    margin=10
-    default-timeout=5000
-    icons=1
-    max-icon-size=48
-    layer=overlay
-
-    [urgency=low]
-    border-color=#4c566a
-    default-timeout=3000
-
-    [urgency=high]
-    background-color=#3b4252
-    border-color=#bf616a
-    text-color=#eceff4
-    default-timeout=0
-  '';
-
   desktopProfiles.profiles.nord = {
     bar = "waybar";
+
+    makoConfig = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=#2e3440
+      text-color=#d8dee9
+      border-color=#88c0d0
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=#4c566a
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=#3b4252
+      border-color=#bf616a
+      text-color=#eceff4
+      default-timeout=0
+    '';
 
     cursor = {
       theme = "Nordzy-cursors";
@@ -305,6 +305,7 @@ in
         performanceColor = nord11;
         balancedColor = nord8;
         powerSaverColor = nord14;
+        warningColor = nord13;
         criticalColor = nord11;
       };
     };

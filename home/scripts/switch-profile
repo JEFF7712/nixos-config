@@ -210,9 +210,13 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
     cp "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc" 2>/dev/null || true
     cp "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css"   2>/dev/null || true
   fi
+  if [ -f "$TARGET_DIR/mako-config" ]; then
+    mkdir -p "$HOME/.config/mako"
+    cp "$TARGET_DIR/mako-config" "$HOME/.config/mako/config"
+  fi
   waybar 2>/dev/null &
   disown
-  # Start mako for nord notifications
+  # Start mako for waybar profile notifications
   mako 2>/dev/null &
   disown
 fi
