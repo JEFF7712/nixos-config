@@ -45,34 +45,34 @@ let
   l_gray = "#928374";
 in
 {
-  xdg.configFile."mako/config".text = ''
-    font=JetBrainsMono Nerd Font 11
-    background-color=${bg0}
-    text-color=${fg1}
-    border-color=${yellow}
-    border-size=2
-    border-radius=8
-    width=320
-    padding=12
-    margin=10
-    default-timeout=5000
-    icons=1
-    max-icon-size=48
-    layer=overlay
-
-    [urgency=low]
-    border-color=${bg3}
-    default-timeout=3000
-
-    [urgency=high]
-    background-color=${bg1}
-    border-color=${red}
-    text-color=${fg0}
-    default-timeout=0
-  '';
-
   desktopProfiles.profiles.gruvbox = {
     bar = "waybar";
+
+    makoConfig = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${bg0}
+      text-color=${fg1}
+      border-color=${yellow}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${bg3}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${bg1}
+      border-color=${red}
+      text-color=${fg0}
+      default-timeout=0
+    '';
 
     cursor = {
       theme = "Capitaine Cursors (Gruvbox)";
@@ -328,6 +328,7 @@ in
         performanceColor = red;
         balancedColor = yellow;
         powerSaverColor = green;
+        warningColor = yellow;
         criticalColor = red;
       };
     };
@@ -531,6 +532,7 @@ in
       performanceColor = l_red;
       balancedColor = l_yellow;
       powerSaverColor = l_green;
+      warningColor = l_yellow;
       criticalColor = l_red;
       hoverBg = "rgba(0,0,0,0.05)";
     };

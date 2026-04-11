@@ -37,34 +37,34 @@ let
   d_highlightHigh = "#cecacd";
 in
 {
-  xdg.configFile."mako/config".text = ''
-    font=JetBrainsMono Nerd Font 11
-    background-color=${base}
-    text-color=${text}
-    border-color=${iris}
-    border-size=2
-    border-radius=8
-    width=320
-    padding=12
-    margin=10
-    default-timeout=5000
-    icons=1
-    max-icon-size=48
-    layer=overlay
-
-    [urgency=low]
-    border-color=${highlightHigh}
-    default-timeout=3000
-
-    [urgency=high]
-    background-color=${surface}
-    border-color=${love}
-    text-color=${text}
-    default-timeout=0
-  '';
-
   desktopProfiles.profiles.rosepine = {
     bar = "waybar";
+
+    makoConfig = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${base}
+      text-color=${text}
+      border-color=${iris}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${highlightHigh}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${surface}
+      border-color=${love}
+      text-color=${text}
+      default-timeout=0
+    '';
 
     cursor = {
       theme = "BreezeX-RosePine-Linux";
@@ -323,6 +323,7 @@ in
         performanceColor = love;
         balancedColor = iris;
         powerSaverColor = pine;
+        warningColor = gold;
         criticalColor = love;
       };
     };
@@ -507,6 +508,7 @@ in
       performanceColor = d_love;
       balancedColor = d_iris;
       powerSaverColor = d_pine;
+      warningColor = d_gold;
       criticalColor = d_love;
     };
   };
