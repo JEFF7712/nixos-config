@@ -15,7 +15,6 @@
       davinci-resolve
       bitwarden-desktop
       libreoffice-qt-fresh
-      netflix
       obs-studio
       localsend
       tor-browser
@@ -28,7 +27,6 @@
       ovito
       pkgs-stable.avogadro2
       slack
-      blender
       f3d
       google-chrome
     ];
