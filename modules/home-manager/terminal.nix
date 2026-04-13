@@ -92,7 +92,7 @@
         ngc = "nix-collect-garbage -d";
         gp = "git push";
         cc = "cursor .";
-        claude = "claude --permission-mode auto";
+        claude = "claude --dangerously-skip-permissions";
       };
       interactiveShellInit = ''
         set fish_greeting ""
