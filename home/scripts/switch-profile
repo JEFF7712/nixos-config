@@ -207,12 +207,14 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
   systemctl --user start swww 2>/dev/null || true  # swww needed for static wallpapers
   if [ -f "$TARGET_DIR/waybar-config.jsonc" ]; then
     mkdir -p "$HOME/.config/waybar"
-    cp "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc" 2>/dev/null || true
-    cp "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css"   2>/dev/null || true
+    # Home Manager generates profile files as read-only; install writable copies
+    # so repeated profile switches can update the live config.
+    install -m 644 "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc"
+    install -m 644 "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css"
   fi
   if [ -f "$TARGET_DIR/mako-config" ]; then
     mkdir -p "$HOME/.config/mako"
-    cp "$TARGET_DIR/mako-config" "$HOME/.config/mako/config"
+    install -m 644 "$TARGET_DIR/mako-config" "$HOME/.config/mako/config"
   fi
   waybar 2>/dev/null &
   disown
