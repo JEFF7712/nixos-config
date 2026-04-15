@@ -27,7 +27,7 @@
     nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.2.0";
     globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
     niri-blur = {
-      url = "github:niri-wm/niri?ref=refs/heads/wip/branch";
+      url = "github:niri-wm/niri";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     stasis = {
