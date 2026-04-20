@@ -6,6 +6,9 @@
   ...
 }:
 
+let
+  cfg = config.programs.noctalia-shell;
+in
 {
   options.noctalia.enable = lib.mkEnableOption "enable noctalia";
 
@@ -106,7 +109,7 @@
 
     programs.noctalia-shell = {
       enable = true;
-      systemd.enable = true;
+      systemd.enable = false;
       user-templates = {
         config = {
           scheme_type = "scheme_tonal-spot";
@@ -659,11 +662,37 @@
       };
     };
 
-    # Only start noctalia-shell when the noctalia profile is active.
-    # ExecCondition exits non-zero → service is skipped (not failed) on rebuild
-    # when the user is on a different profile.
+    # Upstream deprecated `programs.noctalia-shell.systemd.enable`.
+    # Keep package/config generation from the upstream Home Manager module,
+    # but own the user service locally so rebuilds keep working.
     systemd.user.services.noctalia-shell = {
-      Service.ExecCondition = "${pkgs.bash}/bin/bash -c '[ \"$(cat %h/.config/desktop-profiles/active 2>/dev/null || echo noctalia)\" = \"noctalia\" ]'";
+      Unit = {
+        Description = "Noctalia Shell - Wayland desktop shell";
+        Documentation = "https://docs.noctalia.dev";
+        PartOf = [ config.wayland.systemd.target ];
+        After = [ config.wayland.systemd.target ];
+        X-Restart-Triggers =
+          lib.optional (cfg.settings != { }) "${config.xdg.configFile."noctalia/settings.json".source}"
+          ++ lib.optional (cfg.colors != { }) "${config.xdg.configFile."noctalia/colors.json".source}"
+          ++ lib.optional (cfg.plugins != { }) "${config.xdg.configFile."noctalia/plugins.json".source}"
+          ++ lib.optional (
+            cfg.user-templates != { }
+          ) "${config.xdg.configFile."noctalia/user-templates.toml".source}"
+          ++ lib.mapAttrsToList (
+            name: _: "${config.xdg.configFile."noctalia/plugins/${name}/settings.json".source}"
+          ) cfg.pluginSettings;
+      };
+      Service = {
+        # Only start noctalia-shell when the noctalia profile is active.
+        # ExecCondition exits non-zero, so the service is skipped rather than
+        # failed when the user is on a different profile during a rebuild.
+        ExecCondition = "${pkgs.bash}/bin/bash -c '[ \"$(cat %h/.config/desktop-profiles/active 2>/dev/null || echo noctalia)\" = \"noctalia\" ]'";
+        ExecStart = lib.getExe cfg.package;
+        Restart = "on-failure";
+      };
+      Install = {
+        WantedBy = [ config.wayland.systemd.target ];
+      };
     };
   };
 }

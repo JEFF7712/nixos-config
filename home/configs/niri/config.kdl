@@ -1,5 +1,6 @@
 // --- Startup ---
 spawn-at-startup "xwayland-satellite"
+spawn-at-startup "switch-profile" "--startup"
 
 screenshot-path "~/media/images/screenshots/ss-%Y-%m-%d-%H-%M-%S.png"
 
