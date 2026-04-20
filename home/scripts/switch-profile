@@ -6,6 +6,7 @@ ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
 REPO="$HOME/nixos/home"
+STARTUP_MODE=0
 
 list_profiles() {
   local current=""
@@ -22,19 +23,52 @@ list_profiles() {
   done
 }
 
-if [ $# -eq 0 ]; then
+pick_variant_file() {
+  local dark_f="$1"
+  local light_f="$2"
+
+  if [ "$TARGET_VARIANT" = "light" ] && [ -s "$light_f" ]; then
+    printf '%s\n' "$light_f"
+  else
+    printf '%s\n' "$dark_f"
+  fi
+}
+
+if [ "${1:-}" = "--startup" ]; then
+  STARTUP_MODE=1
+  shift
+fi
+
+if [ $STARTUP_MODE -eq 0 ] && [ $# -eq 0 ]; then
   list_profiles
   exit 0
 fi
 
-if [ "$1" = "-t" ] || [ "$1" = "--toggle" ]; then
+if [ $STARTUP_MODE -eq 0 ] && { [ "$1" = "-t" ] || [ "$1" = "--toggle" ]; }; then
   exec toggle-variant
 fi
 
-TARGET="$1"
+if [ $STARTUP_MODE -eq 1 ]; then
+  TARGET="${1:-$(cat "$ACTIVE_FILE" 2>/dev/null || echo "noctalia")}"
+  TARGET_VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+else
+  TARGET="$1"
+  TARGET_VARIANT="dark"
+fi
+
 TARGET_DIR="$PROFILES_DIR/$TARGET"
 
+if [ $STARTUP_MODE -eq 1 ] && [ ! -d "$TARGET_DIR" ]; then
+  TARGET="noctalia"
+  TARGET_DIR="$PROFILES_DIR/$TARGET"
+  TARGET_VARIANT="dark"
+fi
+
 if [ ! -d "$TARGET_DIR" ]; then
+  if [ $STARTUP_MODE -eq 1 ]; then
+    echo "Warning: profile '$TARGET' not found during startup; skipping." >&2
+    exit 0
+  fi
   echo "Error: profile '$TARGET' not found." >&2
   list_profiles
   exit 1
@@ -52,15 +86,16 @@ fi
 TARGET_BAR=$(jq -r '.bar' "$TARGET_DIR/meta.json")
 TARGET_CURSOR=$(jq -r '.cursor' "$TARGET_DIR/meta.json")
 TARGET_CURSOR_SIZE=$(jq -r '.cursorSize' "$TARGET_DIR/meta.json")
-TARGET_WALLPAPER_DIR=$(cat "$TARGET_DIR/wallpaper-dir" 2>/dev/null || echo "")
+TARGET_WALLPAPER_DIR_FILE=$(pick_variant_file "$TARGET_DIR/wallpaper-dir" "$TARGET_DIR/wallpaper-dir-light")
+TARGET_WALLPAPER_DIR=$(cat "$TARGET_WALLPAPER_DIR_FILE" 2>/dev/null || echo "")
 
 echo "Switching to profile: $TARGET"
 
 # 1. Stop current bar
-if [ "$CURRENT_BAR" = "noctalia" ]; then
+if [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "noctalia" ]; then
   echo "  Stopping noctalia-shell..."
   systemctl --user stop noctalia-shell 2>/dev/null || true
-elif [ "$CURRENT_BAR" = "waybar" ]; then
+elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
   echo "  Stopping waybar..."
   pkill -f waybar 2>/dev/null || true
   # Wait up to 2s for waybar to fully exit before proceeding
@@ -75,7 +110,7 @@ elif [ "$CURRENT_BAR" = "waybar" ]; then
 fi
 
 # 2. Copy color files (skip for noctalia — it manages its own colors)
-if [ "$TARGET" != "noctalia" ]; then
+if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
   echo "  Applying color files..."
   [ -s "$TARGET_DIR/gtk-3.0.css" ]       && cp "$TARGET_DIR/gtk-3.0.css"       "$REPO/configs/gtk-3.0/noctalia.css"
   [ -s "$TARGET_DIR/gtk-4.0.css" ]       && cp "$TARGET_DIR/gtk-4.0.css"       "$REPO/configs/gtk-4.0/noctalia.css"
@@ -191,10 +226,16 @@ echo "  Applying cursor..."
 gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
 
-# 6. Record active profile and reset variant to dark
-echo "$TARGET" > "$ACTIVE_FILE"
-echo "dark" > "$VARIANT_FILE"
-gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
+# 6. Record active profile and variant preference
+if [ $STARTUP_MODE -eq 0 ]; then
+  echo "$TARGET" > "$ACTIVE_FILE"
+  echo "dark" > "$VARIANT_FILE"
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
+elif [ "$TARGET_VARIANT" = "light" ]; then
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
+else
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
+fi
 
 # 6b. Start new bar + manage swww (noctalia has its own wallpaper engine; waybar needs swww)
 if [ "$TARGET_BAR" = "noctalia" ]; then
@@ -206,21 +247,36 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
   echo "  Starting waybar..."
   systemctl --user start swww 2>/dev/null || true  # swww needed for static wallpapers
   if [ -f "$TARGET_DIR/waybar-config.jsonc" ]; then
+    WAYBAR_STYLE=$(pick_variant_file "$TARGET_DIR/waybar-style.css" "$TARGET_DIR/waybar-style-light.css")
     mkdir -p "$HOME/.config/waybar"
     # Home Manager generates profile files as read-only; install writable copies
     # so repeated profile switches can update the live config.
     install -m 644 "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc"
-    install -m 644 "$TARGET_DIR/waybar-style.css"    "$HOME/.config/waybar/style.css"
+    install -m 644 "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
   fi
   if [ -f "$TARGET_DIR/mako-config" ]; then
     mkdir -p "$HOME/.config/mako"
     install -m 644 "$TARGET_DIR/mako-config" "$HOME/.config/mako/config"
   fi
-  waybar 2>/dev/null &
-  disown
+  if [ $STARTUP_MODE -eq 1 ]; then
+    pgrep -f waybar >/dev/null 2>&1 || {
+      waybar 2>/dev/null &
+      disown
+    }
+  else
+    waybar 2>/dev/null &
+    disown
+  fi
   # Start mako for waybar profile notifications
-  mako 2>/dev/null &
-  disown
+  if [ $STARTUP_MODE -eq 1 ]; then
+    pgrep -x mako >/dev/null 2>&1 || {
+      mako 2>/dev/null &
+      disown
+    }
+  else
+    mako 2>/dev/null &
+    disown
+  fi
 fi
 
 # 7. Set wallpaper (after bar start so noctalia IPC is available)
@@ -262,47 +318,48 @@ elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
 fi
 
 # 8. Signal kitty to reload colors (noctalia handles this via template-processor post_hook)
-if [ "$TARGET" != "noctalia" ]; then
+if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
   pkill -USR1 -x kitty 2>/dev/null || true
 fi
 
-# 9. Update Zed theme + icon theme
-ZED_SETTINGS="$HOME/.config/zed/settings.json"
-if [ -f "$ZED_SETTINGS" ]; then
-  case "$TARGET" in
-    catppuccin) ZED_THEME="Catppuccin Mocha (Blur)" ; ZED_ICON="Catppuccin Mocha" ;;
-    nord)       ZED_THEME="Nord Dark"         ; ZED_ICON="Zed (Default)" ;;
-    noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
-    gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
-    rosepine)   ZED_THEME="Rosé Pine"        ; ZED_ICON="Zed (Default)" ;;
-    everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
-    minimal)    ZED_THEME="The Dark Side"          ; ZED_ICON="Zed (Default)" ;;
-    *)          ZED_THEME=""                  ; ZED_ICON="" ;;
-  esac
-  if [ -n "$ZED_THEME" ]; then
-    sed -i "/\"theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+if [ $STARTUP_MODE -eq 0 ]; then
+  # 9. Update Zed theme + icon theme
+  ZED_SETTINGS="$HOME/.config/zed/settings.json"
+  if [ -f "$ZED_SETTINGS" ]; then
+    case "$TARGET" in
+      catppuccin) ZED_THEME="Catppuccin Mocha (Blur)" ; ZED_ICON="Catppuccin Mocha" ;;
+      nord)       ZED_THEME="Nord Dark"         ; ZED_ICON="Zed (Default)" ;;
+      noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
+      gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
+      rosepine)   ZED_THEME="Rosé Pine"        ; ZED_ICON="Zed (Default)" ;;
+      everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
+      minimal)    ZED_THEME="The Dark Side"          ; ZED_ICON="Zed (Default)" ;;
+      *)          ZED_THEME=""                  ; ZED_ICON="" ;;
+    esac
+    if [ -n "$ZED_THEME" ]; then
+      sed -i "/\"theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+    fi
+    if [ -n "$ZED_ICON" ]; then
+      sed -i "/\"icon_theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_ICON\"/" "$ZED_SETTINGS"
+    fi
   fi
-  if [ -n "$ZED_ICON" ]; then
-    sed -i "/\"icon_theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_ICON\"/" "$ZED_SETTINGS"
-  fi
-fi
 
-# 10. Update Vesktop theme
-VESKTOP_SETTINGS="$HOME/.config/vesktop/settings/settings.json"
-if [ -f "$VESKTOP_SETTINGS" ]; then
-  case "$TARGET" in
-    nord)       VESKTOP_THEME="nord.theme.css" ;;
-    catppuccin) VESKTOP_THEME="catppuccin.theme.css" ;;
-    gruvbox)    VESKTOP_THEME="gruvbox.theme.css" ;;
-    noctalia)   VESKTOP_THEME="noctalia.theme.css" ;;
-    rosepine)   VESKTOP_THEME="rosepine.theme.css" ;;
-    everforest) VESKTOP_THEME="everforest.theme.css" ;;
-    minimal)    VESKTOP_THEME="minimal.theme.css" ;;
-    *)          VESKTOP_THEME="" ;;
-  esac
-  if [ -n "$VESKTOP_THEME" ]; then
-    # Replace enabledThemes array with the single target theme
-    python3 -c "
+  # 10. Update Vesktop theme
+  VESKTOP_SETTINGS="$HOME/.config/vesktop/settings/settings.json"
+  if [ -f "$VESKTOP_SETTINGS" ]; then
+    case "$TARGET" in
+      nord)       VESKTOP_THEME="nord.theme.css" ;;
+      catppuccin) VESKTOP_THEME="catppuccin.theme.css" ;;
+      gruvbox)    VESKTOP_THEME="gruvbox.theme.css" ;;
+      noctalia)   VESKTOP_THEME="noctalia.theme.css" ;;
+      rosepine)   VESKTOP_THEME="rosepine.theme.css" ;;
+      everforest) VESKTOP_THEME="everforest.theme.css" ;;
+      minimal)    VESKTOP_THEME="minimal.theme.css" ;;
+      *)          VESKTOP_THEME="" ;;
+    esac
+    if [ -n "$VESKTOP_THEME" ]; then
+      # Replace enabledThemes array with the single target theme
+      python3 -c "
 import json, sys
 with open('$VESKTOP_SETTINGS', 'r') as f:
     s = json.load(f)
@@ -310,24 +367,24 @@ s['enabledThemes'] = ['$VESKTOP_THEME']
 with open('$VESKTOP_SETTINGS', 'w') as f:
     json.dump(s, f, indent=4)
 " 2>/dev/null || true
+    fi
   fi
-fi
 
-# 11. Update Obsidian Minimal Theme dark scheme
-OBSIDIAN_MINIMAL="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
-if [ -f "$OBSIDIAN_MINIMAL" ]; then
-  case "$TARGET" in
-    nord)       OBS_SCHEME="minimal-nord-dark" ;;
-    catppuccin) OBS_SCHEME="minimal-catppuccin-dark" ;;
-    gruvbox)    OBS_SCHEME="minimal-gruvbox-dark" ;;
-    noctalia)   OBS_SCHEME="minimal-flexoki-dark" ;;
-    rosepine)   OBS_SCHEME="minimal-rose-pine-dark" ;;
-    everforest) OBS_SCHEME="minimal-everforest-dark" ;;
-    minimal)    OBS_SCHEME="minimal-flexoki-dark" ;;
-    *)          OBS_SCHEME="" ;;
-  esac
-  if [ -n "$OBS_SCHEME" ]; then
-    python3 -c "
+  # 11. Update Obsidian Minimal Theme dark scheme
+  OBSIDIAN_MINIMAL="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
+  if [ -f "$OBSIDIAN_MINIMAL" ]; then
+    case "$TARGET" in
+      nord)       OBS_SCHEME="minimal-nord-dark" ;;
+      catppuccin) OBS_SCHEME="minimal-catppuccin-dark" ;;
+      gruvbox)    OBS_SCHEME="minimal-gruvbox-dark" ;;
+      noctalia)   OBS_SCHEME="minimal-flexoki-dark" ;;
+      rosepine)   OBS_SCHEME="minimal-rose-pine-dark" ;;
+      everforest) OBS_SCHEME="minimal-everforest-dark" ;;
+      minimal)    OBS_SCHEME="minimal-flexoki-dark" ;;
+      *)          OBS_SCHEME="" ;;
+    esac
+    if [ -n "$OBS_SCHEME" ]; then
+      python3 -c "
 import json
 with open('$OBSIDIAN_MINIMAL', 'r') as f:
     s = json.load(f)
@@ -335,9 +392,12 @@ s['darkScheme'] = '$OBS_SCHEME'
 with open('$OBSIDIAN_MINIMAL', 'w') as f:
     json.dump(s, f, indent=4)
 " 2>/dev/null || true
+    fi
   fi
-fi
 
-# 12. Notify
-notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
-echo "Done. Profile '$TARGET' is now active."
+  # 12. Notify
+  notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
+  echo "Done. Profile '$TARGET' is now active."
+else
+  echo "Done. Startup profile '$TARGET' reapplied."
+fi
