@@ -1,6 +1,3 @@
-# Pulse (https://github.com/JEFF7712/pulse) — systemd user service for NixOS + Home Manager.
-# Uses `uv run` from a local git checkout (not nixpkgs). Data: ~/.config/pulse, ~/.local/share/pulse
-# unless you set PULSE_* in extraEnvironment.
 {
   config,
   pkgs,
