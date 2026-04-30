@@ -11,6 +11,9 @@
 
   config = lib.mkIf config.ai-tools.enable {
     home.packages =
+      let
+        system = pkgs.stdenv.hostPlatform.system;
+      in
       (with pkgs; [
         claude-code
         opencode
@@ -18,7 +21,7 @@
         mcp-nixos
       ])
       ++ [
-        inputs.nix-agent.packages.${pkgs.system}.default
+        inputs.nix-agent.packages.${system}.default
       ];
   };
 }

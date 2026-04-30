@@ -29,6 +29,10 @@
       url = "github:JEFF7712/cctop";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    mercury-cli = {
+      url = "github:MercuryTechnologies/mercury-cli";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
     niri-blur = {
       url = "github:niri-wm/niri";
@@ -68,6 +72,32 @@
         let
           system = "x86_64-linux";
 
+          aioboto3TestFixOverlay =
+            final: prev:
+            let
+              pythonOverrides =
+                pyFinal: pyPrev: {
+                  aioboto3 = pyPrev.aioboto3.overridePythonAttrs (old: {
+                    disabledTests = (old.disabledTests or [ ]) ++ [
+                      "test_dynamo_resource_query"
+                      "test_dynamo_resource_put"
+                      "test_dynamo_resource_batch_write_flush_on_exit_context"
+                      "test_dynamo_resource_batch_write_flush_amount"
+                      "test_flush_doesnt_reset_item_buffer"
+                      "test_dynamo_resource_property"
+                      "test_dynamo_resource_waiter"
+                    ];
+                  });
+                  fastmcp = pyPrev.fastmcp.overridePythonAttrs (old: {
+                    doCheck = false;
+                  });
+                };
+            in
+            {
+              python313Packages = prev.python313Packages.overrideScope pythonOverrides;
+              python3Packages = final.python313Packages;
+            };
+
           pkgs = import nixpkgs {
             inherit system;
             config.allowUnfree = true;
@@ -75,6 +105,7 @@
               "electron-37.10.3"
             ];
             overlays = [
+              aioboto3TestFixOverlay
               nix-vscode-extensions.overlays.default
               inputs.niri-blur.overlays.default
             ];

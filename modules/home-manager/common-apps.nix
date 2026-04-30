@@ -7,7 +7,7 @@
   ...
 }:
 let
-  spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.system};
+  spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.stdenv.hostPlatform.system};
 in
 {
   imports = [ inputs.spicetify-nix.homeManagerModules.default ];
@@ -26,6 +26,7 @@ in
 
     programs.firefox = {
       enable = true;
+      configPath = ".mozilla/firefox";
       profiles."09longn9.default-release" = { };
     };
 
