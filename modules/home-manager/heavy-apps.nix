@@ -19,7 +19,7 @@
       localsend
       tor-browser
       feishin
-      gimp2
+      pkgs-stable.gimp2
       vlc
       avidemux
       telegram-desktop

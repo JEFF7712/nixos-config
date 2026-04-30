@@ -11,6 +11,9 @@
 
   config = lib.mkIf config.cli-tools.enable {
     home.packages =
+      let
+        system = pkgs.stdenv.hostPlatform.system;
+      in
       with pkgs;
       [
         tmux
@@ -22,7 +25,8 @@
         yazi
       ]
       ++ [
-        inputs.compchem-cctop.packages.${pkgs.system}.default
+        inputs.compchem-cctop.packages.${system}.default
+        inputs.mercury-cli.packages.${system}.default
       ];
   };
 }

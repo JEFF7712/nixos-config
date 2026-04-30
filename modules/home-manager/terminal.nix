@@ -82,18 +82,21 @@
         cities = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/cities-skylines-II/Cities2.exe";
         stellaris = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/stellaris/stellaris.exe";
         zed = "zeditor";
-        bn = "cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#laptop && nix fmt && git add . && git commit -m 'Updates' && git push";
+        bnix = "cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#laptop && nix fmt && git add . && git commit -m 'Updates' && git push";
       };
       shellAbbrs = {
         sp = "switch-profile";
         k = "kubectl";
+        t = "talosctl";
         tf = "terragrunt";
         zz = "zeditor .";
-        gs = "git status --short";
+        gs = "git status";
         ngc = "nix-collect-garbage -d";
         gp = "git push";
         cc = "cursor .";
         claude = "claude --dangerously-skip-permissions";
+        codex = "codex --yolo";
+        bn = "bnix";
       };
       interactiveShellInit = ''
         set fish_greeting ""
