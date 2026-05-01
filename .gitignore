@@ -1,5 +1,6 @@
 *.drv
 *.lock
+!flake.lock
 /result
 /tmp
 *.cache

@@ -2,11 +2,11 @@ window#osd {
   border-radius: 0;
   border: none;
   background: alpha(@theme_bg_color, 0.85);
-  min-width: 220px;
+  min-width: 160px;
 }
 
 window#osd #container {
-  margin: 8px 12px;
+  margin: 4px 8px;
 }
 
 window#osd image,
@@ -21,7 +21,7 @@ window#osd image:disabled {
 
 window#osd progressbar,
 window#osd segmentedprogress {
-  min-height: 3px;
+  min-height: 2px;
   border-radius: 0;
   background: transparent;
   border: none;
