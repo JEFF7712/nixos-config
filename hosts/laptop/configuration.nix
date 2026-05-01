@@ -19,7 +19,7 @@
         "nix-command"
         "flakes"
       ];
-      max-jobs = 1;
+      max-jobs = 4;
       cores = 4;
     };
   };
