@@ -168,6 +168,8 @@
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/qt5ct";
       xdg.configFile."qt6ct".source =
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/qt6ct";
+      xdg.configFile."swayosd".source =
+        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/swayosd";
     }
   );
 }
