@@ -99,6 +99,8 @@
         claude = "claude --dangerously-skip-permissions";
         codex = "codex --yolo";
         bn = "bnix";
+        bnt = "bnix-test";
+        pn = "pnix";
       };
       interactiveShellInit = ''
         set fish_greeting ""
