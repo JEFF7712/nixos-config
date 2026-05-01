@@ -89,6 +89,7 @@
         mako
         waybar
         ia-writer-quattro
+        swayosd
       ];
 
       systemd.user.services = {
@@ -117,6 +118,22 @@
           Service = {
             Type = "oneshot";
             ExecStart = lib.getExe batteryLowNotify;
+          };
+        };
+
+        swayosd = {
+          Unit = {
+            Description = "SwayOSD on-screen display server";
+            PartOf = [ "graphical-session.target" ];
+            After = [ "graphical-session.target" ];
+          };
+          Service = {
+            ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
+            Restart = "on-failure";
+            RestartSec = 3;
+          };
+          Install = {
+            WantedBy = [ "graphical-session.target" ];
           };
         };
       };
