@@ -126,9 +126,10 @@ apply_profile_appearance() {
   local variant="${2:-dark}"
   [ -f "$meta_file" ] || return 0
 
-  local gtk_theme icon_theme
+  local gtk_theme icon_theme kitty_opacity
   gtk_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end' "$meta_file")
   icon_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end' "$meta_file")
+  kitty_opacity=$(jq -r '.appearance.kittyOpacity // 1.0' "$meta_file")
 
   gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
@@ -137,6 +138,10 @@ apply_profile_appearance() {
   set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-icon-theme-name "$icon_theme"
   set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-theme-name "$gtk_theme"
   set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-icon-theme-name "$icon_theme"
+
+  if [ -f "$REPO/configs/kitty/kitty.conf" ]; then
+    sed -i "s|^background_opacity .*|background_opacity $kitty_opacity|" "$REPO/configs/kitty/kitty.conf"
+  fi
 }
 
 list_profiles() {
@@ -505,9 +510,10 @@ if [ $STARTUP_MODE -eq 0 ]; then
       nord)       ZED_THEME="Nord Dark"         ; ZED_ICON="Zed (Default)" ;;
       noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
       gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
-      rosepine)   ZED_THEME="Rosé Pine"        ; ZED_ICON="Zed (Default)" ;;
+      rosepine)   ZED_THEME="Rosé Pine"         ; ZED_ICON="Zed (Default)" ;;
       everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
-      minimal)    ZED_THEME="The Dark Side"          ; ZED_ICON="Zed (Default)" ;;
+      minimal)    ZED_THEME="The Dark Side"                ; ZED_ICON="Zed (Default)" ;;
+      clean)      ZED_THEME="Everforest Dark Medium (blur)"  ; ZED_ICON="Zed (Default)" ;;
       *)          ZED_THEME=""                  ; ZED_ICON="" ;;
     esac
     if [ -n "$ZED_THEME" ]; then
@@ -529,6 +535,7 @@ if [ $STARTUP_MODE -eq 0 ]; then
       rosepine)   VESKTOP_THEME="rosepine.theme.css" ;;
       everforest) VESKTOP_THEME="everforest.theme.css" ;;
       minimal)    VESKTOP_THEME="minimal.theme.css" ;;
+      clean)      VESKTOP_THEME="minimal.theme.css" ;;
       *)          VESKTOP_THEME="" ;;
     esac
     if [ -n "$VESKTOP_THEME" ]; then
@@ -555,6 +562,7 @@ with open('$VESKTOP_SETTINGS', 'w') as f:
       rosepine)   OBS_SCHEME="minimal-rose-pine-dark" ;;
       everforest) OBS_SCHEME="minimal-everforest-dark" ;;
       minimal)    OBS_SCHEME="minimal-flexoki-dark" ;;
+      clean)      OBS_SCHEME="minimal-flexoki-dark" ;;
       *)          OBS_SCHEME="" ;;
     esac
     if [ -n "$OBS_SCHEME" ]; then
