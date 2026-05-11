@@ -1,17 +1,14 @@
 /* Minimal icon grid launcher */
 
-* {
-    background-color:   transparent;
-    text-color:         transparent;
-}
+@import "profile-switcher.rasi"
 
 window {
     width:              520px;
     border:             1px solid;
-    border-color:       rgba(255,255,255,0.08);
+    border-color:       @border-color;
     border-radius:      12px;
     padding:            14px;
-    background-color:   rgba(20,20,30,0.88);
+    background-color:   @background-color;
 }
 
 mainbox {
@@ -22,15 +19,15 @@ mainbox {
 
 inputbar {
     padding:            6px 10px;
-    background-color:   rgba(255,255,255,0.06);
+    background-color:   @normal-background;
     border-radius:      8px;
     children:           [ entry ];
 }
 
 entry {
-    text-color:         rgba(255,255,255,0.70);
+    text-color:         @text-color;
     placeholder:        "Search…";
-    placeholder-color:  rgba(255,255,255,0.25);
+    placeholder-color:  @border-color;
 }
 
 listview {
@@ -52,7 +49,9 @@ element {
 }
 
 element selected {
-    background-color:   rgba(255,255,255,0.10);
+    background-color:   @selected-normal-background;
+    border:             1px solid;
+    border-color:       @selected-normal-foreground;
 }
 
 element-icon {

@@ -1,25 +1,52 @@
 # Shared waybar configuration helpers for desktop profiles.
 #
-# Two visual styles:
-#   - "floating" (catppuccin, rosepine): separated translucent module islands
-#   - "flat" (nord, gruvbox, everforest): transparent background, underline indicators
+# Three visual styles:
+#   - "flat": transparent background with underline workspace indicators
+#   - "floating": separated translucent module islands with dot workspaces
+#   - "pill": one unified rounded bar with dot workspaces
+#
+# Current profile usage:
+#   - Catppuccin, Rose Pine: pill
+#   - Everforest, Gruvbox, Nord: floating islands
+#   - Minimal: flat
 #
 # Usage from a profile:
 #   let waybar = import ../../../lib/waybar.nix;
-#   in { waybar.config = waybar.mkConfig { floating = true; }; ... }
+#   in {
+#     waybar.config = waybar.mkConfig { floating = true; pill = true; };
+#     waybar.style = waybar.mkPillStyle { ... };
+#   }
 
 {
   # ── Shared JSON config (modules, formats, icons) ──────────────────────
-  # The layout stays shared; floating style uses dot workspaces and CSS islands.
+  # Set floating = true for both pill and island styles to use dot workspace
+  # icons. Set pill = true for the thinner unified bar with screen margins.
   mkConfig =
     {
       floating ? false,
+      pill ? false,
       scriptDir ? "/home/rupan/nixos/home/scripts",
     }:
     ''
       {
         "layer": "top",
-        "height": ${if floating then "42" else "28"},
+        "height": ${
+          if pill then
+            "30"
+          else if floating then
+            "42"
+          else
+            "28"
+        },
+        ${
+          if pill then
+            ''
+              "margin-top": 8,
+                      "margin-left": 40,
+                      "margin-right": 40,''
+          else
+            ""
+        }
         "modules-left": [
           "niri/workspaces",
           "power-profiles-daemon",
@@ -296,6 +323,123 @@
         color: ${textColor};
         padding: 0 5px;
         transition: all 0.3s ease;
+      }
+
+      #power-profiles-daemon.performance { color: ${performanceColor}; }
+      #power-profiles-daemon.balanced { color: ${balancedColor}; }
+      #power-profiles-daemon.power-saver { color: ${powerSaverColor}; }
+      #battery.warning { color: ${warningColor}; }
+      #battery.critical { color: ${criticalColor}; }
+    '';
+
+  # ── Pill style (single unified rounded bar) ───────────────────────────
+  mkPillStyle =
+    {
+      windowBg, # window background (rgba string)
+      primary, # primary accent color
+      borderColor, # border color
+      shadowColor, # box-shadow rgba string
+      activeBg, # active workspace background
+      hoverColor ? primary, # workspace hover text color
+      clockColor ? primary, # clock text color
+      textColor ? primary, # general element text color (pulseaudio, etc.)
+      performanceColor, # power-profiles performance
+      balancedColor, # power-profiles balanced
+      powerSaverColor, # power-profiles power-saver
+      warningColor ? criticalColor, # battery warning
+      criticalColor, # battery critical
+    }:
+    ''
+      * {
+        border: none;
+        border-radius: 0;
+        font-family: "JetBrainsMono Nerd Font";
+        font-size: 13px;
+        min-height: 0;
+      }
+
+      window#waybar {
+        background-color: ${windowBg};
+        color: ${primary};
+        border: 1px solid ${borderColor};
+        border-radius: 999px;
+        box-shadow: 0 10px 30px ${shadowColor};
+      }
+
+      .modules-left,
+      .modules-center,
+      .modules-right {
+        padding: 0 10px;
+      }
+
+      tooltip {
+        background: ${windowBg};
+        color: ${textColor};
+        border: 1px solid ${borderColor};
+        border-radius: 10px;
+      }
+
+      #workspaces { padding: 0 2px; }
+
+      #workspaces button {
+        padding: 0 10px;
+        margin: 0 2px;
+        background: transparent;
+        color: ${primary};
+        border-radius: 999px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+      }
+
+      #workspaces button.active {
+        color: ${primary};
+        background: ${activeBg};
+      }
+
+      #workspaces button:hover {
+        background: ${activeBg};
+        color: ${hoverColor};
+      }
+
+      #clock {
+        color: ${clockColor};
+        font-weight: bold;
+        padding: 0 10px;
+      }
+
+      #custom-media,
+      #backlight,
+      #pulseaudio,
+      #bluetooth,
+      #network,
+      #battery,
+      #tray,
+      #cpu,
+      #memory,
+      #disk,
+      #language {
+        color: ${textColor};
+        padding: 0 10px;
+      }
+
+      #clock:hover,
+      #custom-media:hover,
+      #backlight:hover,
+      #pulseaudio:hover,
+      #bluetooth:hover,
+      #network:hover,
+      #battery:hover,
+      #tray:hover,
+      #cpu:hover,
+      #memory:hover,
+      #disk:hover,
+      #power-profiles-daemon:hover {
+        color: ${hoverColor};
+      }
+
+      #power-profiles-daemon {
+        color: ${textColor};
+        padding: 0 10px;
       }
 
       #power-profiles-daemon.performance { color: ${performanceColor}; }

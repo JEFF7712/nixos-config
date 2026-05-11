@@ -30,9 +30,20 @@
   };
 
   home.packages = with pkgs; [
+    ibm-plex
+    inter
+    noto-fonts
+    source-sans-pro
+    nerd-fonts.fira-code
+    nerd-fonts.hack
+    nerd-fonts.iosevka
     nerd-fonts.jetbrains-mono
+    nerd-fonts.symbols-only
+    colloid-icon-theme
     papirus-icon-theme
     swaylock-effects
+    tela-icon-theme
+    whitesur-icon-theme
   ];
 
   niri.enable = true;

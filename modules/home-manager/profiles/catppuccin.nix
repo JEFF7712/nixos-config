@@ -89,17 +89,61 @@ in
       default-timeout=0
     '';
 
+    makoConfigLight = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${l_base}
+      text-color=${l_text}
+      border-color=${l_mauve}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${l_surface1}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${l_mantle}
+      border-color=${l_red}
+      text-color=${l_text}
+      default-timeout=0
+    '';
+
     cursor = {
       theme = "catppuccin-mocha-mauve-cursors";
       size = 28;
       package = pkgs.catppuccin-cursors.mochaMauve;
     };
 
+    fonts = {
+      ui = {
+        family = "Inter";
+        size = 11;
+      };
+      mono = {
+        family = "FiraCode Nerd Font";
+        size = 14;
+      };
+    };
+
+    appearance = {
+      gtkTheme = "adw-gtk3-dark";
+      gtkThemeLight = "adw-gtk3";
+      iconTheme = "Tela-purple-dark";
+      iconThemeLight = "Tela-purple-light";
+    };
+
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/catppuccin";
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/catppuccin-light";
 
     niri = {
-      gaps = 18;
+      gaps = 14;
       borderOff = true;
       borderActiveColor = mauve;
       borderInactiveColor = surface1;
@@ -107,12 +151,12 @@ in
       focusRingOff = true;
       focusRingActiveColor = mauve;
       focusRingInactiveColor = surface1;
-      shadowSoftness = 22;
-      shadowSpread = 3;
+      shadowSoftness = 28;
+      shadowSpread = 4;
       shadowOffsetX = 0;
-      shadowOffsetY = 4;
-      shadowColor = "#00000088";
-      shadowInactiveColor = "#00000055";
+      shadowOffsetY = 6;
+      shadowColor = "#11111b88";
+      shadowInactiveColor = "#11111b44";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
       tabIndicatorActiveColor = mauve;
@@ -340,9 +384,10 @@ in
     waybar = {
       config = waybar.mkConfig {
         floating = true;
+        pill = true;
         scriptDir = "${config.repoPath}/home/scripts";
       };
-      style = waybar.mkFloatingStyle {
+      style = waybar.mkPillStyle {
         windowBg = "rgba(24, 24, 37, 0.6)";
         primary = pink;
         borderColor = surface0;
@@ -573,7 +618,7 @@ in
       '';
     };
 
-    waybarLight.style = waybar.mkFloatingStyle {
+    waybarLight.style = waybar.mkPillStyle {
       windowBg = "rgba(239, 241, 245, 0.85)";
       primary = l_mauve;
       borderColor = l_surface1;

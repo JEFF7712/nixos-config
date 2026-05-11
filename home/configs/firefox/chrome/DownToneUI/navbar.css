@@ -10,7 +10,7 @@
   .private-browsing-indicator-with-label { display: none; }
   #PanelUI-menu-button { list-style-image: url("chrome://global/skin/icons/indicator-private-browsing.svg") !important; }
   .urlbar-background {
-    border: var(--dtui-theme-border-width) solid rgba(128, 0, 215, 0.7) !important;
+    border: var(--dtui-theme-border-width) solid rgba(var(--dtui-theme-accent-color), 0.7) !important;
     outline: none !important;
   }
 }

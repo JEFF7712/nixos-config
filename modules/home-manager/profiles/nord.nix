@@ -58,23 +58,41 @@ in
       package = pkgs.nordzy-cursor-theme;
     };
 
+    fonts = {
+      ui = {
+        family = "IBM Plex Sans";
+        size = 11;
+      };
+      mono = {
+        family = "JetBrainsMono Nerd Font";
+        size = 14;
+      };
+    };
+
+    appearance = {
+      gtkTheme = "adw-gtk3-dark";
+      gtkThemeLight = null;
+      iconTheme = "Tela-nord-dark";
+      iconThemeLight = null;
+    };
+
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/nord";
 
     niri = {
-      gaps = 20;
+      gaps = 16;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 20;
-      shadowSpread = 3;
+      shadowSoftness = 14;
+      shadowSpread = 2;
       shadowOffsetX = 0;
-      shadowOffsetY = 4;
-      shadowColor = "#00000080";
-      shadowInactiveColor = "#00000040";
+      shadowOffsetY = 3;
+      shadowColor = "#24293380";
+      shadowInactiveColor = "#24293340";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
       tabIndicatorActiveColor = nord8;
       tabIndicatorInactiveColor = nord3;
-      windowOpacity = 0.95;
+      windowOpacity = 1.0;
       windowHighlightOff = true;
     };
 
@@ -296,12 +314,19 @@ in
     };
 
     waybar = {
-      config = waybar.mkConfig { scriptDir = "${config.repoPath}/home/scripts"; };
-      style = waybar.mkFlatStyle {
-        fg = nord4;
-        activeText = nord4;
-        activeUnderline = nord8;
+      config = waybar.mkConfig {
+        floating = true;
+        scriptDir = "${config.repoPath}/home/scripts";
+      };
+      style = waybar.mkFloatingStyle {
+        windowBg = "rgba(46, 52, 64, 0.6)";
+        primary = nord8;
+        borderColor = nord2;
+        shadowColor = "rgba(36, 41, 51, 0.45)";
+        activeBg = nord2;
+        hoverColor = nord7;
         clockColor = nord4;
+        textColor = nord4;
         performanceColor = nord11;
         balancedColor = nord8;
         powerSaverColor = nord14;
