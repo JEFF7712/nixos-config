@@ -1,25 +1,30 @@
 { pkgs, config, ... }:
 
 let
-  bg0 = "#2a2a2a";
-  bg1 = "#343434";
-  bg2 = "#444444";
-  bg3 = "#5a5a5a";
-  fg0 = "#f6f6f6";
-  fg1 = "#e0e0e0";
-  fg2 = "#b4b4b4";
-  accent = "#f0f0f0";
-  err = "#8a8a8a";
+  bg0 = "#141414";
+  bg1 = "#202020";
+  bg2 = "#323232";
+  bg3 = "#5f5f5f";
+  fg0 = "#ffffff";
+  fg1 = "#f2f2f2";
+  fg2 = "#c8c8c8";
+  accent = "#ffffff";
+  err = "#f0dada";
+  glass0 = "rgba(20, 20, 20, 0.42)";
+  glass1 = "rgba(255, 255, 255, 0.08)";
+  glass2 = "rgba(255, 255, 255, 0.14)";
+  glass3 = "rgba(255, 255, 255, 0.24)";
+  glassBorder = "rgba(255, 255, 255, 0.34)";
 
   rofi = ''
     * {
         font:                        "JetBrainsMono Nerd Font 11";
-        background-color:            ${bg0};
+        background-color:            ${glass0};
         text-color:                  ${fg1};
-        border-color:                ${bg3};
-        selected-normal-background:  ${bg1};
+        border-color:                ${glassBorder};
+        selected-normal-background:  ${glass2};
         selected-normal-foreground:  ${fg0};
-        normal-background:           ${bg0};
+        normal-background:           transparent;
         normal-foreground:           ${fg1};
     }
 
@@ -28,16 +33,16 @@ let
         border:             1px solid;
         border-radius:      6px;
         padding:            12px;
-        background-color:   ${bg0};
+        background-color:   ${glass0};
     }
 
     mainbox { spacing: 0; children: [ inputbar, listview ]; }
-    inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: ${bg1}; border-radius: 6px; children: [ prompt, entry ]; }
+    inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: ${glass1}; border: 1px solid; border-color: ${glassBorder}; border-radius: 6px; children: [ prompt, entry ]; }
     prompt { padding: 0 8px 0 0; }
     entry { placeholder: "Switch profile..."; placeholder-color: ${fg2}; }
     listview { columns: 3; lines: 2; spacing: 10px; fixed-height: false; scrollbar: false; }
-    element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 6px; background-color: ${bg1}; cursor: pointer; }
-    element selected { background-color: ${bg2}; border: 1px solid; border-color: ${accent}; }
+    element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 6px; background-color: ${glass1}; border: 1px solid; border-color: rgba(255, 255, 255, 0.16); cursor: pointer; }
+    element selected { background-color: ${glass2}; border: 1px solid; border-color: ${accent}; }
     element-icon { size: 160px; border-radius: 4px; horizontal-align: 0.5; }
     element-text { horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit; font: "JetBrainsMono Nerd Font 12"; }
   '';
@@ -54,7 +59,7 @@ in
 
     fonts = {
       ui = {
-        family = "Inter";
+        family = "JetBrainsMono Nerd Font";
         size = 11;
       };
       mono = {
@@ -68,15 +73,16 @@ in
       gtkThemeLight = null;
       iconTheme = "Colloid-Dark";
       iconThemeLight = null;
+      kittyOpacity = 0.48;
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/clean";
 
     makoConfig = ''
       font=JetBrainsMono Nerd Font 11
-      background-color=${bg0}
+      background-color=#14141499
       text-color=${fg1}
-      border-color=${bg3}
+      border-color=#ffffff66
       border-size=1
       border-radius=6
       width=320
@@ -88,77 +94,77 @@ in
       layer=overlay
 
       [urgency=low]
-      border-color=${bg2}
+      border-color=#ffffff44
       default-timeout=3000
 
       [urgency=high]
-      background-color=${bg1}
-      border-color=${err}
+      background-color=#202020bb
+      border-color=#ffffffaa
       text-color=${fg0}
       default-timeout=0
     '';
 
     niri = {
-      gaps = 4;
+      gaps = 12;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 1;
-      shadowSpread = 0;
+      shadowSoftness = 30;
+      shadowSpread = 4;
       shadowOffsetX = 0;
-      shadowOffsetY = 0;
-      shadowColor = "#00000000";
-      shadowInactiveColor = "#00000000";
+      shadowOffsetY = 8;
+      shadowColor = "#ffffff20";
+      shadowInactiveColor = "#00000030";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = true;
-      windowOpacity = 1.0;
+      windowOpacity = 0.72;
       windowHighlightOff = true;
     };
 
     colors = {
       gtk3 = ''
         @define-color accent_color ${accent};
-        @define-color accent_bg_color ${bg3};
+        @define-color accent_bg_color rgba(255, 255, 255, 0.24);
         @define-color accent_fg_color ${bg0};
         @define-color destructive_bg_color ${err};
         @define-color destructive_fg_color ${fg0};
         @define-color error_bg_color ${err};
         @define-color error_fg_color ${fg0};
-        @define-color window_bg_color ${bg0};
+        @define-color window_bg_color rgba(20, 20, 20, 0.54);
         @define-color window_fg_color ${fg1};
-        @define-color view_bg_color ${bg0};
+        @define-color view_bg_color rgba(20, 20, 20, 0.44);
         @define-color view_fg_color ${fg1};
-        @define-color headerbar_bg_color ${bg1};
+        @define-color headerbar_bg_color rgba(255, 255, 255, 0.08);
         @define-color headerbar_fg_color ${fg1};
-        @define-color popover_bg_color ${bg1};
+        @define-color popover_bg_color rgba(20, 20, 20, 0.74);
         @define-color popover_fg_color ${fg1};
-        @define-color card_bg_color ${bg1};
+        @define-color card_bg_color rgba(255, 255, 255, 0.08);
         @define-color card_fg_color ${fg1};
-        @define-color sidebar_bg_color ${bg1};
+        @define-color sidebar_bg_color rgba(255, 255, 255, 0.06);
         @define-color sidebar_fg_color ${fg1};
-        @define-color sidebar_border_color ${bg2};
+        @define-color sidebar_border_color rgba(255, 255, 255, 0.18);
       '';
 
       gtk4 = ''
         @define-color accent_color ${accent};
-        @define-color accent_bg_color ${bg3};
+        @define-color accent_bg_color rgba(255, 255, 255, 0.24);
         @define-color accent_fg_color ${bg0};
         @define-color destructive_bg_color ${err};
         @define-color destructive_fg_color ${fg0};
         @define-color error_bg_color ${err};
         @define-color error_fg_color ${fg0};
-        @define-color window_bg_color ${bg0};
+        @define-color window_bg_color rgba(20, 20, 20, 0.54);
         @define-color window_fg_color ${fg1};
-        @define-color view_bg_color ${bg0};
+        @define-color view_bg_color rgba(20, 20, 20, 0.44);
         @define-color view_fg_color ${fg1};
-        @define-color headerbar_bg_color ${bg1};
+        @define-color headerbar_bg_color rgba(255, 255, 255, 0.08);
         @define-color headerbar_fg_color ${fg1};
-        @define-color popover_bg_color ${bg1};
+        @define-color popover_bg_color rgba(20, 20, 20, 0.74);
         @define-color popover_fg_color ${fg1};
-        @define-color card_bg_color ${bg1};
+        @define-color card_bg_color rgba(255, 255, 255, 0.08);
         @define-color card_fg_color ${fg1};
-        @define-color sidebar_bg_color ${bg1};
+        @define-color sidebar_bg_color rgba(255, 255, 255, 0.06);
         @define-color sidebar_fg_color ${fg1};
-        @define-color sidebar_border_color ${bg2};
+        @define-color sidebar_border_color rgba(255, 255, 255, 0.18);
       '';
 
       qt6 = ''

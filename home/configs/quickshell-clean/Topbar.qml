@@ -139,6 +139,15 @@ PanelWindow {
         anchors.fill: parent
         radius: 15
         color: topbarWindow.themeBg
+        border.width: 1
+        border.color: Qt.rgba(1, 1, 1, 0.24)
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: parent.radius - 1
+            color: Qt.rgba(1, 1, 1, 0.06)
+        }
 
         Item {
             id: workspacesArea

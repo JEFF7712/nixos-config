@@ -1,79 +1,28 @@
 * {
-    font:                        "IBM Plex Sans 11";
-    background-color:            #2e3440;
-    text-color:                  #d8dee9;
-    border-color:                #4c566a;
-    selected-normal-background:  #3b4252;
-    selected-normal-foreground:  #88c0d0;
-    normal-background:           #2e3440;
-    normal-foreground:           #d8dee9;
+    font:                        "JetBrainsMono Nerd Font 11";
+    background-color:            #2a2a2a;
+    text-color:                  #e0e0e0;
+    border-color:                #5a5a5a;
+    selected-normal-background:  #343434;
+    selected-normal-foreground:  #f6f6f6;
+    normal-background:           #2a2a2a;
+    normal-foreground:           #e0e0e0;
 }
 
 window {
     width:              900px;
-    border:             2px solid;
-    border-color:       #4c566a;
-    border-radius:      8px;
+    border:             1px solid;
+    border-radius:      6px;
     padding:            12px;
-    background-color:   #2e3440;
+    background-color:   #2a2a2a;
 }
 
-mainbox {
-    spacing:            0;
-    children:           [ inputbar, listview ];
-}
-
-inputbar {
-    padding:            8px 12px;
-    margin:             0 0 10px 0;
-    background-color:   #3b4252;
-    border-radius:      6px;
-    children:           [ prompt, entry ];
-}
-
-prompt {
-    text-color:         #88c0d0;
-    padding:            0 8px 0 0;
-}
-
-entry {
-    text-color:         #d8dee9;
-    placeholder:        "Switch profile…";
-    placeholder-color:  #4c566a;
-}
-
-listview {
-    columns:            3;
-    lines:              2;
-    spacing:            10px;
-    fixed-height:       false;
-    scrollbar:          false;
-}
-
-element {
-    orientation:        vertical;
-    padding:            10px;
-    spacing:            8px;
-    border-radius:      6px;
-    background-color:   #3b4252;
-    cursor:             pointer;
-}
-
-element selected {
-    background-color:   #434c5e;
-    border:             2px solid;
-    border-color:       #88c0d0;
-}
-
-element-icon {
-    size:               160px;
-    border-radius:      4px;
-    horizontal-align:   0.5;
-}
-
-element-text {
-    horizontal-align:   0.5;
-    vertical-align:     0.5;
-    text-color:         inherit;
-    font:                        "IBM Plex Sans 11";
-}
+mainbox { spacing: 0; children: [ inputbar, listview ]; }
+inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: #343434; border-radius: 6px; children: [ prompt, entry ]; }
+prompt { padding: 0 8px 0 0; }
+entry { placeholder: "Switch profile..."; placeholder-color: #b4b4b4; }
+listview { columns: 3; lines: 2; spacing: 10px; fixed-height: false; scrollbar: false; }
+element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 6px; background-color: #343434; cursor: pointer; }
+element selected { background-color: #444444; border: 1px solid; border-color: #f0f0f0; }
+element-icon { size: 160px; border-radius: 4px; horizontal-align: 0.5; }
+element-text { horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit; font:                        "JetBrainsMono Nerd Font 11"; }

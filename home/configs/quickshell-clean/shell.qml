@@ -4,13 +4,13 @@ import Quickshell
 ShellRoot {
     id: root
 
-    property color themeFg: "#f6f6f6"
-    property color themeBg: "#cc2a2a2a"
-    property color themeRawBg: "#2a2a2a"
-    property color themeAccent: "#f0f0f0"
-    property color themeSecond: "#d0d0d0"
-    property color themeWarm: "#cfc0a0"
-    property color themeFresh: "#b8c8ba"
+    property color themeFg: "#ffffff"
+    property color themeBg: "#662a2a2a"
+    property color themeRawBg: "#141414"
+    property color themeAccent: "#ffffff"
+    property color themeSecond: "#e8e8e8"
+    property color themeWarm: "#e6dcc6"
+    property color themeFresh: "#d6eadc"
 
     Topbar {
         themeFg: root.themeFg

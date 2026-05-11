@@ -104,6 +104,10 @@ let
           type = lib.types.nullOr lib.types.str;
           default = "Papirus-Light";
         };
+        kittyOpacity = lib.mkOption {
+          type = lib.types.float;
+          default = 1.0;
+        };
       };
 
       wallpaperDir = lib.mkOption {

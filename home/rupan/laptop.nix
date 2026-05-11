@@ -40,7 +40,6 @@
     nerd-fonts.jetbrains-mono
     nerd-fonts.symbols-only
     colloid-icon-theme
-    papirus-icon-theme
     swaylock-effects
     tela-icon-theme
     whitesur-icon-theme
