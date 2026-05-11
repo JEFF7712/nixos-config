@@ -338,7 +338,10 @@ in
       '';
     };
     waybar = {
-      config = waybar.mkConfig { floating = true; };
+      config = waybar.mkConfig {
+        floating = true;
+        scriptDir = "${config.repoPath}/home/scripts";
+      };
       style = waybar.mkFloatingStyle {
         windowBg = "rgba(24, 24, 37, 0.6)";
         primary = pink;

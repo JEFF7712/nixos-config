@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+icon=""
+
+if ! command -v playerctl >/dev/null 2>&1; then
+  printf '{"text":"%s","tooltip":"playerctl not found","class":"idle"}\n' "$icon"
+  exit 0
+fi
+
+status="$(playerctl status 2>/dev/null || true)"
+title="$(playerctl metadata --format '{{title}}' 2>/dev/null || true)"
+artist="$(playerctl metadata --format '{{artist}}' 2>/dev/null || true)"
+
+if [[ -z "$status" || -z "$title" ]]; then
+  printf '{"text":"%s","tooltip":"Open media controls","class":"idle"}\n' "$icon"
+  exit 0
+fi
+
+short_title="$title"
+if (( ${#short_title} > 24 )); then
+  short_title="${short_title:0:21}..."
+fi
+
+class="paused"
+if [[ "$status" == "Playing" ]]; then
+  class="playing"
+fi
+
+tooltip="$title"
+if [[ -n "$artist" ]]; then
+  tooltip="$tooltip\\n$artist"
+fi
+
+python3 - "$icon" "$short_title" "$tooltip" "$class" <<'PY'
+import json
+import sys
+
+icon, short_title, tooltip, cls = sys.argv[1:]
+print(json.dumps({
+    "text": f"{icon} {short_title}",
+    "tooltip": tooltip,
+    "class": cls,
+}, ensure_ascii=False))
+PY

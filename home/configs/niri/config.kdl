@@ -213,7 +213,7 @@ binds {
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "noctalia-shell" "ipc" "--any-display" "call" "bar" "toggle"; }
     Mod+Alt+V { spawn "noctalia-shell" "ipc" "--any-display" "call" "launcher" "clipboard"; }
-    Mod+R { spawn "noctalia-shell" "ipc" "--any-display" "call" "wallpaper" "random"; }
+    Mod+R { spawn "bash" "/home/rupan/nixos/home/scripts/random-wallpaper"; }
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }
     Mod+Shift+T { spawn "bash" "/home/rupan/nixos/home/scripts/toggle-variant"; }

@@ -296,7 +296,7 @@ in
     };
 
     waybar = {
-      config = waybar.mkConfig { };
+      config = waybar.mkConfig { scriptDir = "${config.repoPath}/home/scripts"; };
       style = waybar.mkFlatStyle {
         fg = nord4;
         activeText = nord4;

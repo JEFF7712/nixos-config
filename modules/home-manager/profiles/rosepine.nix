@@ -311,7 +311,10 @@ in
     };
 
     waybar = {
-      config = waybar.mkConfig { floating = true; };
+      config = waybar.mkConfig {
+        floating = true;
+        scriptDir = "${config.repoPath}/home/scripts";
+      };
       style = waybar.mkFloatingStyle {
         windowBg = "rgba(25, 23, 36, 0.6)";
         primary = iris;

@@ -1,7 +1,7 @@
 # Shared waybar configuration helpers for desktop profiles.
 #
 # Two visual styles:
-#   - "floating" (catppuccin, rosepine): pill-shaped, semi-transparent, bordered
+#   - "floating" (catppuccin, rosepine): separated translucent module islands
 #   - "flat" (nord, gruvbox, everforest): transparent background, underline indicators
 #
 # Usage from a profile:
@@ -10,24 +10,16 @@
 
 {
   # ── Shared JSON config (modules, formats, icons) ──────────────────────
-  # The only layout difference is height + margins for floating style.
+  # The layout stays shared; floating style uses dot workspaces and CSS islands.
   mkConfig =
     {
       floating ? false,
+      scriptDir ? "/home/rupan/nixos/home/scripts",
     }:
     ''
       {
         "layer": "top",
-        "height": ${if floating then "30" else "28"},
-        ${
-          if floating then
-            ''
-              "margin-top": 5,
-                          "margin-left": 40,
-                          "margin-right": 40,''
-          else
-            ""
-        }
+        "height": ${if floating then "42" else "28"},
         "modules-left": [
           "niri/workspaces",
           "power-profiles-daemon",
@@ -38,6 +30,11 @@
         "modules-center": [
           "clock"
         ],
+        "custom/media": {
+          "exec": "${scriptDir}/waybar-media",
+          "return-type": "json",
+          "interval": 5
+        },
         "clock": {
           "interval": 30,
           "format": "{:%I:%M %p}",
@@ -82,7 +79,7 @@
           "format-wifi": "󰖩 {essid}",
           "format-ethernet": "󰈀 {ipaddr}",
           "format-disconnected": "Disconnected",
-          "on-click": "kitty sudo nmtui",
+          "on-click": "kitty -e sudo nmtui",
           "max-length": 32
         },
         "battery": {
@@ -107,8 +104,16 @@
           "format": "{icon}",
           "on-click": "activate",
           "format-icons": {
-            "1": "󰝥","2": "󰝥","3": "󰝥","4": "󰝥","5": "󰝥",
-            "6": "󰝥","7": "󰝥","8": "󰝥","9": "󰝥","10": "󰝥"
+            ${
+              if floating then
+                ''
+                  "1": "","2": "","3": "","4": "","5": "",
+                              "6": "","7": "","8": "","9": "","10": ""''
+              else
+                ''
+                  "1": "󰝥","2": "󰝥","3": "󰝥","4": "󰝥","5": "󰝥",
+                              "6": "󰝥","7": "󰝥","8": "󰝥","9": "󰝥","10": "󰝥"''
+            }
           },
           "persistent-workspaces": {
             "1": [],"2": [],"3": [],"4": [],"5": [],
@@ -158,7 +163,7 @@
       #workspaces button.active { color: ${activeText}; border-bottom: 2px solid ${activeUnderline}; }
       #workspaces button:hover { background: ${hoverBg}; color: ${fg}; }
       #clock { color: ${clockColor}; font-weight: bold; }
-      #backlight, #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${fg}; padding: 0 8px; }
+      #custom-media, #backlight, #battery, #bluetooth, #network, #pulseaudio, #tray { color: ${fg}; padding: 0 8px; }
       #cpu, #memory, #disk { color: ${fg}; padding: 0 8px; }
       #power-profiles-daemon { color: ${fg}; padding: 0 8px; }
       #power-profiles-daemon.performance { color: ${performanceColor}; }
@@ -168,7 +173,7 @@
       #battery.critical { color: ${criticalColor}; }
     '';
 
-  # ── Floating style (pill-shaped, semi-transparent, bordered) ──────────
+  # ── Floating style (separated translucent module islands) ─────────────
   mkFloatingStyle =
     {
       windowBg, # window background (rgba string)
@@ -186,35 +191,113 @@
       criticalColor, # battery critical
     }:
     ''
-      * { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font"; font-size: 13px; min-height: 0; }
+      * {
+        border: none;
+        border-radius: 0;
+        font-family: "JetBrainsMono Nerd Font";
+        font-size: 13px;
+        min-height: 0;
+      }
+
       window#waybar {
-        background-color: ${windowBg};
+        all: unset;
+        background-color: transparent;
         color: ${primary};
-        border: 1px solid ${borderColor};
-        border-radius: 50px;
-        box-shadow: 0 10px 30px ${shadowColor};
       }
-      .modules-left, .modules-center, .modules-right { padding: 0 10px; }
-      #workspaces { padding: 0px 2px; }
-      #workspaces button {
-        padding: 0 10px;
-        margin: 0px 2px;
-        background: transparent;
-        color: ${primary};
+
+      .modules-left,
+      .modules-center,
+      .modules-right {
+        padding: 7px;
+        margin-top: 10px;
+        margin-bottom: 5px;
         border-radius: 10px;
-        border-bottom: 2px solid transparent;
+        background: ${windowBg};
+        border: 1px solid ${borderColor};
+        box-shadow: 0 0 2px ${shadowColor};
       }
+
+      .modules-left { margin-left: 10px; }
+      .modules-right { margin-right: 10px; }
+
+      tooltip {
+        background: ${windowBg};
+        color: ${textColor};
+        border: 1px solid ${borderColor};
+        border-radius: 8px;
+      }
+
+      #workspaces { padding: 0 5px; }
+
+      #workspaces button {
+        all: unset;
+        padding: 0 5px;
+        background: transparent;
+        color: ${activeBg};
+        transition: all 0.2s ease;
+      }
+
       #workspaces button.active {
         color: ${primary};
-        background: ${activeBg};
+        text-shadow: 0 0 2px ${shadowColor};
       }
-      #workspaces button:hover { background: ${activeBg}; color: ${hoverColor}; }
-      #clock { color: ${clockColor}; font-weight: bold; padding: 0 10px; }
-      #backlight, #pulseaudio, #bluetooth, #network, #battery, #tray, #cpu, #memory, #disk, #language {
+
+      #workspaces button.empty {
+        color: transparent;
+        text-shadow: 0 0 1.5px ${shadowColor};
+      }
+
+      #workspaces button:hover,
+      #workspaces button.empty:hover {
+        color: ${hoverColor};
+        text-shadow: 0 0 2px ${shadowColor};
+        transition: all 0.3s ease;
+      }
+
+      #clock {
+        color: ${clockColor};
+        font-weight: bold;
+        padding: 0 5px;
+        transition: all 0.3s ease;
+      }
+
+      #custom-media,
+      #backlight,
+      #pulseaudio,
+      #bluetooth,
+      #network,
+      #battery,
+      #tray,
+      #cpu,
+      #memory,
+      #disk,
+      #language {
         color: ${textColor};
-        padding: 0 10px;
+        padding: 0 5px;
+        transition: all 0.3s ease;
       }
-      #power-profiles-daemon { color: ${textColor}; padding: 0 10px; }
+
+      #clock:hover,
+      #custom-media:hover,
+      #backlight:hover,
+      #pulseaudio:hover,
+      #bluetooth:hover,
+      #network:hover,
+      #battery:hover,
+      #tray:hover,
+      #cpu:hover,
+      #memory:hover,
+      #disk:hover,
+      #power-profiles-daemon:hover {
+        color: ${hoverColor};
+      }
+
+      #power-profiles-daemon {
+        color: ${textColor};
+        padding: 0 5px;
+        transition: all 0.3s ease;
+      }
+
       #power-profiles-daemon.performance { color: ${performanceColor}; }
       #power-profiles-daemon.balanced { color: ${balancedColor}; }
       #power-profiles-daemon.power-saver { color: ${powerSaverColor}; }
