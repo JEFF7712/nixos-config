@@ -74,25 +74,69 @@ in
       default-timeout=0
     '';
 
+    makoConfigLight = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${l_bg0}
+      text-color=${l_fg1}
+      border-color=${l_yellow}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${l_bg3}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${l_bg1}
+      border-color=${l_red}
+      text-color=${l_fg0}
+      default-timeout=0
+    '';
+
     cursor = {
       theme = "Capitaine Cursors (Gruvbox)";
       size = 24;
       package = pkgs.capitaine-cursors-themed;
     };
 
+    fonts = {
+      ui = {
+        family = "Source Sans Pro";
+        size = 11;
+      };
+      mono = {
+        family = "Iosevka Nerd Font";
+        size = 14;
+      };
+    };
+
+    appearance = {
+      gtkTheme = "adw-gtk3-dark";
+      gtkThemeLight = "adw-gtk3";
+      iconTheme = "Tela-yellow-dark";
+      iconThemeLight = "Tela-yellow-light";
+    };
+
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/gruvbox";
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/gruvbox-light";
 
     niri = {
-      gaps = 20;
+      gaps = 26;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 20;
-      shadowSpread = 3;
+      shadowSoftness = 30;
+      shadowSpread = 6;
       shadowOffsetX = 0;
-      shadowOffsetY = 4;
-      shadowColor = "#00000080";
-      shadowInactiveColor = "#00000040";
+      shadowOffsetY = 7;
+      shadowColor = "#1d202180";
+      shadowInactiveColor = "#1d202140";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
       tabIndicatorActiveColor = yellow;
@@ -319,12 +363,19 @@ in
     };
 
     waybar = {
-      config = waybar.mkConfig { scriptDir = "${config.repoPath}/home/scripts"; };
-      style = waybar.mkFlatStyle {
-        fg = fg1;
-        activeText = yellow;
-        activeUnderline = yellow;
+      config = waybar.mkConfig {
+        floating = true;
+        scriptDir = "${config.repoPath}/home/scripts";
+      };
+      style = waybar.mkFloatingStyle {
+        windowBg = "rgba(40, 40, 40, 0.6)";
+        primary = yellow;
+        borderColor = bg2;
+        shadowColor = "rgba(29, 32, 33, 0.45)";
+        activeBg = bg2;
+        hoverColor = orange;
         clockColor = yellow;
+        textColor = fg1;
         performanceColor = red;
         balancedColor = yellow;
         powerSaverColor = green;
@@ -524,17 +575,20 @@ in
       '';
     };
 
-    waybarLight.style = waybar.mkFlatStyle {
-      fg = l_fg1;
-      activeText = l_yellow;
-      activeUnderline = l_yellow;
+    waybarLight.style = waybar.mkFloatingStyle {
+      windowBg = "rgba(251, 241, 199, 0.85)";
+      primary = l_yellow;
+      borderColor = l_bg2;
+      shadowColor = "rgba(189, 174, 147, 0.45)";
+      activeBg = l_bg2;
+      hoverColor = l_orange;
       clockColor = l_yellow;
+      textColor = l_fg1;
       performanceColor = l_red;
       balancedColor = l_yellow;
       powerSaverColor = l_green;
       warningColor = l_yellow;
       criticalColor = l_red;
-      hoverBg = "rgba(0,0,0,0.05)";
     };
   };
 }

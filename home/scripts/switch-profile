@@ -52,6 +52,93 @@ set_zed_icon_theme() {
     "$settings_file"
 }
 
+set_gtk_setting() {
+  local settings_file="$1"
+  local key="$2"
+  local value="$3"
+
+  mkdir -p "$(dirname "$settings_file")"
+  if [ -L "$settings_file" ] && [ ! -e "$settings_file" ]; then
+    rm -f "$settings_file"
+  fi
+  if [ ! -f "$settings_file" ]; then
+    printf '[Settings]\n' > "$settings_file"
+  fi
+
+  if grep -q "^$key=" "$settings_file"; then
+    sed -i "s|^$key=.*|$key=$value|" "$settings_file"
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$settings_file"
+  fi
+}
+
+apply_profile_fonts() {
+  local meta_file="$1"
+  [ -f "$meta_file" ] || return 0
+
+  local ui_font ui_size mono_font mono_size
+  ui_font=$(jq -r '.fonts.ui.family // "JetBrainsMono Nerd Font"' "$meta_file")
+  ui_size=$(jq -r '.fonts.ui.size // 11' "$meta_file")
+  mono_font=$(jq -r '.fonts.mono.family // "JetBrainsMono Nerd Font"' "$meta_file")
+  mono_size=$(jq -r '.fonts.mono.size // 14' "$meta_file")
+
+  gsettings set org.gnome.desktop.interface font-name "$ui_font $ui_size" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface document-font-name "$ui_font $ui_size" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface monospace-font-name "$mono_font $mono_size" 2>/dev/null || true
+
+  set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-font-name "$ui_font $ui_size"
+  set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-font-name "$ui_font $ui_size"
+
+  for qt_conf in "$REPO/configs/qt5ct/qt5ct.conf" "$REPO/configs/qt6ct/qt6ct.conf"; do
+    [ -f "$qt_conf" ] || continue
+    sed -i \
+      -e "s|^fixed=.*|fixed=\"$mono_font,$mono_size,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"|" \
+      -e "s|^general=.*|general=\"$ui_font,$ui_size,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"|" \
+      "$qt_conf"
+  done
+
+  if [ -f "$REPO/configs/kitty/kitty.conf" ]; then
+    sed -i \
+      -e "s|^font_family .*|font_family      family=\"$mono_font\"|" \
+      -e "s|^font_size .*|font_size $mono_size|" \
+      "$REPO/configs/kitty/kitty.conf"
+  fi
+
+  if [ -f "$REPO/configs/rofi/profile-switcher.rasi" ]; then
+    sed -i -E "s|font:[[:space:]]*\"[^\"]+ [0-9]+\";|font:                        \"$ui_font $ui_size\";|g" \
+      "$REPO/configs/rofi/profile-switcher.rasi"
+  fi
+
+  if [ -f "$HOME/.config/waybar/style.css" ]; then
+    sed -i -E \
+      -e "s|font-family: [^;]+;|font-family: \"$ui_font\", \"Symbols Nerd Font\";|g" \
+      -e "s|font-size: [0-9]+px;|font-size: ${ui_size}px;|g" \
+      "$HOME/.config/waybar/style.css"
+  fi
+
+  if [ -f "$HOME/.config/mako/config" ]; then
+    sed -i "s|^font=.*|font=$ui_font $ui_size|" "$HOME/.config/mako/config"
+  fi
+}
+
+apply_profile_appearance() {
+  local meta_file="$1"
+  local variant="${2:-dark}"
+  [ -f "$meta_file" ] || return 0
+
+  local gtk_theme icon_theme
+  gtk_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end' "$meta_file")
+  icon_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end' "$meta_file")
+
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
+
+  set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
+  set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-icon-theme-name "$icon_theme"
+  set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-theme-name "$gtk_theme"
+  set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-icon-theme-name "$icon_theme"
+}
+
 list_profiles() {
   local current=""
   [ -f "$ACTIVE_FILE" ] && current=$(cat "$ACTIVE_FILE")
@@ -151,6 +238,10 @@ elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
   rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
   # Stop mako (nord uses mako; noctalia manages its own notifications)
   pkill -x mako 2>/dev/null || true
+elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "clean" ]; then
+  echo "  Stopping clean topbar..."
+  pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
+  pkill -x mako 2>/dev/null || true
 fi
 
 # 2. Copy color files (skip for noctalia — it manages its own colors)
@@ -159,6 +250,7 @@ if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
   [ -s "$TARGET_DIR/gtk-3.0.css" ]       && cp "$TARGET_DIR/gtk-3.0.css"       "$REPO/configs/gtk-3.0/noctalia.css"
   [ -s "$TARGET_DIR/gtk-4.0.css" ]       && cp "$TARGET_DIR/gtk-4.0.css"       "$REPO/configs/gtk-4.0/noctalia.css"
   [ -s "$TARGET_DIR/qt6ct.conf" ]        && cp "$TARGET_DIR/qt6ct.conf"        "$REPO/configs/qt6ct/colors/noctalia.conf"
+  [ -s "$TARGET_DIR/qt6ct.conf" ]        && cp "$TARGET_DIR/qt6ct.conf"        "$REPO/configs/qt5ct/colors/noctalia.conf"
   # Kitty: configs/kitty is an out-of-store symlink to the repo, so writing
   # to the repo path is immediately reflected at ~/.config/kitty/colors.conf
   [ -s "$TARGET_DIR/kitty-colors.conf" ] && cp "$TARGET_DIR/kitty-colors.conf" "$REPO/configs/kitty/colors.conf"
@@ -191,6 +283,10 @@ if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
       FF_MAIN="20, 20, 20"; FF_SEC="28, 28, 28"
       FF_ACCENT="224, 224, 224"; FF_TEXT="242, 242, 242"
       FF_ACCENT_HSL="hsl(0, 0%, 88%)" ;;
+    clean)
+      FF_MAIN="16, 16, 16"; FF_SEC="23, 23, 23"
+      FF_ACCENT="238, 238, 238"; FF_TEXT="216, 216, 216"
+      FF_ACCENT_HSL="hsl(0, 0%, 93%)" ;;
   esac
   cat > "$FF_GLOBALS" << EOF
 /* ============================================================================
@@ -241,6 +337,7 @@ if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
 EOF
   [ -s "$TARGET_DIR/fish-theme.fish" ]   && cp "$TARGET_DIR/fish-theme.fish"   "$HOME/.config/fish/conf.d/matugen_theme.fish"
   [ -s "$TARGET_DIR/starship.toml" ]     && cp "$TARGET_DIR/starship.toml"     "$HOME/.config/starship_matugen.toml"
+  systemctl --user restart swayosd 2>/dev/null || true
   # Generate pywal cache and push colors to Firefox via pywalfox
   if command -v wal >/dev/null 2>&1; then
     echo "  Generating pywal colors..."
@@ -249,6 +346,7 @@ EOF
       rosepine)   WAL_THEME="base16-rose-pine" ;;
       everforest) WAL_THEME="base16-everforest" ;;
       minimal)    WAL_THEME="base16-grayscale" ;;
+      clean)      WAL_THEME="base16-grayscale" ;;
       *)          WAL_THEME="base16-nord" ;;
     esac
     wal --theme "$WAL_THEME" -q 2>/dev/null || true
@@ -269,6 +367,12 @@ niri msg action reload-config 2>/dev/null || true
 echo "  Applying cursor..."
 gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
+set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
+set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
+set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
+set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
+apply_profile_fonts "$TARGET_DIR/meta.json"
+apply_profile_appearance "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
 
 # 6. Record active profile and variant preference
 if [ $STARTUP_MODE -eq 0 ]; then
@@ -299,9 +403,12 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
     install -m 644 "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
   fi
   if [ -f "$TARGET_DIR/mako-config" ]; then
+    MAKO_CONFIG=$(pick_variant_file "$TARGET_DIR/mako-config" "$TARGET_DIR/mako-config-light")
     mkdir -p "$HOME/.config/mako"
-    install -m 644 "$TARGET_DIR/mako-config" "$HOME/.config/mako/config"
+    install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
   fi
+  apply_profile_fonts "$TARGET_DIR/meta.json"
+  apply_profile_appearance "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
   if [ $STARTUP_MODE -eq 1 ]; then
     pgrep -f waybar >/dev/null 2>&1 || {
       waybar 2>/dev/null &
@@ -312,6 +419,30 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
     disown
   fi
   # Start mako for waybar profile notifications
+  if [ $STARTUP_MODE -eq 1 ]; then
+    pgrep -x mako >/dev/null 2>&1 || {
+      mako 2>/dev/null &
+      disown
+    }
+  else
+    mako 2>/dev/null &
+    disown
+  fi
+elif [ "$TARGET_BAR" = "clean" ]; then
+  echo "  Starting clean topbar..."
+  systemctl --user start awww 2>/dev/null || true
+  pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
+  quickshell -p "$HOME/nixos/home/configs/quickshell-clean/shell.qml" 2>/dev/null &
+  disown
+
+  if [ -f "$TARGET_DIR/mako-config" ]; then
+    MAKO_CONFIG=$(pick_variant_file "$TARGET_DIR/mako-config" "$TARGET_DIR/mako-config-light")
+    mkdir -p "$HOME/.config/mako"
+    install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
+  fi
+  apply_profile_fonts "$TARGET_DIR/meta.json"
+  apply_profile_appearance "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
+
   if [ $STARTUP_MODE -eq 1 ]; then
     pgrep -x mako >/dev/null 2>&1 || {
       mako 2>/dev/null &

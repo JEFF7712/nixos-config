@@ -41,6 +41,7 @@ let
     options = {
       bar = lib.mkOption {
         type = lib.types.enum [
+          "clean"
           "noctalia"
           "waybar"
         ];
@@ -60,6 +61,48 @@ let
           type = lib.types.nullOr lib.types.package;
           default = null;
           description = "Cursor theme package. null if already installed.";
+        };
+      };
+
+      fonts = {
+        ui = {
+          family = lib.mkOption {
+            type = lib.types.str;
+            default = "JetBrainsMono Nerd Font";
+          };
+          size = lib.mkOption {
+            type = lib.types.int;
+            default = 11;
+          };
+        };
+        mono = {
+          family = lib.mkOption {
+            type = lib.types.str;
+            default = "JetBrainsMono Nerd Font";
+          };
+          size = lib.mkOption {
+            type = lib.types.int;
+            default = 14;
+          };
+        };
+      };
+
+      appearance = {
+        gtkTheme = lib.mkOption {
+          type = lib.types.str;
+          default = "adw-gtk3-dark";
+        };
+        gtkThemeLight = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = "adw-gtk3";
+        };
+        iconTheme = lib.mkOption {
+          type = lib.types.str;
+          default = "Papirus-Dark";
+        };
+        iconThemeLight = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = "Papirus-Light";
         };
       };
 
@@ -190,6 +233,11 @@ let
         default = null;
       };
 
+      makoConfigLight = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+      };
+
     };
   };
 
@@ -269,6 +317,8 @@ let
           bar = profile.bar;
           cursor = profile.cursor.theme;
           cursorSize = profile.cursor.size;
+          fonts = profile.fonts;
+          appearance = profile.appearance;
           hasLightVariant = hasLight profile;
         };
         ".config/desktop-profiles/${name}/wallpaper-dir".text = profile.wallpaperDir;
@@ -286,15 +336,19 @@ let
       // lib.optionalAttrs (profile.makoConfig != null) {
         ".config/desktop-profiles/${name}/mako-config".text = profile.makoConfig;
       };
-      lightFiles = lib.optionalAttrs (hasLight profile) {
-        ".config/desktop-profiles/${name}/gtk-3.0-light.css".text = orEmpty profile.colorsLight.gtk3;
-        ".config/desktop-profiles/${name}/gtk-4.0-light.css".text = orEmpty profile.colorsLight.gtk4;
-        ".config/desktop-profiles/${name}/qt6ct-light.conf".text = orEmpty profile.colorsLight.qt6;
-        ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
-        ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
-        ".config/desktop-profiles/${name}/starship-light.toml".text = orEmpty profile.colorsLight.starship;
-        ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
-      };
+      lightFiles =
+        lib.optionalAttrs (hasLight profile) {
+          ".config/desktop-profiles/${name}/gtk-3.0-light.css".text = orEmpty profile.colorsLight.gtk3;
+          ".config/desktop-profiles/${name}/gtk-4.0-light.css".text = orEmpty profile.colorsLight.gtk4;
+          ".config/desktop-profiles/${name}/qt6ct-light.conf".text = orEmpty profile.colorsLight.qt6;
+          ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
+          ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
+          ".config/desktop-profiles/${name}/starship-light.toml".text = orEmpty profile.colorsLight.starship;
+          ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
+        }
+        // lib.optionalAttrs (profile.makoConfigLight != null) {
+          ".config/desktop-profiles/${name}/mako-config-light".text = profile.makoConfigLight;
+        };
       waybarFiles = lib.optionalAttrs (profile.bar == "waybar" && profile.waybar.config != null) (
         {
           ".config/desktop-profiles/${name}/waybar-config.jsonc".text = profile.waybar.config;

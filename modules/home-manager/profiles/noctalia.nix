@@ -12,6 +12,24 @@
       size = 28;
     };
 
+    fonts = {
+      ui = {
+        family = "JetBrainsMono Nerd Font";
+        size = 11;
+      };
+      mono = {
+        family = "JetBrainsMono Nerd Font";
+        size = 14;
+      };
+    };
+
+    appearance = {
+      gtkTheme = "adw-gtk3-dark";
+      gtkThemeLight = null;
+      iconTheme = "WhiteSur-dark";
+      iconThemeLight = null;
+    };
+
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/noctalia";
 
     niri = {

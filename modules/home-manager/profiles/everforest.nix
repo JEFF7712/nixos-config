@@ -70,24 +70,69 @@ in
       default-timeout=0
     '';
 
+    makoConfigLight = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${l_bg0}
+      text-color=${l_fg}
+      border-color=${l_green}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${l_bg3}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${l_bg1}
+      border-color=${l_red}
+      text-color=${l_fg}
+      default-timeout=0
+    '';
+
     cursor = {
-      theme = "Adwaita";
+      theme = "Bibata-Modern-Classic";
       size = 24;
+      package = pkgs.bibata-cursors;
+    };
+
+    fonts = {
+      ui = {
+        family = "Noto Sans";
+        size = 11;
+      };
+      mono = {
+        family = "Hack Nerd Font";
+        size = 14;
+      };
+    };
+
+    appearance = {
+      gtkTheme = "adw-gtk3-dark";
+      gtkThemeLight = "adw-gtk3";
+      iconTheme = "Tela-green-dark";
+      iconThemeLight = "Tela-green-light";
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/everforest";
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/everforest-light";
 
     niri = {
-      gaps = 18;
+      gaps = 22;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 20;
-      shadowSpread = 3;
+      shadowSoftness = 24;
+      shadowSpread = 4;
       shadowOffsetX = 0;
-      shadowOffsetY = 4;
-      shadowColor = "#00000080";
-      shadowInactiveColor = "#00000040";
+      shadowOffsetY = 6;
+      shadowColor = "#0f161380";
+      shadowInactiveColor = "#0f161340";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
       tabIndicatorActiveColor = green;
@@ -314,12 +359,19 @@ in
     };
 
     waybar = {
-      config = waybar.mkConfig { scriptDir = "${config.repoPath}/home/scripts"; };
-      style = waybar.mkFlatStyle {
-        fg = fg;
-        activeText = green;
-        activeUnderline = green;
+      config = waybar.mkConfig {
+        floating = true;
+        scriptDir = "${config.repoPath}/home/scripts";
+      };
+      style = waybar.mkFloatingStyle {
+        windowBg = "rgba(39, 46, 51, 0.6)";
+        primary = green;
+        borderColor = bg2;
+        shadowColor = "rgba(20, 24, 27, 0.45)";
+        activeBg = bg2;
+        hoverColor = yellow;
         clockColor = yellow;
+        textColor = fg;
         performanceColor = red;
         balancedColor = green;
         powerSaverColor = aqua;
@@ -492,17 +544,20 @@ in
       '';
     };
 
-    waybarLight.style = waybar.mkFlatStyle {
-      fg = l_fg;
-      activeText = l_green;
-      activeUnderline = l_green;
+    waybarLight.style = waybar.mkFloatingStyle {
+      windowBg = "rgba(255, 249, 232, 0.85)";
+      primary = l_green;
+      borderColor = l_bg2;
+      shadowColor = "rgba(190, 197, 178, 0.45)";
+      activeBg = l_bg2;
+      hoverColor = l_yellow;
       clockColor = l_yellow;
+      textColor = l_fg;
       performanceColor = l_red;
       balancedColor = l_green;
       powerSaverColor = l_aqua;
       warningColor = l_yellow;
       criticalColor = l_red;
-      hoverBg = "rgba(0,0,0,0.05)";
     };
   };
 }

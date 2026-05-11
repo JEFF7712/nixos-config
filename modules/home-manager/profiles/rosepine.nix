@@ -66,10 +66,54 @@ in
       default-timeout=0
     '';
 
+    makoConfigLight = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${d_base}
+      text-color=${d_text}
+      border-color=${d_iris}
+      border-size=2
+      border-radius=8
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${d_highlightHigh}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${d_surface}
+      border-color=${d_love}
+      text-color=${d_text}
+      default-timeout=0
+    '';
+
     cursor = {
       theme = "BreezeX-RosePine-Linux";
       size = 24;
       package = pkgs.rose-pine-cursor;
+    };
+
+    fonts = {
+      ui = {
+        family = "Source Sans Pro";
+        size = 11;
+      };
+      mono = {
+        family = "Iosevka Nerd Font";
+        size = 14;
+      };
+    };
+
+    appearance = {
+      gtkTheme = "adw-gtk3-dark";
+      gtkThemeLight = "adw-gtk3";
+      iconTheme = "Tela-pink-dark";
+      iconThemeLight = "Tela-pink-light";
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/rosepine";
@@ -79,12 +123,12 @@ in
       gaps = 18;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 22;
-      shadowSpread = 3;
+      shadowSoftness = 36;
+      shadowSpread = 5;
       shadowOffsetX = 0;
-      shadowOffsetY = 4;
-      shadowColor = "#00000088";
-      shadowInactiveColor = "#00000055";
+      shadowOffsetY = 8;
+      shadowColor = "#100e1880";
+      shadowInactiveColor = "#100e1840";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
       tabIndicatorActiveColor = iris;
@@ -313,9 +357,10 @@ in
     waybar = {
       config = waybar.mkConfig {
         floating = true;
+        pill = true;
         scriptDir = "${config.repoPath}/home/scripts";
       };
-      style = waybar.mkFloatingStyle {
+      style = waybar.mkPillStyle {
         windowBg = "rgba(25, 23, 36, 0.6)";
         primary = iris;
         borderColor = highlightMed;
@@ -499,7 +544,7 @@ in
       '';
     };
 
-    waybarLight.style = waybar.mkFloatingStyle {
+    waybarLight.style = waybar.mkPillStyle {
       windowBg = "rgba(250, 244, 237, 0.85)";
       primary = d_iris;
       borderColor = d_highlightMed;

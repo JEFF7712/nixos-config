@@ -1,4 +1,4 @@
-{ config, ... }:
+{ pkgs, config, ... }:
 
 let
   waybar = import ../../../lib/waybar.nix;
@@ -137,26 +137,71 @@ in
       default-timeout=0
     '';
 
+    makoConfigLight = ''
+      font=JetBrainsMono Nerd Font 11
+      background-color=${l_bg0}
+      text-color=${l_fg1}
+      border-color=${l_bg3}
+      border-size=1
+      border-radius=4
+      width=320
+      padding=12
+      margin=10
+      default-timeout=5000
+      icons=1
+      max-icon-size=48
+      layer=overlay
+
+      [urgency=low]
+      border-color=${l_bg2}
+      default-timeout=3000
+
+      [urgency=high]
+      background-color=${l_bg1}
+      border-color=${l_err}
+      text-color=${l_fg0}
+      default-timeout=0
+    '';
+
     cursor = {
-      theme = "Adwaita";
-      size = 24;
+      theme = "Bibata-Modern-Ice";
+      size = 22;
+      package = pkgs.bibata-cursors;
+    };
+
+    fonts = {
+      ui = {
+        family = "Inter";
+        size = 11;
+      };
+      mono = {
+        family = "Iosevka Nerd Font";
+        size = 14;
+      };
+    };
+
+    appearance = {
+      gtkTheme = "adw-gtk3-dark";
+      gtkThemeLight = "adw-gtk3";
+      iconTheme = "Colloid-Dark";
+      iconThemeLight = "Colloid-Light";
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/minimal";
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/minimal-light";
 
     niri = {
-      gaps = 12;
+      gaps = 8;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 12;
-      shadowSpread = 2;
+      shadowSoftness = 3;
+      shadowSpread = 0;
       shadowOffsetX = 0;
-      shadowOffsetY = 2;
-      shadowColor = "#00000055";
-      shadowInactiveColor = "#00000033";
+      shadowOffsetY = 1;
+      shadowColor = "#00000020";
+      shadowInactiveColor = "#00000012";
       shadowDrawBehindWindow = true;
-      tabIndicatorOff = false;
+      tabIndicatorOff = true;
       tabIndicatorActiveColor = fg1;
       tabIndicatorInactiveColor = bg3;
       windowOpacity = 1.0;
