@@ -6,6 +6,38 @@ ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"
 REPO="$HOME/nixos/home"
 
+pick_random_wallpaper() {
+  local wallpaper_dir="$1"
+
+  [ -d "$wallpaper_dir" ] || return 1
+
+  find "$wallpaper_dir" -maxdepth 1 \
+    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
+    | shuf -n 1
+}
+
+set_zed_theme() {
+  local settings_file="$1"
+  local theme_name="$2"
+
+  sed -i \
+    -e "s|^\([[:space:]]*\"theme\":[[:space:]]*\)\"[^\"]*\",|\1\"$theme_name\",|" \
+    -e "/\"theme\"[[:space:]]*:/,/}/ s|\"dark\": \"[^\"]*\"|\"dark\": \"$theme_name\"|" \
+    -e "/\"theme\"[[:space:]]*:/,/}/ s|\"light\": \"[^\"]*\"|\"light\": \"$theme_name\"|" \
+    "$settings_file"
+}
+
+set_zed_icon_theme() {
+  local settings_file="$1"
+  local mode_name="$2"
+  local icon_name="$3"
+
+  sed -i \
+    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"mode\": \"[^\"]*\"|\"mode\": \"$mode_name\"|" \
+    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"$mode_name\": \"[^\"]*\"|\"$mode_name\": \"$icon_name\"|" \
+    "$settings_file"
+}
+
 PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 [ -z "$PROFILE" ] && { echo "No active profile." >&2; exit 1; }
 
@@ -62,11 +94,9 @@ else
   WALLPAPER_DIR=$(cat "$PROFILE_DIR/wallpaper-dir" 2>/dev/null || echo "")
 fi
 if [ -d "$WALLPAPER_DIR" ]; then
-  WALLPAPER=$(find "$WALLPAPER_DIR" -maxdepth 1 \
-    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
-    | shuf -n 1)
+  WALLPAPER=$(pick_random_wallpaper "$WALLPAPER_DIR")
   if [ -n "$WALLPAPER" ]; then
-    swww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
+    awww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
     WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
     if [ -f "$WAYPAPER_CFG" ]; then
       WAYPAPER_FOLDER="${WALLPAPER_DIR/#$HOME/\~}"
@@ -190,19 +220,20 @@ fi
 ZED_SETTINGS="$HOME/.config/zed/settings.json"
 if [ -f "$ZED_SETTINGS" ]; then
   case "$PROFILE:$NEW" in
-    catppuccin:dark)    ZED_THEME="Catppuccin Mocha (Blur)" ;;
-    catppuccin:light)   ZED_THEME="Catppuccin Latte (Blur)" ;;
-    gruvbox:dark)       ZED_THEME="Gruvbox Dark" ;;
-    gruvbox:light)      ZED_THEME="Gruvbox Light" ;;
-    rosepine:dark)      ZED_THEME="Rosé Pine" ;;
-    rosepine:light)     ZED_THEME="Rosé Pine Dawn" ;;
-    everforest:dark)    ZED_THEME="Everforest Dark Hard (blur)" ;;
-    everforest:light)   ZED_THEME="Everforest Light Hard (blur)" ;;
-    minimal:dark)       ZED_THEME="One Dark" ;;
-    minimal:light)      ZED_THEME="One Light" ;;
-    *)                  ZED_THEME="" ;;
+    catppuccin:dark)    ZED_THEME="Catppuccin Mocha (Blur)" ; ZED_ICON="Catppuccin Mocha" ;;
+    catppuccin:light)   ZED_THEME="Catppuccin Latte (Blur)" ; ZED_ICON="Catppuccin Latte" ;;
+    gruvbox:dark)       ZED_THEME="Gruvbox Dark" ; ZED_ICON="Material Icon Theme" ;;
+    gruvbox:light)      ZED_THEME="Gruvbox Light" ; ZED_ICON="Material Icon Theme" ;;
+    rosepine:dark)      ZED_THEME="Rosé Pine" ; ZED_ICON="Zed (Default)" ;;
+    rosepine:light)     ZED_THEME="Rosé Pine Dawn" ; ZED_ICON="Zed (Default)" ;;
+    everforest:dark)    ZED_THEME="Everforest Dark Hard (blur)" ; ZED_ICON="Material Icon Theme" ;;
+    everforest:light)   ZED_THEME="Everforest Light Hard (blur)" ; ZED_ICON="Material Icon Theme" ;;
+    minimal:dark)       ZED_THEME="One Dark" ; ZED_ICON="Zed (Default)" ;;
+    minimal:light)      ZED_THEME="One Light" ; ZED_ICON="Zed (Default)" ;;
+    *)                  ZED_THEME="" ; ZED_ICON="" ;;
   esac
-  [ -n "$ZED_THEME" ] && sed -i "/\"theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+  [ -n "$ZED_THEME" ] && set_zed_theme "$ZED_SETTINGS" "$ZED_THEME"
+  [ -n "$ZED_ICON" ] && set_zed_icon_theme "$ZED_SETTINGS" "$NEW" "$ZED_ICON"
 fi
 
 # Obsidian Minimal Theme

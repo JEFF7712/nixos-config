@@ -8,6 +8,50 @@ ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
 REPO="$HOME/nixos/home"
 STARTUP_MODE=0
 
+pick_random_wallpaper() {
+  local wallpaper_dir="$1"
+
+  [ -d "$wallpaper_dir" ] || return 1
+
+  find "$wallpaper_dir" -maxdepth 1 \
+    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
+    | shuf -n 1
+}
+
+wait_for_awww() {
+  local attempts="${1:-20}"
+
+  for _ in $(seq 1 "$attempts"); do
+    if awww query >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.25
+  done
+
+  return 1
+}
+
+set_zed_theme() {
+  local settings_file="$1"
+  local theme_name="$2"
+
+  sed -i \
+    -e "s|^\([[:space:]]*\"theme\":[[:space:]]*\)\"[^\"]*\",|\1\"$theme_name\",|" \
+    -e "/\"theme\"[[:space:]]*:/,/}/ s|\"dark\": \"[^\"]*\"|\"dark\": \"$theme_name\"|" \
+    "$settings_file"
+}
+
+set_zed_icon_theme() {
+  local settings_file="$1"
+  local mode_name="$2"
+  local icon_name="$3"
+
+  sed -i \
+    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"mode\": \"[^\"]*\"|\"mode\": \"$mode_name\"|" \
+    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"$mode_name\": \"[^\"]*\"|\"$mode_name\": \"$icon_name\"|" \
+    "$settings_file"
+}
+
 list_profiles() {
   local current=""
   [ -f "$ACTIVE_FILE" ] && current=$(cat "$ACTIVE_FILE")
@@ -237,15 +281,15 @@ else
   gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
 fi
 
-# 6b. Start new bar + manage swww (noctalia has its own wallpaper engine; waybar needs swww)
+# 6b. Start new bar + manage awww (noctalia has its own wallpaper engine; waybar needs awww)
 if [ "$TARGET_BAR" = "noctalia" ]; then
   echo "  Starting noctalia-shell..."
-  systemctl --user stop swww 2>/dev/null || true  # noctalia owns the wallpaper layer
+  systemctl --user stop awww 2>/dev/null || true  # noctalia owns the wallpaper layer
   systemctl --user start noctalia-shell 2>/dev/null || true
   sleep 1  # allow noctalia to come up before IPC call
 elif [ "$TARGET_BAR" = "waybar" ]; then
   echo "  Starting waybar..."
-  systemctl --user start swww 2>/dev/null || true  # swww needed for static wallpapers
+  systemctl --user start awww 2>/dev/null || true  # awww needed for static wallpapers
   if [ -f "$TARGET_DIR/waybar-config.jsonc" ]; then
     WAYBAR_STYLE=$(pick_variant_file "$TARGET_DIR/waybar-style.css" "$TARGET_DIR/waybar-style-light.css")
     mkdir -p "$HOME/.config/waybar"
@@ -300,11 +344,10 @@ if [ "$TARGET" = "noctalia" ]; then
     fi
   ) &
 elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
-  WALLPAPER=$(find "$TARGET_WALLPAPER_DIR" -maxdepth 1 \
-    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
-    | shuf -n 1)
+  WALLPAPER=$(pick_random_wallpaper "$TARGET_WALLPAPER_DIR")
   if [ -n "$WALLPAPER" ]; then
-    swww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
+    wait_for_awww 20
+    awww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
   else
     echo "  Warning: no wallpaper images found in $TARGET_WALLPAPER_DIR"
   fi
@@ -337,10 +380,10 @@ if [ $STARTUP_MODE -eq 0 ]; then
       *)          ZED_THEME=""                  ; ZED_ICON="" ;;
     esac
     if [ -n "$ZED_THEME" ]; then
-      sed -i "/\"theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_THEME\"/" "$ZED_SETTINGS"
+      set_zed_theme "$ZED_SETTINGS" "$ZED_THEME"
     fi
     if [ -n "$ZED_ICON" ]; then
-      sed -i "/\"icon_theme\"/,/}/ s/\"dark\": \".*\"/\"dark\": \"$ZED_ICON\"/" "$ZED_SETTINGS"
+      set_zed_icon_theme "$ZED_SETTINGS" "dark" "$ZED_ICON"
     fi
   fi
 

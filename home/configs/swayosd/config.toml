@@ -1,5 +1,6 @@
 [server]
 top_margin = 0.96
+show_percentage = false
 
 min_brightness = 5
 keyboard_backlight = true

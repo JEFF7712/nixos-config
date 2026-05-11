@@ -90,6 +90,10 @@
         waybar
         ia-writer-quattro
         swayosd
+        quickshell
+        bc
+        imagemagick
+        pulseaudio
       ];
 
       systemd.user.services = {
@@ -170,6 +174,17 @@
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/qt6ct";
       xdg.configFile."swayosd".source =
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/swayosd";
+      xdg.configFile."quickshell".source =
+        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/quickshell";
+
+      home.activation.quickshellState = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        mkdir -p "$HOME/.local/state/quickshell"
+
+        if [ ! -f "$HOME/.local/state/quickshell/colors.json" ]; then
+          cp "${config.repoPath}/home/configs/quickshell/colors.json" \
+            "$HOME/.local/state/quickshell/colors.json"
+        fi
+      '';
     }
   );
 }
