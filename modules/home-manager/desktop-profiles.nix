@@ -206,6 +206,10 @@ let
           type = lib.types.bool;
           default = false;
         };
+        extraConfig = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+        };
       };
 
       # Dark variant colors (the profile default)
@@ -307,6 +311,8 @@ let
           }
       }
     ''}
+
+    ${profile.niri.extraConfig}
   '';
 
   orEmpty = v: if v != null then v else "";

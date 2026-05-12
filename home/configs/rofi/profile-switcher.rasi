@@ -1,28 +1,28 @@
 * {
     font:                        "JetBrainsMono Nerd Font 11";
-    background-color:            #2a2a2a;
-    text-color:                  #e0e0e0;
-    border-color:                #5a5a5a;
-    selected-normal-background:  #343434;
-    selected-normal-foreground:  #f6f6f6;
-    normal-background:           #2a2a2a;
-    normal-foreground:           #e0e0e0;
+    background-color:            rgba(20, 20, 20, 0.42);
+    text-color:                  #f2f2f2;
+    border-color:                rgba(255, 255, 255, 0.34);
+    selected-normal-background:  rgba(255, 255, 255, 0.14);
+    selected-normal-foreground:  #ffffff;
+    normal-background:           transparent;
+    normal-foreground:           #f2f2f2;
 }
 
 window {
     width:              900px;
     border:             1px solid;
-    border-radius:      6px;
+    border-radius:      15px;
     padding:            12px;
-    background-color:   #2a2a2a;
+    background-color:   rgba(20, 20, 20, 0.42);
 }
 
 mainbox { spacing: 0; children: [ inputbar, listview ]; }
-inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: #343434; border-radius: 6px; children: [ prompt, entry ]; }
+inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: rgba(255, 255, 255, 0.08); border: 1px solid; border-color: rgba(255, 255, 255, 0.34); border-radius: 10px; children: [ prompt, entry ]; }
 prompt { padding: 0 8px 0 0; }
-entry { placeholder: "Switch profile..."; placeholder-color: #b4b4b4; }
+entry { placeholder: "Switch profile..."; placeholder-color: #c8c8c8; }
 listview { columns: 3; lines: 2; spacing: 10px; fixed-height: false; scrollbar: false; }
-element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 6px; background-color: #343434; cursor: pointer; }
-element selected { background-color: #444444; border: 1px solid; border-color: #f0f0f0; }
+element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 10px; background-color: rgba(255, 255, 255, 0.08); border: 1px solid; border-color: rgba(255, 255, 255, 0.16); cursor: pointer; }
+element selected { background-color: rgba(255, 255, 255, 0.14); border: 1px solid; border-color: #ffffff; }
 element-icon { size: 160px; border-radius: 4px; horizontal-align: 0.5; }
 element-text { horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit; font:                        "JetBrainsMono Nerd Font 11"; }

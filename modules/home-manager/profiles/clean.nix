@@ -13,7 +13,6 @@ let
   glass0 = "rgba(20, 20, 20, 0.42)";
   glass1 = "rgba(255, 255, 255, 0.08)";
   glass2 = "rgba(255, 255, 255, 0.14)";
-  glass3 = "rgba(255, 255, 255, 0.24)";
   glassBorder = "rgba(255, 255, 255, 0.34)";
 
   rofi = ''
@@ -31,17 +30,17 @@ let
     window {
         width:              900px;
         border:             1px solid;
-        border-radius:      6px;
+        border-radius:      15px;
         padding:            12px;
         background-color:   ${glass0};
     }
 
     mainbox { spacing: 0; children: [ inputbar, listview ]; }
-    inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: ${glass1}; border: 1px solid; border-color: ${glassBorder}; border-radius: 6px; children: [ prompt, entry ]; }
+    inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: ${glass1}; border: 1px solid; border-color: ${glassBorder}; border-radius: 10px; children: [ prompt, entry ]; }
     prompt { padding: 0 8px 0 0; }
     entry { placeholder: "Switch profile..."; placeholder-color: ${fg2}; }
     listview { columns: 3; lines: 2; spacing: 10px; fixed-height: false; scrollbar: false; }
-    element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 6px; background-color: ${glass1}; border: 1px solid; border-color: rgba(255, 255, 255, 0.16); cursor: pointer; }
+    element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 10px; background-color: ${glass1}; border: 1px solid; border-color: rgba(255, 255, 255, 0.16); cursor: pointer; }
     element selected { background-color: ${glass2}; border: 1px solid; border-color: ${accent}; }
     element-icon { size: 160px; border-radius: 4px; horizontal-align: 0.5; }
     element-text { horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit; font: "JetBrainsMono Nerd Font 12"; }
@@ -118,6 +117,53 @@ in
       tabIndicatorOff = true;
       windowOpacity = 0.72;
       windowHighlightOff = true;
+      extraConfig = ''
+        layer-rule {
+            match namespace="^quickshell-clean-topbar$"
+            geometry-corner-radius 15
+            opacity 0.9
+            background-effect {
+                blur true
+                xray true
+                noise 0.015
+                saturation 1.25
+            }
+        }
+
+        layer-rule {
+            match namespace="^rofi$"
+            geometry-corner-radius 15
+            opacity 0.88
+            background-effect {
+                blur true
+                xray true
+                noise 0.015
+                saturation 1.25
+            }
+        }
+
+        layer-rule {
+            match namespace="^mako$"
+            geometry-corner-radius 6
+            background-effect {
+                blur true
+                xray true
+                noise 0.015
+                saturation 1.2
+            }
+        }
+
+        layer-rule {
+            match namespace="^swayosd$"
+            geometry-corner-radius 10
+            background-effect {
+                blur true
+                xray true
+                noise 0.015
+                saturation 1.2
+            }
+        }
+      '';
     };
 
     colors = {
