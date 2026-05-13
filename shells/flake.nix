@@ -53,6 +53,29 @@
       in
       {
         devShells = {
+          c = pkgs.mkShell {
+            packages = with pkgs; [
+              bear
+              clang
+              clang-tools
+              cmake
+              cppcheck
+              gdb
+              gcc
+              gnumake
+              lldb
+              ninja
+              pkg-config
+              valgrind
+            ];
+
+            shellHook = ''
+              export CC=gcc
+              export CXX=g++
+              echo "C development shell ready."
+            '';
+          };
+
           python = pkgs.mkShell {
             packages = [ pythonEnv ];
             shellHook = ''echo "Python Shell ready." '';
