@@ -513,7 +513,7 @@ if [ $STARTUP_MODE -eq 0 ]; then
       rosepine)   ZED_THEME="Rosé Pine"         ; ZED_ICON="Zed (Default)" ;;
       everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
       minimal)    ZED_THEME="The Dark Side"                ; ZED_ICON="Zed (Default)" ;;
-      clean)      ZED_THEME="Everforest Dark Medium (blur)"  ; ZED_ICON="Zed (Default)" ;;
+      clean)      ZED_THEME="Transparent Prism"  ; ZED_ICON="Zed (Default)" ;;
       *)          ZED_THEME=""                  ; ZED_ICON="" ;;
     esac
     if [ -n "$ZED_THEME" ]; then
