@@ -155,7 +155,7 @@ in
   networking.networkmanager.enable = true;
 
   # Set your time zone.
-  time.timeZone = "America/Chicago";
+  time.timeZone = "America/New_York";
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
