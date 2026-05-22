@@ -101,6 +101,7 @@
         bn = "bnix";
         bnt = "bnix-test";
         pn = "pnix";
+        ci = "$HOME/projects/ci-dashboard.sh";
       };
       interactiveShellInit = ''
         set fish_greeting ""
