@@ -7,6 +7,7 @@ ShellRoot {
 
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
+    property color popupBg: "#cc2a2a2a"
     property color themeRawBg: "#141414"
     property color themeAccent: "#ffffff"
     property color themeSecond: "#e8e8e8"
@@ -48,21 +49,21 @@ ShellRoot {
     WifiPopup {
         id: wifiPopup
         themeFg: root.themeFg
-        themeBg: root.themeBg
+        themeBg: root.popupBg
         themeAccent: root.themeAccent
     }
 
     BluetoothPopup {
         id: bluetoothPopup
         themeFg: root.themeFg
-        themeBg: root.themeBg
+        themeBg: root.popupBg
         themeAccent: root.themeAccent
     }
 
     BatteryPopup {
         id: batteryPopup
         themeFg: root.themeFg
-        themeBg: root.themeBg
+        themeBg: root.popupBg
         themeAccent: root.themeAccent
         powerProfile: topbar.powerProfile
     }
