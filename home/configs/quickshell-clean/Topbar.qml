@@ -21,12 +21,33 @@ PanelWindow {
     property string networkIcon: "󰖪"
     property string batteryPercent: ""
     property string batteryIcon: "󰁹"
+    property string powerProfile: "balanced"
     property string activeTitle: "no active window"
     property int activeWorkspace: 1
     property var occupiedWorkspaces: ({})
 
+    signal wifiClicked()
+    signal bluetoothClicked()
+    signal batteryClicked()
+
+    readonly property var powerProfileOrder: ["power-saver", "balanced", "performance"]
+    readonly property var powerProfileIcons: ({
+        "power-saver": "󰌪",
+        "balanced": "󰾅",
+        "performance": "󱐋"
+    })
+
     function run(cmd) {
         Quickshell.execDetached(["sh", "-c", cmd])
+    }
+
+    function cyclePowerProfile() {
+        const order = topbarWindow.powerProfileOrder
+        const idx = order.indexOf(topbarWindow.powerProfile)
+        const next = order[(idx + 1) % order.length]
+        topbarWindow.run("powerprofilesctl set " + next)
+        topbarWindow.powerProfile = next
+        statsProc.running = true
     }
 
     WlrLayershell.namespace: "quickshell-clean-topbar"
@@ -48,7 +69,8 @@ PanelWindow {
             "net=$(nmcli -t -f STATE general 2>/dev/null);" +
             "bc=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1);" +
             "bs=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1);" +
-            "echo \"$cpu|$mem|$vol|$net|$bc|$bs\""
+            "pp=$(powerprofilesctl get 2>/dev/null);" +
+            "echo \"$cpu|$mem|$vol|$net|$bc|$bs|$pp\""
         ]
         property string buffer: ""
         stdout: SplitParser { onRead: (data) => statsProc.buffer += data }
@@ -66,6 +88,9 @@ PanelWindow {
                         p[5] === "Charging" ? "󰂄" :
                         cap > 90 ? "󰁹" : cap > 70 ? "󰂀" :
                         cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎"
+                }
+                if (p.length >= 7 && p[6] !== "") {
+                    topbarWindow.powerProfile = p[6]
                 }
             }
             statsProc.buffer = ""
@@ -200,18 +225,29 @@ PanelWindow {
                 icon: topbarWindow.networkIcon
                 value: ""
                 tint: topbarWindow.themeSecond
-                onActivated: topbarWindow.run("kitty -e sudo nmtui")
+                onActivated: topbarWindow.wifiClicked()
             }
             StatPill {
                 icon: "󰂯"
                 value: ""
                 tint: topbarWindow.themeSecond
-                onActivated: topbarWindow.run("blueman-manager")
+                onActivated: topbarWindow.bluetoothClicked()
+            }
+            StatPill {
+                icon: topbarWindow.powerProfileIcons[topbarWindow.powerProfile] || "󰾅"
+                value: ""
+                tint: topbarWindow.powerProfile === "performance"
+                    ? topbarWindow.themeWarm
+                    : topbarWindow.powerProfile === "power-saver"
+                        ? topbarWindow.themeFresh
+                        : topbarWindow.themeAccent
+                onActivated: topbarWindow.cyclePowerProfile()
             }
             StatPill {
                 icon: topbarWindow.batteryIcon
                 value: topbarWindow.batteryPercent
                 tint: topbarWindow.themeAccent
+                onActivated: topbarWindow.batteryClicked()
             }
         }
 
@@ -224,7 +260,7 @@ PanelWindow {
             Text {
                 id: clockTime
                 Layout.alignment: Qt.AlignHCenter
-                text: Qt.formatTime(new Date(), "hh:mm")
+                text: Qt.formatTime(new Date(), "h:mm AP")
                 color: topbarWindow.themeAccent
                 font { family: "JetBrainsMono Nerd Font"; pixelSize: 17; weight: Font.Light; letterSpacing: 1.2 }
                 Timer {
@@ -233,7 +269,7 @@ PanelWindow {
                     repeat: true
                     triggeredOnStart: true
                     onTriggered: {
-                        clockTime.text = Qt.formatTime(new Date(), "hh:mm")
+                        clockTime.text = Qt.formatTime(new Date(), "h:mm AP")
                         clockDate.text = Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
                     }
                 }

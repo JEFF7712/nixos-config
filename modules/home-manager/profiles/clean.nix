@@ -131,6 +131,17 @@ in
         }
 
         layer-rule {
+            match namespace="^quickshell-clean-popup$"
+            geometry-corner-radius 15
+            background-effect {
+                blur true
+                xray true
+                noise 0.015
+                saturation 1.25
+            }
+        }
+
+        layer-rule {
             match namespace="^rofi$"
             geometry-corner-radius 15
             opacity 0.88
