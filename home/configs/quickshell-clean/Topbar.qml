@@ -50,6 +50,13 @@ PanelWindow {
         statsProc.running = true
     }
 
+    function adjustVolume(delta) {
+        const step = 5
+        const arg = delta > 0 ? (step + "%+") : (step + "%-")
+        topbarWindow.run("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ " + arg)
+        statsProc.running = true
+    }
+
     WlrLayershell.namespace: "quickshell-clean-topbar"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -220,6 +227,7 @@ PanelWindow {
                 value: topbarWindow.volumeLevel
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.run("pavucontrol")
+                onScrolled: (delta) => topbarWindow.adjustVolume(delta)
             }
             StatPill {
                 icon: topbarWindow.networkIcon
@@ -393,6 +401,7 @@ PanelWindow {
         property string value
         property color tint
         signal activated()
+        signal scrolled(int delta)
 
         width: statContent.implicitWidth + 22
         height: 26
@@ -456,6 +465,11 @@ PanelWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: statRoot.activated()
+        }
+
+        WheelHandler {
+            target: null
+            onWheel: (event) => statRoot.scrolled(event.angleDelta.y)
         }
     }
 }

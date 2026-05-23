@@ -459,6 +459,14 @@ elif [ "$TARGET_BAR" = "clean" ]; then
   fi
 fi
 
+# 6c. Profile switcher popup — runs as a standalone Quickshell instance on
+# every profile (started here if not already running; idempotent).
+SWITCHER_PATH="$HOME/nixos/home/configs/quickshell-switcher/shell.qml"
+if ! pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1; then
+  quickshell -p "$SWITCHER_PATH" >/dev/null 2>&1 &
+  disown
+fi
+
 # 7. Set wallpaper (after bar start so noctalia IPC is available)
 echo "  Setting wallpaper..."
 if [ "$TARGET" = "noctalia" ]; then

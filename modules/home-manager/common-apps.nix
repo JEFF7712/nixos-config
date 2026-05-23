@@ -32,8 +32,13 @@ in
 
     xdg.mimeApps = {
       enable = true;
+      associations.added = {
+        "inode/directory" = [ "thunar.desktop" ];
+        "application/x-directory" = [ "thunar.desktop" ];
+      };
       defaultApplications = {
         "inode/directory" = "thunar.desktop";
+        "application/x-directory" = "thunar.desktop";
         "text/html" = "firefox.desktop";
         "x-scheme-handler/http" = "firefox.desktop";
         "x-scheme-handler/https" = "firefox.desktop";
@@ -45,6 +50,26 @@ in
         "image/gif" = "firefox.desktop";
         "image/webp" = "firefox.desktop";
         "image/svg+xml" = "firefox.desktop";
+      };
+      associations.removed = {
+        "inode/directory" = [
+          "org.gnome.Nautilus.desktop"
+          "nautilus.desktop"
+          "org.kde.dolphin.desktop"
+          "dolphin.desktop"
+          "nemo.desktop"
+          "pcmanfm.desktop"
+          "caja.desktop"
+        ];
+        "application/x-directory" = [
+          "org.gnome.Nautilus.desktop"
+          "nautilus.desktop"
+          "org.kde.dolphin.desktop"
+          "dolphin.desktop"
+          "nemo.desktop"
+          "pcmanfm.desktop"
+          "caja.desktop"
+        ];
       };
     };
 
