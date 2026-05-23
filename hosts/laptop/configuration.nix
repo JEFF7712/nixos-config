@@ -83,6 +83,7 @@ in
   bluetooth.enable = true;
   filemanager.enable = true;
   screenshot-cleanup.enable = true;
+  battery-threshold.enable = true;
   podman.enable = true;
   distrobox.enable = true;
   file-utils.enable = true;

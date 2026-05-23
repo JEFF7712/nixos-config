@@ -1,79 +1,65 @@
 * {
-    font:                        "IBM Plex Sans 11";
-    background-color:            #2e3440;
-    text-color:                  #d8dee9;
-    border-color:                #4c566a;
-    selected-normal-background:  #3b4252;
-    selected-normal-foreground:  #88c0d0;
-    normal-background:           #2e3440;
-    normal-foreground:           #d8dee9;
+    font:                        "JetBrainsMono Nerd Font 9";
+    background-color:            rgba(20, 20, 20, 0.32);
+    text-color:                  #f2f2f2;
+    border-color:                rgba(255, 255, 255, 0.22);
+    selected-normal-background:  transparent;
+    selected-normal-foreground:  #ffffff;
+    normal-background:           transparent;
+    normal-foreground:           #c8c8c8;
+    urgent-background:           transparent;
+    urgent-foreground:           #f2f2f2;
 }
 
 window {
-    width:              900px;
-    border:             2px solid;
-    border-color:       #4c566a;
-    border-radius:      8px;
-    padding:            12px;
-    background-color:   #2e3440;
+    width:              960px;
+    border:             1px solid;
+    border-radius:      18px;
+    padding:            18px;
+    background-color:   rgba(20, 20, 20, 0.32);
 }
 
-mainbox {
-    spacing:            0;
-    children:           [ inputbar, listview ];
-}
+mainbox { spacing: 0; children: [ listview ]; }
 
-inputbar {
-    padding:            8px 12px;
-    margin:             0 0 10px 0;
-    background-color:   #3b4252;
-    border-radius:      6px;
-    children:           [ prompt, entry ];
-}
-
-prompt {
-    text-color:         #88c0d0;
-    padding:            0 8px 0 0;
-}
-
-entry {
-    text-color:         #d8dee9;
-    placeholder:        "Switch profile…";
-    placeholder-color:  #4c566a;
-}
+inputbar { enabled: false; }
 
 listview {
-    columns:            3;
-    lines:              2;
-    spacing:            10px;
-    fixed-height:       false;
-    scrollbar:          false;
+    columns: 3;
+    lines: 3;
+    spacing: 14px;
+    fixed-height: false;
+    scrollbar: false;
 }
 
 element {
-    orientation:        vertical;
-    padding:            10px;
-    spacing:            8px;
-    border-radius:      6px;
-    background-color:   #3b4252;
-    cursor:             pointer;
+    orientation: vertical;
+    padding: 6px;
+    spacing: 6px;
+    border-radius: 8px;
+    background-color: transparent;
+    border: 1px solid;
+    border-color: rgba(255, 255, 255, 0.10);
+    cursor: pointer;
 }
 
-element selected {
-    background-color:   #434c5e;
-    border:             2px solid;
-    border-color:       #88c0d0;
+element.urgent {
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+element.selected,
+element.selected.urgent {
+    border-color: #ffffff;
 }
 
 element-icon {
-    size:               160px;
-    border-radius:      4px;
-    horizontal-align:   0.5;
+    size: 200px;
+    border-radius: 6px;
+    horizontal-align: 0.5;
 }
 
 element-text {
-    horizontal-align:   0.5;
-    vertical-align:     0.5;
-    text-color:         inherit;
-    font:                        "IBM Plex Sans 11";
+    horizontal-align: 0.5;
+    vertical-align: 0.5;
+    text-color: inherit;
+    padding: 2px 0 0 0;
 }
