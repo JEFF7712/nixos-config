@@ -38,7 +38,26 @@ let
 in
 {
   desktopProfiles.profiles.rosepine = {
-    bar = "waybar";
+    bar = "quickshell";
+
+    quickshellTheme = {
+      fg = base;
+      bg = "#ddc4a7e7";
+      popupBg = "#cc191724";
+      rawBg = base;
+      accent = base;
+      second = surface;
+      warm = gold;
+      fresh = foam;
+      barRadius = "22";
+      barHeight = "32";
+      showClockDate = "false";
+      showWorkspaceNumbers = "false";
+      barFont = "FiraCode Nerd Font";
+      barBorder = "#00000000";
+      pillBg = "#00000000";
+      pillBorder = "#00000000";
+    };
 
     makoConfig = ''
       font=JetBrainsMono Nerd Font 11
@@ -120,7 +139,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/rosepine-light";
 
     niri = {
-      gaps = 18;
+      gaps = 12;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 36;

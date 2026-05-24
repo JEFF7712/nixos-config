@@ -243,8 +243,8 @@ elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
   rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
   # Stop mako (nord uses mako; noctalia manages its own notifications)
   pkill -x mako 2>/dev/null || true
-elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "clean" ]; then
-  echo "  Stopping clean topbar..."
+elif [ $STARTUP_MODE -eq 0 ] && { [ "$CURRENT_BAR" = "clean" ] || [ "$CURRENT_BAR" = "quickshell" ]; }; then
+  echo "  Stopping quickshell topbar..."
   pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
   pkill -x mako 2>/dev/null || true
 fi
@@ -433,8 +433,8 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
     mako 2>/dev/null &
     disown
   fi
-elif [ "$TARGET_BAR" = "clean" ]; then
-  echo "  Starting clean topbar..."
+elif [ "$TARGET_BAR" = "clean" ] || [ "$TARGET_BAR" = "quickshell" ]; then
+  echo "  Starting quickshell topbar..."
   systemctl --user start awww 2>/dev/null || true
   pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
   quickshell -p "$HOME/nixos/home/configs/quickshell-clean/shell.qml" 2>/dev/null &
@@ -529,7 +529,7 @@ if [ $STARTUP_MODE -eq 0 ]; then
       gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
       rosepine)   ZED_THEME="Rosé Pine"         ; ZED_ICON="Zed (Default)" ;;
       everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
-      minimal)    ZED_THEME="The Dark Side"                ; ZED_ICON="Zed (Default)" ;;
+      minimal)    ZED_THEME="Transparent Prism"                ; ZED_ICON="Zed (Default)" ;;
       clean)      ZED_THEME="Transparent Prism"  ; ZED_ICON="Zed (Default)" ;;
       *)          ZED_THEME=""                  ; ZED_ICON="" ;;
     esac

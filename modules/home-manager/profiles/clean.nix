@@ -48,7 +48,18 @@ let
 in
 {
   desktopProfiles.profiles.clean = {
-    bar = "clean";
+    bar = "quickshell";
+
+    quickshellTheme = {
+      fg = "#ffffff";
+      bg = "#662a2a2a";
+      popupBg = "#cc2a2a2a";
+      rawBg = "#141414";
+      accent = "#ffffff";
+      second = "#e8e8e8";
+      warm = "#e6dcc6";
+      fresh = "#d6eadc";
+    };
 
     cursor = {
       theme = "Bibata-Modern-Ice";
@@ -104,7 +115,7 @@ in
     '';
 
     niri = {
-      gaps = 12;
+      gaps = 8;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 30;

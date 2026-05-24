@@ -46,7 +46,25 @@ let
 in
 {
   desktopProfiles.profiles.gruvbox = {
-    bar = "waybar";
+    bar = "quickshell";
+
+    quickshellTheme = {
+      fg = fg1;
+      bg = "#66282828";
+      popupBg = "#cc282828";
+      rawBg = bg0;
+      accent = yellow;
+      second = fg2;
+      warm = orange;
+      fresh = green;
+      barRadius = "10";
+      barHeight = "32";
+      showClockDate = "false";
+      showWorkspaceNumbers = "false";
+      barFont = "Hack Nerd Font";
+      barBorder = yellow;
+      pillBorder = "#1d3c3836";
+    };
 
     makoConfig = ''
       font=JetBrainsMono Nerd Font 11
@@ -128,7 +146,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/gruvbox-light";
 
     niri = {
-      gaps = 26;
+      gaps = 18;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 30;
