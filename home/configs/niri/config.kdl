@@ -208,6 +208,16 @@ layer-rule {
   place-within-backdrop true
 }
 
+layer-rule {
+  match namespace="^quickshell-clean-topbar$"
+  geometry-corner-radius 15
+}
+
+layer-rule {
+  match namespace="^quickshell-clean-popup$"
+  geometry-corner-radius 15
+}
+
 overview {
   workspace-shadow {
     off

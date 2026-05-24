@@ -43,9 +43,21 @@ let
         type = lib.types.enum [
           "clean"
           "noctalia"
+          "quickshell"
           "waybar"
         ];
         description = "Which bar to run for this profile.";
+      };
+
+      quickshellTheme = lib.mkOption {
+        type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
+        default = null;
+        description = ''
+          Theme tokens for the modular quickshell bar. Keys: fg, bg, popupBg,
+          rawBg, accent, second, warm, fresh. Materialized as
+          ~/.config/desktop-profiles/<profile>/quickshell-theme.json and
+          loaded at runtime by shell.qml.
+        '';
       };
 
       cursor = {
@@ -368,8 +380,15 @@ let
           ".config/desktop-profiles/${name}/waybar-style-light.css".text = profile.waybarLight.style;
         }
       );
+
+      quickshellFiles = lib.optionalAttrs (profile.bar == "quickshell" || profile.bar == "clean") (
+        lib.optionalAttrs (profile.quickshellTheme != null) {
+          ".config/desktop-profiles/${name}/quickshell-theme.json".text =
+            builtins.toJSON profile.quickshellTheme;
+        }
+      );
     in
-    base // lightFiles // waybarFiles;
+    base // lightFiles // waybarFiles // quickshellFiles;
 
 in
 {

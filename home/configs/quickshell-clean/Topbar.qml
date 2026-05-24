@@ -15,6 +15,17 @@ PanelWindow {
     property color themeWarm
     property color themeFresh
 
+    property int barRadius: 15
+    property int barHeight: 44
+    property int barMargin: 10
+    property bool showClockDate: true
+    property bool showWorkspaceNumbers: true
+    property string barFont: "JetBrainsMono Nerd Font"
+    property color barBorderColor: "#3dffffff"
+    property color barInnerHighlight: "#0fffffff"
+    property color pillBg: "#0affffff"
+    property color pillBorder: "#14ffffff"
+
     property string cpuUsage: "-"
     property string ramUsage: "-"
     property string volumeLevel: "-"
@@ -83,9 +94,9 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     anchors { top: true; left: true; right: true }
-    margins { top: 10; left: 10; right: 10 }
-    implicitHeight: 44
-    exclusiveZone: 54
+    margins { top: topbarWindow.barMargin; left: 10; right: 10 }
+    implicitHeight: topbarWindow.barHeight
+    exclusiveZone: topbarWindow.barHeight + topbarWindow.barMargin
     color: "transparent"
 
     Process {
@@ -262,18 +273,34 @@ PanelWindow {
         onTriggered: titleProc.running = true
     }
 
+    Process {
+        id: niriEventStream
+        running: true
+        command: ["sh", "-c", "niri msg event-stream 2>/dev/null"]
+        stdout: SplitParser {
+            onRead: (data) => {
+                if (data.indexOf("Workspace") !== -1) {
+                    workspacesProc.running = true
+                }
+                if (data.indexOf("Window") !== -1) {
+                    titleProc.running = true
+                }
+            }
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
-        radius: 15
+        radius: topbarWindow.barRadius
         color: topbarWindow.themeBg
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.24)
+        border.color: topbarWindow.barBorderColor
 
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
             radius: parent.radius - 1
-            color: Qt.rgba(1, 1, 1, 0.06)
+            color: topbarWindow.barInnerHighlight
         }
 
         Item {
@@ -282,12 +309,12 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: 14
             width: wsRow.implicitWidth
-            height: 30
+            height: wsRow.implicitHeight
 
             Row {
                 id: wsRow
-                spacing: 8
-                anchors.top: parent.top
+                spacing: topbarWindow.showWorkspaceNumbers ? 8 : 6
+                anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
                     model: 10
@@ -297,6 +324,7 @@ PanelWindow {
 
             Rectangle {
                 id: wsIndicator
+                visible: topbarWindow.showWorkspaceNumbers
                 width: 18
                 height: 2
                 radius: 1
@@ -412,7 +440,7 @@ PanelWindow {
                     Layout.alignment: Qt.AlignHCenter
                     text: Qt.formatTime(new Date(), "h:mm AP")
                     color: topbarWindow.themeAccent
-                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 17; weight: Font.Light; letterSpacing: 1.2 }
+                    font { family: topbarWindow.barFont; pixelSize: 17; weight: Font.Light; letterSpacing: 1.2 }
                     Timer {
                         interval: 10000
                         running: true
@@ -431,7 +459,8 @@ PanelWindow {
                     text: Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
                     color: topbarWindow.themeSecond
                     opacity: 0.6
-                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 8; letterSpacing: 0.8; weight: Font.Medium }
+                    font { family: topbarWindow.barFont; pixelSize: 8; letterSpacing: 0.8; weight: Font.Medium }
+                    visible: topbarWindow.showClockDate
                 }
             }
 
@@ -472,7 +501,7 @@ PanelWindow {
                     ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4)
                     : topbarWindow.themeFg
                 elide: Text.ElideRight
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 12; weight: Font.Medium; letterSpacing: 0.3 }
+                font { family: topbarWindow.barFont; pixelSize: 12; weight: Font.Medium; letterSpacing: 0.3 }
                 Behavior on color { ColorAnimation { duration: 240; easing.type: Easing.OutCubic } }
             }
         }
@@ -483,22 +512,37 @@ PanelWindow {
         property int wsId: 1
         readonly property bool isActive: topbarWindow.activeWorkspace === wsId
         readonly property bool isOccupied: topbarWindow.occupiedWorkspaces[wsId] === true
+        readonly property bool noNumbers: !topbarWindow.showWorkspaceNumbers
 
-        width: 28
-        height: 24
+        width: noNumbers
+            ? (isActive ? 30 : 14)
+            : 28
+        height: noNumbers ? 14 : 24
+
+        Behavior on width { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
         Rectangle {
             id: wsBase
             anchors.fill: parent
-            radius: 9
-            color: wsMouse.pressed
-                ? Qt.rgba(1, 1, 1, 0.12)
-                : wsMouse.containsMouse
-                    ? Qt.rgba(1, 1, 1, 0.08)
-                    : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025)
+            radius: wsRoot.noNumbers ? 4 : 9
+
+            color: wsRoot.noNumbers
+                ? Qt.rgba(
+                    topbarWindow.themeAccent.r,
+                    topbarWindow.themeAccent.g,
+                    topbarWindow.themeAccent.b,
+                    wsRoot.isActive ? 1.0
+                        : wsMouse.containsMouse ? 0.7
+                        : wsRoot.isOccupied ? 0.55
+                        : 0.25)
+                : (wsMouse.pressed
+                    ? Qt.rgba(1, 1, 1, 0.12)
+                    : wsMouse.containsMouse
+                        ? Qt.rgba(1, 1, 1, 0.08)
+                        : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025))
             Behavior on color { ColorAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
-            border.width: 1
+            border.width: wsRoot.noNumbers ? 0 : 1
             border.color: wsRoot.isActive
                 ? "transparent"
                 : wsMouse.containsMouse
@@ -513,20 +557,21 @@ PanelWindow {
                 anchors.fill: parent
                 radius: parent.radius
                 color: topbarWindow.themeAccent
-                opacity: wsRoot.isActive ? 1.0 : 0.0
+                opacity: wsRoot.isActive && !wsRoot.noNumbers ? 1.0 : 0.0
                 Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutQuart } }
             }
 
             Text {
                 anchors.centerIn: parent
                 text: wsRoot.wsId
+                visible: topbarWindow.showWorkspaceNumbers
                 color: wsRoot.isActive
                     ? topbarWindow.themeRawBg
                     : wsRoot.isOccupied
                         ? topbarWindow.themeFg
                         : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.32)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: topbarWindow.barFont
                     pixelSize: wsRoot.isActive ? 12 : 11
                     weight: wsRoot.isActive ? Font.Bold : Font.Medium
                 }
@@ -570,13 +615,13 @@ PanelWindow {
                 ? Qt.rgba(1, 1, 1, 0.12)
                 : statMouse.containsMouse
                     ? Qt.rgba(1, 1, 1, 0.08)
-                    : Qt.rgba(1, 1, 1, 0.04)
+                    : topbarWindow.pillBg
             Behavior on color { ColorAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
             border.width: 1
             border.color: statMouse.containsMouse
                 ? Qt.rgba(statRoot.tint.r, statRoot.tint.g, statRoot.tint.b, 0.55)
-                : Qt.rgba(1, 1, 1, 0.08)
+                : topbarWindow.pillBorder
             Behavior on border.color { ColorAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
             scale: statMouse.pressed ? 0.94 : (statMouse.containsMouse ? 1.06 : 1.0)
@@ -600,7 +645,7 @@ PanelWindow {
                     color: statMouse.containsMouse
                         ? statRoot.tint
                         : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
-                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 12 }
+                    font { family: topbarWindow.barFont; pixelSize: 12 }
                     scale: statMouse.pressed ? 0.9 : (statMouse.containsMouse ? 1.08 : 1.0)
                     Behavior on scale { SpringAnimation { spring: 4; damping: 0.5; mass: 0.7 } }
                     Behavior on color { ColorAnimation { duration: 260; easing.type: Easing.OutCubic } }
@@ -611,7 +656,7 @@ PanelWindow {
                     visible: statRoot.value !== ""
                     color: topbarWindow.themeFg
                     opacity: 0.85
-                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 10; weight: Font.Medium }
+                    font { family: topbarWindow.barFont; pixelSize: 10; weight: Font.Medium }
                 }
             }
         }

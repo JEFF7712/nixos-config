@@ -61,7 +61,26 @@ let
 in
 {
   desktopProfiles.profiles.catppuccin = {
-    bar = "waybar";
+    bar = "quickshell";
+
+    quickshellTheme = {
+      fg = pink;
+      bg = "#99181825";
+      popupBg = "#cc1e1e2e";
+      rawBg = base;
+      accent = mauve;
+      second = pink;
+      warm = peach;
+      fresh = green;
+      barRadius = "22";
+      barHeight = "32";
+      showClockDate = "false";
+      showWorkspaceNumbers = "false";
+      barFont = "FiraCode Nerd Font";
+      barBorder = "#00000000";
+      pillBg = "#00000000";
+      pillBorder = "#00000000";
+    };
 
     makoConfig = ''
       font=JetBrainsMono Nerd Font 11
@@ -143,7 +162,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/catppuccin-light";
 
     niri = {
-      gaps = 14;
+      gaps = 10;
       borderOff = true;
       borderActiveColor = mauve;
       borderInactiveColor = surface1;

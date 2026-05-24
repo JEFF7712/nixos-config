@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 
 ShellRoot {
@@ -13,6 +14,62 @@ ShellRoot {
     property color themeSecond: "#e8e8e8"
     property color themeWarm: "#e6dcc6"
     property color themeFresh: "#d6eadc"
+
+    property int barRadius: 15
+    property int barHeight: 44
+    property int barMargin: 10
+    property bool showClockDate: true
+    property bool showWorkspaceNumbers: true
+    property string barFont: "JetBrainsMono Nerd Font"
+    property color barBorderColor: "#3dffffff"
+    property color barInnerHighlight: "#0fffffff"
+    property color pillBg: "#0affffff"
+    property color pillBorder: "#14ffffff"
+
+    readonly property int popupTopMargin: barMargin + barHeight + 10
+
+    function applyTheme(theme) {
+        if (!theme) return
+        if (theme.fg)                root.themeFg            = theme.fg
+        if (theme.bg)                root.themeBg            = theme.bg
+        if (theme.popupBg)           root.popupBg            = theme.popupBg
+        if (theme.rawBg)             root.themeRawBg         = theme.rawBg
+        if (theme.accent)            root.themeAccent        = theme.accent
+        if (theme.second)            root.themeSecond        = theme.second
+        if (theme.warm)              root.themeWarm          = theme.warm
+        if (theme.fresh)             root.themeFresh         = theme.fresh
+        if (theme.barRadius)         root.barRadius          = parseInt(theme.barRadius)
+        if (theme.barHeight)         root.barHeight          = parseInt(theme.barHeight)
+        if (theme.barMargin)         root.barMargin          = parseInt(theme.barMargin)
+        if (theme.showClockDate)     root.showClockDate      = theme.showClockDate === "true"
+        if (theme.showWorkspaceNumbers) root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true"
+        if (theme.barFont)           root.barFont            = theme.barFont
+        if (theme.barBorder)         root.barBorderColor     = theme.barBorder
+        if (theme.barInnerHighlight) root.barInnerHighlight  = theme.barInnerHighlight
+        if (theme.pillBg)            root.pillBg             = theme.pillBg
+        if (theme.pillBorder)        root.pillBorder         = theme.pillBorder
+    }
+
+    Process {
+        id: themeLoader
+        running: true
+        command: ["sh", "-c",
+            "p=\"$HOME/.config/desktop-profiles\";" +
+            "[ -f \"$p/active\" ] || exit 0;" +
+            "cat \"$p/$(cat $p/active)/quickshell-theme.json\" 2>/dev/null"
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const txt = this.text.trim()
+                if (!txt) return
+                try {
+                    root.applyTheme(JSON.parse(txt))
+                } catch (e) {
+                    console.warn("quickshell-theme.json parse failed:", e)
+                }
+            }
+        }
+    }
 
     readonly property bool anyPopupShown:
         wifiPopup.shown || bluetoothPopup.shown || batteryPopup.shown
@@ -49,6 +106,16 @@ ShellRoot {
         themeSecond: root.themeSecond
         themeWarm: root.themeWarm
         themeFresh: root.themeFresh
+        barRadius: root.barRadius
+        barHeight: root.barHeight
+        barMargin: root.barMargin
+        showClockDate: root.showClockDate
+        showWorkspaceNumbers: root.showWorkspaceNumbers
+        barFont: root.barFont
+        barBorderColor: root.barBorderColor
+        barInnerHighlight: root.barInnerHighlight
+        pillBg: root.pillBg
+        pillBorder: root.pillBorder
         notificationCount: notificationsPopup.unreadCount
 
         onWifiClicked: root.showOnly(wifiPopup)
@@ -65,6 +132,7 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        topMargin: root.popupTopMargin
     }
 
     BluetoothPopup {
@@ -72,6 +140,7 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        topMargin: root.popupTopMargin
     }
 
     BatteryPopup {
@@ -79,6 +148,7 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        topMargin: root.popupTopMargin
         powerProfile: topbar.powerProfile
         cpuUsage: topbar.cpuUsage
         ramUsage: topbar.ramUsage
@@ -89,6 +159,7 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        topMargin: root.popupTopMargin
     }
 
     NotificationsPopup {
@@ -96,6 +167,7 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        topMargin: root.popupTopMargin
     }
 
     SystemPopup {
@@ -103,6 +175,7 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        topMargin: root.popupTopMargin
     }
 
     MediaPopup {
@@ -110,6 +183,7 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        topMargin: root.popupTopMargin
         status: topbar.mediaStatus
         track: topbar.mediaTitle
         artist: topbar.mediaArtist

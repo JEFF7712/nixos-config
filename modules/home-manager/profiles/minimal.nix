@@ -109,7 +109,28 @@ let
 in
 {
   desktopProfiles.profiles.minimal = {
-    bar = "waybar";
+    bar = "quickshell";
+
+    quickshellTheme = {
+      fg = fg0;
+      bg = "#00000000";
+      popupBg = "#cc141414";
+      rawBg = bg0;
+      accent = accent;
+      second = fg1;
+      warm = fg1;
+      fresh = fg1;
+      barRadius = "0";
+      barHeight = "26";
+      barMargin = "2";
+      showClockDate = "false";
+      showWorkspaceNumbers = "false";
+      barFont = "Iosevka Nerd Font";
+      barBorder = "#00000000";
+      barInnerHighlight = "#00000000";
+      pillBg = "#00000000";
+      pillBorder = "#00000000";
+    };
 
     makoConfig = ''
       font=JetBrainsMono Nerd Font 11

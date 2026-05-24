@@ -8,6 +8,7 @@ PanelWindow {
     property bool shown: false
     property string title: ""
     property string popupPosition: "right"
+    property int topMargin: 64
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color themeAccent: "#ffffff"
@@ -28,7 +29,7 @@ PanelWindow {
         left: root.popupPosition === "left"
     }
     margins {
-        top: 64
+        top: root.topMargin
         right: root.popupPosition === "right" ? 10 : 0
         left: root.popupPosition === "left" ? 10 : 0
     }

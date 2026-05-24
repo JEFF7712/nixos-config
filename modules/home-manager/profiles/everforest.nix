@@ -42,7 +42,25 @@ let
 in
 {
   desktopProfiles.profiles.everforest = {
-    bar = "waybar";
+    bar = "quickshell";
+
+    quickshellTheme = {
+      fg = fg;
+      bg = "#66272e33";
+      popupBg = "#cc272e33";
+      rawBg = bg0;
+      accent = green;
+      second = grey2;
+      warm = orange;
+      fresh = blue;
+      barRadius = "10";
+      barHeight = "32";
+      showClockDate = "false";
+      showWorkspaceNumbers = "false";
+      barFont = "Hack Nerd Font";
+      barBorder = "#00000000";
+      pillBorder = "#1d2e383c";
+    };
 
     makoConfig = ''
       font=JetBrainsMono Nerd Font 11
@@ -124,7 +142,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/everforest-light";
 
     niri = {
-      gaps = 22;
+      gaps = 16;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 24;
