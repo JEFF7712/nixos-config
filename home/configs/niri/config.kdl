@@ -161,16 +161,11 @@ layer-rule {
     }
 }
 
-// Custom app launcher (rendered by quickshell-launcher) — same blur treatment.
+// Custom app launcher (rendered by quickshell-launcher) — no blur, just
+// translucent over windows like the bar's info popups.
 layer-rule {
     match namespace="^quickshell-app-launcher$"
     geometry-corner-radius 18
-    background-effect {
-        blur true
-        xray true
-        noise 0.015
-        saturation 1.2
-    }
 }
 
 // --- Window Rules ---

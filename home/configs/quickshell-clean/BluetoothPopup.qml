@@ -140,9 +140,10 @@ InfoPopup {
     onShownChanged: { if (shown) fetchProc.running = true }
 
     Timer {
-        running: root.shown
-        interval: 4000
+        running: true
+        interval: root.shown ? 4000 : 20000
         repeat: true
+        triggeredOnStart: true
         onTriggered: fetchProc.running = true
     }
 }
