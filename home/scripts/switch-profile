@@ -467,6 +467,15 @@ if ! pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1; then
   disown
 fi
 
+# 6d. Custom app launcher — standalone Quickshell instance for all non-noctalia
+# profiles. Noctalia keeps its own launcher (we still start ours but it just
+# sits idle since Mod+Space routes to noctalia's IPC on that profile).
+LAUNCHER_PATH="$HOME/nixos/home/configs/quickshell-launcher/shell.qml"
+if ! pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1; then
+  quickshell -p "$LAUNCHER_PATH" >/dev/null 2>&1 &
+  disown
+fi
+
 # 7. Set wallpaper (after bar start so noctalia IPC is available)
 echo "  Setting wallpaper..."
 if [ "$TARGET" = "noctalia" ]; then

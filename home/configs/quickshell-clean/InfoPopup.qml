@@ -7,6 +7,7 @@ PanelWindow {
 
     property bool shown: false
     property string title: ""
+    property string popupPosition: "right"
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color themeAccent: "#ffffff"
@@ -21,8 +22,16 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
     visible: shown
-    anchors { top: true; right: true }
-    margins { top: 64; right: 10 }
+    anchors {
+        top: true
+        right: root.popupPosition === "right"
+        left: root.popupPosition === "left"
+    }
+    margins {
+        top: 64
+        right: root.popupPosition === "right" ? 10 : 0
+        left: root.popupPosition === "left" ? 10 : 0
+    }
     implicitWidth: 300
     implicitHeight: outerColumn.implicitHeight + 28
     exclusiveZone: -1

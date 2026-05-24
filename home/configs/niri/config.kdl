@@ -161,6 +161,18 @@ layer-rule {
     }
 }
 
+// Custom app launcher (rendered by quickshell-launcher) — same blur treatment.
+layer-rule {
+    match namespace="^quickshell-app-launcher$"
+    geometry-corner-radius 18
+    background-effect {
+        blur true
+        xray true
+        noise 0.015
+        saturation 1.2
+    }
+}
+
 // --- Window Rules ---
 window-rule {
     open-maximized true
@@ -217,7 +229,7 @@ binds {
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
     Mod+P hotkey-overlay-title="Profile Switcher" { spawn "qs" "-p" "/home/rupan/nixos/home/configs/quickshell-switcher" "ipc" "call" "profile" "toggle"; }
-    Mod+Space hotkey-overlay-title="App Launcher" { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call launcher toggle; else rofi -show drun -show-icons -theme \"$HOME/nixos/home/configs/rofi/launcher.rasi\"; fi"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call launcher toggle; else qs -p \"$HOME/nixos/home/configs/quickshell-launcher\" ipc call launcher toggle; fi"; }
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "lock-screen"; }
     Mod+F { spawn "firefox"; }
     Mod+W { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call wallpaper toggle; else waypaper; fi"; }
