@@ -23,6 +23,8 @@
         smartmontools
         ncdu
         yazi
+        unrar
+        inotify-tools
       ]
       ++ [
         inputs.compchem-cctop.packages.${system}.default

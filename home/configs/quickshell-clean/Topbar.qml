@@ -18,12 +18,19 @@ PanelWindow {
     property string cpuUsage: "-"
     property string ramUsage: "-"
     property string volumeLevel: "-"
+    property bool volumeMuted: false
     property string brightnessLevel: "-"
     property string networkIcon: "󰖪"
     property string batteryPercent: ""
     property string batteryIcon: "󰁹"
     property string powerProfile: "balanced"
     property string activeTitle: "no active window"
+    property int notificationCount: 0
+    property string mediaStatus: ""
+    property string mediaTitle: ""
+    property string mediaArtist: ""
+    property string mediaAlbum: ""
+    property string mediaArtUrl: ""
     property int activeWorkspace: 1
     property var occupiedWorkspaces: ({})
 
@@ -33,6 +40,7 @@ PanelWindow {
     signal clockClicked()
     signal notificationsClicked()
     signal systemClicked()
+    signal mediaClicked()
 
     readonly property var powerProfileOrder: ["power-saver", "balanced", "performance"]
     readonly property var powerProfileIcons: ({
@@ -55,17 +63,19 @@ PanelWindow {
     }
 
     function adjustVolume(delta) {
-        const step = 5
+        const step = 2
         const arg = delta > 0 ? (step + "%+") : (step + "%-")
         topbarWindow.run("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ " + arg)
-        statsProc.running = true
     }
 
     function adjustBrightness(delta) {
-        const step = 5
+        const step = 2
         const arg = delta > 0 ? (step + "%+") : (step + "%-")
         topbarWindow.run("brightnessctl set " + arg)
-        statsProc.running = true
+    }
+
+    function adjustMedia(delta) {
+        topbarWindow.run("playerctl " + (delta > 0 ? "next" : "previous"))
     }
 
     WlrLayershell.namespace: "quickshell-clean-topbar"
@@ -123,6 +133,78 @@ PanelWindow {
         repeat: true
         triggeredOnStart: true
         onTriggered: statsProc.running = true
+    }
+
+    Process {
+        id: volumeProbe
+        command: ["sh", "-c",
+            "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{vol=int($2*100); mute=index($0,\"MUTED\")>0?\"m\":\"a\"; print vol\"|\"mute}'"
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const parts = this.text.trim().split("|")
+                if (parts.length === 2) {
+                    topbarWindow.volumeLevel = parts[0] !== "" ? parts[0] + "%" : "-"
+                    topbarWindow.volumeMuted = parts[1] === "m"
+                }
+            }
+        }
+    }
+
+    Process {
+        id: brightnessProbe
+        command: ["sh", "-c", "brightnessctl -m 2>/dev/null | awk -F, '{print $4}' | tr -d '%'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = this.text.trim()
+                topbarWindow.brightnessLevel = v !== "" ? v + "%" : "-"
+            }
+        }
+    }
+
+    Process {
+        id: volumeSubscribeProc
+        running: true
+        command: ["pactl", "subscribe"]
+        stdout: SplitParser {
+            onRead: (data) => {
+                if (data.indexOf("sink") !== -1) {
+                    volumeProbe.running = true
+                }
+            }
+        }
+    }
+
+    Process {
+        id: mediaFollowProc
+        running: true
+        command: ["sh", "-c",
+            "playerctl --follow metadata --format '{{status}}@@@{{xesam:title}}@@@{{xesam:artist}}@@@{{xesam:album}}@@@{{mpris:artUrl}}' 2>/dev/null"
+        ]
+        stdout: SplitParser {
+            onRead: (data) => {
+                if (!data) return
+                const parts = data.split("@@@")
+                topbarWindow.mediaStatus = parts[0] || ""
+                topbarWindow.mediaTitle = parts[1] || ""
+                topbarWindow.mediaArtist = parts[2] || ""
+                topbarWindow.mediaAlbum = parts[3] || ""
+                topbarWindow.mediaArtUrl = parts[4] || ""
+            }
+        }
+    }
+
+    Process {
+        id: brightnessSubscribeProc
+        running: true
+        command: ["sh", "-c",
+            "f=$(ls /sys/class/backlight/*/brightness 2>/dev/null | head -1);" +
+            "[ -z \"$f\" ] && exit 0;" +
+            "exec inotifywait -m -q -e modify --format '.' \"$f\""
+        ]
+        stdout: SplitParser {
+            onRead: (data) => brightnessProbe.running = true
+        }
     }
 
     Process {
@@ -233,13 +315,27 @@ PanelWindow {
             anchors.rightMargin: 12
             spacing: 6
 
-            StatPill { icon: "󰻠"; value: topbarWindow.cpuUsage; tint: topbarWindow.themeWarm }
-            StatPill { icon: "󰍛"; value: topbarWindow.ramUsage; tint: topbarWindow.themeFresh }
             StatPill {
-                icon: "󰕾"
+                visible: topbarWindow.mediaStatus !== "" && topbarWindow.mediaStatus !== "Stopped"
+                icon: topbarWindow.mediaStatus === "Playing" ? "󰏤" : "󰐊"
+                value: topbarWindow.mediaTitle.length > 22
+                    ? topbarWindow.mediaTitle.substring(0, 21) + "…"
+                    : topbarWindow.mediaTitle
+                tint: topbarWindow.mediaStatus === "Playing"
+                    ? topbarWindow.themeAccent
+                    : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.55)
+                onActivated: topbarWindow.run("playerctl play-pause")
+                onRightClicked: topbarWindow.mediaClicked()
+                onScrolled: (delta) => topbarWindow.adjustMedia(delta)
+            }
+            StatPill {
+                icon: topbarWindow.volumeMuted ? "󰖁" : "󰕾"
                 value: topbarWindow.volumeLevel
-                tint: topbarWindow.themeAccent
+                tint: topbarWindow.volumeMuted
+                    ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4)
+                    : topbarWindow.themeAccent
                 onActivated: topbarWindow.run("pavucontrol")
+                onMiddleClicked: topbarWindow.run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
                 onScrolled: (delta) => topbarWindow.adjustVolume(delta)
             }
             StatPill {
@@ -253,12 +349,14 @@ PanelWindow {
                 value: ""
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.wifiClicked()
+                onRightClicked: topbarWindow.run("kitty -e nmtui")
             }
             StatPill {
                 icon: "󰂯"
                 value: ""
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.bluetoothClicked()
+                onRightClicked: topbarWindow.run("blueman-manager")
             }
             StatPill {
                 icon: topbarWindow.powerProfileIcons[topbarWindow.powerProfile] || "󰾅"
@@ -278,8 +376,14 @@ PanelWindow {
             }
             StatPill {
                 icon: "󰂚"
-                value: ""
-                tint: topbarWindow.themeSecond
+                value: topbarWindow.notificationCount > 9
+                    ? "9+"
+                    : (topbarWindow.notificationCount > 0
+                        ? topbarWindow.notificationCount.toString()
+                        : "")
+                tint: topbarWindow.notificationCount > 0
+                    ? topbarWindow.themeAccent
+                    : topbarWindow.themeSecond
                 onActivated: topbarWindow.notificationsClicked()
             }
             StatPill {
@@ -287,6 +391,7 @@ PanelWindow {
                 value: ""
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.systemClicked()
+                onRightClicked: topbarWindow.run("loginctl lock-session")
             }
         }
 
@@ -437,6 +542,11 @@ PanelWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: topbarWindow.run("niri msg action focus-workspace " + wsRoot.wsId)
+            onWheel: (event) => {
+                const cmd = event.angleDelta.y > 0 ? "focus-workspace-up" : "focus-workspace-down"
+                topbarWindow.run("niri msg action " + cmd)
+                event.accepted = true
+            }
         }
     }
 
@@ -446,6 +556,8 @@ PanelWindow {
         property string value
         property color tint
         signal activated()
+        signal middleClicked()
+        signal rightClicked()
         signal scrolled(int delta)
 
         width: statContent.implicitWidth + 22
@@ -509,7 +621,12 @@ PanelWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: statRoot.activated()
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+            onClicked: (mouse) => {
+                if (mouse.button === Qt.MiddleButton) statRoot.middleClicked()
+                else if (mouse.button === Qt.RightButton) statRoot.rightClicked()
+                else statRoot.activated()
+            }
             onWheel: (event) => {
                 statRoot.scrolled(event.angleDelta.y)
                 event.accepted = true

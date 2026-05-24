@@ -3,8 +3,10 @@ import Quickshell.Io
 
 InfoPopup {
     id: root
-    title: "BATTERY"
+    title: "SYSTEM"
 
+    property string cpuUsage: "—"
+    property string ramUsage: "—"
     property string powerProfile: ""
     property string charge: "—"
     property string status_: "—"
@@ -13,6 +15,15 @@ InfoPopup {
     property string health: "—"
     property int chargeLimit: 100
     property bool thresholdWritable: false
+
+    InfoRow { label: "cpu"; value: root.cpuUsage; themeFg: root.themeFg; active: root.shown }
+    InfoRow { label: "ram"; value: root.ramUsage; themeFg: root.themeFg; active: root.shown }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: Qt.rgba(1, 1, 1, 0.08)
+    }
 
     InfoRow { label: "charge"; value: root.charge;       themeFg: root.themeFg; active: root.shown }
     InfoRow { label: "status"; value: root.status_;      themeFg: root.themeFg; active: root.shown }
@@ -116,9 +127,10 @@ InfoPopup {
     onShownChanged: { if (shown) fetchProc.running = true }
 
     Timer {
-        running: root.shown
-        interval: 5000
+        running: true
+        interval: root.shown ? 5000 : 30000
         repeat: true
+        triggeredOnStart: true
         onTriggered: fetchProc.running = true
     }
 }

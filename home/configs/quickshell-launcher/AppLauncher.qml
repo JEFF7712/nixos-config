@@ -25,8 +25,10 @@ PanelWindow {
     readonly property color accent: profileAccents[activeProfile] || "#ffffff"
 
     readonly property int columns: 6
-    readonly property int rows: 3
-    readonly property int maxResults: columns * rows
+    readonly property int visibleRows: 3
+    readonly property int tileWidth: 140
+    readonly property int tileHeight: 130
+    readonly property int tileSpacing: 8
 
     readonly property var allEntries: (DesktopEntries.applications.values || [])
         .filter(e => !e.noDisplay)
@@ -34,10 +36,9 @@ PanelWindow {
 
     readonly property var entries: {
         const q = query.toLowerCase().trim()
-        const filtered = q.length > 0
+        return q.length > 0
             ? allEntries.filter(e => e.name.toLowerCase().includes(q))
             : allEntries
-        return filtered.slice(0, maxResults)
     }
 
     function open() {
@@ -78,10 +79,17 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
+    readonly property int gridWidth: columns * (tileWidth + tileSpacing)
+    readonly property int gridHeight: visibleRows * (tileHeight + tileSpacing)
+    readonly property int searchBarHeight: 38
+    readonly property int columnGap: 14
+    readonly property int cardPadding: 36
+
     visible: shown
-    anchors { top: true; bottom: true; left: true; right: true }
     exclusiveZone: -1
     color: "transparent"
+    implicitWidth: root.gridWidth + cardPadding
+    implicitHeight: root.searchBarHeight + root.columnGap + root.gridHeight + cardPadding
 
     Process {
         id: activeProc
@@ -91,18 +99,11 @@ PanelWindow {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.close()
-    }
-
     Rectangle {
         id: card
-        anchors.centerIn: parent
-        width: grid.implicitWidth + 36
-        height: contentColumn.implicitHeight + 36
+        anchors.fill: parent
         radius: 18
-        color: Qt.rgba(0.08, 0.08, 0.08, 0.32)
+        color: Qt.rgba(0.13, 0.13, 0.13, 0.875)
         border.width: 1
         border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
         opacity: root.shown ? 1.0 : 0.0
@@ -116,7 +117,7 @@ PanelWindow {
             id: contentColumn
             anchors.centerIn: parent
             spacing: 14
-            width: grid.implicitWidth
+            width: root.gridWidth
 
             Rectangle {
                 id: searchBar
@@ -189,8 +190,8 @@ PanelWindow {
             }
 
             Item {
-                width: grid.implicitWidth
-                height: grid.implicitHeight
+                width: root.gridWidth
+                height: root.gridHeight
 
                 Text {
                     anchors.centerIn: parent
@@ -202,37 +203,40 @@ PanelWindow {
                     visible: root.entries.length === 0 && root.query.length > 0
                 }
 
-                Grid {
-                    id: grid
-                    columns: root.columns
-                    rowSpacing: 8
-                    columnSpacing: 8
+                GridView {
+                    id: gridView
+                    anchors.fill: parent
+                    cellWidth: root.tileWidth + root.tileSpacing
+                    cellHeight: root.tileHeight + root.tileSpacing
+                    clip: true
+                    model: root.entries
                     visible: root.entries.length > 0
+                    boundsBehavior: Flickable.StopAtBounds
+                    flickDeceleration: 4000
 
-                    Repeater {
-                        model: root.entries
+                    currentIndex: root.focusedIndex
+                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
 
-                        Item {
-                            id: tile
-                            width: 140
-                            height: 130
+                    delegate: Item {
+                        id: tile
+                        width: gridView.cellWidth
+                        height: gridView.cellHeight
 
-                            property bool hovered: tileMouse.containsMouse
-                            property bool isFocused: index === root.focusedIndex
+                        property bool hovered: tileMouse.containsMouse
+                        property bool isFocused: index === root.focusedIndex
 
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: 10
-                                color: tile.isFocused
-                                    ? Qt.rgba(1, 1, 1, 0.06)
-                                    : "transparent"
-                                border.width: 1
-                                border.color: tile.hovered || tile.isFocused
-                                    ? root.accent
-                                    : Qt.rgba(1, 1, 1, 0.06)
-                                Behavior on border.color { ColorAnimation { duration: 120 } }
-                                Behavior on color { ColorAnimation { duration: 120 } }
-                            }
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.tileWidth
+                            height: root.tileHeight
+                            radius: 10
+                            color: tile.isFocused ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                            border.width: 1
+                            border.color: tile.hovered || tile.isFocused
+                                ? root.accent
+                                : Qt.rgba(1, 1, 1, 0.06)
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on color { ColorAnimation { duration: 120 } }
 
                             Image {
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -252,8 +256,6 @@ PanelWindow {
                                 anchors.bottom: parent.bottom
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.bottomMargin: 10
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
                                 width: parent.width - 12
                                 text: modelData.name
                                 color: "white"
@@ -265,15 +267,15 @@ PanelWindow {
                                 maximumLineCount: 1
                                 Behavior on opacity { NumberAnimation { duration: 120 } }
                             }
+                        }
 
-                            MouseArea {
-                                id: tileMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onEntered: root.focusedIndex = index
-                                onClicked: root.launch(modelData)
-                            }
+                        MouseArea {
+                            id: tileMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onEntered: root.focusedIndex = index
+                            onClicked: root.launch(modelData)
                         }
                     }
                 }

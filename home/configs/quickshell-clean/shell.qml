@@ -17,11 +17,12 @@ ShellRoot {
     readonly property bool anyPopupShown:
         wifiPopup.shown || bluetoothPopup.shown || batteryPopup.shown
         || calendarPopup.shown || notificationsPopup.shown || systemPopup.shown
+        || mediaPopup.shown
 
     function showOnly(target) {
         const popups = [
             wifiPopup, bluetoothPopup, batteryPopup,
-            calendarPopup, notificationsPopup, systemPopup
+            calendarPopup, notificationsPopup, systemPopup, mediaPopup
         ]
         for (const p of popups) {
             if (p !== target) p.close()
@@ -36,6 +37,7 @@ ShellRoot {
         calendarPopup.close()
         notificationsPopup.close()
         systemPopup.close()
+        mediaPopup.close()
     }
 
     Topbar {
@@ -47,6 +49,7 @@ ShellRoot {
         themeSecond: root.themeSecond
         themeWarm: root.themeWarm
         themeFresh: root.themeFresh
+        notificationCount: notificationsPopup.unreadCount
 
         onWifiClicked: root.showOnly(wifiPopup)
         onBluetoothClicked: root.showOnly(bluetoothPopup)
@@ -54,6 +57,7 @@ ShellRoot {
         onClockClicked: root.showOnly(calendarPopup)
         onNotificationsClicked: root.showOnly(notificationsPopup)
         onSystemClicked: root.showOnly(systemPopup)
+        onMediaClicked: root.showOnly(mediaPopup)
     }
 
     WifiPopup {
@@ -76,6 +80,8 @@ ShellRoot {
         themeBg: root.popupBg
         themeAccent: root.themeAccent
         powerProfile: topbar.powerProfile
+        cpuUsage: topbar.cpuUsage
+        ramUsage: topbar.ramUsage
     }
 
     CalendarPopup {
@@ -97,6 +103,18 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+    }
+
+    MediaPopup {
+        id: mediaPopup
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+        status: topbar.mediaStatus
+        track: topbar.mediaTitle
+        artist: topbar.mediaArtist
+        album: topbar.mediaAlbum
+        artUrl: topbar.mediaArtUrl
     }
 
     PanelWindow {

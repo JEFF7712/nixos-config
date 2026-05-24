@@ -9,10 +9,11 @@ InfoPopup {
     property var allNotifications: []
     property var dismissedIds: ({})
 
-    readonly property var notifications: {
-        const filtered = root.allNotifications.filter(n => !root.dismissedIds[n.id])
-        return filtered.slice(0, 8)
-    }
+    readonly property var filteredNotifications:
+        root.allNotifications.filter(n => !root.dismissedIds[n.id])
+
+    readonly property var notifications: root.filteredNotifications.slice(0, 8)
+    readonly property int unreadCount: root.filteredNotifications.length
 
     function dismiss(id) {
         const next = Object.assign({}, root.dismissedIds)
@@ -148,9 +149,10 @@ InfoPopup {
     onShownChanged: { if (shown) fetchProc.running = true }
 
     Timer {
-        running: root.shown
-        interval: 5000
+        running: true
+        interval: root.shown ? 5000 : 15000
         repeat: true
+        triggeredOnStart: true
         onTriggered: fetchProc.running = true
     }
 }
