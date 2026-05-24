@@ -16,9 +16,13 @@ ShellRoot {
 
     readonly property bool anyPopupShown:
         wifiPopup.shown || bluetoothPopup.shown || batteryPopup.shown
+        || calendarPopup.shown || notificationsPopup.shown || systemPopup.shown
 
     function showOnly(target) {
-        const popups = [wifiPopup, bluetoothPopup, batteryPopup]
+        const popups = [
+            wifiPopup, bluetoothPopup, batteryPopup,
+            calendarPopup, notificationsPopup, systemPopup
+        ]
         for (const p of popups) {
             if (p !== target) p.close()
         }
@@ -29,6 +33,9 @@ ShellRoot {
         wifiPopup.close()
         bluetoothPopup.close()
         batteryPopup.close()
+        calendarPopup.close()
+        notificationsPopup.close()
+        systemPopup.close()
     }
 
     Topbar {
@@ -44,6 +51,9 @@ ShellRoot {
         onWifiClicked: root.showOnly(wifiPopup)
         onBluetoothClicked: root.showOnly(bluetoothPopup)
         onBatteryClicked: root.showOnly(batteryPopup)
+        onClockClicked: root.showOnly(calendarPopup)
+        onNotificationsClicked: root.showOnly(notificationsPopup)
+        onSystemClicked: root.showOnly(systemPopup)
     }
 
     WifiPopup {
@@ -66,6 +76,27 @@ ShellRoot {
         themeBg: root.popupBg
         themeAccent: root.themeAccent
         powerProfile: topbar.powerProfile
+    }
+
+    CalendarPopup {
+        id: calendarPopup
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+    }
+
+    NotificationsPopup {
+        id: notificationsPopup
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+    }
+
+    SystemPopup {
+        id: systemPopup
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
     }
 
     PanelWindow {

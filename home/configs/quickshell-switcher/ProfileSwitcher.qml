@@ -12,6 +12,18 @@ PanelWindow {
     property string activeProfile: ""
     property int focusedIndex: -1
 
+    readonly property var profileAccents: ({
+        "noctalia":   "#b1c6ff",
+        "clean":      "#eeeeee",
+        "minimal":    "#e0e0e0",
+        "nord":       "#88c0d0",
+        "catppuccin": "#cba6f7",
+        "gruvbox":    "#fabd2f",
+        "rosepine":   "#c4a7e7",
+        "everforest": "#a7c080"
+    })
+    readonly property color accent: profileAccents[activeProfile] || "#ffffff"
+
     function open() {
         listProc.running = true
         activeProc.running = true
@@ -95,7 +107,7 @@ PanelWindow {
         radius: 18
         color: Qt.rgba(0.08, 0.08, 0.08, 0.32)
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.22)
+        border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
         opacity: root.shown ? 1.0 : 0.0
         scale: root.shown ? 1.0 : 0.96
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -129,8 +141,10 @@ PanelWindow {
                         color: "transparent"
                         border.width: 1
                         border.color: tile.highlight
-                            ? "#ffffff"
-                            : (tile.isActive ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(1, 1, 1, 0.10))
+                            ? root.accent
+                            : (tile.isActive
+                                ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.55)
+                                : Qt.rgba(1, 1, 1, 0.10))
                         Behavior on border.color { ColorAnimation { duration: 120 } }
                     }
 

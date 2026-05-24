@@ -18,6 +18,7 @@ PanelWindow {
     property string cpuUsage: "-"
     property string ramUsage: "-"
     property string volumeLevel: "-"
+    property string brightnessLevel: "-"
     property string networkIcon: "󰖪"
     property string batteryPercent: ""
     property string batteryIcon: "󰁹"
@@ -29,6 +30,9 @@ PanelWindow {
     signal wifiClicked()
     signal bluetoothClicked()
     signal batteryClicked()
+    signal clockClicked()
+    signal notificationsClicked()
+    signal systemClicked()
 
     readonly property var powerProfileOrder: ["power-saver", "balanced", "performance"]
     readonly property var powerProfileIcons: ({
@@ -57,6 +61,13 @@ PanelWindow {
         statsProc.running = true
     }
 
+    function adjustBrightness(delta) {
+        const step = 5
+        const arg = delta > 0 ? (step + "%+") : (step + "%-")
+        topbarWindow.run("brightnessctl set " + arg)
+        statsProc.running = true
+    }
+
     WlrLayershell.namespace: "quickshell-clean-topbar"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -73,31 +84,33 @@ PanelWindow {
             "cpu=$(awk 'NR==1{u=$2+$4; t=$2+$3+$4+$5; getline; u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"}' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" +
             "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" +
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
+            "br=$(brightnessctl -m 2>/dev/null | awk -F, '{print $4}' | tr -d '%');" +
             "net=$(nmcli -t -f STATE general 2>/dev/null);" +
             "bc=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1);" +
             "bs=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1);" +
             "pp=$(powerprofilesctl get 2>/dev/null);" +
-            "echo \"$cpu|$mem|$vol|$net|$bc|$bs|$pp\""
+            "echo \"$cpu|$mem|$vol|$br|$net|$bc|$bs|$pp\""
         ]
         property string buffer: ""
         stdout: SplitParser { onRead: (data) => statsProc.buffer += data }
         onExited: {
             const p = statsProc.buffer.trim().split("|")
-            if (p.length >= 6) {
+            if (p.length >= 7) {
                 topbarWindow.cpuUsage = p[0] !== "" ? p[0] + "%" : "-"
                 topbarWindow.ramUsage = p[1] !== "" ? p[1] : "-"
                 topbarWindow.volumeLevel = p[2] !== "" ? p[2] + "%" : "-"
-                topbarWindow.networkIcon = p[3] === "connected" ? "󰖩" : "󰖪"
-                const cap = parseInt(p[4])
+                topbarWindow.brightnessLevel = p[3] !== "" ? p[3] + "%" : "-"
+                topbarWindow.networkIcon = p[4] === "connected" ? "󰖩" : "󰖪"
+                const cap = parseInt(p[5])
                 if (!isNaN(cap)) {
                     topbarWindow.batteryPercent = cap + "%"
                     topbarWindow.batteryIcon =
-                        p[5] === "Charging" ? "󰂄" :
+                        p[6] === "Charging" ? "󰂄" :
                         cap > 90 ? "󰁹" : cap > 70 ? "󰂀" :
                         cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎"
                 }
-                if (p.length >= 7 && p[6] !== "") {
-                    topbarWindow.powerProfile = p[6]
+                if (p.length >= 8 && p[7] !== "") {
+                    topbarWindow.powerProfile = p[7]
                 }
             }
             statsProc.buffer = ""
@@ -230,6 +243,12 @@ PanelWindow {
                 onScrolled: (delta) => topbarWindow.adjustVolume(delta)
             }
             StatPill {
+                icon: "󰃞"
+                value: topbarWindow.brightnessLevel
+                tint: topbarWindow.themeWarm
+                onScrolled: (delta) => topbarWindow.adjustBrightness(delta)
+            }
+            StatPill {
                 icon: topbarWindow.networkIcon
                 value: ""
                 tint: topbarWindow.themeSecond
@@ -257,39 +276,65 @@ PanelWindow {
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.batteryClicked()
             }
+            StatPill {
+                icon: "󰂚"
+                value: ""
+                tint: topbarWindow.themeSecond
+                onActivated: topbarWindow.notificationsClicked()
+            }
+            StatPill {
+                icon: "󰐥"
+                value: ""
+                tint: topbarWindow.themeAccent
+                onActivated: topbarWindow.systemClicked()
+            }
         }
 
-        ColumnLayout {
+        Item {
             id: clockArea
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            spacing: -3
+            width: clockColumn.implicitWidth + 16
+            height: clockColumn.implicitHeight + 8
 
-            Text {
-                id: clockTime
-                Layout.alignment: Qt.AlignHCenter
-                text: Qt.formatTime(new Date(), "h:mm AP")
-                color: topbarWindow.themeAccent
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 17; weight: Font.Light; letterSpacing: 1.2 }
-                Timer {
-                    interval: 10000
-                    running: true
-                    repeat: true
-                    triggeredOnStart: true
-                    onTriggered: {
-                        clockTime.text = Qt.formatTime(new Date(), "h:mm AP")
-                        clockDate.text = Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
+            ColumnLayout {
+                id: clockColumn
+                anchors.centerIn: parent
+                spacing: -3
+
+                Text {
+                    id: clockTime
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Qt.formatTime(new Date(), "h:mm AP")
+                    color: topbarWindow.themeAccent
+                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 17; weight: Font.Light; letterSpacing: 1.2 }
+                    Timer {
+                        interval: 10000
+                        running: true
+                        repeat: true
+                        triggeredOnStart: true
+                        onTriggered: {
+                            clockTime.text = Qt.formatTime(new Date(), "h:mm AP")
+                            clockDate.text = Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
+                        }
                     }
+                }
+
+                Text {
+                    id: clockDate
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
+                    color: topbarWindow.themeSecond
+                    opacity: 0.6
+                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 8; letterSpacing: 0.8; weight: Font.Medium }
                 }
             }
 
-            Text {
-                id: clockDate
-                Layout.alignment: Qt.AlignHCenter
-                text: Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
-                color: topbarWindow.themeSecond
-                opacity: 0.6
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 8; letterSpacing: 0.8; weight: Font.Medium }
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: topbarWindow.clockClicked()
             }
         }
 
@@ -465,11 +510,10 @@ PanelWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: statRoot.activated()
-        }
-
-        WheelHandler {
-            target: null
-            onWheel: (event) => statRoot.scrolled(event.angleDelta.y)
+            onWheel: (event) => {
+                statRoot.scrolled(event.angleDelta.y)
+                event.accepted = true
+            }
         }
     }
 }
