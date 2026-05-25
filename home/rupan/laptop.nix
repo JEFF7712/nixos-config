@@ -15,14 +15,22 @@
 
   services.stasis = {
     enable = true;
+    extraPathPackages = with pkgs; [
+      findutils
+      gawk
+      gnused
+      hyprlock
+      jq
+    ];
     extraConfig = ''
       default:
         enable_loginctl true
-        prepare_sleep_command "lock-screen"
-        lid_close_action "lock-screen"
+        enable_dbus_inhibit false
+        prepare_sleep_command "/home/rupan/.local/bin/lock-screen"
+        lid_close_action "/home/rupan/.local/bin/lock-screen & sleep 1; systemctl suspend"
         lock_screen:
           timeout 300
-          command "lock-screen"
+          command "/home/rupan/.local/bin/lock-screen"
         end
         suspend:
           timeout 600

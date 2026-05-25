@@ -118,6 +118,11 @@ in
   ];
 
   services.power-profiles-daemon.enable = true;
+  services.logind.settings.Login = {
+    HandleLidSwitch = "ignore";
+    HandleLidSwitchDocked = "ignore";
+    HandleLidSwitchExternalPower = "ignore";
+  };
   services.tlp.enable = false;
   services.auto-cpufreq.enable = false;
 
