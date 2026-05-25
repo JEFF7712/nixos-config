@@ -36,6 +36,7 @@
       ags
       uv
       glab
+      awscli
     ];
   };
 }
