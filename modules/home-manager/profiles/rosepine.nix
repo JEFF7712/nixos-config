@@ -139,7 +139,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/rosepine-light";
 
     niri = {
-      gaps = 12;
+      gaps = 8;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 36;

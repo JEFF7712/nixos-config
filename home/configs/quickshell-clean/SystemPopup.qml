@@ -15,7 +15,7 @@ InfoPopup {
         themeAccent: root.themeAccent
         icon: "󰌾"
         label: "lock"
-        onActivated: root.exec("loginctl lock-session")
+        onActivated: root.exec("lock-screen")
     }
     ActionRow {
         themeFg: root.themeFg

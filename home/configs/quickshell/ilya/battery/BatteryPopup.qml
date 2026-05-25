@@ -1241,8 +1241,8 @@ Item {
                             
                             Repeater {
                                 model: ListModel {
-                                    ListElement { cmd: "swaylock"; icon: ""; baseColor: "mauve"; weight: 1.0 }
-                                    ListElement { cmd: "swaylock && systemctl suspend"; icon: "ᶻ 𝗓 𝗓"; baseColor: "blue"; weight: 1.0 }
+                                    ListElement { cmd: "lock-screen"; icon: ""; baseColor: "mauve"; weight: 1.0 }
+                                    ListElement { cmd: "systemctl suspend"; icon: "ᶻ 𝗓 𝗓"; baseColor: "blue"; weight: 1.0 }
                                     ListElement { cmd: "systemctl reboot"; icon: "󰑓"; baseColor: "yellow"; weight: 2.5 }
                                     ListElement { cmd: "systemctl poweroff -i"; icon: ""; baseColor: "red"; weight: 3.5 }
                                 }

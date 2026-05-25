@@ -21,6 +21,8 @@ PanelWindow {
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
     property string barFont: "JetBrainsMono Nerd Font"
+    property bool flatMode: false
+    property color dividerColor: "#1affffff"
     property color barBorderColor: "#3dffffff"
     property color barInnerHighlight: "#0fffffff"
     property color pillBg: "#0affffff"
@@ -44,6 +46,7 @@ PanelWindow {
     property string mediaArtUrl: ""
     property int activeWorkspace: 1
     property var occupiedWorkspaces: ({})
+    property var workspaceList: []
 
     signal wifiClicked()
     signal bluetoothClicked()
@@ -94,7 +97,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     anchors { top: true; left: true; right: true }
-    margins { top: topbarWindow.barMargin; left: 10; right: 10 }
+    margins { top: topbarWindow.barMargin; left: topbarWindow.barMargin; right: topbarWindow.barMargin }
     implicitHeight: topbarWindow.barHeight
     exclusiveZone: topbarWindow.barHeight + topbarWindow.barMargin
     color: "transparent"
@@ -102,7 +105,7 @@ PanelWindow {
     Process {
         id: statsProc
         command: ["sh", "-c",
-            "cpu=$(awk 'NR==1{u=$2+$4; t=$2+$3+$4+$5; getline; u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"}' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" +
+            "cpu=$(awk '/^cpu / { if (!have) { u=$2+$4; t=$2+$3+$4+$5; have=1 } else { u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"; exit } }' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" +
             "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" +
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
             "br=$(brightnessctl -m 2>/dev/null | awk -F, '{print $4}' | tr -d '%');" +
@@ -227,13 +230,19 @@ PanelWindow {
             try {
                 const workspaces = JSON.parse(workspacesProc.buffer || "[]")
                 const occupied = {}
+                const list = []
                 let active = topbarWindow.activeWorkspace
                 for (const ws of workspaces) {
                     const idx = ws.idx || ws.id
                     if (idx === undefined) continue
-                    occupied[idx] = true
+                    list.push(idx)
+                    if (ws.active_window_id !== null && ws.active_window_id !== undefined) {
+                        occupied[idx] = true
+                    }
                     if (ws.is_focused || ws.is_active) active = idx
                 }
+                list.sort((a, b) => a - b)
+                topbarWindow.workspaceList = list
                 topbarWindow.occupiedWorkspaces = occupied
                 topbarWindow.activeWorkspace = active
             } catch (e) {}
@@ -307,24 +316,26 @@ PanelWindow {
             id: workspacesArea
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 14
+            anchors.leftMargin: topbarWindow.flatMode ? 0 : 14
             width: wsRow.implicitWidth
-            height: wsRow.implicitHeight
+            height: topbarWindow.flatMode ? parent.height : wsRow.implicitHeight
 
             Row {
                 id: wsRow
-                spacing: topbarWindow.showWorkspaceNumbers ? 8 : 6
+                spacing: topbarWindow.flatMode
+                    ? 0
+                    : (topbarWindow.showWorkspaceNumbers ? 8 : 6)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
-                    model: 10
-                    delegate: WorkspacePill { wsId: index + 1 }
+                    model: topbarWindow.workspaceList
+                    delegate: WorkspacePill { wsId: modelData }
                 }
             }
 
             Rectangle {
                 id: wsIndicator
-                visible: topbarWindow.showWorkspaceNumbers
+                visible: topbarWindow.showWorkspaceNumbers && !topbarWindow.flatMode
                 width: 18
                 height: 2
                 radius: 1
@@ -340,8 +351,8 @@ PanelWindow {
             id: rightGroup
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.rightMargin: 12
-            spacing: 6
+            anchors.rightMargin: topbarWindow.flatMode ? 0 : 12
+            spacing: topbarWindow.flatMode ? 0 : 6
 
             StatPill {
                 visible: topbarWindow.mediaStatus !== "" && topbarWindow.mediaStatus !== "Stopped"
@@ -419,7 +430,7 @@ PanelWindow {
                 value: ""
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.systemClicked()
-                onRightClicked: topbarWindow.run("loginctl lock-session")
+                onRightClicked: topbarWindow.run("lock-screen")
             }
         }
 
@@ -513,18 +524,21 @@ PanelWindow {
         readonly property bool isActive: topbarWindow.activeWorkspace === wsId
         readonly property bool isOccupied: topbarWindow.occupiedWorkspaces[wsId] === true
         readonly property bool noNumbers: !topbarWindow.showWorkspaceNumbers
+        readonly property bool flat: topbarWindow.flatMode
 
-        width: noNumbers
-            ? (isActive ? 30 : 14)
-            : 28
-        height: noNumbers ? 14 : 24
+        width: flat
+            ? (topbarWindow.showWorkspaceNumbers ? 28 : 18)
+            : (noNumbers ? (isActive ? 30 : 14) : 28)
+        height: flat
+            ? topbarWindow.barHeight
+            : (noNumbers ? 14 : 24)
 
         Behavior on width { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
         Rectangle {
             id: wsBase
             anchors.fill: parent
-            radius: wsRoot.noNumbers ? 4 : 9
+            radius: wsRoot.flat ? 0 : (wsRoot.noNumbers ? 4 : 9)
 
             color: wsRoot.noNumbers
                 ? Qt.rgba(
@@ -542,7 +556,7 @@ PanelWindow {
                         : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025))
             Behavior on color { ColorAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
-            border.width: wsRoot.noNumbers ? 0 : 1
+            border.width: (wsRoot.noNumbers || wsRoot.flat) ? 0 : 1
             border.color: wsRoot.isActive
                 ? "transparent"
                 : wsMouse.containsMouse
@@ -550,14 +564,14 @@ PanelWindow {
                     : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.16 : 0.06)
             Behavior on border.color { ColorAnimation { duration: 320; easing.type: Easing.OutCubic } }
 
-            scale: wsMouse.pressed ? 0.94 : (wsMouse.containsMouse ? 1.06 : 1.0)
+            scale: wsRoot.flat ? 1.0 : (wsMouse.pressed ? 0.94 : (wsMouse.containsMouse ? 1.06 : 1.0))
             Behavior on scale { SpringAnimation { spring: 3; damping: 0.55; mass: 0.8 } }
 
             Rectangle {
                 anchors.fill: parent
                 radius: parent.radius
                 color: topbarWindow.themeAccent
-                opacity: wsRoot.isActive && !wsRoot.noNumbers ? 1.0 : 0.0
+                opacity: wsRoot.isActive && (!wsRoot.noNumbers || wsRoot.flat) ? 1.0 : 0.0
                 Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutQuart } }
             }
 
@@ -579,6 +593,15 @@ PanelWindow {
                 Behavior on scale { SpringAnimation { spring: 4; damping: 0.5; mass: 0.7 } }
                 Behavior on color { ColorAnimation { duration: 260; easing.type: Easing.OutCubic } }
             }
+        }
+
+        Rectangle {
+            visible: wsRoot.flat
+            width: 1
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            color: topbarWindow.dividerColor
         }
 
         MouseArea {
@@ -605,12 +628,14 @@ PanelWindow {
         signal rightClicked()
         signal scrolled(int delta)
 
-        width: statContent.implicitWidth + 22
-        height: 26
+        readonly property bool flat: topbarWindow.flatMode
+
+        width: statContent.implicitWidth + (flat ? 16 : 22)
+        height: flat ? topbarWindow.barHeight : 26
 
         Rectangle {
             anchors.fill: parent
-            radius: 10
+            radius: statRoot.flat ? 0 : 10
             color: statMouse.pressed
                 ? Qt.rgba(1, 1, 1, 0.12)
                 : statMouse.containsMouse
@@ -618,13 +643,13 @@ PanelWindow {
                     : topbarWindow.pillBg
             Behavior on color { ColorAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
-            border.width: 1
+            border.width: statRoot.flat ? 0 : 1
             border.color: statMouse.containsMouse
                 ? Qt.rgba(statRoot.tint.r, statRoot.tint.g, statRoot.tint.b, 0.55)
                 : topbarWindow.pillBorder
             Behavior on border.color { ColorAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
-            scale: statMouse.pressed ? 0.94 : (statMouse.containsMouse ? 1.06 : 1.0)
+            scale: statRoot.flat ? 1.0 : (statMouse.pressed ? 0.94 : (statMouse.containsMouse ? 1.06 : 1.0))
             Behavior on scale { SpringAnimation { spring: 3; damping: 0.55; mass: 0.8 } }
 
             Rectangle {
@@ -676,6 +701,15 @@ PanelWindow {
                 statRoot.scrolled(event.angleDelta.y)
                 event.accepted = true
             }
+        }
+
+        Rectangle {
+            visible: statRoot.flat
+            width: 1
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            color: topbarWindow.dividerColor
         }
     }
 }

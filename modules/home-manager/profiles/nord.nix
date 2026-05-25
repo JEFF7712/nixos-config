@@ -28,23 +28,25 @@ in
 
     quickshellTheme = {
       fg = nord4;
-      bg = "#00000000";
-      popupBg = "#cc2e3440";
+      bg = "#ee2e3440";
+      popupBg = "#ee2e3440";
       rawBg = nord0;
       accent = nord8;
-      second = nord4;
-      warm = nord13;
+      second = nord9;
+      warm = nord12;
       fresh = nord14;
       barRadius = "0";
-      barHeight = "26";
-      barMargin = "2";
+      barHeight = "24";
+      barMargin = "0";
       showClockDate = "false";
-      showWorkspaceNumbers = "false";
+      showWorkspaceNumbers = "true";
       barFont = "Iosevka Nerd Font";
       barBorder = "#00000000";
       barInnerHighlight = "#00000000";
       pillBg = "#00000000";
       pillBorder = "#00000000";
+      flatMode = "true";
+      dividerColor = nord3;
     };
 
     makoConfig = ''
@@ -100,7 +102,7 @@ in
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/nord";
 
     niri = {
-      gaps = 12;
+      gaps = 8;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 14;

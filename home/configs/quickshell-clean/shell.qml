@@ -21,6 +21,8 @@ ShellRoot {
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
     property string barFont: "JetBrainsMono Nerd Font"
+    property bool flatMode: false
+    property color dividerColor: "#1affffff"
     property color barBorderColor: "#3dffffff"
     property color barInnerHighlight: "#0fffffff"
     property color pillBg: "#0affffff"
@@ -44,6 +46,8 @@ ShellRoot {
         if (theme.showClockDate)     root.showClockDate      = theme.showClockDate === "true"
         if (theme.showWorkspaceNumbers) root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true"
         if (theme.barFont)           root.barFont            = theme.barFont
+        if (theme.flatMode)          root.flatMode           = theme.flatMode === "true"
+        if (theme.dividerColor)      root.dividerColor       = theme.dividerColor
         if (theme.barBorder)         root.barBorderColor     = theme.barBorder
         if (theme.barInnerHighlight) root.barInnerHighlight  = theme.barInnerHighlight
         if (theme.pillBg)            root.pillBg             = theme.pillBg
@@ -112,6 +116,8 @@ ShellRoot {
         showClockDate: root.showClockDate
         showWorkspaceNumbers: root.showWorkspaceNumbers
         barFont: root.barFont
+        flatMode: root.flatMode
+        dividerColor: root.dividerColor
         barBorderColor: root.barBorderColor
         barInnerHighlight: root.barInnerHighlight
         pillBg: root.pillBg

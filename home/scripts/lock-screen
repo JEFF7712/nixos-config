@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Wrapper that locks with noctalia when active, swaylock-effects otherwise.
+# Wrapper that locks with noctalia when active, hyprlock otherwise.
 set -euo pipefail
 
 ACTIVE_FILE="$HOME/.config/desktop-profiles/active"
@@ -9,12 +9,207 @@ PROFILE=""
 if [ "$PROFILE" = "noctalia" ]; then
   exec noctalia-shell ipc --any-display call lockScreen lock
 else
-  exec swaylock \
-    --screenshots \
-    --clock \
-    --indicator \
-    --effect-blur 7x5 \
-    --effect-vignette 0.5:0.5 \
-    --grace 2 \
-    --fade-in 0.2
+  PROFILES_DIR="$HOME/.config/desktop-profiles"
+  PROFILE_DIR="$PROFILES_DIR/$PROFILE"
+  THEME_FILE="$PROFILE_DIR/quickshell-theme.json"
+  WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
+  CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/hyprlock"
+  RUNTIME_CONFIG="$CACHE_DIR/profile.conf"
+
+  normalize_hex() {
+    local color="${1#\#}"
+    case "${#color}" in
+      6) printf '%s\n' "$color" ;;
+      8) printf '%s\n' "${color:2:6}" ;;
+      *) printf '%s\n' "$2" ;;
+    esac
+  }
+
+  normalize_alpha() {
+    local color="${1#\#}"
+    case "${#color}" in
+      8) printf '%s\n' "${color:0:2}" ;;
+      *) printf '%s\n' "$2" ;;
+    esac
+  }
+
+  rgb_color() {
+    printf 'rgb(%s)' "$(normalize_hex "$1" "$2")"
+  }
+
+  rgba_color() {
+    local rgb alpha
+    rgb=$(normalize_hex "$1" "$2")
+    alpha=$(normalize_alpha "$1" "$3")
+    printf 'rgba(%s%s)' "$rgb" "$alpha"
+  }
+
+  theme_value() {
+    local key="$1" fallback="$2"
+    if [ -r "$THEME_FILE" ]; then
+      jq -r --arg key "$key" --arg fallback "$fallback" '.[$key] // $fallback' "$THEME_FILE" 2>/dev/null
+    else
+      printf '%s\n' "$fallback"
+    fi
+  }
+
+  current_wallpaper() {
+    local wallpaper=""
+    if [ -r "$WAYPAPER_CFG" ]; then
+      wallpaper=$(awk -F' = ' '$1 == "wallpaper" { print $2; exit }' "$WAYPAPER_CFG")
+      wallpaper="${wallpaper/#\~/$HOME}"
+    fi
+
+    if [ -n "$wallpaper" ] && [ -f "$wallpaper" ]; then
+      printf '%s\n' "$wallpaper"
+      return 0
+    fi
+
+    local variant wallpaper_dir
+    variant=$(cat "$PROFILES_DIR/active-variant" 2>/dev/null || echo "dark")
+    if [ "$variant" = "light" ] && [ -s "$PROFILE_DIR/wallpaper-dir-light" ]; then
+      wallpaper_dir=$(cat "$PROFILE_DIR/wallpaper-dir-light")
+    else
+      wallpaper_dir=$(cat "$PROFILE_DIR/wallpaper-dir" 2>/dev/null || echo "")
+    fi
+
+    if [ -d "$wallpaper_dir" ]; then
+      find "$wallpaper_dir" -maxdepth 1 \
+        -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
+        | sort | head -n 1
+      return 0
+    fi
+
+    printf 'screenshot\n'
+  }
+
+  fg=$(theme_value fg "#eceff4")
+  muted=$(theme_value second "#aeb7c5")
+  accent=$(theme_value accent "#88c0d0")
+  surface=$(theme_value rawBg "#171b22")
+  panel=$(theme_value popupBg "#cc171b22")
+  error=$(theme_value warm "#bf616a")
+  wallpaper=$(current_wallpaper)
+
+  mkdir -p "$CACHE_DIR"
+  cat > "$RUNTIME_CONFIG" <<EOF
+\$font = JetBrainsMono Nerd Font
+\$fg = $(rgb_color "$fg" "eceff4")
+\$muted = $(rgb_color "$muted" "aeb7c5")
+\$accent = $(rgb_color "$accent" "88c0d0")
+\$surface = $(rgba_color "$surface" "171b22" "d9")
+\$surface_alt = $(rgba_color "$panel" "171b22" "cc")
+\$border = $(rgba_color "$accent" "88c0d0" "e6")
+\$error = $(rgba_color "$error" "bf616a" "e6")
+
+general {
+    hide_cursor = true
+    ignore_empty_input = true
+    immediate_render = true
+}
+
+animations {
+    enabled = true
+    bezier = smooth, 0.22, 1, 0.36, 1
+    animation = fadeIn, 1, 4, smooth
+    animation = fadeOut, 1, 4, smooth
+    animation = inputFieldDots, 1, 2, smooth
+}
+
+background {
+    monitor =
+    path = $wallpaper
+    blur_passes = 2
+    blur_size = 5
+    noise = 0.008
+    contrast = 0.96
+    brightness = 0.68
+    vibrancy = 0.22
+    vibrancy_darkness = 0.12
+}
+
+shape {
+    monitor =
+    size = 100%, 100%
+    color = $(rgba_color "$surface" "171b22" "40")
+    rounding = 0
+    position = 0, 0
+    halign = center
+    valign = center
+}
+
+label {
+    monitor =
+    text = cmd[update:1000] date +"%-I:%M"
+    color = \$fg
+    font_size = 92
+    font_family = \$font
+    position = 0, 172
+    halign = center
+    valign = center
+}
+
+label {
+    monitor =
+    text = cmd[update:60000] date +"%A, %B %-d"
+    color = \$muted
+    font_size = 22
+    font_family = \$font
+    position = 0, 96
+    halign = center
+    valign = center
+}
+
+label {
+    monitor =
+    text = $USER
+    color = \$fg
+    font_size = 18
+    font_family = \$font
+    position = 0, -70
+    halign = center
+    valign = center
+}
+
+input-field {
+    monitor =
+    size = 360, 54
+    outline_thickness = 2
+    rounding = 10
+
+    outer_color = \$border
+    inner_color = \$surface_alt
+    font_color = \$fg
+    check_color = \$accent
+    fail_color = \$error
+
+    font_family = \$font
+    placeholder_text = Password
+    fail_text = \$PAMFAIL
+    check_text = Checking...
+    capslock_color = $(rgba_color "$(theme_value warm "#ebcb8b")" "ebcb8b" "e6")
+    fade_on_empty = false
+    dots_size = 0.24
+    dots_spacing = 0.22
+    shadow_passes = 2
+    shadow_size = 4
+
+    position = 0, -128
+    halign = center
+    valign = center
+}
+
+label {
+    monitor =
+    text = cmd[update:10000] bash -lc 'cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1 | sed "s/$/%/"'
+    color = \$muted
+    font_size = 14
+    font_family = \$font
+    position = 28, 26
+    halign = left
+    valign = bottom
+}
+EOF
+
+  exec hyprlock --config "$RUNTIME_CONFIG" --grace 0
 fi
