@@ -142,7 +142,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/everforest-light";
 
     niri = {
-      gaps = 16;
+      gaps = 8;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 24;

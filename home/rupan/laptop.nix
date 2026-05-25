@@ -17,6 +17,9 @@
     enable = true;
     extraConfig = ''
       default:
+        enable_loginctl true
+        prepare_sleep_command "lock-screen"
+        lid_close_action "lock-screen"
         lock_screen:
           timeout 300
           command "lock-screen"
@@ -40,7 +43,7 @@
     nerd-fonts.jetbrains-mono
     nerd-fonts.symbols-only
     colloid-icon-theme
-    swaylock-effects
+    hyprlock
     tela-icon-theme
     whitesur-icon-theme
   ];
@@ -67,6 +70,8 @@
   # Rofi configs (out-of-store so they're editable without rebuild)
   xdg.configFile."rofi".source =
     config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/rofi";
+  xdg.configFile."hypr/hyprlock.conf".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/hypr/hyprlock.conf";
 
   home.sessionPath = [ "$HOME/.local/bin" ];
 

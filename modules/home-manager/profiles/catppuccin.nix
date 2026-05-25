@@ -162,7 +162,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/catppuccin-light";
 
     niri = {
-      gaps = 10;
+      gaps = 8;
       borderOff = true;
       borderActiveColor = mauve;
       borderInactiveColor = surface1;

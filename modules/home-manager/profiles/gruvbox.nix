@@ -146,7 +146,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/gruvbox-light";
 
     niri = {
-      gaps = 18;
+      gaps = 8;
       borderOff = true;
       focusRingOff = true;
       shadowSoftness = 30;
