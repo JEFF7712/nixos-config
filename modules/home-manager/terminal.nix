@@ -106,6 +106,7 @@
       interactiveShellInit = ''
         set fish_greeting ""
         set -gx STARSHIP_CONFIG $HOME/.config/starship_matugen.toml
+        set -gx EDITOR nano
       '';
     };
 

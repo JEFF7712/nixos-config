@@ -50,15 +50,15 @@ in
     };
 
     makoConfig = ''
-      font=JetBrainsMono Nerd Font 11
+      font=Iosevka Nerd Font 11
       background-color=#2e3440
       text-color=#d8dee9
       border-color=#88c0d0
-      border-size=2
-      border-radius=8
+      border-size=1
+      border-radius=0
       width=320
-      padding=12
-      margin=10
+      padding=10
+      margin=6
       default-timeout=5000
       icons=1
       max-icon-size=48
@@ -87,7 +87,7 @@ in
         size = 11;
       };
       mono = {
-        family = "JetBrainsMono Nerd Font";
+        family = "Iosevka Nerd Font";
         size = 14;
       };
     };
@@ -102,21 +102,31 @@ in
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/nord";
 
     niri = {
-      gaps = 8;
-      borderOff = true;
+      gaps = 6;
+      borderOff = false;
+      borderWidth = 1;
+      borderActiveColor = nord8;
+      borderInactiveColor = nord1;
+      urgentColor = nord11;
       focusRingOff = true;
-      shadowSoftness = 14;
-      shadowSpread = 2;
+      shadowSoftness = 0;
+      shadowSpread = 0;
       shadowOffsetX = 0;
-      shadowOffsetY = 3;
-      shadowColor = "#24293380";
-      shadowInactiveColor = "#24293340";
-      shadowDrawBehindWindow = true;
+      shadowOffsetY = 0;
+      shadowColor = "#00000000";
+      shadowInactiveColor = "#00000000";
+      shadowDrawBehindWindow = false;
       tabIndicatorOff = false;
       tabIndicatorActiveColor = nord8;
       tabIndicatorInactiveColor = nord3;
       windowOpacity = 1.0;
       windowHighlightOff = true;
+      extraConfig = ''
+        window-rule {
+            geometry-corner-radius 0
+            clip-to-geometry true
+        }
+      '';
     };
 
     colors = {
