@@ -22,6 +22,7 @@
       ])
       ++ [
         inputs.nix-agent.packages.${system}.default
+        inputs.terax.packages.${system}.default
       ];
   };
 }
