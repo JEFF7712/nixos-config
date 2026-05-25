@@ -25,6 +25,7 @@
         yazi
         unrar
         inotify-tools
+        mtr
       ]
       ++ [
         inputs.compchem-cctop.packages.${system}.default
