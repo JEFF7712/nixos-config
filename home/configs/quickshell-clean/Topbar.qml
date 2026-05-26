@@ -30,6 +30,7 @@ PanelWindow {
 
     property string cpuUsage: "-"
     property string ramUsage: "-"
+    property string diskUsage: "-"
     property string volumeLevel: "-"
     property bool volumeMuted: false
     property string brightnessLevel: "-"
@@ -107,34 +108,36 @@ PanelWindow {
         command: ["sh", "-c",
             "cpu=$(awk '/^cpu / { if (!have) { u=$2+$4; t=$2+$3+$4+$5; have=1 } else { u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"; exit } }' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" +
             "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" +
+            "dsk=$(df -P / 2>/dev/null | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}');" +
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
             "br=$(brightnessctl -m 2>/dev/null | awk -F, '{print $4}' | tr -d '%');" +
             "net=$(nmcli -t -f STATE general 2>/dev/null);" +
             "bc=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1);" +
             "bs=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1);" +
             "pp=$(powerprofilesctl get 2>/dev/null);" +
-            "echo \"$cpu|$mem|$vol|$br|$net|$bc|$bs|$pp\""
+            "echo \"$cpu|$mem|$dsk|$vol|$br|$net|$bc|$bs|$pp\""
         ]
         property string buffer: ""
         stdout: SplitParser { onRead: (data) => statsProc.buffer += data }
         onExited: {
             const p = statsProc.buffer.trim().split("|")
-            if (p.length >= 7) {
+            if (p.length >= 8) {
                 topbarWindow.cpuUsage = p[0] !== "" ? p[0] + "%" : "-"
                 topbarWindow.ramUsage = p[1] !== "" ? p[1] : "-"
-                topbarWindow.volumeLevel = p[2] !== "" ? p[2] + "%" : "-"
-                topbarWindow.brightnessLevel = p[3] !== "" ? p[3] + "%" : "-"
-                topbarWindow.networkIcon = p[4] === "connected" ? "󰖩" : "󰖪"
-                const cap = parseInt(p[5])
+                topbarWindow.diskUsage = p[2] !== "" ? p[2] + "%" : "-"
+                topbarWindow.volumeLevel = p[3] !== "" ? p[3] + "%" : "-"
+                topbarWindow.brightnessLevel = p[4] !== "" ? p[4] + "%" : "-"
+                topbarWindow.networkIcon = p[5] === "connected" ? "󰖩" : "󰖪"
+                const cap = parseInt(p[6])
                 if (!isNaN(cap)) {
                     topbarWindow.batteryPercent = cap + "%"
                     topbarWindow.batteryIcon =
-                        p[6] === "Charging" ? "󰂄" :
+                        p[7] === "Charging" ? "󰂄" :
                         cap > 90 ? "󰁹" : cap > 70 ? "󰂀" :
                         cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎"
                 }
-                if (p.length >= 8 && p[7] !== "") {
-                    topbarWindow.powerProfile = p[7]
+                if (p.length >= 9 && p[8] !== "") {
+                    topbarWindow.powerProfile = p[8]
                 }
             }
             statsProc.buffer = ""
