@@ -7,6 +7,7 @@ InfoPopup {
 
     property string cpuUsage: "—"
     property string ramUsage: "—"
+    property string diskUsage: "—"
     property string powerProfile: ""
     property string charge: "—"
     property string status_: "—"
@@ -16,8 +17,9 @@ InfoPopup {
     property int chargeLimit: 100
     property bool thresholdWritable: false
 
-    InfoRow { label: "cpu"; value: root.cpuUsage; themeFg: root.themeFg; active: root.shown }
-    InfoRow { label: "ram"; value: root.ramUsage; themeFg: root.themeFg; active: root.shown }
+    InfoRow { label: "cpu";  value: root.cpuUsage;  themeFg: root.themeFg; active: root.shown }
+    InfoRow { label: "ram";  value: root.ramUsage;  themeFg: root.themeFg; active: root.shown }
+    InfoRow { label: "disk"; value: root.diskUsage; themeFg: root.themeFg; active: root.shown }
 
     Rectangle {
         width: parent.width

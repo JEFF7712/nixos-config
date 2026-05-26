@@ -158,6 +158,7 @@ ShellRoot {
         powerProfile: topbar.powerProfile
         cpuUsage: topbar.cpuUsage
         ramUsage: topbar.ramUsage
+        diskUsage: topbar.diskUsage
     }
 
     CalendarPopup {
