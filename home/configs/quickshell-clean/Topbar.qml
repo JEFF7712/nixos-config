@@ -38,6 +38,7 @@ PanelWindow {
     property string batteryPercent: ""
     property string batteryIcon: "󰁹"
     property string powerProfile: "balanced"
+    property bool idleInhibited: false
     property string activeTitle: "no active window"
     property int notificationCount: 0
     property string mediaStatus: ""
@@ -286,6 +287,14 @@ PanelWindow {
     }
 
     Process {
+        id: idleInhibitProc
+        running: topbarWindow.idleInhibited
+        command: ["systemd-inhibit", "--what=idle:sleep:handle-lid-switch",
+                  "--mode=block", "--who=quickshell-clean",
+                  "--why=user toggle", "sleep", "infinity"]
+    }
+
+    Process {
         id: niriEventStream
         running: true
         command: ["sh", "-c", "niri msg event-stream 2>/dev/null"]
@@ -399,6 +408,14 @@ PanelWindow {
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.bluetoothClicked()
                 onRightClicked: topbarWindow.run("blueman-manager")
+            }
+            StatPill {
+                icon: topbarWindow.idleInhibited ? "󰅶" : "󰾪"
+                value: ""
+                tint: topbarWindow.idleInhibited
+                    ? topbarWindow.themeWarm
+                    : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.55)
+                onActivated: topbarWindow.idleInhibited = !topbarWindow.idleInhibited
             }
             StatPill {
                 icon: topbarWindow.powerProfileIcons[topbarWindow.powerProfile] || "󰾅"
