@@ -287,11 +287,27 @@ PanelWindow {
     }
 
     Process {
-        id: idleInhibitProc
-        running: topbarWindow.idleInhibited
-        command: ["systemd-inhibit", "--what=idle:sleep:handle-lid-switch",
-                  "--mode=block", "--who=quickshell-clean",
-                  "--why=user toggle", "sleep", "infinity"]
+        id: idleInhibitToggleProc
+        command: ["sh", "-c", "stasis toggle-inhibit >/dev/null 2>&1"]
+        onExited: idleInhibitProbe.running = true
+    }
+
+    Process {
+        id: idleInhibitProbe
+        command: ["sh", "-c", "stasis info 2>/dev/null | awk -F': *' '/^Manual Pause/{print $2; exit}'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                topbarWindow.idleInhibited = this.text.trim() === "yes"
+            }
+        }
+    }
+
+    Timer {
+        interval: 10000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: idleInhibitProbe.running = true
     }
 
     Process {
@@ -415,7 +431,7 @@ PanelWindow {
                 tint: topbarWindow.idleInhibited
                     ? topbarWindow.themeWarm
                     : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.55)
-                onActivated: topbarWindow.idleInhibited = !topbarWindow.idleInhibited
+                onActivated: idleInhibitToggleProc.running = true
             }
             StatPill {
                 icon: topbarWindow.powerProfileIcons[topbarWindow.powerProfile] || "󰾅"
