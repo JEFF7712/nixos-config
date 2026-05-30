@@ -1,21 +1,21 @@
 * {
-    font:                        "IBM Plex Sans 11";
-    background-color:            #2e3440;
-    text-color:                  #d8dee9;
-    border-color:                #4c566a;
-    selected-normal-background:  #3b4252;
-    selected-normal-foreground:  #88c0d0;
-    normal-background:           #2e3440;
-    normal-foreground:           #d8dee9;
+    font:                        "Inter 11";
+    background-color:            #141414;
+    text-color:                  #c8c8c8;
+    border-color:                #3a3a3a;
+    selected-normal-background:  #1c1c1c;
+    selected-normal-foreground:  #e0e0e0;
+    normal-background:           #141414;
+    normal-foreground:           #c8c8c8;
 }
 
 window {
     width:              900px;
-    border:             2px solid;
-    border-color:       #4c566a;
-    border-radius:      8px;
+    border:             1px solid;
+    border-color:       #3a3a3a;
+    border-radius:      4px;
     padding:            12px;
-    background-color:   #2e3440;
+    background-color:   #141414;
 }
 
 mainbox {
@@ -26,20 +26,20 @@ mainbox {
 inputbar {
     padding:            8px 12px;
     margin:             0 0 10px 0;
-    background-color:   #3b4252;
-    border-radius:      6px;
+    background-color:   #1c1c1c;
+    border-radius:      4px;
     children:           [ prompt, entry ];
 }
 
 prompt {
-    text-color:         #88c0d0;
+    text-color:         #c8c8c8;
     padding:            0 8px 0 0;
 }
 
 entry {
-    text-color:         #d8dee9;
+    text-color:         #c8c8c8;
     placeholder:        "Switch profile…";
-    placeholder-color:  #4c566a;
+    placeholder-color:  #8a8a8a;
 }
 
 listview {
@@ -54,20 +54,20 @@ element {
     orientation:        vertical;
     padding:            10px;
     spacing:            8px;
-    border-radius:      6px;
-    background-color:   #3b4252;
+    border-radius:      4px;
+    background-color:   #1c1c1c;
     cursor:             pointer;
 }
 
-element selected {
-    background-color:   #434c5e;
-    border:             2px solid;
-    border-color:       #88c0d0;
-}
+  element selected {
+      background-color:   #262626;
+      border:             1px solid;
+      border-color:       #e0e0e0;
+  }
 
 element-icon {
     size:               160px;
-    border-radius:      4px;
+    border-radius:      2px;
     horizontal-align:   0.5;
 }
 
@@ -75,5 +75,5 @@ element-text {
     horizontal-align:   0.5;
     vertical-align:     0.5;
     text-color:         inherit;
-    font:                        "IBM Plex Sans 11";
+    font:                        "Inter 11";
 }
