@@ -265,5 +265,13 @@ in
 
   nix.settings.auto-optimise-store = true;
 
+  # Trust the homelab Attic binary cache so flakes referencing it don't
+  # block on the interactive "allow extra-substituters?" prompt (the
+  # prompt hangs direnv / nix-direnv since they can't answer it).
+  nix.settings.extra-substituters = [ "http://10.0.20.190:8080/homelab" ];
+  nix.settings.extra-trusted-public-keys = [
+    "homelab:s17u8G3szjlQ6UmMAPsszVS/J1jaw6gDwSDM9+/QeNQ="
+  ];
+
   system.stateVersion = "25.11"; # DO NOT EDIT
 }
