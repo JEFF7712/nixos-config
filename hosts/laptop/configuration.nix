@@ -265,13 +265,20 @@ in
 
   nix.settings.auto-optimise-store = true;
 
-  # Trust the homelab Attic binary cache so flakes referencing it don't
-  # block on the interactive "allow extra-substituters?" prompt (the
-  # prompt hangs direnv / nix-direnv since they can't answer it).
+  # Homelab Attic binary cache.
+  # extra-substituters: make the daemon fetch from it.
+  # extra-trusted-substituters: let non-trusted users (i.e. not root) use it.
+  # extra-trusted-public-keys: verify signatures from it.
+  # accept-flake-config: auto-accept any flake's nixConfig.extra-substituters /
+  #   trusted-public-keys / etc. without the interactive y/N prompt that hangs
+  #   direnv (direnv has no stdin to answer). Saved per-flake answers live in
+  #   ~/.local/share/nix/trusted-settings.json; this is the global escape hatch.
   nix.settings.extra-substituters = [ "http://10.0.20.190:8080/homelab" ];
+  nix.settings.extra-trusted-substituters = [ "http://10.0.20.190:8080/homelab" ];
   nix.settings.extra-trusted-public-keys = [
     "homelab:s17u8G3szjlQ6UmMAPsszVS/J1jaw6gDwSDM9+/QeNQ="
   ];
+  nix.settings.accept-flake-config = true;
 
   system.stateVersion = "25.11"; # DO NOT EDIT
 }
