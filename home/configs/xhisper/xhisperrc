@@ -6,9 +6,8 @@
 model-name : base
 
 # Device: auto, cpu, or cuda
-# CPU keeps things working out-of-the-box. Switch to "cuda" after enabling
-# python313Packages.ctranslate2 with cudaSupport in nixpkgs overlays.
-model-device : cpu
+# The flake builds ctranslate2 with withCUDA, so the 3050 handles transcription.
+model-device : cuda
 
 # Language: leave empty for auto-detect, or "en" for English-only (faster + more accurate).
 model-language : "en"
