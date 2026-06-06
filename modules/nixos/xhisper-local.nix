@@ -53,6 +53,7 @@ in
       streamdPkg
       pkgs.socat
       pkgs.jq
+      pkgs.sox            # silence-detection recorder for xhisper-stream
     ];
 
     users.users.${cfg.user}.extraGroups = [ "input" ];
