@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+
+pick_random_wallpaper() {
+  local wallpaper_dir="$1"
+
+  [ -d "$wallpaper_dir" ] || return 1
+
+  find "$wallpaper_dir" -maxdepth 1 \
+    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
+    | shuf -n 1
+}
+
+set_zed_theme() {
+  local settings_file="$1"
+  local theme_name="$2"
+  local mode_name="${3:-dark}"
+
+  sed -i \
+    -e "s|^\([[:space:]]*\"theme\":[[:space:]]*\)\"[^\"]*\",|\1\"$theme_name\",|" \
+    -e "/\"theme\"[[:space:]]*:/,/}/ s|\"$mode_name\": \"[^\"]*\"|\"$mode_name\": \"$theme_name\"|" \
+    "$settings_file"
+}
+
+set_zed_icon_theme() {
+  local settings_file="$1"
+  local mode_name="$2"
+  local icon_name="$3"
+
+  sed -i \
+    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"mode\": \"[^\"]*\"|\"mode\": \"$mode_name\"|" \
+    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"$mode_name\": \"[^\"]*\"|\"$mode_name\": \"$icon_name\"|" \
+    "$settings_file"
+}
+
+set_gtk_setting() {
+  local settings_file="$1"
+  local key="$2"
+  local value="$3"
+
+  mkdir -p "$(dirname "$settings_file")"
+  if [ -L "$settings_file" ] && [ ! -e "$settings_file" ]; then
+    rm -f "$settings_file"
+  fi
+  if [ ! -f "$settings_file" ]; then
+    printf '[Settings]\n' > "$settings_file"
+  fi
+
+  if grep -q "^$key=" "$settings_file"; then
+    sed -i "s|^$key=.*|$key=$value|" "$settings_file"
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$settings_file"
+  fi
+}
+
+apply_profile_fonts() {
+  local config_root="$1"
+  local meta_file="$2"
+  [ -f "$meta_file" ] || return 0
+
+  local ui_font ui_size mono_font mono_size
+  ui_font=$(jq -r '.fonts.ui.family // "JetBrainsMono Nerd Font"' "$meta_file")
+  ui_size=$(jq -r '.fonts.ui.size // 11' "$meta_file")
+  mono_font=$(jq -r '.fonts.mono.family // "JetBrainsMono Nerd Font"' "$meta_file")
+  mono_size=$(jq -r '.fonts.mono.size // 14' "$meta_file")
+
+  gsettings set org.gnome.desktop.interface font-name "$ui_font $ui_size" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface document-font-name "$ui_font $ui_size" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface monospace-font-name "$mono_font $mono_size" 2>/dev/null || true
+
+  set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-font-name "$ui_font $ui_size"
+  set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-font-name "$ui_font $ui_size"
+
+  for qt_conf in "$config_root/qt5ct/qt5ct.conf" "$config_root/qt6ct/qt6ct.conf"; do
+    [ -f "$qt_conf" ] || continue
+    sed -i \
+      -e "s|^fixed=.*|fixed=\"$mono_font,$mono_size,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"|" \
+      -e "s|^general=.*|general=\"$ui_font,$ui_size,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"|" \
+      "$qt_conf"
+  done
+
+  if [ -f "$config_root/kitty/kitty.conf" ]; then
+    sed -i \
+      -e "s|^font_family .*|font_family      family=\"$mono_font\"|" \
+      -e "s|^font_size .*|font_size $mono_size|" \
+      "$config_root/kitty/kitty.conf"
+  fi
+
+  if [ -f "$config_root/rofi/profile-switcher.rasi" ]; then
+    sed -i -E "s|font:[[:space:]]*\"[^\"]+ [0-9]+\";|font:                        \"$ui_font $ui_size\";|g" \
+      "$config_root/rofi/profile-switcher.rasi"
+  fi
+
+  if [ -f "$HOME/.config/waybar/style.css" ]; then
+    sed -i -E \
+      -e "s|font-family: [^;]+;|font-family: \"$ui_font\", \"Symbols Nerd Font\";|g" \
+      -e "s|font-size: [0-9]+px;|font-size: ${ui_size}px;|g" \
+      "$HOME/.config/waybar/style.css"
+  fi
+
+  if [ -f "$HOME/.config/mako/config" ]; then
+    sed -i "s|^font=.*|font=$ui_font $ui_size|" "$HOME/.config/mako/config"
+  fi
+}
+
+apply_profile_appearance() {
+  local config_root="$1"
+  local meta_file="$2"
+  local variant="${3:-dark}"
+  [ -f "$meta_file" ] || return 0
+
+  local gtk_theme icon_theme kitty_opacity
+  gtk_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end' "$meta_file")
+  icon_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end' "$meta_file")
+  kitty_opacity=$(jq -r '.appearance.kittyOpacity // 1.0' "$meta_file")
+
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
+
+  set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
+  set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-icon-theme-name "$icon_theme"
+  set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-theme-name "$gtk_theme"
+  set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-icon-theme-name "$icon_theme"
+
+  if [ -f "$config_root/kitty/kitty.conf" ]; then
+    sed -i "s|^background_opacity .*|background_opacity $kitty_opacity|" "$config_root/kitty/kitty.conf"
+  fi
+}
+
+profile_runtime_string() {
+  local runtime_file="$1"
+  local variant="$2"
+  local section="$3"
+
+  [ -f "$runtime_file" ] || return 0
+
+  jq -r \
+    --arg section "$section" \
+    --arg variant "$variant" \
+    '.[$section][$variant] // .[$section].dark // empty' \
+    "$runtime_file" 2>/dev/null || true
+}
+
+profile_runtime_value() {
+  local runtime_file="$1"
+  local variant="$2"
+  local section="$3"
+  local key="$4"
+
+  [ -f "$runtime_file" ] || return 0
+
+  jq -r \
+    --arg section "$section" \
+    --arg variant "$variant" \
+    --arg key "$key" \
+    '.[$section][$variant][$key] // .[$section].dark[$key] // empty' \
+    "$runtime_file" 2>/dev/null || true
+}

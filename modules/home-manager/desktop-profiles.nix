@@ -1,421 +1,43 @@
 {
-  pkgs,
   lib,
   config,
   ...
 }:
 
 let
-  colorOptions = {
-    gtk3 = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
-    gtk4 = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
-    qt6 = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
-    kitty = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
-    fish = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
-    starship = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
-    rofi = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
+  profileOptions = import ../../lib/desktop-profiles/options.nix { inherit lib; };
+  runtimeDefaults = import ../../lib/desktop-profiles/runtime-defaults.nix;
+  profileFiles = import ../../lib/desktop-profiles/files.nix {
+    inherit lib runtimeDefaults;
   };
-
-  profileType = lib.types.submodule {
-    options = {
-      bar = lib.mkOption {
-        type = lib.types.enum [
-          "clean"
-          "noctalia"
-          "quickshell"
-          "waybar"
-        ];
-        description = "Which bar to run for this profile.";
-      };
-
-      quickshellTheme = lib.mkOption {
-        type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
-        default = null;
-        description = ''
-          Theme tokens for the modular quickshell bar. Keys: fg, bg, popupBg,
-          rawBg, accent, second, warm, fresh. Materialized as
-          ~/.config/desktop-profiles/<profile>/quickshell-theme.json and
-          loaded at runtime by shell.qml.
-        '';
-      };
-
-      cursor = {
-        theme = lib.mkOption {
-          type = lib.types.str;
-          default = "Adwaita";
-        };
-        size = lib.mkOption {
-          type = lib.types.int;
-          default = 28;
-        };
-        package = lib.mkOption {
-          type = lib.types.nullOr lib.types.package;
-          default = null;
-          description = "Cursor theme package. null if already installed.";
-        };
-      };
-
-      fonts = {
-        ui = {
-          family = lib.mkOption {
-            type = lib.types.str;
-            default = "JetBrainsMono Nerd Font";
-          };
-          size = lib.mkOption {
-            type = lib.types.int;
-            default = 11;
-          };
-        };
-        mono = {
-          family = lib.mkOption {
-            type = lib.types.str;
-            default = "JetBrainsMono Nerd Font";
-          };
-          size = lib.mkOption {
-            type = lib.types.int;
-            default = 14;
-          };
-        };
-      };
-
-      appearance = {
-        gtkTheme = lib.mkOption {
-          type = lib.types.str;
-          default = "adw-gtk3-dark";
-        };
-        gtkThemeLight = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = "adw-gtk3";
-        };
-        iconTheme = lib.mkOption {
-          type = lib.types.str;
-          default = "Papirus-Dark";
-        };
-        iconThemeLight = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = "Papirus-Light";
-        };
-        kittyOpacity = lib.mkOption {
-          type = lib.types.float;
-          default = 1.0;
-        };
-      };
-
-      wallpaperDir = lib.mkOption {
-        type = lib.types.str;
-        description = "Absolute path to wallpaper directory.";
-      };
-
-      wallpaperDirLight = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "Wallpaper directory for the light variant. Falls back to wallpaperDir if null.";
-      };
-
-      niri = {
-        gaps = lib.mkOption {
-          type = lib.types.int;
-          default = 16;
-        };
-        borderOff = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-        };
-        borderWidth = lib.mkOption {
-          type = lib.types.int;
-          default = 1;
-        };
-        borderActiveColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#b1c6ff";
-        };
-        borderInactiveColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#121316";
-        };
-        urgentColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#ffb4ab";
-        };
-        focusRingOff = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
-        };
-        focusRingActiveColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#b1c6ff";
-        };
-        focusRingInactiveColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#121316";
-        };
-        shadowSoftness = lib.mkOption {
-          type = lib.types.int;
-          default = 30;
-        };
-        shadowSpread = lib.mkOption {
-          type = lib.types.int;
-          default = 5;
-        };
-        shadowOffsetX = lib.mkOption {
-          type = lib.types.int;
-          default = 0;
-        };
-        shadowOffsetY = lib.mkOption {
-          type = lib.types.int;
-          default = 5;
-        };
-        shadowColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#00000070";
-        };
-        shadowInactiveColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#00000054";
-        };
-        shadowDrawBehindWindow = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-        };
-        tabIndicatorOff = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-        };
-        tabIndicatorActiveColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#b1c6ff";
-        };
-        tabIndicatorInactiveColor = lib.mkOption {
-          type = lib.types.str;
-          default = "#4c566a";
-        };
-        windowOpacity = lib.mkOption {
-          type = lib.types.float;
-          default = 1.0;
-        };
-        windowHighlightOff = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
-        };
-        extraConfig = lib.mkOption {
-          type = lib.types.str;
-          default = "";
-        };
-      };
-
-      # Dark variant colors (the profile default)
-      colors = colorOptions;
-
-      # Light variant colors — leave all null if no light variant exists
-      colorsLight = colorOptions;
-
-      waybar = {
-        config = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-        style = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-      };
-
-      waybarLight = {
-        style = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-      };
-
-      makoConfig = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-      };
-
-      makoConfigLight = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-      };
-
-    };
-  };
-
-  generateNiriOverrides = profile: ''
-    cursor {
-        xcursor-theme "${profile.cursor.theme}"
-        xcursor-size ${toString profile.cursor.size}
-    }
-
-    layout {
-        gaps ${toString profile.niri.gaps}
-
-        focus-ring {
-            ${if profile.niri.focusRingOff then "off" else ""}
-            active-color "${profile.niri.focusRingActiveColor}"
-            inactive-color "${profile.niri.focusRingInactiveColor}"
-            urgent-color "${profile.niri.urgentColor}"
-        }
-
-        border {
-            ${if profile.niri.borderOff then "off" else ""}
-            width ${toString profile.niri.borderWidth}
-            active-color "${profile.niri.borderActiveColor}"
-            inactive-color "${profile.niri.borderInactiveColor}"
-            urgent-color "${profile.niri.urgentColor}"
-        }
-
-        shadow {
-            on
-            softness ${toString profile.niri.shadowSoftness}
-            spread ${toString profile.niri.shadowSpread}
-            offset x=${toString profile.niri.shadowOffsetX} y=${toString profile.niri.shadowOffsetY}
-            ${if profile.niri.shadowDrawBehindWindow then "draw-behind-window true" else ""}
-            color "${profile.niri.shadowColor}"
-            inactive-color "${profile.niri.shadowInactiveColor}"
-        }
-
-        tab-indicator {
-            ${if profile.niri.tabIndicatorOff then "off" else ""}
-            hide-when-single-tab
-            place-within-column
-            gap 5
-            width 4
-            length total-proportion=1.0
-            position "right"
-            gaps-between-tabs 2
-            corner-radius 8
-            active-color "${profile.niri.tabIndicatorActiveColor}"
-            inactive-color "${profile.niri.tabIndicatorInactiveColor}"
-            urgent-color "${profile.niri.urgentColor}"
-        }
-    }
-
-    window-rule {
-        opacity ${toString profile.niri.windowOpacity}
-    }
-
-    ${lib.optionalString profile.niri.windowHighlightOff ''
-      recent-windows {
-          highlight {
-              active-color "#00000000"
-              urgent-color "#00000000"
-          }
-      }
-    ''}
-
-    ${profile.niri.extraConfig}
-  '';
-
-  orEmpty = v: if v != null then v else "";
-
-  hasLight = profile: profile.colorsLight.kitty != null || profile.colorsLight.gtk3 != null;
-
-  generateProfileFiles =
-    name: profile:
-    let
-      base = {
-        ".config/desktop-profiles/${name}/meta.json".text = builtins.toJSON {
-          bar = profile.bar;
-          cursor = profile.cursor.theme;
-          cursorSize = profile.cursor.size;
-          fonts = profile.fonts;
-          appearance = profile.appearance;
-          hasLightVariant = hasLight profile;
-        };
-        ".config/desktop-profiles/${name}/wallpaper-dir".text = profile.wallpaperDir;
-        ".config/desktop-profiles/${name}/wallpaper-dir-light".text =
-          if profile.wallpaperDirLight != null then profile.wallpaperDirLight else profile.wallpaperDir;
-        ".config/desktop-profiles/${name}/gtk-3.0.css".text = orEmpty profile.colors.gtk3;
-        ".config/desktop-profiles/${name}/gtk-4.0.css".text = orEmpty profile.colors.gtk4;
-        ".config/desktop-profiles/${name}/qt6ct.conf".text = orEmpty profile.colors.qt6;
-        ".config/desktop-profiles/${name}/kitty-colors.conf".text = orEmpty profile.colors.kitty;
-        ".config/desktop-profiles/${name}/fish-theme.fish".text = orEmpty profile.colors.fish;
-        ".config/desktop-profiles/${name}/starship.toml".text = orEmpty profile.colors.starship;
-        ".config/desktop-profiles/${name}/rofi-theme.rasi".text = orEmpty profile.colors.rofi;
-        ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides profile;
-      }
-      // lib.optionalAttrs (profile.makoConfig != null) {
-        ".config/desktop-profiles/${name}/mako-config".text = profile.makoConfig;
-      };
-      lightFiles =
-        lib.optionalAttrs (hasLight profile) {
-          ".config/desktop-profiles/${name}/gtk-3.0-light.css".text = orEmpty profile.colorsLight.gtk3;
-          ".config/desktop-profiles/${name}/gtk-4.0-light.css".text = orEmpty profile.colorsLight.gtk4;
-          ".config/desktop-profiles/${name}/qt6ct-light.conf".text = orEmpty profile.colorsLight.qt6;
-          ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
-          ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
-          ".config/desktop-profiles/${name}/starship-light.toml".text = orEmpty profile.colorsLight.starship;
-          ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
-        }
-        // lib.optionalAttrs (profile.makoConfigLight != null) {
-          ".config/desktop-profiles/${name}/mako-config-light".text = profile.makoConfigLight;
-        };
-      waybarFiles = lib.optionalAttrs (profile.bar == "waybar" && profile.waybar.config != null) (
-        {
-          ".config/desktop-profiles/${name}/waybar-config.jsonc".text = profile.waybar.config;
-          ".config/desktop-profiles/${name}/waybar-style.css".text = orEmpty profile.waybar.style;
-        }
-        // lib.optionalAttrs (profile.waybarLight.style != null) {
-          ".config/desktop-profiles/${name}/waybar-style-light.css".text = profile.waybarLight.style;
-        }
-      );
-
-      quickshellFiles = lib.optionalAttrs (profile.bar == "quickshell" || profile.bar == "clean") (
-        lib.optionalAttrs (profile.quickshellTheme != null) {
-          ".config/desktop-profiles/${name}/quickshell-theme.json".text =
-            builtins.toJSON profile.quickshellTheme;
-        }
-      );
-    in
-    base // lightFiles // waybarFiles // quickshellFiles;
-
 in
 {
   options.desktopProfiles = {
     enable = lib.mkEnableOption "desktop profile system";
+
     defaultProfile = lib.mkOption {
       type = lib.types.str;
       default = "noctalia";
       description = "Profile to activate on first home-manager switch if none is set.";
     };
+
     profiles = lib.mkOption {
-      type = lib.types.attrsOf profileType;
+      type = lib.types.attrsOf profileOptions.profileType;
       default = { };
     };
   };
 
   config = lib.mkIf config.desktopProfiles.enable {
-
     home.packages = lib.flatten (
       lib.mapAttrsToList (
         _name: profile: lib.optional (profile.cursor.package != null) profile.cursor.package
       ) config.desktopProfiles.profiles
     );
 
-    home.file = lib.mkMerge (lib.mapAttrsToList generateProfileFiles config.desktopProfiles.profiles);
+    home.file = lib.mkMerge (
+      lib.mapAttrsToList profileFiles.generateProfileFiles config.desktopProfiles.profiles
+    );
 
-    # Bootstrap: create the active symlink on first activation if not set.
     home.activation.initDesktopProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       PROFILES_DIR="$HOME/.config/desktop-profiles"
       ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
@@ -432,6 +54,32 @@ in
       if [ ! -e "$VARIANT_FILE" ]; then
         echo "dark" | $DRY_RUN_CMD tee "$VARIANT_FILE" > /dev/null
       fi
+    '';
+
+    home.activation.initDesktopProfileLiveConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      copy_live_dir() {
+        src="$1"
+        dest="$2"
+
+        if [ -L "$dest" ]; then
+          $DRY_RUN_CMD rm -f "$dest"
+        fi
+
+        if [ ! -e "$dest" ]; then
+          $DRY_RUN_CMD mkdir -p "$(dirname "$dest")"
+          $DRY_RUN_CMD cp -R "$src" "$dest"
+        fi
+      }
+
+      copy_live_dir "${config.repoPath}/home/configs/kitty" "$HOME/.config/kitty"
+      copy_live_dir "${config.repoPath}/home/configs/gtk-3.0" "$HOME/.config/gtk-3.0"
+      copy_live_dir "${config.repoPath}/home/configs/gtk-4.0" "$HOME/.config/gtk-4.0"
+      copy_live_dir "${config.repoPath}/home/configs/qt5ct" "$HOME/.config/qt5ct"
+      copy_live_dir "${config.repoPath}/home/configs/qt6ct" "$HOME/.config/qt6ct"
+      copy_live_dir "${config.repoPath}/home/configs/rofi" "$HOME/.config/rofi"
+      copy_live_dir \
+        "${config.repoPath}/home/configs/firefox/chrome" \
+        "$HOME/.mozilla/firefox/09longn9.default-release/chrome"
     '';
   };
 }

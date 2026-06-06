@@ -32,10 +32,6 @@
     executable = true;
   };
 
-  # Rofi configs (out-of-store so they're editable without rebuild)
-  xdg.configFile."rofi".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/rofi";
-
   home.sessionPath = [ "$HOME/.local/bin" ];
 
   qt.enable = true;

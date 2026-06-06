@@ -6,17 +6,12 @@ ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
 REPO="$HOME/nixos/home"
+CONFIG_HOME="$HOME/.config"
+FIREFOX_CHROME="$HOME/.mozilla/firefox/09longn9.default-release/chrome"
 STARTUP_MODE=0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-pick_random_wallpaper() {
-  local wallpaper_dir="$1"
-
-  [ -d "$wallpaper_dir" ] || return 1
-
-  find "$wallpaper_dir" -maxdepth 1 \
-    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
-    | shuf -n 1
-}
+. "$SCRIPT_DIR/profile-common"
 
 wait_for_awww() {
   local attempts="${1:-20}"
@@ -29,119 +24,6 @@ wait_for_awww() {
   done
 
   return 1
-}
-
-set_zed_theme() {
-  local settings_file="$1"
-  local theme_name="$2"
-
-  sed -i \
-    -e "s|^\([[:space:]]*\"theme\":[[:space:]]*\)\"[^\"]*\",|\1\"$theme_name\",|" \
-    -e "/\"theme\"[[:space:]]*:/,/}/ s|\"dark\": \"[^\"]*\"|\"dark\": \"$theme_name\"|" \
-    "$settings_file"
-}
-
-set_zed_icon_theme() {
-  local settings_file="$1"
-  local mode_name="$2"
-  local icon_name="$3"
-
-  sed -i \
-    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"mode\": \"[^\"]*\"|\"mode\": \"$mode_name\"|" \
-    -e "/\"icon_theme\"[[:space:]]*:/,/}/ s|\"$mode_name\": \"[^\"]*\"|\"$mode_name\": \"$icon_name\"|" \
-    "$settings_file"
-}
-
-set_gtk_setting() {
-  local settings_file="$1"
-  local key="$2"
-  local value="$3"
-
-  mkdir -p "$(dirname "$settings_file")"
-  if [ -L "$settings_file" ] && [ ! -e "$settings_file" ]; then
-    rm -f "$settings_file"
-  fi
-  if [ ! -f "$settings_file" ]; then
-    printf '[Settings]\n' > "$settings_file"
-  fi
-
-  if grep -q "^$key=" "$settings_file"; then
-    sed -i "s|^$key=.*|$key=$value|" "$settings_file"
-  else
-    printf '%s=%s\n' "$key" "$value" >> "$settings_file"
-  fi
-}
-
-apply_profile_fonts() {
-  local meta_file="$1"
-  [ -f "$meta_file" ] || return 0
-
-  local ui_font ui_size mono_font mono_size
-  ui_font=$(jq -r '.fonts.ui.family // "JetBrainsMono Nerd Font"' "$meta_file")
-  ui_size=$(jq -r '.fonts.ui.size // 11' "$meta_file")
-  mono_font=$(jq -r '.fonts.mono.family // "JetBrainsMono Nerd Font"' "$meta_file")
-  mono_size=$(jq -r '.fonts.mono.size // 14' "$meta_file")
-
-  gsettings set org.gnome.desktop.interface font-name "$ui_font $ui_size" 2>/dev/null || true
-  gsettings set org.gnome.desktop.interface document-font-name "$ui_font $ui_size" 2>/dev/null || true
-  gsettings set org.gnome.desktop.interface monospace-font-name "$mono_font $mono_size" 2>/dev/null || true
-
-  set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-font-name "$ui_font $ui_size"
-  set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-font-name "$ui_font $ui_size"
-
-  for qt_conf in "$REPO/configs/qt5ct/qt5ct.conf" "$REPO/configs/qt6ct/qt6ct.conf"; do
-    [ -f "$qt_conf" ] || continue
-    sed -i \
-      -e "s|^fixed=.*|fixed=\"$mono_font,$mono_size,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"|" \
-      -e "s|^general=.*|general=\"$ui_font,$ui_size,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"|" \
-      "$qt_conf"
-  done
-
-  if [ -f "$REPO/configs/kitty/kitty.conf" ]; then
-    sed -i \
-      -e "s|^font_family .*|font_family      family=\"$mono_font\"|" \
-      -e "s|^font_size .*|font_size $mono_size|" \
-      "$REPO/configs/kitty/kitty.conf"
-  fi
-
-  if [ -f "$REPO/configs/rofi/profile-switcher.rasi" ]; then
-    sed -i -E "s|font:[[:space:]]*\"[^\"]+ [0-9]+\";|font:                        \"$ui_font $ui_size\";|g" \
-      "$REPO/configs/rofi/profile-switcher.rasi"
-  fi
-
-  if [ -f "$HOME/.config/waybar/style.css" ]; then
-    sed -i -E \
-      -e "s|font-family: [^;]+;|font-family: \"$ui_font\", \"Symbols Nerd Font\";|g" \
-      -e "s|font-size: [0-9]+px;|font-size: ${ui_size}px;|g" \
-      "$HOME/.config/waybar/style.css"
-  fi
-
-  if [ -f "$HOME/.config/mako/config" ]; then
-    sed -i "s|^font=.*|font=$ui_font $ui_size|" "$HOME/.config/mako/config"
-  fi
-}
-
-apply_profile_appearance() {
-  local meta_file="$1"
-  local variant="${2:-dark}"
-  [ -f "$meta_file" ] || return 0
-
-  local gtk_theme icon_theme kitty_opacity
-  gtk_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end' "$meta_file")
-  icon_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end' "$meta_file")
-  kitty_opacity=$(jq -r '.appearance.kittyOpacity // 1.0' "$meta_file")
-
-  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
-  gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
-
-  set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
-  set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-icon-theme-name "$icon_theme"
-  set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-theme-name "$gtk_theme"
-  set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-icon-theme-name "$icon_theme"
-
-  if [ -f "$REPO/configs/kitty/kitty.conf" ]; then
-    sed -i "s|^background_opacity .*|background_opacity $kitty_opacity|" "$REPO/configs/kitty/kitty.conf"
-  fi
 }
 
 list_profiles() {
@@ -193,10 +75,12 @@ else
 fi
 
 TARGET_DIR="$PROFILES_DIR/$TARGET"
+TARGET_RUNTIME="$TARGET_DIR/runtime.json"
 
 if [ $STARTUP_MODE -eq 1 ] && [ ! -d "$TARGET_DIR" ]; then
   TARGET="noctalia"
   TARGET_DIR="$PROFILES_DIR/$TARGET"
+  TARGET_RUNTIME="$TARGET_DIR/runtime.json"
   TARGET_VARIANT="dark"
 fi
 
@@ -252,48 +136,20 @@ fi
 # 2. Copy color files (skip for noctalia — it manages its own colors)
 if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
   echo "  Applying color files..."
-  [ -s "$TARGET_DIR/gtk-3.0.css" ]       && cp "$TARGET_DIR/gtk-3.0.css"       "$REPO/configs/gtk-3.0/noctalia.css"
-  [ -s "$TARGET_DIR/gtk-4.0.css" ]       && cp "$TARGET_DIR/gtk-4.0.css"       "$REPO/configs/gtk-4.0/noctalia.css"
-  [ -s "$TARGET_DIR/qt6ct.conf" ]        && cp "$TARGET_DIR/qt6ct.conf"        "$REPO/configs/qt6ct/colors/noctalia.conf"
-  [ -s "$TARGET_DIR/qt6ct.conf" ]        && cp "$TARGET_DIR/qt6ct.conf"        "$REPO/configs/qt5ct/colors/noctalia.conf"
-  # Kitty: configs/kitty is an out-of-store symlink to the repo, so writing
-  # to the repo path is immediately reflected at ~/.config/kitty/colors.conf
-  [ -s "$TARGET_DIR/kitty-colors.conf" ] && cp "$TARGET_DIR/kitty-colors.conf" "$REPO/configs/kitty/colors.conf"
-  [ -s "$TARGET_DIR/rofi-theme.rasi" ]   && cp "$TARGET_DIR/rofi-theme.rasi"   "$REPO/configs/rofi/profile-switcher.rasi"
-  # Firefox: configs/firefox/chrome is now an out-of-store symlink so writing
-  # to the repo path is immediately reflected in the browser (reload userChrome).
-  FF_GLOBALS="$REPO/configs/firefox/chrome/DownToneUI/_globals.css"
-  case "$TARGET" in
-    nord)
-      FF_MAIN="46, 52, 64"; FF_SEC="59, 66, 82"
-      FF_ACCENT="136, 192, 208"; FF_TEXT="216, 222, 233"
-      FF_ACCENT_HSL="hsl(193, 43%, 78%)" ;;
-    catppuccin)
-      FF_MAIN="30, 30, 46"; FF_SEC="24, 24, 37"
-      FF_ACCENT="203, 166, 247"; FF_TEXT="205, 214, 244"
-      FF_ACCENT_HSL="hsl(267, 84%, 81%)" ;;
-    gruvbox)
-      FF_MAIN="40, 40, 40"; FF_SEC="60, 56, 54"
-      FF_ACCENT="250, 189, 47"; FF_TEXT="235, 219, 178"
-      FF_ACCENT_HSL="hsl(43, 95%, 58%)" ;;
-    rosepine)
-      FF_MAIN="25, 23, 36"; FF_SEC="31, 29, 46"
-      FF_ACCENT="196, 167, 231"; FF_TEXT="224, 222, 244"
-      FF_ACCENT_HSL="hsl(267, 57%, 78%)" ;;
-    everforest)
-      FF_MAIN="39, 46, 51"; FF_SEC="46, 56, 60"
-      FF_ACCENT="167, 192, 128"; FF_TEXT="211, 198, 170"
-      FF_ACCENT_HSL="hsl(96, 27%, 63%)" ;;
-    minimal)
-      FF_MAIN="20, 20, 20"; FF_SEC="28, 28, 28"
-      FF_ACCENT="224, 224, 224"; FF_TEXT="242, 242, 242"
-      FF_ACCENT_HSL="hsl(0, 0%, 88%)" ;;
-    clean)
-      FF_MAIN="16, 16, 16"; FF_SEC="23, 23, 23"
-      FF_ACCENT="238, 238, 238"; FF_TEXT="216, 216, 216"
-      FF_ACCENT_HSL="hsl(0, 0%, 93%)" ;;
-  esac
-  cat > "$FF_GLOBALS" << EOF
+  [ -s "$TARGET_DIR/gtk-3.0.css" ]       && cp "$TARGET_DIR/gtk-3.0.css"       "$CONFIG_HOME/gtk-3.0/noctalia.css"
+  [ -s "$TARGET_DIR/gtk-4.0.css" ]       && cp "$TARGET_DIR/gtk-4.0.css"       "$CONFIG_HOME/gtk-4.0/noctalia.css"
+  [ -s "$TARGET_DIR/qt6ct.conf" ]        && cp "$TARGET_DIR/qt6ct.conf"        "$CONFIG_HOME/qt6ct/colors/noctalia.conf"
+  [ -s "$TARGET_DIR/qt6ct.conf" ]        && cp "$TARGET_DIR/qt6ct.conf"        "$CONFIG_HOME/qt5ct/colors/noctalia.conf"
+  [ -s "$TARGET_DIR/kitty-colors.conf" ] && cp "$TARGET_DIR/kitty-colors.conf" "$CONFIG_HOME/kitty/colors.conf"
+  [ -s "$TARGET_DIR/rofi-theme.rasi" ]   && cp "$TARGET_DIR/rofi-theme.rasi"   "$CONFIG_HOME/rofi/profile-switcher.rasi"
+  FF_GLOBALS="$FIREFOX_CHROME/DownToneUI/_globals.css"
+  FF_MAIN=$(profile_runtime_value "$TARGET_RUNTIME" "$TARGET_VARIANT" firefox main)
+  FF_SEC=$(profile_runtime_value "$TARGET_RUNTIME" "$TARGET_VARIANT" firefox secondary)
+  FF_ACCENT=$(profile_runtime_value "$TARGET_RUNTIME" "$TARGET_VARIANT" firefox accent)
+  FF_TEXT=$(profile_runtime_value "$TARGET_RUNTIME" "$TARGET_VARIANT" firefox text)
+  FF_ACCENT_HSL=$(profile_runtime_value "$TARGET_RUNTIME" "$TARGET_VARIANT" firefox accentHsl)
+  if [ -n "$FF_MAIN" ]; then
+    cat > "$FF_GLOBALS" << EOF
 /* ============================================================================
  * Shared: should be copied to Sidebery settings > Styles editor
  * ========================================================================= */
@@ -340,20 +196,15 @@ if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
   --dtui-bookmarks-inner-height: 20px;
 }
 EOF
+  fi
   [ -s "$TARGET_DIR/fish-theme.fish" ]   && cp "$TARGET_DIR/fish-theme.fish"   "$HOME/.config/fish/conf.d/matugen_theme.fish"
   [ -s "$TARGET_DIR/starship.toml" ]     && cp "$TARGET_DIR/starship.toml"     "$HOME/.config/starship_matugen.toml"
   systemctl --user restart swayosd 2>/dev/null || true
   # Generate pywal cache and push colors to Firefox via pywalfox
   if command -v wal >/dev/null 2>&1; then
     echo "  Generating pywal colors..."
-    case "$TARGET" in
-      gruvbox)  WAL_THEME="base16-gruvbox-dark-hard" ;;
-      rosepine)   WAL_THEME="base16-rose-pine" ;;
-      everforest) WAL_THEME="base16-everforest" ;;
-      minimal)    WAL_THEME="base16-grayscale" ;;
-      clean)      WAL_THEME="base16-grayscale" ;;
-      *)          WAL_THEME="base16-nord" ;;
-    esac
+    WAL_THEME=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" pywal)
+    [ -n "$WAL_THEME" ] || WAL_THEME="base16-nord"
     wal --theme "$WAL_THEME" -q 2>/dev/null || true
     command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
   fi
@@ -372,12 +223,12 @@ niri msg action reload-config 2>/dev/null || true
 echo "  Applying cursor..."
 gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
-set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
-set_gtk_setting "$REPO/configs/gtk-3.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
-set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
-set_gtk_setting "$REPO/configs/gtk-4.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
-apply_profile_fonts "$TARGET_DIR/meta.json"
-apply_profile_appearance "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
+set_gtk_setting "$CONFIG_HOME/gtk-3.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
+set_gtk_setting "$CONFIG_HOME/gtk-3.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
+set_gtk_setting "$CONFIG_HOME/gtk-4.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
+set_gtk_setting "$CONFIG_HOME/gtk-4.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
+apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
+apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
 
 # 6. Record active profile and variant preference
 if [ $STARTUP_MODE -eq 0 ]; then
@@ -412,8 +263,8 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
     mkdir -p "$HOME/.config/mako"
     install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
   fi
-  apply_profile_fonts "$TARGET_DIR/meta.json"
-  apply_profile_appearance "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
+  apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
+  apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
   if [ $STARTUP_MODE -eq 1 ]; then
     pgrep -f waybar >/dev/null 2>&1 || {
       waybar 2>/dev/null &
@@ -445,8 +296,8 @@ elif [ "$TARGET_BAR" = "clean" ] || [ "$TARGET_BAR" = "quickshell" ]; then
     mkdir -p "$HOME/.config/mako"
     install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
   fi
-  apply_profile_fonts "$TARGET_DIR/meta.json"
-  apply_profile_appearance "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
+  apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
+  apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
 
   if [ $STARTUP_MODE -eq 1 ]; then
     pgrep -x mako >/dev/null 2>&1 || {
@@ -522,17 +373,8 @@ if [ $STARTUP_MODE -eq 0 ]; then
   # 9. Update Zed theme + icon theme
   ZED_SETTINGS="$HOME/.config/zed/settings.json"
   if [ -f "$ZED_SETTINGS" ]; then
-    case "$TARGET" in
-      catppuccin) ZED_THEME="Catppuccin Mocha (Blur)" ; ZED_ICON="Catppuccin Mocha" ;;
-      nord)       ZED_THEME="Nord Dark"         ; ZED_ICON="Zed (Default)" ;;
-      noctalia)   ZED_THEME="Ayu Dark"          ; ZED_ICON="Material Icon Theme" ;;
-      gruvbox)    ZED_THEME="Gruvbox Dark"      ; ZED_ICON="Material Icon Theme" ;;
-      rosepine)   ZED_THEME="Rosé Pine"         ; ZED_ICON="Zed (Default)" ;;
-      everforest) ZED_THEME="Everforest Dark Hard (blur)"  ; ZED_ICON="Material Icon Theme" ;;
-      minimal)    ZED_THEME="Transparent Prism"                ; ZED_ICON="Zed (Default)" ;;
-      clean)      ZED_THEME="Transparent Prism"  ; ZED_ICON="Zed (Default)" ;;
-      *)          ZED_THEME=""                  ; ZED_ICON="" ;;
-    esac
+    ZED_THEME=$(profile_runtime_value "$TARGET_RUNTIME" "$TARGET_VARIANT" zed theme)
+    ZED_ICON=$(profile_runtime_value "$TARGET_RUNTIME" "$TARGET_VARIANT" zed icon)
     if [ -n "$ZED_THEME" ]; then
       set_zed_theme "$ZED_SETTINGS" "$ZED_THEME"
     fi
@@ -544,17 +386,7 @@ if [ $STARTUP_MODE -eq 0 ]; then
   # 10. Update Vesktop theme
   VESKTOP_SETTINGS="$HOME/.config/vesktop/settings/settings.json"
   if [ -f "$VESKTOP_SETTINGS" ]; then
-    case "$TARGET" in
-      nord)       VESKTOP_THEME="nord.theme.css" ;;
-      catppuccin) VESKTOP_THEME="catppuccin.theme.css" ;;
-      gruvbox)    VESKTOP_THEME="gruvbox.theme.css" ;;
-      noctalia)   VESKTOP_THEME="noctalia.theme.css" ;;
-      rosepine)   VESKTOP_THEME="rosepine.theme.css" ;;
-      everforest) VESKTOP_THEME="everforest.theme.css" ;;
-      minimal)    VESKTOP_THEME="minimal.theme.css" ;;
-      clean)      VESKTOP_THEME="minimal.theme.css" ;;
-      *)          VESKTOP_THEME="" ;;
-    esac
+    VESKTOP_THEME=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" vesktop)
     if [ -n "$VESKTOP_THEME" ]; then
       # Replace enabledThemes array with the single target theme
       python3 -c "
@@ -571,17 +403,7 @@ with open('$VESKTOP_SETTINGS', 'w') as f:
   # 11. Update Obsidian Minimal Theme dark scheme
   OBSIDIAN_MINIMAL="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
   if [ -f "$OBSIDIAN_MINIMAL" ]; then
-    case "$TARGET" in
-      nord)       OBS_SCHEME="minimal-nord-dark" ;;
-      catppuccin) OBS_SCHEME="minimal-catppuccin-dark" ;;
-      gruvbox)    OBS_SCHEME="minimal-gruvbox-dark" ;;
-      noctalia)   OBS_SCHEME="minimal-flexoki-dark" ;;
-      rosepine)   OBS_SCHEME="minimal-rose-pine-dark" ;;
-      everforest) OBS_SCHEME="minimal-everforest-dark" ;;
-      minimal)    OBS_SCHEME="minimal-flexoki-dark" ;;
-      clean)      OBS_SCHEME="minimal-flexoki-dark" ;;
-      *)          OBS_SCHEME="" ;;
-    esac
+    OBS_SCHEME=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" obsidian)
     if [ -n "$OBS_SCHEME" ]; then
       python3 -c "
 import json

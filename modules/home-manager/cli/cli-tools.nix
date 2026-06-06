@@ -26,6 +26,7 @@
         unrar
         inotify-tools
         mtr
+        just
       ]
       ++ [
         inputs.compchem-cctop.packages.${system}.default
