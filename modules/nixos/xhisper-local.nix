@@ -10,7 +10,6 @@ let
   xhisperPkg = pkgs.xhisper-local.override {
     ollama = if cfg.ollama.enable then cfg.ollama.package else null;
   };
-  streamdPkg = pkgs.callPackage ../../pkgs/xhisper-streamd { };
 in
 {
   options.xhisperLocal = {
@@ -48,13 +47,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [
-      xhisperPkg
-      streamdPkg
-      pkgs.socat
-      pkgs.jq
-      pkgs.sox            # silence-detection recorder for xhisper-stream
-    ];
+    environment.systemPackages = [ xhisperPkg ];
 
     users.users.${cfg.user}.extraGroups = [ "input" ];
 
