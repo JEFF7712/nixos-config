@@ -34,6 +34,25 @@ class RingBuffer:
         return len(self._buf)
 
 
+def longest_agreed_prefix(history: list[list[str]], n: int) -> list[str]:
+    """Longest token prefix identical across the last `n` decodes in history.
+
+    Returns empty list if history has fewer than `n` entries.
+    """
+    if len(history) < n:
+        return []
+    window = history[-n:]
+    min_len = min(len(seq) for seq in window)
+    agreed: list[str] = []
+    for i in range(min_len):
+        token = window[0][i]
+        if all(seq[i] == token for seq in window):
+            agreed.append(token)
+        else:
+            break
+    return agreed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="xhisper-streamd",
