@@ -2,6 +2,7 @@
 
 let
   waybar = import ../../../lib/waybar.nix;
+  theme = import ../../../lib/desktop-profiles/theme-builders.nix;
 
   # Dark — neutral greys only
   bg0 = "#141414";
@@ -132,57 +133,29 @@ in
       pillBorder = "#00000000";
     };
 
-    makoConfig = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${bg0}
-      text-color=${fg1}
-      border-color=${bg3}
-      border-size=1
-      border-radius=4
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
+    makoConfig = theme.mkMakoConfig {
+      background = bg0;
+      text = fg1;
+      border = bg3;
+      lowBorder = bg2;
+      highBackground = bg1;
+      highBorder = err;
+      highText = fg0;
+      borderSize = 1;
+      borderRadius = 4;
+    };
 
-      [urgency=low]
-      border-color=${bg2}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${bg1}
-      border-color=${err}
-      text-color=${fg0}
-      default-timeout=0
-    '';
-
-    makoConfigLight = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${l_bg0}
-      text-color=${l_fg1}
-      border-color=${l_bg3}
-      border-size=1
-      border-radius=4
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
-
-      [urgency=low]
-      border-color=${l_bg2}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${l_bg1}
-      border-color=${l_err}
-      text-color=${l_fg0}
-      default-timeout=0
-    '';
+    makoConfigLight = theme.mkMakoConfig {
+      background = l_bg0;
+      text = l_fg1;
+      border = l_bg3;
+      lowBorder = l_bg2;
+      highBackground = l_bg1;
+      highBorder = l_err;
+      highText = l_fg0;
+      borderSize = 1;
+      borderRadius = 4;
+    };
 
     cursor = {
       theme = "Bibata-Modern-Ice";

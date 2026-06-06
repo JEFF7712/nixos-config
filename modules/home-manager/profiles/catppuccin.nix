@@ -3,6 +3,7 @@
 # Catppuccin desktop profile — Mocha (dark) + Latte (light).
 let
   waybar = import ../../../lib/waybar.nix;
+  theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   # ── Mocha (dark) ────────────────────────────────────────────────────────────
   rosewater = "#f5e0dc";
   flamingo = "#f2cdcd";
@@ -82,57 +83,25 @@ in
       pillBorder = "#00000000";
     };
 
-    makoConfig = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${base}
-      text-color=${text}
-      border-color=${mauve}
-      border-size=2
-      border-radius=8
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
+    makoConfig = theme.mkMakoConfig {
+      background = base;
+      text = text;
+      border = mauve;
+      lowBorder = surface1;
+      highBackground = mantle;
+      highBorder = red;
+      highText = text;
+    };
 
-      [urgency=low]
-      border-color=${surface1}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${mantle}
-      border-color=${red}
-      text-color=${text}
-      default-timeout=0
-    '';
-
-    makoConfigLight = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${l_base}
-      text-color=${l_text}
-      border-color=${l_mauve}
-      border-size=2
-      border-radius=8
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
-
-      [urgency=low]
-      border-color=${l_surface1}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${l_mantle}
-      border-color=${l_red}
-      text-color=${l_text}
-      default-timeout=0
-    '';
+    makoConfigLight = theme.mkMakoConfig {
+      background = l_base;
+      text = l_text;
+      border = l_mauve;
+      lowBorder = l_surface1;
+      highBackground = l_mantle;
+      highBorder = l_red;
+      highText = l_text;
+    };
 
     cursor = {
       theme = "catppuccin-mocha-mauve-cursors";

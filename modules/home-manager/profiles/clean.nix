@@ -1,6 +1,8 @@
 { pkgs, config, ... }:
 
 let
+  theme = import ../../../lib/desktop-profiles/theme-builders.nix;
+
   bg0 = "#141414";
   bg1 = "#202020";
   bg2 = "#323232";
@@ -88,31 +90,17 @@ in
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/clean";
 
-    makoConfig = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=#14141499
-      text-color=${fg1}
-      border-color=#ffffff66
-      border-size=1
-      border-radius=6
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
-
-      [urgency=low]
-      border-color=#ffffff44
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=#202020bb
-      border-color=#ffffffaa
-      text-color=${fg0}
-      default-timeout=0
-    '';
+    makoConfig = theme.mkMakoConfig {
+      background = "#14141499";
+      text = fg1;
+      border = "#ffffff66";
+      lowBorder = "#ffffff44";
+      highBackground = "#202020bb";
+      highBorder = "#ffffffaa";
+      highText = fg0;
+      borderSize = 1;
+      borderRadius = 6;
+    };
 
     niri = {
       gaps = 8;
