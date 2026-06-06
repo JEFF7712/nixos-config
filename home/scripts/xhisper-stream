@@ -58,8 +58,9 @@ done
 
 # --- PID-file helpers ---
 pid_alive() {
+  # /proc/$pid/comm is "bash" for a shebang script — use cmdline (preserves argv).
   local pid="$1"
-  [ -d "/proc/$pid" ] && grep -q "xhisper-stream" "/proc/$pid/comm" 2>/dev/null
+  [ -d "/proc/$pid" ] && grep -qa "xhisper-stream" "/proc/$pid/cmdline" 2>/dev/null
 }
 
 read_pid() {
@@ -122,7 +123,13 @@ PARTIALS_PIPE="${XDG_RUNTIME_DIR}/xhisper-stream.partials.$$"
 mkfifo "$PARTIALS_PIPE"
 
 mark_commit() { COMMIT_FLAG=1; }
-mark_cancel() { CANCEL_FLAG=1; }
+mark_cancel() {
+  CANCEL_FLAG=1
+  # Hard-tear-down so the overlay disappears immediately rather than after the
+  # next 200 ms loop tick + 150 ms QML fade.
+  kill "${OVERLAY_PID:-0}" 2>/dev/null || true
+  pkill -P $$ 2>/dev/null || true
+}
 trap mark_commit TERM
 trap mark_cancel USR1
 
