@@ -11,10 +11,24 @@ This repo is the source of truth for my NixOS system, home-manager setup, deskto
 - `home/rupan/` - user home-manager entrypoints
 - `modules/nixos/` - reusable system modules
 - `modules/home-manager/` - reusable user modules (auto-imported via import-tree)
-- `home/configs/` - mutable runtime configs symlinked into `$HOME`
+- `lib/` - shared Nix helpers, including desktop profile file generation and theme builders
+- `overlays/` - package overlays wired into the flake
+- `pkgs/` - local packages
+- `home/configs/` - live config defaults copied or linked into `$HOME` where mutability is intentional
 - `home/scripts/` - user scripts symlinked into `~/.local/bin`
 - `home/assets/` - wallpapers, previews, and other assets
 - `shells/` - dev shells, including ML and homelab environments
+- `justfile` - common maintenance, eval, dry-activate, and switch commands
+
+## Maintenance
+
+- `just` - list available recipes
+- `just fmt` - format Nix files
+- `just check` - run script syntax checks, flake discovery, both system evals, and diff whitespace checks
+- `just eval [target]` - evaluate one NixOS target, defaulting to `laptop`
+- `just eval-all` - evaluate `laptop` and `iso`
+- `just dry` - dry-activate the laptop system
+- `just switch` - switch the laptop system
 
 ## Try The ISO
 
