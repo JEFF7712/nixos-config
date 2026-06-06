@@ -194,65 +194,56 @@ in
         inactive_colors=${nord4}, ${nord1}, #ffffff, ${nord3}, ${nord2}, ${nord2}, ${nord4}, #ffffff, ${nord4}, ${nord0}, ${nord0}, #000000, ${nord10}, ${nord6}, ${nord9}, ${nord8}, ${nord3}, ${nord0}, ${nord3}, ${nord4}, ${nord4}, ${nord8}
       '';
 
-      kitty = ''
-        # Nord Kitty Theme
-        cursor ${nord4}
-        cursor_text_color ${nord0}
-        foreground ${nord4}
-        background ${nord0}
-        selection_foreground ${nord0}
-        selection_background ${nord8}
-        color0  ${nord1}
-        color8  ${nord3}
-        color1  ${nord11}
-        color9  ${nord11}
-        color2  ${nord14}
-        color10 ${nord14}
-        color3  ${nord13}
-        color11 ${nord13}
-        color4  ${nord9}
-        color12 ${nord9}
-        color5  ${nord15}
-        color13 ${nord15}
-        color6  ${nord7}
-        color14 ${nord7}
-        color7  ${nord5}
-        color15 ${nord6}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Nord Kitty Theme";
+        cursor = nord4;
+        cursorText = nord0;
+        foreground = nord4;
+        background = nord0;
+        selectionForeground = nord0;
+        selectionBackground = nord8;
+        color0 = nord1;
+        color8 = nord3;
+        color1 = nord11;
+        color9 = nord11;
+        color2 = nord14;
+        color10 = nord14;
+        color3 = nord13;
+        color11 = nord13;
+        color4 = nord9;
+        color12 = nord9;
+        color5 = nord15;
+        color13 = nord15;
+        color6 = nord7;
+        color14 = nord7;
+        color7 = nord5;
+        color15 = nord6;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${nord4}
-        set -g fish_color_command ${nord8}
-        set -g fish_color_keyword ${nord9}
-        set -g fish_color_quote ${nord14}
-        set -g fish_color_redirection ${nord4}
-        set -g fish_color_end ${nord3}
-        set -g fish_color_error ${nord11}
-        set -g fish_color_param ${nord4}
-        set -g fish_color_comment ${nord3}
-        set -g fish_color_selection --background=${nord2}
-        set -g fish_color_search_match --background=${nord2}
-        set -g fish_color_operator ${nord8}
-        set -g fish_color_escape ${nord13}
-        set -g fish_color_autosuggestion ${nord3}
-      '';
+      fish = theme.mkFishColors {
+        normal = nord4;
+        command = nord8;
+        keyword = nord9;
+        quote = nord14;
+        redirection = nord4;
+        end = nord3;
+        error = nord11;
+        param = nord4;
+        comment = nord3;
+        selection = nord2;
+        searchMatch = nord2;
+        operator = nord8;
+        escape = nord13;
+        autosuggestion = nord3;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${nord8})"
-        error_symbol = "[❯](${nord11})"
-
-        [directory]
-        style = "bold ${nord9}"
-
-        [git_branch]
-        style = "bold ${nord10}"
-
-        [cmd_duration]
-        style = "bold ${nord3}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = nord8;
+        error = nord11;
+        directory = nord9;
+        gitBranch = nord10;
+        cmdDuration = nord3;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = nord0;

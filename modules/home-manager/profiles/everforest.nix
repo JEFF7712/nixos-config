@@ -202,65 +202,56 @@ in
         inactive_colors=${grey2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${grey2}, #ffffff, ${grey2}, ${bg0}, ${bg0}, #000000, ${green}, ${bg0}, ${green}, ${blue}, ${bg1}, ${bg0}, ${bg1}, ${grey2}, ${grey1}, ${green}
       '';
 
-      kitty = ''
-        # Everforest Dark Hard Kitty
-        cursor ${fg}
-        cursor_text_color ${bg0}
-        foreground ${fg}
-        background ${bg0}
-        selection_foreground ${bg0}
-        selection_background ${green}
-        color0  ${bg3}
-        color8  ${bg5}
-        color1  ${red}
-        color9  ${red}
-        color2  ${green}
-        color10 ${green}
-        color3  ${yellow}
-        color11 ${yellow}
-        color4  ${blue}
-        color12 ${blue}
-        color5  ${purple}
-        color13 ${purple}
-        color6  ${aqua}
-        color14 ${aqua}
-        color7  ${grey2}
-        color15 ${fg}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Everforest Dark Hard Kitty";
+        cursor = fg;
+        cursorText = bg0;
+        foreground = fg;
+        background = bg0;
+        selectionForeground = bg0;
+        selectionBackground = green;
+        color0 = bg3;
+        color8 = bg5;
+        color1 = red;
+        color9 = red;
+        color2 = green;
+        color10 = green;
+        color3 = yellow;
+        color11 = yellow;
+        color4 = blue;
+        color12 = blue;
+        color5 = purple;
+        color13 = purple;
+        color6 = aqua;
+        color14 = aqua;
+        color7 = grey2;
+        color15 = fg;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${fg}
-        set -g fish_color_command ${green}
-        set -g fish_color_keyword ${aqua}
-        set -g fish_color_quote ${yellow}
-        set -g fish_color_redirection ${blue}
-        set -g fish_color_end ${grey1}
-        set -g fish_color_error ${red}
-        set -g fish_color_param ${fg}
-        set -g fish_color_comment ${grey0}
-        set -g fish_color_selection --background=${bg2}
-        set -g fish_color_search_match --background=${bg1}
-        set -g fish_color_operator ${aqua}
-        set -g fish_color_escape ${orange}
-        set -g fish_color_autosuggestion ${grey0}
-      '';
+      fish = theme.mkFishColors {
+        normal = fg;
+        command = green;
+        keyword = aqua;
+        quote = yellow;
+        redirection = blue;
+        end = grey1;
+        error = red;
+        param = fg;
+        comment = grey0;
+        selection = bg2;
+        searchMatch = bg1;
+        operator = aqua;
+        escape = orange;
+        autosuggestion = grey0;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${green})"
-        error_symbol = "[❯](${red})"
-
-        [directory]
-        style = "bold ${aqua}"
-
-        [git_branch]
-        style = "bold ${yellow}"
-
-        [cmd_duration]
-        style = "bold ${grey1}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = green;
+        error = red;
+        directory = aqua;
+        gitBranch = yellow;
+        cmdDuration = grey1;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = bg0;
@@ -373,65 +364,56 @@ in
         inactive_colors=${l_grey2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_grey2}, #ffffff, ${l_grey2}, ${l_bg0}, ${l_bg0}, #000000, ${l_green}, ${l_bg0}, ${l_green}, ${l_blue}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_grey2}, ${l_grey1}, ${l_green}
       '';
 
-      kitty = ''
-        # Everforest Light Hard Kitty
-        cursor ${l_fg}
-        cursor_text_color ${l_bg0}
-        foreground ${l_fg}
-        background ${l_bg0}
-        selection_foreground ${l_bg0}
-        selection_background ${l_green}
-        color0  ${l_bg3}
-        color8  ${l_bg5}
-        color1  ${l_red}
-        color9  ${l_red}
-        color2  ${l_green}
-        color10 ${l_green}
-        color3  ${l_yellow}
-        color11 ${l_yellow}
-        color4  ${l_blue}
-        color12 ${l_blue}
-        color5  ${l_purple}
-        color13 ${l_purple}
-        color6  ${l_aqua}
-        color14 ${l_aqua}
-        color7  ${l_grey2}
-        color15 ${l_fg}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Everforest Light Hard Kitty";
+        cursor = l_fg;
+        cursorText = l_bg0;
+        foreground = l_fg;
+        background = l_bg0;
+        selectionForeground = l_bg0;
+        selectionBackground = l_green;
+        color0 = l_bg3;
+        color8 = l_bg5;
+        color1 = l_red;
+        color9 = l_red;
+        color2 = l_green;
+        color10 = l_green;
+        color3 = l_yellow;
+        color11 = l_yellow;
+        color4 = l_blue;
+        color12 = l_blue;
+        color5 = l_purple;
+        color13 = l_purple;
+        color6 = l_aqua;
+        color14 = l_aqua;
+        color7 = l_grey2;
+        color15 = l_fg;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${l_fg}
-        set -g fish_color_command ${l_green}
-        set -g fish_color_keyword ${l_aqua}
-        set -g fish_color_quote ${l_yellow}
-        set -g fish_color_redirection ${l_blue}
-        set -g fish_color_end ${l_grey1}
-        set -g fish_color_error ${l_red}
-        set -g fish_color_param ${l_fg}
-        set -g fish_color_comment ${l_grey0}
-        set -g fish_color_selection --background=${l_bg2}
-        set -g fish_color_search_match --background=${l_bg1}
-        set -g fish_color_operator ${l_aqua}
-        set -g fish_color_escape ${l_orange}
-        set -g fish_color_autosuggestion ${l_grey0}
-      '';
+      fish = theme.mkFishColors {
+        normal = l_fg;
+        command = l_green;
+        keyword = l_aqua;
+        quote = l_yellow;
+        redirection = l_blue;
+        end = l_grey1;
+        error = l_red;
+        param = l_fg;
+        comment = l_grey0;
+        selection = l_bg2;
+        searchMatch = l_bg1;
+        operator = l_aqua;
+        escape = l_orange;
+        autosuggestion = l_grey0;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${l_green})"
-        error_symbol = "[❯](${l_red})"
-
-        [directory]
-        style = "bold ${l_aqua}"
-
-        [git_branch]
-        style = "bold ${l_yellow}"
-
-        [cmd_duration]
-        style = "bold ${l_grey1}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = l_green;
+        error = l_red;
+        directory = l_aqua;
+        gitBranch = l_yellow;
+        cmdDuration = l_grey1;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = l_bg0;

@@ -206,65 +206,56 @@ in
         inactive_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${yellow}, ${bg0}, ${yellow}, ${blue}, ${bg1}, ${bg0h}, ${bg1}, ${fg2}, ${fg4}, ${yellow}
       '';
 
-      kitty = ''
-        # Gruvbox Dark Kitty
-        cursor ${fg1}
-        cursor_text_color ${bg0}
-        foreground ${fg1}
-        background ${bg0}
-        selection_foreground ${bg0}
-        selection_background ${yellow}
-        color0  ${bg1}
-        color8  ${bg3}
-        color1  ${red}
-        color9  ${red}
-        color2  ${green}
-        color10 ${green}
-        color3  ${yellow}
-        color11 ${yellow}
-        color4  ${blue}
-        color12 ${blue}
-        color5  ${purple}
-        color13 ${purple}
-        color6  ${aqua}
-        color14 ${aqua}
-        color7  ${fg4}
-        color15 ${fg1}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Gruvbox Dark Kitty";
+        cursor = fg1;
+        cursorText = bg0;
+        foreground = fg1;
+        background = bg0;
+        selectionForeground = bg0;
+        selectionBackground = yellow;
+        color0 = bg1;
+        color8 = bg3;
+        color1 = red;
+        color9 = red;
+        color2 = green;
+        color10 = green;
+        color3 = yellow;
+        color11 = yellow;
+        color4 = blue;
+        color12 = blue;
+        color5 = purple;
+        color13 = purple;
+        color6 = aqua;
+        color14 = aqua;
+        color7 = fg4;
+        color15 = fg1;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${fg1}
-        set -g fish_color_command ${yellow}
-        set -g fish_color_keyword ${orange}
-        set -g fish_color_quote ${green}
-        set -g fish_color_redirection ${aqua}
-        set -g fish_color_end ${fg4}
-        set -g fish_color_error ${red}
-        set -g fish_color_param ${fg2}
-        set -g fish_color_comment ${bg4}
-        set -g fish_color_selection --background=${bg2}
-        set -g fish_color_search_match --background=${bg1}
-        set -g fish_color_operator ${orange}
-        set -g fish_color_escape ${purple}
-        set -g fish_color_autosuggestion ${bg4}
-      '';
+      fish = theme.mkFishColors {
+        normal = fg1;
+        command = yellow;
+        keyword = orange;
+        quote = green;
+        redirection = aqua;
+        end = fg4;
+        error = red;
+        param = fg2;
+        comment = bg4;
+        selection = bg2;
+        searchMatch = bg1;
+        operator = orange;
+        escape = purple;
+        autosuggestion = bg4;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${yellow})"
-        error_symbol = "[❯](${red})"
-
-        [directory]
-        style = "bold ${blue}"
-
-        [git_branch]
-        style = "bold ${orange}"
-
-        [cmd_duration]
-        style = "bold ${fg4}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = yellow;
+        error = red;
+        directory = blue;
+        gitBranch = orange;
+        cmdDuration = fg4;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = bg0;
@@ -377,65 +368,56 @@ in
         inactive_colors=${l_fg2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg2}, #ffffff, ${l_fg2}, ${l_bg0}, ${l_bg0}, #000000, ${l_yellow}, ${l_bg0}, ${l_yellow}, ${l_blue}, ${l_bg1}, ${l_bg0h}, ${l_bg1}, ${l_fg2}, ${l_fg4}, ${l_yellow}
       '';
 
-      kitty = ''
-        # Gruvbox Light Hard Kitty
-        cursor ${l_fg1}
-        cursor_text_color ${l_bg0}
-        foreground ${l_fg1}
-        background ${l_bg0}
-        selection_foreground ${l_bg0}
-        selection_background ${l_yellow}
-        color0  ${l_bg1}
-        color8  ${l_bg3}
-        color1  ${l_red}
-        color9  ${l_red}
-        color2  ${l_green}
-        color10 ${l_green}
-        color3  ${l_yellow}
-        color11 ${l_yellow}
-        color4  ${l_blue}
-        color12 ${l_blue}
-        color5  ${l_purple}
-        color13 ${l_purple}
-        color6  ${l_aqua}
-        color14 ${l_aqua}
-        color7  ${l_fg4}
-        color15 ${l_fg1}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Gruvbox Light Hard Kitty";
+        cursor = l_fg1;
+        cursorText = l_bg0;
+        foreground = l_fg1;
+        background = l_bg0;
+        selectionForeground = l_bg0;
+        selectionBackground = l_yellow;
+        color0 = l_bg1;
+        color8 = l_bg3;
+        color1 = l_red;
+        color9 = l_red;
+        color2 = l_green;
+        color10 = l_green;
+        color3 = l_yellow;
+        color11 = l_yellow;
+        color4 = l_blue;
+        color12 = l_blue;
+        color5 = l_purple;
+        color13 = l_purple;
+        color6 = l_aqua;
+        color14 = l_aqua;
+        color7 = l_fg4;
+        color15 = l_fg1;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${l_fg1}
-        set -g fish_color_command ${l_yellow}
-        set -g fish_color_keyword ${l_orange}
-        set -g fish_color_quote ${l_green}
-        set -g fish_color_redirection ${l_aqua}
-        set -g fish_color_end ${l_fg4}
-        set -g fish_color_error ${l_red}
-        set -g fish_color_param ${l_fg2}
-        set -g fish_color_comment ${l_bg4}
-        set -g fish_color_selection --background=${l_bg2}
-        set -g fish_color_search_match --background=${l_bg1}
-        set -g fish_color_operator ${l_orange}
-        set -g fish_color_escape ${l_purple}
-        set -g fish_color_autosuggestion ${l_bg4}
-      '';
+      fish = theme.mkFishColors {
+        normal = l_fg1;
+        command = l_yellow;
+        keyword = l_orange;
+        quote = l_green;
+        redirection = l_aqua;
+        end = l_fg4;
+        error = l_red;
+        param = l_fg2;
+        comment = l_bg4;
+        selection = l_bg2;
+        searchMatch = l_bg1;
+        operator = l_orange;
+        escape = l_purple;
+        autosuggestion = l_bg4;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${l_yellow})"
-        error_symbol = "[❯](${l_red})"
-
-        [directory]
-        style = "bold ${l_blue}"
-
-        [git_branch]
-        style = "bold ${l_orange}"
-
-        [cmd_duration]
-        style = "bold ${l_fg4}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = l_yellow;
+        error = l_red;
+        directory = l_blue;
+        gitBranch = l_orange;
+        cmdDuration = l_fg4;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = l_bg0;
