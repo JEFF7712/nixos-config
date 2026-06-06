@@ -3,7 +3,35 @@
 import argparse
 import sys
 
+import numpy as np
+
 __version__ = "0.1.0"
+
+
+class RingBuffer:
+    """Mono float32 audio ring buffer for streaming PCM s16le input."""
+
+    def __init__(self, max_samples: int) -> None:
+        self._max = max_samples
+        self._buf = np.zeros(0, dtype=np.float32)
+
+    def append(self, pcm_bytes: bytes) -> None:
+        ints = np.frombuffer(pcm_bytes, dtype=np.int16)
+        floats = ints.astype(np.float32) / 32768.0
+        self._buf = np.concatenate([self._buf, floats])
+        if len(self._buf) > self._max:
+            self._buf = self._buf[-self._max:]
+
+    def drop_front(self, n_samples: int) -> None:
+        if n_samples <= 0:
+            return
+        self._buf = self._buf[n_samples:]
+
+    def audio(self) -> np.ndarray:
+        return self._buf
+
+    def __len__(self) -> int:
+        return len(self._buf)
 
 
 def main() -> int:
