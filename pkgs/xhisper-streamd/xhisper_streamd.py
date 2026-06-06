@@ -150,6 +150,25 @@ class StreamingTranscriber:
         return " ".join(full.split())  # collapse whitespace
 
 
+def run_stream_loop(stdin, stdout, transcriber, chunk_bytes: int) -> None:
+    """Drive the streaming transcriber. Read PCM chunks from stdin, emit JSON
+    partials on stdout, emit `final` on EOF, return.
+    """
+    while True:
+        chunk = stdin.read(chunk_bytes)
+        if not chunk:
+            break
+        transcriber.add_audio(chunk)
+        partial = transcriber.step()
+        if partial is not None:
+            stdout.write(json.dumps({"type": "partial", **partial}) + "\n")
+            stdout.flush()
+
+    final_text = transcriber.finalize()
+    stdout.write(json.dumps({"type": "final", "text": final_text}) + "\n")
+    stdout.flush()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="xhisper-streamd",
@@ -164,8 +183,15 @@ def main() -> int:
     parser.add_argument("--agreement-n", type=int, default=2)
     args = parser.parse_args()
 
-    # Placeholder — real streaming loop added in Task 5.
-    print(f"xhisper-streamd starting: model={args.model} device={args.device}", file=sys.stderr)
+    transcriber = StreamingTranscriber(
+        model_name=args.model,
+        device=args.device,
+        language=args.language,
+        window_seconds=args.window_seconds,
+        agreement_n=args.agreement_n,
+    )
+    chunk_bytes = (args.step_ms * StreamingTranscriber.SAMPLE_RATE * 2) // 1000  # 2 = s16le bytes/sample
+    run_stream_loop(sys.stdin.buffer, sys.stdout, transcriber, chunk_bytes)
     return 0
 
 
