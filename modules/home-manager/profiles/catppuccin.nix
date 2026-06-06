@@ -154,71 +154,55 @@ in
     };
 
     colors = {
-      gtk3 = ''
-        /* Catppuccin Mocha */
-        @define-color accent_color ${mauve};
-        @define-color accent_bg_color ${mauve};
-        @define-color accent_fg_color ${base};
-        @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${base};
-        @define-color error_bg_color ${red};
-        @define-color error_fg_color ${base};
-        @define-color window_bg_color ${base};
-        @define-color window_fg_color ${text};
-        @define-color view_bg_color ${base};
-        @define-color view_fg_color ${text};
-        @define-color headerbar_bg_color ${mantle};
-        @define-color headerbar_fg_color ${text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${mantle};
-        @define-color popover_fg_color ${text};
-        @define-color card_bg_color ${surface0};
-        @define-color card_fg_color ${text};
-        @define-color dialog_bg_color ${mantle};
-        @define-color dialog_fg_color ${text};
-        @define-color sidebar_bg_color ${mantle};
-        @define-color sidebar_fg_color ${text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${surface1};
-        @define-color secondary_sidebar_bg_color ${base};
-        @define-color secondary_sidebar_fg_color ${subtext1};
-        @define-color theme_unfocused_fg_color ${subtext0};
-        @define-color theme_unfocused_text_color ${overlay2};
-        @define-color theme_unfocused_bg_color ${base};
-        @define-color theme_unfocused_base_color ${base};
-        @define-color theme_unfocused_selected_bg_color ${surface1};
-        @define-color theme_unfocused_selected_fg_color ${base};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Catppuccin Mocha";
+        accent = mauve;
+        accentFg = base;
+        destructiveBg = red;
+        destructiveFg = base;
+        windowBg = base;
+        windowFg = text;
+        headerbarBg = mantle;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = mantle;
+        cardBg = surface0;
+        dialogBg = mantle;
+        dialogFg = text;
+        sidebarBg = mantle;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = surface1;
+        secondarySidebarBg = base;
+        secondarySidebarFg = subtext1;
+        unfocused = {
+          fg = subtext0;
+          text = overlay2;
+          bg = base;
+          base = base;
+          selectedBg = surface1;
+          selectedFg = base;
+        };
+      };
 
-      gtk4 = ''
-        /* Catppuccin Mocha */
-        @define-color accent_color ${mauve};
-        @define-color accent_bg_color ${mauve};
-        @define-color accent_fg_color ${base};
-        @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${base};
-        @define-color error_bg_color ${red};
-        @define-color error_fg_color ${base};
-        @define-color window_bg_color ${base};
-        @define-color window_fg_color ${text};
-        @define-color view_bg_color ${base};
-        @define-color view_fg_color ${text};
-        @define-color headerbar_bg_color ${mantle};
-        @define-color headerbar_fg_color ${text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${mantle};
-        @define-color popover_fg_color ${text};
-        @define-color card_bg_color ${surface0};
-        @define-color card_fg_color ${text};
-        @define-color dialog_bg_color ${mantle};
-        @define-color dialog_fg_color ${text};
-        @define-color sidebar_bg_color ${mantle};
-        @define-color sidebar_fg_color ${text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${surface1};
-        @define-color secondary_sidebar_bg_color ${base};
-        @define-color secondary_sidebar_fg_color ${subtext1};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Catppuccin Mocha";
+        accent = mauve;
+        accentFg = base;
+        destructiveBg = red;
+        destructiveFg = base;
+        windowBg = base;
+        windowFg = text;
+        headerbarBg = mantle;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = mantle;
+        cardBg = surface0;
+        dialogBg = mantle;
+        dialogFg = text;
+        sidebarBg = mantle;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = surface1;
+        secondarySidebarBg = base;
+        secondarySidebarFg = subtext1;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [
@@ -381,71 +365,55 @@ in
     };
 
     colorsLight = {
-      gtk3 = ''
-        /* Catppuccin Latte */
-        @define-color accent_color ${l_mauve};
-        @define-color accent_bg_color ${l_mauve};
-        @define-color accent_fg_color ${l_base};
-        @define-color destructive_bg_color ${l_red};
-        @define-color destructive_fg_color ${l_base};
-        @define-color error_bg_color ${l_red};
-        @define-color error_fg_color ${l_base};
-        @define-color window_bg_color ${l_base};
-        @define-color window_fg_color ${l_text};
-        @define-color view_bg_color ${l_base};
-        @define-color view_fg_color ${l_text};
-        @define-color headerbar_bg_color ${l_mantle};
-        @define-color headerbar_fg_color ${l_text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${l_mantle};
-        @define-color popover_fg_color ${l_text};
-        @define-color card_bg_color ${l_surface0};
-        @define-color card_fg_color ${l_text};
-        @define-color dialog_bg_color ${l_mantle};
-        @define-color dialog_fg_color ${l_text};
-        @define-color sidebar_bg_color ${l_mantle};
-        @define-color sidebar_fg_color ${l_text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${l_surface1};
-        @define-color secondary_sidebar_bg_color ${l_base};
-        @define-color secondary_sidebar_fg_color ${l_subtext1};
-        @define-color theme_unfocused_fg_color ${l_subtext0};
-        @define-color theme_unfocused_text_color ${l_overlay2};
-        @define-color theme_unfocused_bg_color ${l_base};
-        @define-color theme_unfocused_base_color ${l_base};
-        @define-color theme_unfocused_selected_bg_color ${l_surface1};
-        @define-color theme_unfocused_selected_fg_color ${l_base};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Catppuccin Latte";
+        accent = l_mauve;
+        accentFg = l_base;
+        destructiveBg = l_red;
+        destructiveFg = l_base;
+        windowBg = l_base;
+        windowFg = l_text;
+        headerbarBg = l_mantle;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = l_mantle;
+        cardBg = l_surface0;
+        dialogBg = l_mantle;
+        dialogFg = l_text;
+        sidebarBg = l_mantle;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = l_surface1;
+        secondarySidebarBg = l_base;
+        secondarySidebarFg = l_subtext1;
+        unfocused = {
+          fg = l_subtext0;
+          text = l_overlay2;
+          bg = l_base;
+          base = l_base;
+          selectedBg = l_surface1;
+          selectedFg = l_base;
+        };
+      };
 
-      gtk4 = ''
-        /* Catppuccin Latte */
-        @define-color accent_color ${l_mauve};
-        @define-color accent_bg_color ${l_mauve};
-        @define-color accent_fg_color ${l_base};
-        @define-color destructive_bg_color ${l_red};
-        @define-color destructive_fg_color ${l_base};
-        @define-color error_bg_color ${l_red};
-        @define-color error_fg_color ${l_base};
-        @define-color window_bg_color ${l_base};
-        @define-color window_fg_color ${l_text};
-        @define-color view_bg_color ${l_base};
-        @define-color view_fg_color ${l_text};
-        @define-color headerbar_bg_color ${l_mantle};
-        @define-color headerbar_fg_color ${l_text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${l_mantle};
-        @define-color popover_fg_color ${l_text};
-        @define-color card_bg_color ${l_surface0};
-        @define-color card_fg_color ${l_text};
-        @define-color dialog_bg_color ${l_mantle};
-        @define-color dialog_fg_color ${l_text};
-        @define-color sidebar_bg_color ${l_mantle};
-        @define-color sidebar_fg_color ${l_text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${l_surface1};
-        @define-color secondary_sidebar_bg_color ${l_base};
-        @define-color secondary_sidebar_fg_color ${l_subtext1};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Catppuccin Latte";
+        accent = l_mauve;
+        accentFg = l_base;
+        destructiveBg = l_red;
+        destructiveFg = l_base;
+        windowBg = l_base;
+        windowFg = l_text;
+        headerbarBg = l_mantle;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = l_mantle;
+        cardBg = l_surface0;
+        dialogBg = l_mantle;
+        dialogFg = l_text;
+        sidebarBg = l_mantle;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = l_surface1;
+        secondarySidebarBg = l_base;
+        secondarySidebarFg = l_subtext1;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [
