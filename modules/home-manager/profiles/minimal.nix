@@ -26,87 +26,27 @@ let
   l_accent = "#1a1a1a";
   l_err = "#a3a3a3";
 
-  rofiBlock = bg: surface: border: fg: subtle: selBorder: selFg: selBg: ''
-    * {
-        font:                        "JetBrainsMono Nerd Font 11";
-        background-color:            ${bg};
-        text-color:                  ${fg};
-        border-color:                ${border};
-        selected-normal-background:  ${surface};
-        selected-normal-foreground:  ${selFg};
-        normal-background:           ${bg};
-        normal-foreground:           ${fg};
-    }
-
-    window {
-        width:              900px;
-        border:             1px solid;
-        border-color:       ${border};
-        border-radius:      4px;
-        padding:            12px;
-        background-color:   ${bg};
-    }
-
-    mainbox {
-        spacing:            0;
-        children:           [ inputbar, listview ];
-    }
-
-    inputbar {
-        padding:            8px 12px;
-        margin:             0 0 10px 0;
-        background-color:   ${surface};
-        border-radius:      4px;
-        children:           [ prompt, entry ];
-    }
-
-    prompt {
-        text-color:         ${fg};
-        padding:            0 8px 0 0;
-    }
-
-    entry {
-        text-color:         ${fg};
-        placeholder:        "Switch profile…";
-        placeholder-color:  ${subtle};
-    }
-
-    listview {
-        columns:            3;
-        lines:              2;
-        spacing:            10px;
-        fixed-height:       false;
-        scrollbar:          false;
-    }
-
-    element {
-        orientation:        vertical;
-        padding:            10px;
-        spacing:            8px;
-        border-radius:      4px;
-        background-color:   ${surface};
-        cursor:             pointer;
-    }
-
-      element selected {
-          background-color:   ${selBg};
-          border:             1px solid;
-          border-color:       ${selBorder};
-      }
-
-    element-icon {
-        size:               160px;
-        border-radius:      2px;
-        horizontal-align:   0.5;
-    }
-
-    element-text {
-        horizontal-align:   0.5;
-        vertical-align:     0.5;
-        text-color:         inherit;
-        font:               "JetBrainsMono Nerd Font 12";
-    }
-  '';
+  minimalRofi =
+    bg: surface: border: fg: subtle: selBorder: selFg: selBg:
+    theme.mkProfilePickerRofi {
+      background = bg;
+      text = fg;
+      border = border;
+      selectedBackground = surface;
+      selectedForeground = selFg;
+      inputBackground = surface;
+      prompt = fg;
+      placeholder = subtle;
+      elementBackground = surface;
+      elementSelectedBackground = selBg;
+      elementSelectedBorder = selBorder;
+      borderWidth = 1;
+      selectedBorderWidth = 1;
+      windowRadius = 4;
+      inputRadius = 4;
+      elementRadius = 4;
+      iconRadius = 2;
+    };
 in
 {
   desktopProfiles.profiles.minimal = {
@@ -336,7 +276,7 @@ in
         style = "bold ${fg2}"
       '';
 
-      rofi = rofiBlock bg0 bg1 bg3 fg1 fg2 accent accent bg2;
+      rofi = minimalRofi bg0 bg1 bg3 fg1 fg2 accent accent bg2;
     };
 
     waybar = {
@@ -489,7 +429,7 @@ in
         style = "bold ${l_fg2}"
       '';
 
-      rofi = rofiBlock l_bg0 l_bg1 l_bg3 l_fg0 l_fg2 l_accent l_accent l_bg2;
+      rofi = minimalRofi l_bg0 l_bg1 l_bg3 l_fg0 l_fg2 l_accent l_accent l_bg2;
     };
 
     waybarLight.style = waybar.mkFlatStyle {

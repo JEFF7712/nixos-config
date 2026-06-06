@@ -17,36 +17,29 @@ let
   glass2 = "rgba(255, 255, 255, 0.14)";
   glassBorder = "rgba(255, 255, 255, 0.34)";
 
-  rofi = ''
-    * {
-        font:                        "JetBrainsMono Nerd Font 11";
-        background-color:            ${glass0};
-        text-color:                  ${fg1};
-        border-color:                ${glassBorder};
-        selected-normal-background:  ${glass2};
-        selected-normal-foreground:  ${fg0};
-        normal-background:           transparent;
-        normal-foreground:           ${fg1};
-    }
-
-    window {
-        width:              900px;
-        border:             1px solid;
-        border-radius:      15px;
-        padding:            12px;
-        background-color:   ${glass0};
-    }
-
-    mainbox { spacing: 0; children: [ inputbar, listview ]; }
-    inputbar { padding: 8px 12px; margin: 0 0 10px 0; background-color: ${glass1}; border: 1px solid; border-color: ${glassBorder}; border-radius: 10px; children: [ prompt, entry ]; }
-    prompt { padding: 0 8px 0 0; }
-    entry { placeholder: "Switch profile..."; placeholder-color: ${fg2}; }
-    listview { columns: 3; lines: 2; spacing: 10px; fixed-height: false; scrollbar: false; }
-    element { orientation: vertical; padding: 10px; spacing: 8px; border-radius: 10px; background-color: ${glass1}; border: 1px solid; border-color: rgba(255, 255, 255, 0.16); cursor: pointer; }
-    element selected { background-color: ${glass2}; border: 1px solid; border-color: ${accent}; }
-    element-icon { size: 160px; border-radius: 4px; horizontal-align: 0.5; }
-    element-text { horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit; font: "JetBrainsMono Nerd Font 12"; }
-  '';
+  rofi = theme.mkProfilePickerRofi {
+    background = glass0;
+    text = fg1;
+    border = glassBorder;
+    selectedBackground = glass2;
+    selectedForeground = fg0;
+    normalBackground = "transparent";
+    windowBackground = glass0;
+    inputBackground = glass1;
+    prompt = fg1;
+    placeholder = fg2;
+    elementBackground = glass1;
+    elementSelectedBackground = glass2;
+    elementSelectedBorder = accent;
+    borderWidth = 1;
+    selectedBorderWidth = 1;
+    windowRadius = 15;
+    inputRadius = 10;
+    elementRadius = 10;
+    inputBorder = "1px solid; border-color: ${glassBorder}";
+    elementBorder = "1px solid; border-color: rgba(255, 255, 255, 0.16)";
+    placeholderText = "Switch profile...";
+  };
 in
 {
   desktopProfiles.profiles.clean = {
