@@ -129,71 +129,55 @@ in
     };
 
     colors = {
-      gtk3 = ''
-        /* Everforest Dark Hard */
-        @define-color accent_color ${green};
-        @define-color accent_bg_color ${green};
-        @define-color accent_fg_color ${bg0};
-        @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${fg};
-        @define-color error_bg_color ${red};
-        @define-color error_fg_color ${fg};
-        @define-color window_bg_color ${bg0};
-        @define-color window_fg_color ${fg};
-        @define-color view_bg_color ${bg0};
-        @define-color view_fg_color ${fg};
-        @define-color headerbar_bg_color ${bg1};
-        @define-color headerbar_fg_color ${fg};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${bg1};
-        @define-color popover_fg_color ${fg};
-        @define-color card_bg_color ${bg1};
-        @define-color card_fg_color ${fg};
-        @define-color dialog_bg_color ${bg0};
-        @define-color dialog_fg_color ${fg};
-        @define-color sidebar_bg_color ${bg1};
-        @define-color sidebar_fg_color ${fg};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${bg2};
-        @define-color secondary_sidebar_bg_color ${bg0};
-        @define-color secondary_sidebar_fg_color ${grey2};
-        @define-color theme_unfocused_fg_color ${grey2};
-        @define-color theme_unfocused_text_color ${grey1};
-        @define-color theme_unfocused_bg_color ${bg0};
-        @define-color theme_unfocused_base_color ${bg0};
-        @define-color theme_unfocused_selected_bg_color ${bg2};
-        @define-color theme_unfocused_selected_fg_color ${fg};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Everforest Dark Hard";
+        accent = green;
+        accentFg = bg0;
+        destructiveBg = red;
+        destructiveFg = fg;
+        windowBg = bg0;
+        windowFg = fg;
+        headerbarBg = bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = bg1;
+        cardBg = bg1;
+        dialogBg = bg0;
+        dialogFg = fg;
+        sidebarBg = bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = bg2;
+        secondarySidebarBg = bg0;
+        secondarySidebarFg = grey2;
+        unfocused = {
+          fg = grey2;
+          text = grey1;
+          bg = bg0;
+          base = bg0;
+          selectedBg = bg2;
+          selectedFg = fg;
+        };
+      };
 
-      gtk4 = ''
-        /* Everforest Dark Hard */
-        @define-color accent_color ${green};
-        @define-color accent_bg_color ${green};
-        @define-color accent_fg_color ${bg0};
-        @define-color destructive_bg_color ${red};
-        @define-color destructive_fg_color ${fg};
-        @define-color error_bg_color ${red};
-        @define-color error_fg_color ${fg};
-        @define-color window_bg_color ${bg0};
-        @define-color window_fg_color ${fg};
-        @define-color view_bg_color ${bg0};
-        @define-color view_fg_color ${fg};
-        @define-color headerbar_bg_color ${bg1};
-        @define-color headerbar_fg_color ${fg};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${bg1};
-        @define-color popover_fg_color ${fg};
-        @define-color card_bg_color ${bg1};
-        @define-color card_fg_color ${fg};
-        @define-color dialog_bg_color ${bg0};
-        @define-color dialog_fg_color ${fg};
-        @define-color sidebar_bg_color ${bg1};
-        @define-color sidebar_fg_color ${fg};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${bg2};
-        @define-color secondary_sidebar_bg_color ${bg0};
-        @define-color secondary_sidebar_fg_color ${grey2};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Everforest Dark Hard";
+        accent = green;
+        accentFg = bg0;
+        destructiveBg = red;
+        destructiveFg = fg;
+        windowBg = bg0;
+        windowFg = fg;
+        headerbarBg = bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = bg1;
+        cardBg = bg1;
+        dialogBg = bg0;
+        dialogFg = fg;
+        sidebarBg = bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = bg2;
+        secondarySidebarBg = bg0;
+        secondarySidebarFg = grey2;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [
@@ -359,71 +343,56 @@ in
     };
 
     colorsLight = {
-      gtk3 = ''
-        /* Everforest Light Hard */
-        @define-color accent_color ${l_green};
-        @define-color accent_bg_color ${l_green};
-        @define-color accent_fg_color ${l_bg0};
-        @define-color destructive_bg_color ${l_red};
-        @define-color destructive_fg_color ${l_fg};
-        @define-color error_bg_color ${l_red};
-        @define-color error_fg_color ${l_fg};
-        @define-color window_bg_color ${l_bg0};
-        @define-color window_fg_color ${l_fg};
-        @define-color view_bg_color ${l_bg0};
-        @define-color view_fg_color ${l_fg};
-        @define-color headerbar_bg_color ${l_bg1};
-        @define-color headerbar_fg_color ${l_fg};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${l_bg1};
-        @define-color popover_fg_color ${l_fg};
-        @define-color card_bg_color ${l_bg1};
-        @define-color card_fg_color ${l_fg};
-        @define-color dialog_bg_color ${l_bg0};
-        @define-color dialog_fg_color ${l_fg};
-        @define-color sidebar_bg_color ${l_bg1};
-        @define-color sidebar_fg_color ${l_fg};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${l_bg2};
-        @define-color secondary_sidebar_bg_color ${l_bg0};
-        @define-color secondary_sidebar_fg_color ${l_grey2};
-        @define-color theme_unfocused_fg_color ${l_grey2};
-        @define-color theme_unfocused_text_color ${l_grey1};
-        @define-color theme_unfocused_bg_color ${l_bg0};
-        @define-color theme_unfocused_base_color ${l_bg0};
-        @define-color theme_unfocused_selected_bg_color ${l_bg2};
-        @define-color theme_unfocused_selected_fg_color ${l_fg};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Everforest Light Hard";
+        accent = l_green;
+        accentFg = l_bg0;
+        destructiveBg = l_red;
+        destructiveFg = l_fg;
+        windowBg = l_bg0;
+        windowFg = l_fg;
+        headerbarBg = l_bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = l_bg1;
+        cardBg = l_bg1;
+        dialogBg = l_bg0;
+        dialogFg = l_fg;
+        sidebarBg = l_bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = l_bg2;
+        secondarySidebarBg = l_bg0;
+        secondarySidebarFg = l_grey2;
+        unfocused = {
+          fg = l_grey2;
+          text = l_grey1;
+          bg = l_bg0;
+          base = l_bg0;
+          selectedBg = l_bg2;
+          selectedFg = l_fg;
+        };
+      };
 
-      gtk4 = ''
-        /* Everforest Light Hard */
-        @define-color accent_color ${l_green};
-        @define-color accent_bg_color ${l_green};
-        @define-color accent_fg_color ${l_bg0};
-        @define-color destructive_bg_color ${l_red};
-        @define-color destructive_fg_color ${l_fg};
-        @define-color error_bg_color ${l_red};
-        @define-color error_fg_color ${l_fg};
-        @define-color window_bg_color ${l_bg0};
-        @define-color window_fg_color ${l_fg};
-        @define-color view_bg_color ${l_bg0};
-        @define-color view_fg_color ${l_bg0};
-        @define-color headerbar_bg_color ${l_bg1};
-        @define-color headerbar_fg_color ${l_fg};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${l_bg1};
-        @define-color popover_fg_color ${l_fg};
-        @define-color card_bg_color ${l_bg1};
-        @define-color card_fg_color ${l_fg};
-        @define-color dialog_bg_color ${l_bg0};
-        @define-color dialog_fg_color ${l_fg};
-        @define-color sidebar_bg_color ${l_bg1};
-        @define-color sidebar_fg_color ${l_fg};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${l_bg2};
-        @define-color secondary_sidebar_bg_color ${l_bg0};
-        @define-color secondary_sidebar_fg_color ${l_grey2};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Everforest Light Hard";
+        accent = l_green;
+        accentFg = l_bg0;
+        destructiveBg = l_red;
+        destructiveFg = l_fg;
+        windowBg = l_bg0;
+        windowFg = l_fg;
+        viewFg = l_bg0;
+        headerbarBg = l_bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = l_bg1;
+        cardBg = l_bg1;
+        dialogBg = l_bg0;
+        dialogFg = l_fg;
+        sidebarBg = l_bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = l_bg2;
+        secondarySidebarBg = l_bg0;
+        secondarySidebarFg = l_grey2;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [

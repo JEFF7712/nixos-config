@@ -126,71 +126,55 @@ in
     };
 
     colors = {
-      gtk3 = ''
-        /* Rosé Pine */
-        @define-color accent_color ${iris};
-        @define-color accent_bg_color ${iris};
-        @define-color accent_fg_color ${base};
-        @define-color destructive_bg_color ${love};
-        @define-color destructive_fg_color ${base};
-        @define-color error_bg_color ${love};
-        @define-color error_fg_color ${base};
-        @define-color window_bg_color ${base};
-        @define-color window_fg_color ${text};
-        @define-color view_bg_color ${base};
-        @define-color view_fg_color ${text};
-        @define-color headerbar_bg_color ${surface};
-        @define-color headerbar_fg_color ${text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${surface};
-        @define-color popover_fg_color ${text};
-        @define-color card_bg_color ${overlay};
-        @define-color card_fg_color ${text};
-        @define-color dialog_bg_color ${surface};
-        @define-color dialog_fg_color ${text};
-        @define-color sidebar_bg_color ${surface};
-        @define-color sidebar_fg_color ${text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${highlightMed};
-        @define-color secondary_sidebar_bg_color ${base};
-        @define-color secondary_sidebar_fg_color ${subtle};
-        @define-color theme_unfocused_fg_color ${subtle};
-        @define-color theme_unfocused_text_color ${muted};
-        @define-color theme_unfocused_bg_color ${base};
-        @define-color theme_unfocused_base_color ${base};
-        @define-color theme_unfocused_selected_bg_color ${highlightMed};
-        @define-color theme_unfocused_selected_fg_color ${text};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Rosé Pine";
+        accent = iris;
+        accentFg = base;
+        destructiveBg = love;
+        destructiveFg = base;
+        windowBg = base;
+        windowFg = text;
+        headerbarBg = surface;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = surface;
+        cardBg = overlay;
+        dialogBg = surface;
+        dialogFg = text;
+        sidebarBg = surface;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = highlightMed;
+        secondarySidebarBg = base;
+        secondarySidebarFg = subtle;
+        unfocused = {
+          fg = subtle;
+          text = muted;
+          bg = base;
+          base = base;
+          selectedBg = highlightMed;
+          selectedFg = text;
+        };
+      };
 
-      gtk4 = ''
-        /* Rosé Pine */
-        @define-color accent_color ${iris};
-        @define-color accent_bg_color ${iris};
-        @define-color accent_fg_color ${base};
-        @define-color destructive_bg_color ${love};
-        @define-color destructive_fg_color ${base};
-        @define-color error_bg_color ${love};
-        @define-color error_fg_color ${base};
-        @define-color window_bg_color ${base};
-        @define-color window_fg_color ${text};
-        @define-color view_bg_color ${base};
-        @define-color view_fg_color ${text};
-        @define-color headerbar_bg_color ${surface};
-        @define-color headerbar_fg_color ${text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${surface};
-        @define-color popover_fg_color ${text};
-        @define-color card_bg_color ${overlay};
-        @define-color card_fg_color ${text};
-        @define-color dialog_bg_color ${surface};
-        @define-color dialog_fg_color ${text};
-        @define-color sidebar_bg_color ${surface};
-        @define-color sidebar_fg_color ${text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${highlightMed};
-        @define-color secondary_sidebar_bg_color ${base};
-        @define-color secondary_sidebar_fg_color ${subtle};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Rosé Pine";
+        accent = iris;
+        accentFg = base;
+        destructiveBg = love;
+        destructiveFg = base;
+        windowBg = base;
+        windowFg = text;
+        headerbarBg = surface;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = surface;
+        cardBg = overlay;
+        dialogBg = surface;
+        dialogFg = text;
+        sidebarBg = surface;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = highlightMed;
+        secondarySidebarBg = base;
+        secondarySidebarFg = subtle;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [
@@ -356,71 +340,55 @@ in
     };
 
     colorsLight = {
-      gtk3 = ''
-        /* Rosé Pine Dawn */
-        @define-color accent_color ${d_iris};
-        @define-color accent_bg_color ${d_iris};
-        @define-color accent_fg_color ${d_base};
-        @define-color destructive_bg_color ${d_love};
-        @define-color destructive_fg_color ${d_base};
-        @define-color error_bg_color ${d_love};
-        @define-color error_fg_color ${d_base};
-        @define-color window_bg_color ${d_base};
-        @define-color window_fg_color ${d_text};
-        @define-color view_bg_color ${d_base};
-        @define-color view_fg_color ${d_text};
-        @define-color headerbar_bg_color ${d_surface};
-        @define-color headerbar_fg_color ${d_text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${d_surface};
-        @define-color popover_fg_color ${d_text};
-        @define-color card_bg_color ${d_overlay};
-        @define-color card_fg_color ${d_text};
-        @define-color dialog_bg_color ${d_surface};
-        @define-color dialog_fg_color ${d_text};
-        @define-color sidebar_bg_color ${d_surface};
-        @define-color sidebar_fg_color ${d_text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${d_highlightMed};
-        @define-color secondary_sidebar_bg_color ${d_base};
-        @define-color secondary_sidebar_fg_color ${d_subtle};
-        @define-color theme_unfocused_fg_color ${d_subtle};
-        @define-color theme_unfocused_text_color ${d_muted};
-        @define-color theme_unfocused_bg_color ${d_base};
-        @define-color theme_unfocused_base_color ${d_base};
-        @define-color theme_unfocused_selected_bg_color ${d_highlightMed};
-        @define-color theme_unfocused_selected_fg_color ${d_text};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Rosé Pine Dawn";
+        accent = d_iris;
+        accentFg = d_base;
+        destructiveBg = d_love;
+        destructiveFg = d_base;
+        windowBg = d_base;
+        windowFg = d_text;
+        headerbarBg = d_surface;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = d_surface;
+        cardBg = d_overlay;
+        dialogBg = d_surface;
+        dialogFg = d_text;
+        sidebarBg = d_surface;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = d_highlightMed;
+        secondarySidebarBg = d_base;
+        secondarySidebarFg = d_subtle;
+        unfocused = {
+          fg = d_subtle;
+          text = d_muted;
+          bg = d_base;
+          base = d_base;
+          selectedBg = d_highlightMed;
+          selectedFg = d_text;
+        };
+      };
 
-      gtk4 = ''
-        /* Rosé Pine Dawn */
-        @define-color accent_color ${d_iris};
-        @define-color accent_bg_color ${d_iris};
-        @define-color accent_fg_color ${d_base};
-        @define-color destructive_bg_color ${d_love};
-        @define-color destructive_fg_color ${d_base};
-        @define-color error_bg_color ${d_love};
-        @define-color error_fg_color ${d_base};
-        @define-color window_bg_color ${d_base};
-        @define-color window_fg_color ${d_text};
-        @define-color view_bg_color ${d_base};
-        @define-color view_fg_color ${d_text};
-        @define-color headerbar_bg_color ${d_surface};
-        @define-color headerbar_fg_color ${d_text};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${d_surface};
-        @define-color popover_fg_color ${d_text};
-        @define-color card_bg_color ${d_overlay};
-        @define-color card_fg_color ${d_text};
-        @define-color dialog_bg_color ${d_surface};
-        @define-color dialog_fg_color ${d_text};
-        @define-color sidebar_bg_color ${d_surface};
-        @define-color sidebar_fg_color ${d_text};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${d_highlightMed};
-        @define-color secondary_sidebar_bg_color ${d_base};
-        @define-color secondary_sidebar_fg_color ${d_subtle};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Rosé Pine Dawn";
+        accent = d_iris;
+        accentFg = d_base;
+        destructiveBg = d_love;
+        destructiveFg = d_base;
+        windowBg = d_base;
+        windowFg = d_text;
+        headerbarBg = d_surface;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = d_surface;
+        cardBg = d_overlay;
+        dialogBg = d_surface;
+        dialogFg = d_text;
+        sidebarBg = d_surface;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = d_highlightMed;
+        secondarySidebarBg = d_base;
+        secondarySidebarFg = d_subtle;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [
