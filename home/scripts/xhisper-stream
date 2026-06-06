@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# xhisper-stream — dictation orchestrator (toggle / cancel) with overlay pill.
+# xhisper-stream — dictation with silence auto-stop + overlay indicator.
 #
 # Flow:
-#   1st Mod+Z  → start recording + show "🎤 listening…" overlay
-#   2nd Mod+Z  → stop, batch-transcribe, gemma3:4b cleanup, type at cursor
-#   Mod+Shift+Z → cancel: stop, hide overlay, nothing typed
+#   1st Mod+Z   → spawn overlay "🎤 listening…", start sox recording.
+#                 sox auto-exits after 1.5 s of silence below -40 dBFS.
+#   2nd Mod+Z   → SIGTERM → stop sox immediately (manual stop).
+#   Mod+Shift+Z → SIGUSR1 → cancel, nothing typed.
 #
-# Uses xhisper-local's xhisper_transcribe (batch faster-whisper with
-# beam_size=5 + vad_filter) instead of streaming; sliding-window streaming
-# was less accurate than one-shot decode.
+# After sox exits (silence or manual), runs xhisper_transcribe → optional
+# Ollama cleanup → xhispertoold/xhispertool to type at cursor.
 set -euo pipefail
 
 PID_FILE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/xhisper-stream.pid"
@@ -20,17 +20,18 @@ RECORDING="/tmp/xhisper-stream.wav"
 CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/xhisper/xhisperrc"
 
 # Config defaults (overridden by xhisperrc).
-model_name="small.en"
+model_name="small"
 model_device="cuda"
 model_language="en"
 transcription_prompt=""
-post_process_model="gemma3:4b"
+post_process_model=""
 post_process_timeout=10
 post_process_mode="auto"
 non_ascii_initial_delay=0.15
 non_ascii_default_delay=0.025
+auto_stop_silence_seconds=1.5
+silence_threshold_dbfs="-40"
 
-# --- Config loader (KEY : VALUE lines, # comments) ---
 if [ -f "$CONFIG_FILE" ]; then
   while IFS=: read -r key value || [ -n "$key" ]; do
     [[ "$key" =~ ^[[:space:]]*# ]] && continue
@@ -47,13 +48,14 @@ if [ -f "$CONFIG_FILE" ]; then
       post-process-mode) post_process_mode="$value" ;;
       non-ascii-initial-delay) non_ascii_initial_delay="$value" ;;
       non-ascii-default-delay) non_ascii_default_delay="$value" ;;
+      auto-stop-silence-seconds) auto_stop_silence_seconds="$value" ;;
+      silence-threshold-dbfs) silence_threshold_dbfs="$value" ;;
     esac
   done < "$CONFIG_FILE"
 fi
 
 log() { printf '%(%H:%M:%S)T %s\n' -1 "$*" >> "$LOG_FILE"; }
 
-# --- Argument parsing ---
 MODE="toggle"
 for arg in "$@"; do
   case "$arg" in
@@ -63,9 +65,7 @@ for arg in "$@"; do
   esac
 done
 
-# --- PID-file helpers ---
 pid_alive() {
-  # /proc/$pid/comm is "bash" for a shebang script — use cmdline (preserves argv).
   local pid="$1"
   [ -d "/proc/$pid" ] && grep -qa "xhisper-stream" "/proc/$pid/cmdline" 2>/dev/null
 }
@@ -96,7 +96,6 @@ if [ "$MODE" = "status" ]; then
   exit 0
 fi
 
-# Toggle: if a session is running, commit it; else start a new one.
 if pid=$(read_pid); then
   log "toggle: commit signal to pid=$pid"
   kill -TERM "$pid"
@@ -116,30 +115,33 @@ log "session start pid=$$"
 
 COMMIT_FLAG=0
 CANCEL_FLAG=0
+SOX_PID=0
+OVERLAY_PID=0
 
-mark_commit() { COMMIT_FLAG=1; }
+mark_commit() {
+  COMMIT_FLAG=1
+  [ "$SOX_PID" -gt 0 ] && kill -TERM "$SOX_PID" 2>/dev/null || true
+}
 mark_cancel() {
   CANCEL_FLAG=1
-  # Hard-tear-down so the overlay disappears immediately.
-  kill "${OVERLAY_PID:-0}" 2>/dev/null || true
-  pkill -P $$ pw-record 2>/dev/null || true
+  [ "$SOX_PID" -gt 0 ] && kill -TERM "$SOX_PID" 2>/dev/null || true
+  [ "$OVERLAY_PID" -gt 0 ] && kill "$OVERLAY_PID" 2>/dev/null || true
 }
 trap mark_commit TERM
 trap mark_cancel USR1
 
 cleanup() {
   log "cleanup pid=$$"
-  pkill -P $$ 2>/dev/null || true
-  kill "${OVERLAY_PID:-0}" 2>/dev/null || true
+  [ "$SOX_PID" -gt 0 ] && kill "$SOX_PID" 2>/dev/null || true
+  [ "$OVERLAY_PID" -gt 0 ] && kill "$OVERLAY_PID" 2>/dev/null || true
   rm -f "$PID_FILE" "$RECORDING"
 }
 trap cleanup EXIT
 
-# Spawn per-session overlay.
+# Spawn overlay.
 qs -p "$HOME/.config/quickshell-xhisper" >> "$LOG_FILE" 2>&1 &
 OVERLAY_PID=$!
 
-# Wait briefly for overlay socket to appear, then show the listening pill.
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   [ -S "$OVERLAY_SOCK" ] && break
   sleep 0.1
@@ -151,20 +153,25 @@ send_overlay() {
 
 send_overlay '{"type":"partial","confirmed":"","tentative":"🎤 listening…"}'
 
-# Spawn pw-record writing to WAV in the background.
+# sox `silence` effect:
+#   1 0.1 0%               trim leading silence (1 period, 0.1 s, 0% threshold).
+#   1 <seconds> <dbfs>d    after speech starts, stop after that much silence.
+# -V1 suppresses sox's usual "sox WARN ..." chatter on stderr.
 rm -f "$RECORDING"
-pw-record --channels=1 --rate=16000 "$RECORDING" 2>>"$LOG_FILE" &
+sox -V1 -t pulseaudio default \
+  -r 16000 -c 1 -b 16 \
+  "$RECORDING" \
+  silence 1 0.1 0% 1 "${auto_stop_silence_seconds}" "${silence_threshold_dbfs}d" \
+  2>>"$LOG_FILE" &
+SOX_PID=$!
 
-# Block until COMMIT_FLAG or CANCEL_FLAG is set by a signal handler.
-while [ $COMMIT_FLAG -eq 0 ] && [ $CANCEL_FLAG -eq 0 ]; do
-  sleep 0.1
+# Block until sox exits (silence, manual SIGTERM, or cancel SIGUSR1).
+# `wait` returns when a trap-handled signal arrives, so we loop until SOX_PID is actually dead.
+while kill -0 "$SOX_PID" 2>/dev/null; do
+  wait "$SOX_PID" 2>/dev/null || true
 done
 
-# Stop the recorder cleanly so the WAV file is finalized.
-pkill -P $$ pw-record 2>/dev/null || true
-
-# Wait briefly for pw-record to flush.
-sleep 0.2
+sleep 0.1  # let WAV header finalize
 
 if [ $CANCEL_FLAG -eq 1 ]; then
   log "cancelled — nothing typed"
@@ -172,7 +179,6 @@ if [ $CANCEL_FLAG -eq 1 ]; then
   exit 0
 fi
 
-# Commit: hide overlay, batch transcribe, cleanup, type.
 send_overlay '{"type":"hide"}'
 
 if [ ! -s "$RECORDING" ]; then
@@ -182,7 +188,6 @@ fi
 
 log "commit: transcribing $(stat -c%s "$RECORDING") bytes"
 
-# Build transcribe args.
 tx_args=(--model "$model_name" --device "$model_device")
 if [ -n "$model_language" ]; then
   tx_args+=(--language "$model_language")
