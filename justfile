@@ -20,6 +20,12 @@ check:
   just eval-all
   git diff --check
 
+update:
+  nix flake update
+
+build-iso:
+  nix build .#nixosConfigurations.iso.config.system.build.isoImage
+
 dry:
   sudo nixos-rebuild dry-activate --flake .#laptop
 

@@ -288,7 +288,7 @@ elif [ "$TARGET_BAR" = "clean" ] || [ "$TARGET_BAR" = "quickshell" ]; then
   echo "  Starting quickshell topbar..."
   systemctl --user start awww 2>/dev/null || true
   pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
-  quickshell -p "$HOME/nixos/home/configs/quickshell-clean/shell.qml" 2>/dev/null &
+  quickshell -p "$REPO/configs/quickshell-clean/shell.qml" 2>/dev/null &
   disown
 
   if [ -f "$TARGET_DIR/mako-config" ]; then
@@ -312,7 +312,7 @@ fi
 
 # 6c. Profile switcher popup — runs as a standalone Quickshell instance on
 # every profile (started here if not already running; idempotent).
-SWITCHER_PATH="$HOME/nixos/home/configs/quickshell-switcher/shell.qml"
+SWITCHER_PATH="$REPO/configs/quickshell-switcher/shell.qml"
 if ! pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1; then
   quickshell -p "$SWITCHER_PATH" >/dev/null 2>&1 &
   disown
@@ -321,7 +321,7 @@ fi
 # 6d. Custom app launcher — standalone Quickshell instance for all non-noctalia
 # profiles. Noctalia keeps its own launcher (we still start ours but it just
 # sits idle since Mod+Space routes to noctalia's IPC on that profile).
-LAUNCHER_PATH="$HOME/nixos/home/configs/quickshell-launcher/shell.qml"
+LAUNCHER_PATH="$REPO/configs/quickshell-launcher/shell.qml"
 if ! pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1; then
   quickshell -p "$LAUNCHER_PATH" >/dev/null 2>&1 &
   disown
