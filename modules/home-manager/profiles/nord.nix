@@ -121,71 +121,55 @@ in
     };
 
     colors = {
-      gtk3 = ''
-        /* GTK3 Nord Theme */
-        @define-color accent_color ${nord8};
-        @define-color accent_bg_color ${nord8};
-        @define-color accent_fg_color ${nord0};
-        @define-color destructive_bg_color ${nord11};
-        @define-color destructive_fg_color ${nord6};
-        @define-color error_bg_color ${nord11};
-        @define-color error_fg_color ${nord6};
-        @define-color window_bg_color ${nord0};
-        @define-color window_fg_color ${nord4};
-        @define-color view_bg_color ${nord0};
-        @define-color view_fg_color ${nord4};
-        @define-color headerbar_bg_color ${nord1};
-        @define-color headerbar_fg_color ${nord4};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${nord1};
-        @define-color popover_fg_color ${nord4};
-        @define-color card_bg_color ${nord1};
-        @define-color card_fg_color ${nord4};
-        @define-color dialog_bg_color ${nord0};
-        @define-color dialog_fg_color ${nord4};
-        @define-color sidebar_bg_color ${nord1};
-        @define-color sidebar_fg_color ${nord4};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color @window_bg_color;
-        @define-color secondary_sidebar_bg_color ${nord0};
-        @define-color secondary_sidebar_fg_color ${nord4};
-        @define-color theme_unfocused_fg_color @window_fg_color;
-        @define-color theme_unfocused_text_color @view_fg_color;
-        @define-color theme_unfocused_bg_color @window_bg_color;
-        @define-color theme_unfocused_base_color @window_bg_color;
-        @define-color theme_unfocused_selected_bg_color @accent_bg_color;
-        @define-color theme_unfocused_selected_fg_color @accent_fg_color;
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "GTK3 Nord Theme";
+        accent = nord8;
+        accentFg = nord0;
+        destructiveBg = nord11;
+        destructiveFg = nord6;
+        windowBg = nord0;
+        windowFg = nord4;
+        headerbarBg = nord1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = nord1;
+        cardBg = nord1;
+        dialogBg = nord0;
+        dialogFg = nord4;
+        sidebarBg = nord1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = "@window_bg_color";
+        secondarySidebarBg = nord0;
+        secondarySidebarFg = nord4;
+        unfocused = {
+          fg = "@window_fg_color";
+          text = "@view_fg_color";
+          bg = "@window_bg_color";
+          base = "@window_bg_color";
+          selectedBg = "@accent_bg_color";
+          selectedFg = "@accent_fg_color";
+        };
+      };
 
-      gtk4 = ''
-        /* GTK4 Nord Theme */
-        @define-color accent_color ${nord8};
-        @define-color accent_bg_color ${nord8};
-        @define-color accent_fg_color ${nord0};
-        @define-color destructive_bg_color ${nord11};
-        @define-color destructive_fg_color ${nord6};
-        @define-color error_bg_color ${nord11};
-        @define-color error_fg_color ${nord6};
-        @define-color window_bg_color ${nord0};
-        @define-color window_fg_color ${nord4};
-        @define-color view_bg_color ${nord0};
-        @define-color view_fg_color ${nord4};
-        @define-color headerbar_bg_color ${nord1};
-        @define-color headerbar_fg_color ${nord4};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${nord1};
-        @define-color popover_fg_color ${nord4};
-        @define-color card_bg_color ${nord1};
-        @define-color card_fg_color ${nord4};
-        @define-color dialog_bg_color ${nord0};
-        @define-color dialog_fg_color ${nord4};
-        @define-color sidebar_bg_color ${nord1};
-        @define-color sidebar_fg_color ${nord4};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color @window_bg_color;
-        @define-color secondary_sidebar_bg_color ${nord0};
-        @define-color secondary_sidebar_fg_color ${nord4};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "GTK4 Nord Theme";
+        accent = nord8;
+        accentFg = nord0;
+        destructiveBg = nord11;
+        destructiveFg = nord6;
+        windowBg = nord0;
+        windowFg = nord4;
+        headerbarBg = nord1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = nord1;
+        cardBg = nord1;
+        dialogBg = nord0;
+        dialogFg = nord4;
+        sidebarBg = nord1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = "@window_bg_color";
+        secondarySidebarBg = nord0;
+        secondarySidebarFg = nord4;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [

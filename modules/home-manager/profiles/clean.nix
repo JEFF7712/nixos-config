@@ -17,6 +17,22 @@ let
   glass2 = "rgba(255, 255, 255, 0.14)";
   glassBorder = "rgba(255, 255, 255, 0.34)";
 
+  gtk = theme.mkGtkColors {
+    accent = accent;
+    accentBg = "rgba(255, 255, 255, 0.24)";
+    accentFg = bg0;
+    destructiveBg = err;
+    destructiveFg = fg0;
+    windowBg = "rgba(20, 20, 20, 0.54)";
+    windowFg = fg1;
+    viewBg = "rgba(20, 20, 20, 0.44)";
+    headerbarBg = "rgba(255, 255, 255, 0.08)";
+    popoverBg = "rgba(20, 20, 20, 0.74)";
+    cardBg = "rgba(255, 255, 255, 0.08)";
+    sidebarBg = "rgba(255, 255, 255, 0.06)";
+    sidebarBorder = "rgba(255, 255, 255, 0.18)";
+  };
+
   rofi = theme.mkProfilePickerRofi {
     background = glass0;
     text = fg1;
@@ -164,51 +180,8 @@ in
     };
 
     colors = {
-      gtk3 = ''
-        @define-color accent_color ${accent};
-        @define-color accent_bg_color rgba(255, 255, 255, 0.24);
-        @define-color accent_fg_color ${bg0};
-        @define-color destructive_bg_color ${err};
-        @define-color destructive_fg_color ${fg0};
-        @define-color error_bg_color ${err};
-        @define-color error_fg_color ${fg0};
-        @define-color window_bg_color rgba(20, 20, 20, 0.54);
-        @define-color window_fg_color ${fg1};
-        @define-color view_bg_color rgba(20, 20, 20, 0.44);
-        @define-color view_fg_color ${fg1};
-        @define-color headerbar_bg_color rgba(255, 255, 255, 0.08);
-        @define-color headerbar_fg_color ${fg1};
-        @define-color popover_bg_color rgba(20, 20, 20, 0.74);
-        @define-color popover_fg_color ${fg1};
-        @define-color card_bg_color rgba(255, 255, 255, 0.08);
-        @define-color card_fg_color ${fg1};
-        @define-color sidebar_bg_color rgba(255, 255, 255, 0.06);
-        @define-color sidebar_fg_color ${fg1};
-        @define-color sidebar_border_color rgba(255, 255, 255, 0.18);
-      '';
-
-      gtk4 = ''
-        @define-color accent_color ${accent};
-        @define-color accent_bg_color rgba(255, 255, 255, 0.24);
-        @define-color accent_fg_color ${bg0};
-        @define-color destructive_bg_color ${err};
-        @define-color destructive_fg_color ${fg0};
-        @define-color error_bg_color ${err};
-        @define-color error_fg_color ${fg0};
-        @define-color window_bg_color rgba(20, 20, 20, 0.54);
-        @define-color window_fg_color ${fg1};
-        @define-color view_bg_color rgba(20, 20, 20, 0.44);
-        @define-color view_fg_color ${fg1};
-        @define-color headerbar_bg_color rgba(255, 255, 255, 0.08);
-        @define-color headerbar_fg_color ${fg1};
-        @define-color popover_bg_color rgba(20, 20, 20, 0.74);
-        @define-color popover_fg_color ${fg1};
-        @define-color card_bg_color rgba(255, 255, 255, 0.08);
-        @define-color card_fg_color ${fg1};
-        @define-color sidebar_bg_color rgba(255, 255, 255, 0.06);
-        @define-color sidebar_fg_color ${fg1};
-        @define-color sidebar_border_color rgba(255, 255, 255, 0.18);
-      '';
+      gtk3 = gtk;
+      gtk4 = gtk;
 
       qt6 = theme.mkQt6ColorScheme {
         active = [

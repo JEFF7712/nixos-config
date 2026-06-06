@@ -1,4 +1,95 @@
 {
+  mkGtkColors =
+    {
+      accent,
+      accentBg ? accent,
+      accentFg,
+      destructiveBg,
+      destructiveFg,
+      errorBg ? destructiveBg,
+      errorFg ? destructiveFg,
+      windowBg,
+      windowFg,
+      viewBg ? windowBg,
+      viewFg ? windowFg,
+      headerbarBg,
+      headerbarFg ? windowFg,
+      popoverBg,
+      popoverFg ? windowFg,
+      cardBg,
+      cardFg ? windowFg,
+      sidebarBg,
+      sidebarFg ? windowFg,
+      sidebarBorder,
+      title ? null,
+      headerbarBackdrop ? null,
+      dialogBg ? null,
+      dialogFg ? null,
+      sidebarBackdrop ? null,
+      secondarySidebarBg ? null,
+      secondarySidebarFg ? null,
+      unfocused ? null,
+    }:
+    ''
+      ${if title == null then "" else "/* ${title} */"}
+      @define-color accent_color ${accent};
+      @define-color accent_bg_color ${accentBg};
+      @define-color accent_fg_color ${accentFg};
+      @define-color destructive_bg_color ${destructiveBg};
+      @define-color destructive_fg_color ${destructiveFg};
+      @define-color error_bg_color ${errorBg};
+      @define-color error_fg_color ${errorFg};
+      @define-color window_bg_color ${windowBg};
+      @define-color window_fg_color ${windowFg};
+      @define-color view_bg_color ${viewBg};
+      @define-color view_fg_color ${viewFg};
+      @define-color headerbar_bg_color ${headerbarBg};
+      @define-color headerbar_fg_color ${headerbarFg};
+      ${
+        if headerbarBackdrop == null then
+          ""
+        else
+          "@define-color headerbar_backdrop_color ${headerbarBackdrop};"
+      }
+      @define-color popover_bg_color ${popoverBg};
+      @define-color popover_fg_color ${popoverFg};
+      @define-color card_bg_color ${cardBg};
+      @define-color card_fg_color ${cardFg};
+      ${if dialogBg == null then "" else "@define-color dialog_bg_color ${dialogBg};"}
+      ${if dialogFg == null then "" else "@define-color dialog_fg_color ${dialogFg};"}
+      @define-color sidebar_bg_color ${sidebarBg};
+      @define-color sidebar_fg_color ${sidebarFg};
+      ${
+        if sidebarBackdrop == null then "" else "@define-color sidebar_backdrop_color ${sidebarBackdrop};"
+      }
+      @define-color sidebar_border_color ${sidebarBorder};
+      ${
+        if secondarySidebarBg == null then
+          ""
+        else
+          "@define-color secondary_sidebar_bg_color ${secondarySidebarBg};"
+      }
+      ${
+        if secondarySidebarFg == null then
+          ""
+        else
+          "@define-color secondary_sidebar_fg_color ${secondarySidebarFg};"
+      }
+      ${
+        if unfocused == null then
+          ""
+        else
+          ''
+            @define-color theme_unfocused_fg_color ${unfocused.fg};
+            @define-color theme_unfocused_text_color ${unfocused.text};
+            @define-color theme_unfocused_bg_color ${unfocused.bg};
+            @define-color theme_unfocused_base_color ${unfocused.base};
+            @define-color theme_unfocused_selected_bg_color ${unfocused.selectedBg};
+            @define-color theme_unfocused_selected_fg_color ${unfocused.selectedFg};
+          ''
+      }
+    '';
+
   mkQt6ColorScheme =
     {
       active,

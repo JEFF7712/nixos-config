@@ -143,71 +143,57 @@ in
     };
 
     colors = {
-      gtk3 = ''
-        /* Minimal dark */
-        @define-color accent_color ${accent};
-        @define-color accent_bg_color ${bg3};
-        @define-color accent_fg_color ${bg0};
-        @define-color destructive_bg_color ${err};
-        @define-color destructive_fg_color ${fg0};
-        @define-color error_bg_color ${err};
-        @define-color error_fg_color ${fg0};
-        @define-color window_bg_color ${bg0};
-        @define-color window_fg_color ${fg1};
-        @define-color view_bg_color ${bg0};
-        @define-color view_fg_color ${fg1};
-        @define-color headerbar_bg_color ${bg1};
-        @define-color headerbar_fg_color ${fg1};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${bg1};
-        @define-color popover_fg_color ${fg1};
-        @define-color card_bg_color ${bg1};
-        @define-color card_fg_color ${fg1};
-        @define-color dialog_bg_color ${bg0};
-        @define-color dialog_fg_color ${fg1};
-        @define-color sidebar_bg_color ${bg1};
-        @define-color sidebar_fg_color ${fg1};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${bg2};
-        @define-color secondary_sidebar_bg_color ${bg0};
-        @define-color secondary_sidebar_fg_color ${fg2};
-        @define-color theme_unfocused_fg_color ${fg2};
-        @define-color theme_unfocused_text_color ${fg2};
-        @define-color theme_unfocused_bg_color ${bg0};
-        @define-color theme_unfocused_base_color ${bg0};
-        @define-color theme_unfocused_selected_bg_color ${bg2};
-        @define-color theme_unfocused_selected_fg_color ${fg0};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Minimal dark";
+        accent = accent;
+        accentBg = bg3;
+        accentFg = bg0;
+        destructiveBg = err;
+        destructiveFg = fg0;
+        windowBg = bg0;
+        windowFg = fg1;
+        headerbarBg = bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = bg1;
+        cardBg = bg1;
+        dialogBg = bg0;
+        dialogFg = fg1;
+        sidebarBg = bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = bg2;
+        secondarySidebarBg = bg0;
+        secondarySidebarFg = fg2;
+        unfocused = {
+          fg = fg2;
+          text = fg2;
+          bg = bg0;
+          base = bg0;
+          selectedBg = bg2;
+          selectedFg = fg0;
+        };
+      };
 
-      gtk4 = ''
-        /* Minimal dark */
-        @define-color accent_color ${accent};
-        @define-color accent_bg_color ${bg3};
-        @define-color accent_fg_color ${bg0};
-        @define-color destructive_bg_color ${err};
-        @define-color destructive_fg_color ${fg0};
-        @define-color error_bg_color ${err};
-        @define-color error_fg_color ${fg0};
-        @define-color window_bg_color ${bg0};
-        @define-color window_fg_color ${fg1};
-        @define-color view_bg_color ${bg0};
-        @define-color view_fg_color ${fg1};
-        @define-color headerbar_bg_color ${bg1};
-        @define-color headerbar_fg_color ${fg1};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${bg1};
-        @define-color popover_fg_color ${fg1};
-        @define-color card_bg_color ${bg1};
-        @define-color card_fg_color ${fg1};
-        @define-color dialog_bg_color ${bg0};
-        @define-color dialog_fg_color ${fg1};
-        @define-color sidebar_bg_color ${bg1};
-        @define-color sidebar_fg_color ${fg1};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${bg2};
-        @define-color secondary_sidebar_bg_color ${bg0};
-        @define-color secondary_sidebar_fg_color ${fg2};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Minimal dark";
+        accent = accent;
+        accentBg = bg3;
+        accentFg = bg0;
+        destructiveBg = err;
+        destructiveFg = fg0;
+        windowBg = bg0;
+        windowFg = fg1;
+        headerbarBg = bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = bg1;
+        cardBg = bg1;
+        dialogBg = bg0;
+        dialogFg = fg1;
+        sidebarBg = bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = bg2;
+        secondarySidebarBg = bg0;
+        secondarySidebarFg = fg2;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [
@@ -355,71 +341,57 @@ in
     };
 
     colorsLight = {
-      gtk3 = ''
-        /* Minimal light */
-        @define-color accent_color ${l_accent};
-        @define-color accent_bg_color ${l_bg3};
-        @define-color accent_fg_color ${l_bg0};
-        @define-color destructive_bg_color ${l_err};
-        @define-color destructive_fg_color ${l_fg0};
-        @define-color error_bg_color ${l_err};
-        @define-color error_fg_color ${l_fg0};
-        @define-color window_bg_color ${l_bg0};
-        @define-color window_fg_color ${l_fg1};
-        @define-color view_bg_color ${l_bg0};
-        @define-color view_fg_color ${l_fg1};
-        @define-color headerbar_bg_color ${l_bg1};
-        @define-color headerbar_fg_color ${l_fg1};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${l_bg1};
-        @define-color popover_fg_color ${l_fg1};
-        @define-color card_bg_color ${l_bg1};
-        @define-color card_fg_color ${l_fg1};
-        @define-color dialog_bg_color ${l_bg0};
-        @define-color dialog_fg_color ${l_fg1};
-        @define-color sidebar_bg_color ${l_bg1};
-        @define-color sidebar_fg_color ${l_fg1};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${l_bg2};
-        @define-color secondary_sidebar_bg_color ${l_bg0};
-        @define-color secondary_sidebar_fg_color ${l_fg2};
-        @define-color theme_unfocused_fg_color ${l_fg2};
-        @define-color theme_unfocused_text_color ${l_fg2};
-        @define-color theme_unfocused_bg_color ${l_bg0};
-        @define-color theme_unfocused_base_color ${l_bg0};
-        @define-color theme_unfocused_selected_bg_color ${l_bg2};
-        @define-color theme_unfocused_selected_fg_color ${l_fg0};
-      '';
+      gtk3 = theme.mkGtkColors {
+        title = "Minimal light";
+        accent = l_accent;
+        accentBg = l_bg3;
+        accentFg = l_bg0;
+        destructiveBg = l_err;
+        destructiveFg = l_fg0;
+        windowBg = l_bg0;
+        windowFg = l_fg1;
+        headerbarBg = l_bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = l_bg1;
+        cardBg = l_bg1;
+        dialogBg = l_bg0;
+        dialogFg = l_fg1;
+        sidebarBg = l_bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = l_bg2;
+        secondarySidebarBg = l_bg0;
+        secondarySidebarFg = l_fg2;
+        unfocused = {
+          fg = l_fg2;
+          text = l_fg2;
+          bg = l_bg0;
+          base = l_bg0;
+          selectedBg = l_bg2;
+          selectedFg = l_fg0;
+        };
+      };
 
-      gtk4 = ''
-        /* Minimal light */
-        @define-color accent_color ${l_accent};
-        @define-color accent_bg_color ${l_bg3};
-        @define-color accent_fg_color ${l_bg0};
-        @define-color destructive_bg_color ${l_err};
-        @define-color destructive_fg_color ${l_fg0};
-        @define-color error_bg_color ${l_err};
-        @define-color error_fg_color ${l_fg0};
-        @define-color window_bg_color ${l_bg0};
-        @define-color window_fg_color ${l_fg1};
-        @define-color view_bg_color ${l_bg0};
-        @define-color view_fg_color ${l_fg1};
-        @define-color headerbar_bg_color ${l_bg1};
-        @define-color headerbar_fg_color ${l_fg1};
-        @define-color headerbar_backdrop_color @window_bg_color;
-        @define-color popover_bg_color ${l_bg1};
-        @define-color popover_fg_color ${l_fg1};
-        @define-color card_bg_color ${l_bg1};
-        @define-color card_fg_color ${l_fg1};
-        @define-color dialog_bg_color ${l_bg0};
-        @define-color dialog_fg_color ${l_fg1};
-        @define-color sidebar_bg_color ${l_bg1};
-        @define-color sidebar_fg_color ${l_fg1};
-        @define-color sidebar_backdrop_color @window_bg_color;
-        @define-color sidebar_border_color ${l_bg2};
-        @define-color secondary_sidebar_bg_color ${l_bg0};
-        @define-color secondary_sidebar_fg_color ${l_fg2};
-      '';
+      gtk4 = theme.mkGtkColors {
+        title = "Minimal light";
+        accent = l_accent;
+        accentBg = l_bg3;
+        accentFg = l_bg0;
+        destructiveBg = l_err;
+        destructiveFg = l_fg0;
+        windowBg = l_bg0;
+        windowFg = l_fg1;
+        headerbarBg = l_bg1;
+        headerbarBackdrop = "@window_bg_color";
+        popoverBg = l_bg1;
+        cardBg = l_bg1;
+        dialogBg = l_bg0;
+        dialogFg = l_fg1;
+        sidebarBg = l_bg1;
+        sidebarBackdrop = "@window_bg_color";
+        sidebarBorder = l_bg2;
+        secondarySidebarBg = l_bg0;
+        secondarySidebarFg = l_fg2;
+      };
 
       qt6 = theme.mkQt6ColorScheme {
         active = [
