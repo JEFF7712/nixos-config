@@ -25,7 +25,7 @@
     {
       floating ? false,
       pill ? false,
-      scriptDir ? "/home/rupan/nixos/home/scripts",
+      scriptDir ? "$HOME/nixos/home/scripts",
     }:
     ''
       {

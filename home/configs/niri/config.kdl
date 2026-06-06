@@ -233,7 +233,7 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "qs" "-p" "/home/rupan/nixos/home/configs/quickshell-switcher" "ipc" "call" "profile" "toggle"; }
+    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "bash" "-c" "qs -p \"$HOME/nixos/home/configs/quickshell-switcher\" ipc call profile toggle"; }
     Mod+Space hotkey-overlay-title="App Launcher" { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call launcher toggle; else qs -p \"$HOME/nixos/home/configs/quickshell-launcher\" ipc call launcher toggle; fi"; }
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "lock-screen"; }
     Mod+F { spawn "firefox"; }
@@ -243,10 +243,10 @@ binds {
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "noctalia-shell" "ipc" "--any-display" "call" "bar" "toggle"; }
     Mod+Alt+V { spawn "noctalia-shell" "ipc" "--any-display" "call" "launcher" "clipboard"; }
-    Mod+R { spawn "bash" "/home/rupan/nixos/home/scripts/random-wallpaper"; }
+    Mod+R { spawn "random-wallpaper"; }
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }
-    Mod+Shift+T { spawn "bash" "/home/rupan/nixos/home/scripts/toggle-variant"; }
+    Mod+Shift+T { spawn "toggle-variant"; }
     Mod+Z hotkey-overlay-title="Dictate (xhisper toggle)" { spawn "xhisper"; }
 
     Mod+C repeat=false { close-window; }

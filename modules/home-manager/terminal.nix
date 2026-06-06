@@ -68,7 +68,7 @@
     programs.fish = {
       enable = true;
       shellAliases = {
-        cniri = "sudo $EDITOR $HOME/nixos/home/configs/niri/config.kdl";
+        cniri = "sudo $EDITOR ${config.repoPath}/home/configs/niri/config.kdl";
         ls = "eza --icons";
         ll = "eza -l --icons";
         l = "eza --icons";
@@ -82,9 +82,9 @@
         cities = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/cities-skylines-II/Cities2.exe";
         stellaris = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/stellaris/stellaris.exe";
         zed = "zeditor";
-        bnix = "cd $HOME/nixos && sudo nixos-rebuild switch --flake path:$HOME/nixos#laptop";
-        bnix-test = "cd $HOME/nixos && sudo nixos-rebuild test --flake path:$HOME/nixos#laptop";
-        pnix = "cd $HOME/nixos && nix fmt . && git add -A && git commit -m 'Updates' && git push";
+        bnix = "cd ${config.repoPath} && sudo nixos-rebuild switch --flake path:${config.repoPath}#laptop";
+        bnix-test = "cd ${config.repoPath} && sudo nixos-rebuild test --flake path:${config.repoPath}#laptop";
+        pnix = "cd ${config.repoPath} && nix fmt . && git add -A && git commit -m 'Updates' && git push";
       };
       shellAbbrs = {
         sp = "switch-profile";

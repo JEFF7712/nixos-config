@@ -27,6 +27,8 @@ This repo is the source of truth for my NixOS system, home-manager setup, deskto
 - `just check` - run script syntax checks, flake discovery, both system evals, and diff whitespace checks
 - `just eval [target]` - evaluate one NixOS target, defaulting to `laptop`
 - `just eval-all` - evaluate `laptop` and `iso`
+- `just update` - update flake inputs
+- `just build-iso` - build the ISO image
 - `just dry` - dry-activate the laptop system
 - `just switch` - switch the laptop system
 
