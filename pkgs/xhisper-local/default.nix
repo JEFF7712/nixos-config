@@ -65,6 +65,13 @@ stdenv.mkDerivation {
         '#!/usr/bin/env python3' \
         '#!${python}/bin/python3'
 
+    # Upstream's argparse rejects English-only model variants like small.en.
+    # Drop the explicit choices list so faster-whisper validates instead.
+    substituteInPlace xhisper_transcribe.py \
+      --replace-fail \
+        'choices=["tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3"],' \
+        ""
+
     # Upstream calls `python3 "$TRANSCRIPT_SCRIPT"` where TRANSCRIPT_SCRIPT is the
     # bare name "xhisper_transcribe". python3 treats that as a cwd-relative path
     # (no PATH lookup), so it silently fails. Drop the python3 prefix and rely on
