@@ -1,4 +1,20 @@
 {
+  mkQt6ColorScheme =
+    {
+      active,
+      disabled,
+      inactive,
+    }:
+    let
+      join = builtins.concatStringsSep ", ";
+    in
+    ''
+      [ColorScheme]
+      active_colors=${join active}
+      disabled_colors=${join disabled}
+      inactive_colors=${join inactive}
+    '';
+
   mkKittyColors =
     {
       cursor,

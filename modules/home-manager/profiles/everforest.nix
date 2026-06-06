@@ -195,12 +195,80 @@ in
         @define-color secondary_sidebar_fg_color ${grey2};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${fg}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg}, #ffffff, ${fg}, ${bg0}, ${bg0}, #000000, ${green}, ${bg0}, ${green}, ${blue}, ${bg1}, ${bg0}, ${bg1}, ${fg}, ${grey1}, ${green}
-        disabled_colors=${grey1}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${grey1}, #ffffff, ${grey1}, ${bg0}, ${bg0}, #000000, ${bg3}, ${bg2}, ${bg3}, ${blue}, ${bg1}, ${bg0}, ${bg1}, ${grey1}, ${grey0}, ${bg3}
-        inactive_colors=${grey2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${grey2}, #ffffff, ${grey2}, ${bg0}, ${bg0}, #000000, ${green}, ${bg0}, ${green}, ${blue}, ${bg1}, ${bg0}, ${bg1}, ${grey2}, ${grey1}, ${green}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          fg
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg
+          "#ffffff"
+          fg
+          bg0
+          bg0
+          "#000000"
+          green
+          bg0
+          green
+          blue
+          bg1
+          bg0
+          bg1
+          fg
+          grey1
+          green
+        ];
+        disabled = [
+          grey1
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          grey1
+          "#ffffff"
+          grey1
+          bg0
+          bg0
+          "#000000"
+          bg3
+          bg2
+          bg3
+          blue
+          bg1
+          bg0
+          bg1
+          grey1
+          grey0
+          bg3
+        ];
+        inactive = [
+          grey2
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          grey2
+          "#ffffff"
+          grey2
+          bg0
+          bg0
+          "#000000"
+          green
+          bg0
+          green
+          blue
+          bg1
+          bg0
+          bg1
+          grey2
+          grey1
+          green
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Everforest Dark Hard Kitty";
@@ -357,12 +425,80 @@ in
         @define-color secondary_sidebar_fg_color ${l_grey2};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${l_fg}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg}, #ffffff, ${l_fg}, ${l_bg0}, ${l_bg0}, #000000, ${l_green}, ${l_bg0}, ${l_green}, ${l_blue}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_fg}, ${l_grey1}, ${l_green}
-        disabled_colors=${l_grey1}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_grey1}, #ffffff, ${l_grey1}, ${l_bg0}, ${l_bg0}, #000000, ${l_bg3}, ${l_bg2}, ${l_bg3}, ${l_blue}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_grey1}, ${l_grey0}, ${l_bg3}
-        inactive_colors=${l_grey2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_grey2}, #ffffff, ${l_grey2}, ${l_bg0}, ${l_bg0}, #000000, ${l_green}, ${l_bg0}, ${l_green}, ${l_blue}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_grey2}, ${l_grey1}, ${l_green}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          l_fg
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_fg
+          "#ffffff"
+          l_fg
+          l_bg0
+          l_bg0
+          "#000000"
+          l_green
+          l_bg0
+          l_green
+          l_blue
+          l_bg1
+          l_bg0
+          l_bg1
+          l_fg
+          l_grey1
+          l_green
+        ];
+        disabled = [
+          l_grey1
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_grey1
+          "#ffffff"
+          l_grey1
+          l_bg0
+          l_bg0
+          "#000000"
+          l_bg3
+          l_bg2
+          l_bg3
+          l_blue
+          l_bg1
+          l_bg0
+          l_bg1
+          l_grey1
+          l_grey0
+          l_bg3
+        ];
+        inactive = [
+          l_grey2
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_grey2
+          "#ffffff"
+          l_grey2
+          l_bg0
+          l_bg0
+          "#000000"
+          l_green
+          l_bg0
+          l_green
+          l_blue
+          l_bg1
+          l_bg0
+          l_bg1
+          l_grey2
+          l_grey1
+          l_green
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Everforest Light Hard Kitty";

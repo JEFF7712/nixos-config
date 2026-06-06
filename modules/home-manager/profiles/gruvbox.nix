@@ -199,12 +199,80 @@ in
         @define-color secondary_sidebar_fg_color ${fg2};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${fg1}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg1}, #ffffff, ${fg1}, ${bg0}, ${bg0}, #000000, ${yellow}, ${bg0}, ${yellow}, ${blue}, ${bg1}, ${bg0h}, ${bg1}, ${fg1}, ${fg4}, ${yellow}
-        disabled_colors=${fg4}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg4}, #ffffff, ${fg4}, ${bg0}, ${bg0}, #000000, ${bg3}, ${bg2}, ${bg3}, ${blue}, ${bg1}, ${bg0h}, ${bg1}, ${fg4}, ${gray}, ${bg3}
-        inactive_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${yellow}, ${bg0}, ${yellow}, ${blue}, ${bg1}, ${bg0h}, ${bg1}, ${fg2}, ${fg4}, ${yellow}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          fg1
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg1
+          "#ffffff"
+          fg1
+          bg0
+          bg0
+          "#000000"
+          yellow
+          bg0
+          yellow
+          blue
+          bg1
+          bg0h
+          bg1
+          fg1
+          fg4
+          yellow
+        ];
+        disabled = [
+          fg4
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg4
+          "#ffffff"
+          fg4
+          bg0
+          bg0
+          "#000000"
+          bg3
+          bg2
+          bg3
+          blue
+          bg1
+          bg0h
+          bg1
+          fg4
+          gray
+          bg3
+        ];
+        inactive = [
+          fg2
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg2
+          "#ffffff"
+          fg2
+          bg0
+          bg0
+          "#000000"
+          yellow
+          bg0
+          yellow
+          blue
+          bg1
+          bg0h
+          bg1
+          fg2
+          fg4
+          yellow
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Gruvbox Dark Kitty";
@@ -361,12 +429,80 @@ in
         @define-color secondary_sidebar_fg_color ${l_fg2};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${l_fg1}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg1}, #ffffff, ${l_fg1}, ${l_bg0}, ${l_bg0}, #000000, ${l_yellow}, ${l_bg0}, ${l_yellow}, ${l_blue}, ${l_bg1}, ${l_bg0h}, ${l_bg1}, ${l_fg1}, ${l_fg4}, ${l_yellow}
-        disabled_colors=${l_fg4}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg4}, #ffffff, ${l_fg4}, ${l_bg0}, ${l_bg0}, #000000, ${l_bg3}, ${l_bg2}, ${l_bg3}, ${l_blue}, ${l_bg1}, ${l_bg0h}, ${l_bg1}, ${l_fg4}, ${l_gray}, ${l_bg3}
-        inactive_colors=${l_fg2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg2}, #ffffff, ${l_fg2}, ${l_bg0}, ${l_bg0}, #000000, ${l_yellow}, ${l_bg0}, ${l_yellow}, ${l_blue}, ${l_bg1}, ${l_bg0h}, ${l_bg1}, ${l_fg2}, ${l_fg4}, ${l_yellow}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          l_fg1
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_fg1
+          "#ffffff"
+          l_fg1
+          l_bg0
+          l_bg0
+          "#000000"
+          l_yellow
+          l_bg0
+          l_yellow
+          l_blue
+          l_bg1
+          l_bg0h
+          l_bg1
+          l_fg1
+          l_fg4
+          l_yellow
+        ];
+        disabled = [
+          l_fg4
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_fg4
+          "#ffffff"
+          l_fg4
+          l_bg0
+          l_bg0
+          "#000000"
+          l_bg3
+          l_bg2
+          l_bg3
+          l_blue
+          l_bg1
+          l_bg0h
+          l_bg1
+          l_fg4
+          l_gray
+          l_bg3
+        ];
+        inactive = [
+          l_fg2
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_fg2
+          "#ffffff"
+          l_fg2
+          l_bg0
+          l_bg0
+          "#000000"
+          l_yellow
+          l_bg0
+          l_yellow
+          l_blue
+          l_bg1
+          l_bg0h
+          l_bg1
+          l_fg2
+          l_fg4
+          l_yellow
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Gruvbox Light Hard Kitty";

@@ -210,12 +210,80 @@ in
         @define-color sidebar_border_color rgba(255, 255, 255, 0.18);
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${fg1}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg1}, #ffffff, ${fg1}, ${bg0}, ${bg0}, #000000, ${accent}, ${bg2}, ${accent}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg1}, ${fg2}, ${accent}
-        disabled_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${bg3}, ${bg2}, ${bg3}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg2}, ${fg2}, ${bg3}
-        inactive_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${accent}, ${bg2}, ${accent}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg2}, ${fg2}, ${accent}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          fg1
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg1
+          "#ffffff"
+          fg1
+          bg0
+          bg0
+          "#000000"
+          accent
+          bg2
+          accent
+          fg2
+          bg1
+          bg0
+          bg1
+          fg1
+          fg2
+          accent
+        ];
+        disabled = [
+          fg2
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg2
+          "#ffffff"
+          fg2
+          bg0
+          bg0
+          "#000000"
+          bg3
+          bg2
+          bg3
+          fg2
+          bg1
+          bg0
+          bg1
+          fg2
+          fg2
+          bg3
+        ];
+        inactive = [
+          fg2
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg2
+          "#ffffff"
+          fg2
+          bg0
+          bg0
+          "#000000"
+          accent
+          bg2
+          accent
+          fg2
+          bg1
+          bg0
+          bg1
+          fg2
+          fg2
+          accent
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         cursor = fg1;

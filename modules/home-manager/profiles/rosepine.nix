@@ -192,12 +192,80 @@ in
         @define-color secondary_sidebar_fg_color ${subtle};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${text}, ${surface}, #ffffff, ${highlightHigh}, ${overlay}, ${overlay}, ${text}, #ffffff, ${text}, ${base}, ${base}, #000000, ${iris}, ${highlightMed}, ${iris}, ${pine}, ${overlay}, ${highlightLow}, ${overlay}, ${text}, ${subtle}, ${iris}
-        disabled_colors=${muted}, ${surface}, #ffffff, ${highlightHigh}, ${overlay}, ${overlay}, ${muted}, #ffffff, ${muted}, ${base}, ${base}, #000000, ${highlightHigh}, ${highlightMed}, ${highlightHigh}, ${pine}, ${overlay}, ${highlightLow}, ${overlay}, ${muted}, ${muted}, ${highlightHigh}
-        inactive_colors=${subtle}, ${surface}, #ffffff, ${highlightHigh}, ${overlay}, ${overlay}, ${subtle}, #ffffff, ${subtle}, ${base}, ${base}, #000000, ${iris}, ${highlightMed}, ${iris}, ${pine}, ${overlay}, ${highlightLow}, ${overlay}, ${subtle}, ${muted}, ${iris}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          text
+          surface
+          "#ffffff"
+          highlightHigh
+          overlay
+          overlay
+          text
+          "#ffffff"
+          text
+          base
+          base
+          "#000000"
+          iris
+          highlightMed
+          iris
+          pine
+          overlay
+          highlightLow
+          overlay
+          text
+          subtle
+          iris
+        ];
+        disabled = [
+          muted
+          surface
+          "#ffffff"
+          highlightHigh
+          overlay
+          overlay
+          muted
+          "#ffffff"
+          muted
+          base
+          base
+          "#000000"
+          highlightHigh
+          highlightMed
+          highlightHigh
+          pine
+          overlay
+          highlightLow
+          overlay
+          muted
+          muted
+          highlightHigh
+        ];
+        inactive = [
+          subtle
+          surface
+          "#ffffff"
+          highlightHigh
+          overlay
+          overlay
+          subtle
+          "#ffffff"
+          subtle
+          base
+          base
+          "#000000"
+          iris
+          highlightMed
+          iris
+          pine
+          overlay
+          highlightLow
+          overlay
+          subtle
+          muted
+          iris
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Rosé Pine Kitty";
@@ -354,12 +422,80 @@ in
         @define-color secondary_sidebar_fg_color ${d_subtle};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${d_text}, ${d_surface}, #ffffff, ${d_highlightHigh}, ${d_overlay}, ${d_overlay}, ${d_text}, #ffffff, ${d_text}, ${d_base}, ${d_base}, #000000, ${d_iris}, ${d_highlightMed}, ${d_iris}, ${d_pine}, ${d_overlay}, ${d_highlightLow}, ${d_overlay}, ${d_text}, ${d_subtle}, ${d_iris}
-        disabled_colors=${d_muted}, ${d_surface}, #ffffff, ${d_highlightHigh}, ${d_overlay}, ${d_overlay}, ${d_muted}, #ffffff, ${d_muted}, ${d_base}, ${d_base}, #000000, ${d_highlightHigh}, ${d_highlightMed}, ${d_highlightHigh}, ${d_pine}, ${d_overlay}, ${d_highlightLow}, ${d_overlay}, ${d_muted}, ${d_muted}, ${d_highlightHigh}
-        inactive_colors=${d_subtle}, ${d_surface}, #ffffff, ${d_highlightHigh}, ${d_overlay}, ${d_overlay}, ${d_subtle}, #ffffff, ${d_subtle}, ${d_base}, ${d_base}, #000000, ${d_iris}, ${d_highlightMed}, ${d_iris}, ${d_pine}, ${d_overlay}, ${d_highlightLow}, ${d_overlay}, ${d_subtle}, ${d_muted}, ${d_iris}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          d_text
+          d_surface
+          "#ffffff"
+          d_highlightHigh
+          d_overlay
+          d_overlay
+          d_text
+          "#ffffff"
+          d_text
+          d_base
+          d_base
+          "#000000"
+          d_iris
+          d_highlightMed
+          d_iris
+          d_pine
+          d_overlay
+          d_highlightLow
+          d_overlay
+          d_text
+          d_subtle
+          d_iris
+        ];
+        disabled = [
+          d_muted
+          d_surface
+          "#ffffff"
+          d_highlightHigh
+          d_overlay
+          d_overlay
+          d_muted
+          "#ffffff"
+          d_muted
+          d_base
+          d_base
+          "#000000"
+          d_highlightHigh
+          d_highlightMed
+          d_highlightHigh
+          d_pine
+          d_overlay
+          d_highlightLow
+          d_overlay
+          d_muted
+          d_muted
+          d_highlightHigh
+        ];
+        inactive = [
+          d_subtle
+          d_surface
+          "#ffffff"
+          d_highlightHigh
+          d_overlay
+          d_overlay
+          d_subtle
+          "#ffffff"
+          d_subtle
+          d_base
+          d_base
+          "#000000"
+          d_iris
+          d_highlightMed
+          d_iris
+          d_pine
+          d_overlay
+          d_highlightLow
+          d_overlay
+          d_subtle
+          d_muted
+          d_iris
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Rosé Pine Dawn Kitty";
