@@ -247,6 +247,7 @@ binds {
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }
     Mod+Shift+T { spawn "bash" "/home/rupan/nixos/home/scripts/toggle-variant"; }
+    Mod+V hotkey-overlay-title="Dictate (xhisper toggle)" { spawn "xhisper"; }
 
     Mod+C repeat=false { close-window; }
     Mod+Alt+O { toggle-window-rule-opacity; }

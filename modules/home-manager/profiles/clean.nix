@@ -52,9 +52,9 @@ in
 
     quickshellTheme = {
       fg = "#ffffff";
-      bg = "#662a2a2a";
-      popupBg = "#cc2a2a2a";
-      rawBg = "#141414";
+      bg = "#66101010";
+      popupBg = "#cc101010";
+      rawBg = "#101010";
       accent = "#ffffff";
       second = "#e8e8e8";
       warm = "#e6dcc6";

@@ -1,0 +1,31 @@
+# xhisper configuration — see `xhisper --log` to debug.
+# Editable at runtime (this file is symlinked out-of-store).
+
+# Whisper model: tiny, base, small, medium, large-v3
+# base is the sweet spot for short dictation; small/medium need cuda to feel snappy.
+model-name : base
+
+# Device: auto, cpu, or cuda
+# CPU keeps things working out-of-the-box. Switch to "cuda" after enabling
+# python313Packages.ctranslate2 with cudaSupport in nixpkgs overlays.
+model-device : cpu
+
+# Language: leave empty for auto-detect, or "en" for English-only (faster + more accurate).
+model-language : "en"
+
+# Optional context to seed Whisper (improves proper nouns, jargon).
+transcription-prompt : ""
+
+# Paste timing for non-ASCII characters.
+non-ascii-initial-delay : 0.15
+non-ascii-default-delay : 0.025
+
+# Silence detection (dB threshold, % of clip that must be silent to skip).
+silence-threshold  : -50
+silence-percentage : 95
+
+# AI post-processing via local Ollama (set by services.ollama in the NixOS module).
+# Leave model empty to skip cleanup and just type raw Whisper output.
+post-process-model     : gemma3:4b
+post-process-timeout   : 10
+post-process-mode      : auto

@@ -94,6 +94,7 @@ in
   airplay.enable = true;
   vpn.enable = true;
   git.enable = true;
+  xhisperLocal.enable = true;
 
   environment.shells = with pkgs; [
     fish
