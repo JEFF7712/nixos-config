@@ -80,6 +80,17 @@ stdenv.mkDerivation {
       --replace-fail \
         'python3 "$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null' \
         '"$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null'
+
+    # The user binds xhisper to Mod+Z (Super+Z). After the keypress fires the
+    # script, paste() starts typing the status / transcript via uinput while
+    # the physical Super key is often still held — so each character lands as
+    # Mod+<char>, opening Obsidian / Thunar / Vesktop / etc. via the niri
+    # bindings on Mod+O, Mod+E, Mod+D. Sleep at paste() entry gives the user
+    # time to release the modifier before any synthetic keystrokes go out.
+    substituteInPlace xhisper.sh \
+      --replace-fail \
+        'paste() {' \
+        'paste() { sleep 0.3 ;  # wait for Mod release — see xhisper-local default.nix'
   '';
 
   makeFlags = [ "PREFIX=$(out)" ];
