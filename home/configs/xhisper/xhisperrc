@@ -1,9 +1,8 @@
-# xhisper configuration — see `xhisper --log` and /tmp/xhisper-stream.log.
+# xhisper configuration — see `xhisper --log` for transcription debug.
 # Editable at runtime (this file is symlinked out-of-store).
 
-# --- Model -------------------------------------------------------------------
-# Available: tiny, base, small, medium, large-v3 (and *.en variants for English-only).
-# small.en gives noticeably better partial stability during streaming.
+# Whisper model: tiny, base, small, medium, large-v3 (and *.en variants for
+# English-only after `nixos-rebuild switch` picks up the patched derivation).
 model-name : small
 
 # Device: auto, cpu, or cuda.
@@ -20,18 +19,9 @@ non-ascii-default-delay : 0.025
 silence-threshold  : -50
 silence-percentage : 95
 
-# --- Streaming (xhisper-stream / xhisper-streamd) ----------------------------
-stream-window-seconds       : 8
-stream-step-ms              : 500
-local-agreement-n           : 2
-auto-stop-silence-seconds   : 1.5
-overlay-y-offset            : 60
-
-# --- AI post-processing (ollama) ---------------------------------------------
-# gemma3:4b is too small to reliably "just fix punctuation" on long inputs —
-# it tends to paraphrase or hallucinate. Leave model empty to type raw Whisper
-# output (vad_filter already gives decent punctuation). Set to "gemma3:4b" for
-# short dictations where light cleanup helps.
+# AI post-processing via local Ollama. Empty = type raw Whisper output.
+# gemma3:4b drifts/paraphrases on long inputs — leave empty unless you want
+# light grammar/punctuation fixes on short utterances.
 post-process-model     :
 post-process-timeout   : 10
 post-process-mode      : auto
