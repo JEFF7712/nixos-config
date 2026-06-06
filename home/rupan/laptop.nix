@@ -65,6 +65,7 @@
   cli-tools.enable = true;
   ai-tools.enable = true;
   dev.enable = true;
+  xhisper.enable = true;
   pulseAgent.enable = false;
   desktopProfiles.enable = lib.mkDefault true;
 
