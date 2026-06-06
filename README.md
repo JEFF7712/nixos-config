@@ -24,7 +24,8 @@ This repo is the source of truth for my NixOS system, home-manager setup, deskto
 
 - `just` - list available recipes
 - `just fmt` - format Nix files
-- `just check` - run script syntax checks, flake discovery, both system evals, and diff whitespace checks
+- `just flake-check` - run `nix flake check`
+- `just check` - run script syntax checks, flake checks, both system evals, and diff whitespace checks
 - `just eval [target]` - evaluate one NixOS target, defaulting to `laptop`
 - `just eval-all` - evaluate `laptop` and `iso`
 - `just update` - update flake inputs
