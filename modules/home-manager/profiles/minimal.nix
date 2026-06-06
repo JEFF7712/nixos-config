@@ -209,12 +209,80 @@ in
         @define-color secondary_sidebar_fg_color ${fg2};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${fg1}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg1}, #ffffff, ${fg1}, ${bg0}, ${bg0}, #000000, ${accent}, ${bg2}, ${accent}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg1}, ${fg2}, ${accent}
-        disabled_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${bg3}, ${bg2}, ${bg3}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg2}, ${fg2}, ${bg3}
-        inactive_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${accent}, ${bg2}, ${accent}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg2}, ${fg2}, ${accent}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          fg1
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg1
+          "#ffffff"
+          fg1
+          bg0
+          bg0
+          "#000000"
+          accent
+          bg2
+          accent
+          fg2
+          bg1
+          bg0
+          bg1
+          fg1
+          fg2
+          accent
+        ];
+        disabled = [
+          fg2
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg2
+          "#ffffff"
+          fg2
+          bg0
+          bg0
+          "#000000"
+          bg3
+          bg2
+          bg3
+          fg2
+          bg1
+          bg0
+          bg1
+          fg2
+          fg2
+          bg3
+        ];
+        inactive = [
+          fg2
+          bg1
+          "#ffffff"
+          bg3
+          bg2
+          bg2
+          fg2
+          "#ffffff"
+          fg2
+          bg0
+          bg0
+          "#000000"
+          accent
+          bg2
+          accent
+          fg2
+          bg1
+          bg0
+          bg1
+          fg2
+          fg2
+          accent
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Minimal dark";
@@ -353,12 +421,80 @@ in
         @define-color secondary_sidebar_fg_color ${l_fg2};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${l_fg1}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg1}, #ffffff, ${l_fg1}, ${l_bg0}, ${l_bg0}, #000000, ${l_accent}, ${l_bg2}, ${l_accent}, ${l_fg2}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_fg1}, ${l_fg2}, ${l_accent}
-        disabled_colors=${l_fg2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg2}, #ffffff, ${l_fg2}, ${l_bg0}, ${l_bg0}, #000000, ${l_bg3}, ${l_bg2}, ${l_bg3}, ${l_fg2}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_fg2}, ${l_fg2}, ${l_bg3}
-        inactive_colors=${l_fg2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg2}, #ffffff, ${l_fg2}, ${l_bg0}, ${l_bg0}, #000000, ${l_accent}, ${l_bg2}, ${l_accent}, ${l_fg2}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_fg2}, ${l_fg2}, ${l_accent}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          l_fg1
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_fg1
+          "#ffffff"
+          l_fg1
+          l_bg0
+          l_bg0
+          "#000000"
+          l_accent
+          l_bg2
+          l_accent
+          l_fg2
+          l_bg1
+          l_bg0
+          l_bg1
+          l_fg1
+          l_fg2
+          l_accent
+        ];
+        disabled = [
+          l_fg2
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_fg2
+          "#ffffff"
+          l_fg2
+          l_bg0
+          l_bg0
+          "#000000"
+          l_bg3
+          l_bg2
+          l_bg3
+          l_fg2
+          l_bg1
+          l_bg0
+          l_bg1
+          l_fg2
+          l_fg2
+          l_bg3
+        ];
+        inactive = [
+          l_fg2
+          l_bg1
+          "#ffffff"
+          l_bg3
+          l_bg2
+          l_bg2
+          l_fg2
+          "#ffffff"
+          l_fg2
+          l_bg0
+          l_bg0
+          "#000000"
+          l_accent
+          l_bg2
+          l_accent
+          l_fg2
+          l_bg1
+          l_bg0
+          l_bg1
+          l_fg2
+          l_fg2
+          l_accent
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Minimal light";

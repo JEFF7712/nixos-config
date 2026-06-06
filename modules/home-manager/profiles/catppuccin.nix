@@ -220,12 +220,80 @@ in
         @define-color secondary_sidebar_fg_color ${subtext1};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${text}, ${mantle}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${text}, #ffffff, ${text}, ${base}, ${base}, #000000, ${mauve}, ${surface1}, ${mauve}, ${blue}, ${surface0}, ${crust}, ${surface0}, ${text}, ${subtext1}, ${mauve}
-        disabled_colors=${overlay0}, ${mantle}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${overlay0}, #ffffff, ${overlay0}, ${base}, ${base}, #000000, ${surface2}, ${surface1}, ${surface2}, ${blue}, ${surface0}, ${crust}, ${surface0}, ${overlay0}, ${overlay1}, ${surface2}
-        inactive_colors=${text}, ${mantle}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${subtext1}, #ffffff, ${text}, ${base}, ${base}, #000000, ${mauve}, ${surface1}, ${mauve}, ${blue}, ${surface0}, ${crust}, ${surface0}, ${text}, ${subtext1}, ${mauve}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          text
+          mantle
+          "#ffffff"
+          overlay1
+          surface0
+          surface0
+          text
+          "#ffffff"
+          text
+          base
+          base
+          "#000000"
+          mauve
+          surface1
+          mauve
+          blue
+          surface0
+          crust
+          surface0
+          text
+          subtext1
+          mauve
+        ];
+        disabled = [
+          overlay0
+          mantle
+          "#ffffff"
+          overlay1
+          surface0
+          surface0
+          overlay0
+          "#ffffff"
+          overlay0
+          base
+          base
+          "#000000"
+          surface2
+          surface1
+          surface2
+          blue
+          surface0
+          crust
+          surface0
+          overlay0
+          overlay1
+          surface2
+        ];
+        inactive = [
+          text
+          mantle
+          "#ffffff"
+          overlay1
+          surface0
+          surface0
+          subtext1
+          "#ffffff"
+          text
+          base
+          base
+          "#000000"
+          mauve
+          surface1
+          mauve
+          blue
+          surface0
+          crust
+          surface0
+          text
+          subtext1
+          mauve
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Catppuccin Kitty (Monochrome Pink/Purple)";
@@ -379,12 +447,80 @@ in
         @define-color secondary_sidebar_fg_color ${l_subtext1};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${l_text}, ${l_mantle}, #ffffff, ${l_overlay1}, ${l_surface0}, ${l_surface0}, ${l_text}, #ffffff, ${l_text}, ${l_base}, ${l_base}, #000000, ${l_mauve}, ${l_surface1}, ${l_mauve}, ${l_blue}, ${l_surface0}, ${l_crust}, ${l_surface0}, ${l_text}, ${l_subtext1}, ${l_mauve}
-        disabled_colors=${l_overlay0}, ${l_mantle}, #ffffff, ${l_overlay1}, ${l_surface0}, ${l_surface0}, ${l_overlay0}, #ffffff, ${l_overlay0}, ${l_base}, ${l_base}, #000000, ${l_surface2}, ${l_surface1}, ${l_surface2}, ${l_blue}, ${l_surface0}, ${l_crust}, ${l_surface0}, ${l_overlay0}, ${l_overlay1}, ${l_surface2}
-        inactive_colors=${l_text}, ${l_mantle}, #ffffff, ${l_overlay1}, ${l_surface0}, ${l_surface0}, ${l_subtext1}, #ffffff, ${l_text}, ${l_base}, ${l_base}, #000000, ${l_mauve}, ${l_surface1}, ${l_mauve}, ${l_blue}, ${l_surface0}, ${l_crust}, ${l_surface0}, ${l_text}, ${l_subtext1}, ${l_mauve}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          l_text
+          l_mantle
+          "#ffffff"
+          l_overlay1
+          l_surface0
+          l_surface0
+          l_text
+          "#ffffff"
+          l_text
+          l_base
+          l_base
+          "#000000"
+          l_mauve
+          l_surface1
+          l_mauve
+          l_blue
+          l_surface0
+          l_crust
+          l_surface0
+          l_text
+          l_subtext1
+          l_mauve
+        ];
+        disabled = [
+          l_overlay0
+          l_mantle
+          "#ffffff"
+          l_overlay1
+          l_surface0
+          l_surface0
+          l_overlay0
+          "#ffffff"
+          l_overlay0
+          l_base
+          l_base
+          "#000000"
+          l_surface2
+          l_surface1
+          l_surface2
+          l_blue
+          l_surface0
+          l_crust
+          l_surface0
+          l_overlay0
+          l_overlay1
+          l_surface2
+        ];
+        inactive = [
+          l_text
+          l_mantle
+          "#ffffff"
+          l_overlay1
+          l_surface0
+          l_surface0
+          l_subtext1
+          "#ffffff"
+          l_text
+          l_base
+          l_base
+          "#000000"
+          l_mauve
+          l_surface1
+          l_mauve
+          l_blue
+          l_surface0
+          l_crust
+          l_surface0
+          l_text
+          l_subtext1
+          l_mauve
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Catppuccin Latte Kitty";

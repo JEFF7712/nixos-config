@@ -187,12 +187,80 @@ in
         @define-color secondary_sidebar_fg_color ${nord4};
       '';
 
-      qt6 = ''
-        [ColorScheme]
-        active_colors=${nord4}, ${nord1}, #ffffff, ${nord3}, ${nord2}, ${nord2}, ${nord4}, #ffffff, ${nord4}, ${nord0}, ${nord0}, #000000, ${nord10}, ${nord6}, ${nord9}, ${nord8}, ${nord3}, ${nord0}, ${nord3}, ${nord4}, ${nord4}, ${nord8}
-        disabled_colors=${nord3}, ${nord1}, #ffffff, ${nord3}, ${nord2}, ${nord2}, ${nord3}, #ffffff, ${nord3}, ${nord0}, ${nord0}, #000000, ${nord10}, ${nord6}, ${nord9}, ${nord8}, ${nord3}, ${nord0}, ${nord3}, ${nord3}, ${nord3}, ${nord8}
-        inactive_colors=${nord4}, ${nord1}, #ffffff, ${nord3}, ${nord2}, ${nord2}, ${nord4}, #ffffff, ${nord4}, ${nord0}, ${nord0}, #000000, ${nord10}, ${nord6}, ${nord9}, ${nord8}, ${nord3}, ${nord0}, ${nord3}, ${nord4}, ${nord4}, ${nord8}
-      '';
+      qt6 = theme.mkQt6ColorScheme {
+        active = [
+          nord4
+          nord1
+          "#ffffff"
+          nord3
+          nord2
+          nord2
+          nord4
+          "#ffffff"
+          nord4
+          nord0
+          nord0
+          "#000000"
+          nord10
+          nord6
+          nord9
+          nord8
+          nord3
+          nord0
+          nord3
+          nord4
+          nord4
+          nord8
+        ];
+        disabled = [
+          nord3
+          nord1
+          "#ffffff"
+          nord3
+          nord2
+          nord2
+          nord3
+          "#ffffff"
+          nord3
+          nord0
+          nord0
+          "#000000"
+          nord10
+          nord6
+          nord9
+          nord8
+          nord3
+          nord0
+          nord3
+          nord3
+          nord3
+          nord8
+        ];
+        inactive = [
+          nord4
+          nord1
+          "#ffffff"
+          nord3
+          nord2
+          nord2
+          nord4
+          "#ffffff"
+          nord4
+          nord0
+          nord0
+          "#000000"
+          nord10
+          nord6
+          nord9
+          nord8
+          nord3
+          nord0
+          nord3
+          nord4
+          nord4
+          nord8
+        ];
+      };
 
       kitty = theme.mkKittyColors {
         title = "Nord Kitty Theme";
