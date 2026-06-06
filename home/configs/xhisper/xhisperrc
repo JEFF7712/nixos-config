@@ -1,30 +1,33 @@
-# xhisper configuration — see `xhisper --log` to debug.
+# xhisper configuration — see `xhisper --log` and /tmp/xhisper-stream.log.
 # Editable at runtime (this file is symlinked out-of-store).
 
-# Whisper model: tiny, base, small, medium, large-v3
-# base is the sweet spot for short dictation; small/medium need cuda to feel snappy.
-model-name : base
+# --- Model -------------------------------------------------------------------
+# Available: tiny, base, small, medium, large-v3 (and *.en variants for English-only).
+# small.en gives noticeably better partial stability during streaming.
+model-name : small.en
 
-# Device: auto, cpu, or cuda
-# The flake builds ctranslate2 with withCUDA, so the 3050 handles transcription.
+# Device: auto, cpu, or cuda.
 model-device : cuda
 
-# Language: leave empty for auto-detect, or "en" for English-only (faster + more accurate).
+# Language: leave empty for auto-detect, or "en" for English-only.
 model-language : "en"
 
-# Optional context to seed Whisper (improves proper nouns, jargon).
 transcription-prompt : ""
 
-# Paste timing for non-ASCII characters.
 non-ascii-initial-delay : 0.15
 non-ascii-default-delay : 0.025
 
-# Silence detection (dB threshold, % of clip that must be silent to skip).
 silence-threshold  : -50
 silence-percentage : 95
 
-# AI post-processing via local Ollama (set by services.ollama in the NixOS module).
-# Leave model empty to skip cleanup and just type raw Whisper output.
+# --- Streaming (xhisper-stream / xhisper-streamd) ----------------------------
+stream-window-seconds       : 8
+stream-step-ms              : 500
+local-agreement-n           : 2
+auto-stop-silence-seconds   : 3
+overlay-y-offset            : 60
+
+# --- AI post-processing (ollama) ---------------------------------------------
 post-process-model     : gemma3:4b
 post-process-timeout   : 10
 post-process-mode      : auto
