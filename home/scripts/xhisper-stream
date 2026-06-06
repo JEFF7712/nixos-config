@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# xhisper-stream — streaming dictation orchestrator (toggle / cancel).
+# See docs/superpowers/specs/2026-06-06-xhisper-streaming-overlay-design.md
+set -euo pipefail
+
+PID_FILE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/xhisper-stream.pid"
+LOCK_FILE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/xhisper-stream.lock"
+LOG_FILE="/tmp/xhisper-stream.log"
+OVERLAY_SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/xhisper-overlay.sock"
+
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/xhisper/xhisperrc"
+
+# Config defaults (overridden by xhisperrc).
+model_name="small.en"
+model_device="cuda"
+model_language="en"
+stream_window_seconds=8
+stream_step_ms=500
+local_agreement_n=2
+auto_stop_silence_seconds=3
+post_process_model="gemma3:4b"
+post_process_timeout=10
+post_process_mode="auto"
+
+# --- Config loader (KEY : VALUE lines, # comments) ---
+if [ -f "$CONFIG_FILE" ]; then
+  while IFS=: read -r key value || [ -n "$key" ]; do
+    [[ "$key" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "$key" ]] && continue
+    key=$(printf '%s' "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    value=$(printf '%s' "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^"//;s/"$//')
+    case "$key" in
+      model-name) model_name="$value" ;;
+      model-device) model_device="$value" ;;
+      model-language) model_language="$value" ;;
+      stream-window-seconds) stream_window_seconds="$value" ;;
+      stream-step-ms) stream_step_ms="$value" ;;
+      local-agreement-n) local_agreement_n="$value" ;;
+      auto-stop-silence-seconds) auto_stop_silence_seconds="$value" ;;
+      post-process-model) post_process_model="$value" ;;
+      post-process-timeout) post_process_timeout="$value" ;;
+      post-process-mode) post_process_mode="$value" ;;
+    esac
+  done < "$CONFIG_FILE"
+fi
+
+log() { printf '%(%H:%M:%S)T %s\n' -1 "$*" >> "$LOG_FILE"; }
+
+# --- Argument parsing ---
+MODE="toggle"
+for arg in "$@"; do
+  case "$arg" in
+    --cancel) MODE="cancel" ;;
+    --status) MODE="status" ;;
+    *) echo "Unknown arg: $arg" >&2; exit 1 ;;
+  esac
+done
+
+# --- PID-file helpers ---
+pid_alive() {
+  local pid="$1"
+  [ -d "/proc/$pid" ] && grep -q "xhisper-stream" "/proc/$pid/comm" 2>/dev/null
+}
+
+read_pid() {
+  [ -f "$PID_FILE" ] || return 1
+  local pid
+  pid=$(cat "$PID_FILE" 2>/dev/null) || return 1
+  [ -n "$pid" ] || return 1
+  pid_alive "$pid" || { rm -f "$PID_FILE"; return 1; }
+  printf '%s' "$pid"
+}
+
+# --- Cancel: signal the running session, exit. ---
+if [ "$MODE" = "cancel" ]; then
+  if pid=$(read_pid); then
+    kill -USR1 "$pid"
+    log "cancel sent to pid=$pid"
+  fi
+  exit 0
+fi
+
+# --- Status: print state. ---
+if [ "$MODE" = "status" ]; then
+  if pid=$(read_pid); then
+    echo "recording (pid=$pid)"
+  else
+    echo "idle"
+  fi
+  exit 0
+fi
+
+# --- Toggle: if a session is running, commit it; else start a new one. ---
+if pid=$(read_pid); then
+  log "toggle: commit signal to pid=$pid"
+  kill -TERM "$pid"
+  exit 0
+fi
+
+# --- Start a new session (this process becomes the session). ---
+exec {lock_fd}> "$LOCK_FILE"
+if ! flock -n "$lock_fd"; then
+  log "another invocation already starting; aborting"
+  exit 0
+fi
+
+echo $$ > "$PID_FILE"
+log "session start pid=$$"
+
+cleanup() {
+  log "cleanup pid=$$"
+  rm -f "$PID_FILE"
+}
+trap cleanup EXIT
+
+# Session body added in Task 8.
+log "skeleton: would record now. Sleeping 60 s then exiting."
+sleep 60
