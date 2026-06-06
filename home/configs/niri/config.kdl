@@ -247,8 +247,7 @@ binds {
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }
     Mod+Shift+T { spawn "bash" "/home/rupan/nixos/home/scripts/toggle-variant"; }
-    Mod+Z hotkey-overlay-title="Dictate (auto-stop)" { spawn "xhisper-stream"; }
-    Mod+Shift+Z hotkey-overlay-title="Cancel dictation" { spawn "xhisper-stream" "--cancel"; }
+    Mod+Z hotkey-overlay-title="Dictate (xhisper toggle)" { spawn "xhisper"; }
 
     Mod+C repeat=false { close-window; }
     Mod+Alt+O { toggle-window-rule-opacity; }
