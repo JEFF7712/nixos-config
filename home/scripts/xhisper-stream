@@ -113,6 +113,144 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Session body added in Task 8.
-log "skeleton: would record now. Sleeping 60 s then exiting."
-sleep 60
+# ---- Session ------------------------------------------------------------------
+
+FINAL_TEXT=""
+COMMIT_FLAG=0
+CANCEL_FLAG=0
+PARTIALS_PIPE="${XDG_RUNTIME_DIR}/xhisper-stream.partials.$$"
+mkfifo "$PARTIALS_PIPE"
+
+mark_commit() { COMMIT_FLAG=1; }
+mark_cancel() { CANCEL_FLAG=1; }
+trap mark_commit TERM
+trap mark_cancel USR1
+
+# Spawn per-session overlay.
+qs -p "$HOME/.config/quickshell-xhisper" >> "$LOG_FILE" 2>&1 &
+OVERLAY_PID=$!
+
+# Wait briefly for overlay socket to appear.
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  [ -S "$OVERLAY_SOCK" ] && break
+  sleep 0.1
+done
+
+send_overlay() {
+  printf '%s\n' "$1" | socat -t 0.1 - "UNIX-CONNECT:$OVERLAY_SOCK" 2>/dev/null || true
+}
+
+# Spawn pw-record → xhisper-streamd; capture daemon stdout to FIFO.
+pw-record --channels=1 --rate=16000 --format=s16 - 2>>"$LOG_FILE" \
+  | xhisper-streamd \
+      --model "$model_name" \
+      --device "$model_device" \
+      --language "$model_language" \
+      --window-seconds "$stream_window_seconds" \
+      --step-ms "$stream_step_ms" \
+      --agreement-n "$local_agreement_n" \
+      > "$PARTIALS_PIPE" 2>>"$LOG_FILE" &
+PIPELINE_DAEMON_PID=$!
+
+LAST_CHANGE=$(date +%s)
+PREV_CONFIRMED=""
+PREV_TENTATIVE=""
+
+exec {pfd}< "$PARTIALS_PIPE"
+
+while :; do
+  if [ $CANCEL_FLAG -eq 1 ]; then
+    log "cancel: tearing down without typing"
+    send_overlay '{"type":"hide"}'
+    break
+  fi
+
+  if [ $COMMIT_FLAG -eq 1 ]; then
+    log "commit: draining daemon for final"
+    # Close stdin to daemon by killing pw-record; daemon emits final and exits.
+    pkill -TERM -P $$ pw-record 2>/dev/null || true
+    while IFS= read -r -t 5 line <&$pfd; do
+      [ -z "$line" ] && continue
+      kind=$(printf '%s' "$line" | jq -r '.type' 2>/dev/null || echo "")
+      if [ "$kind" = "final" ]; then
+        FINAL_TEXT=$(printf '%s' "$line" | jq -r '.text')
+        break
+      fi
+    done
+    send_overlay '{"type":"hide"}'
+    break
+  fi
+
+  if IFS= read -r -t 0.2 line <&$pfd; then
+    [ -z "$line" ] && continue
+    send_overlay "$line"
+    conf=$(printf '%s' "$line" | jq -r '.confirmed // ""' 2>/dev/null)
+    tent=$(printf '%s' "$line" | jq -r '.tentative // ""' 2>/dev/null)
+    if [ "$conf" != "$PREV_CONFIRMED" ] || [ "$tent" != "$PREV_TENTATIVE" ]; then
+      PREV_CONFIRMED="$conf"
+      PREV_TENTATIVE="$tent"
+      LAST_CHANGE=$(date +%s)
+    fi
+  fi
+
+  now=$(date +%s)
+  if [ $((now - LAST_CHANGE)) -ge "$auto_stop_silence_seconds" ]; then
+    log "silence auto-commit after $auto_stop_silence_seconds s"
+    COMMIT_FLAG=1
+  fi
+
+  if ! kill -0 "$PIPELINE_DAEMON_PID" 2>/dev/null; then
+    log "daemon exited; treating as commit"
+    COMMIT_FLAG=1
+  fi
+done
+
+pkill -P $$ 2>/dev/null || true
+kill "$OVERLAY_PID" 2>/dev/null || true
+rm -f "$PARTIALS_PIPE"
+exec {pfd}<&-
+
+if [ $CANCEL_FLAG -eq 1 ] || [ -z "${FINAL_TEXT// /}" ]; then
+  exit 0
+fi
+
+# ---- Commit phase: ollama cleanup + xhispertoold typing ----------------------
+log "raw final: $FINAL_TEXT"
+
+CLEANED="$FINAL_TEXT"
+if [ -n "$post_process_model" ] && command -v ollama >/dev/null 2>&1; then
+  prompt="Fix grammar, punctuation, and capitalization. Output only the corrected text, nothing else.
+
+Input: $FINAL_TEXT
+Output:"
+  if cleaned=$(printf '%s' "$prompt" | timeout "$post_process_timeout" ollama run "$post_process_model" 2>/dev/null); then
+    cleaned=$(printf '%s' "$cleaned" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    if [ -n "$cleaned" ]; then
+      CLEANED="$cleaned"
+      log "cleaned: $CLEANED"
+    fi
+  else
+    log "ollama failed/timed out, typing raw"
+  fi
+fi
+
+if ! pgrep -x xhispertoold >/dev/null; then
+  xhispertoold >> /tmp/xhispertoold.log 2>&1 &
+  sleep 0.5
+fi
+
+i=0
+len=${#CLEANED}
+while [ $i -lt $len ]; do
+  ch="${CLEANED:$i:1}"
+  ascii=$(printf '%d' "'$ch")
+  if [ "$ascii" -ge 32 ] && [ "$ascii" -le 126 ]; then
+    xhispertool type "$ch"
+  else
+    printf '%s' "$ch" | wl-copy
+    xhispertool paste
+    sleep 0.025
+  fi
+  i=$((i + 1))
+done
+log "typed $len chars"
