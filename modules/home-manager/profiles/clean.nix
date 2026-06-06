@@ -217,59 +217,50 @@ in
         inactive_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${accent}, ${bg2}, ${accent}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg2}, ${fg2}, ${accent}
       '';
 
-      kitty = ''
-        cursor ${fg1}
-        cursor_text_color ${bg0}
-        foreground ${fg1}
-        background ${bg0}
-        selection_foreground ${bg0}
-        selection_background ${bg3}
-        color0  ${bg1}
-        color8  ${bg3}
-        color1  ${err}
-        color9  ${err}
-        color2  ${fg2}
-        color10 ${fg1}
-        color3  ${fg2}
-        color11 ${fg1}
-        color4  ${fg2}
-        color12 ${fg1}
-        color5  ${fg2}
-        color13 ${fg1}
-        color6  ${fg2}
-        color14 ${fg1}
-        color7  ${fg1}
-        color15 ${fg0}
-      '';
+      kitty = theme.mkKittyColors {
+        cursor = fg1;
+        cursorText = bg0;
+        foreground = fg1;
+        background = bg0;
+        selectionForeground = bg0;
+        selectionBackground = bg3;
+        color0 = bg1;
+        color8 = bg3;
+        color1 = err;
+        color9 = err;
+        color2 = fg2;
+        color10 = fg1;
+        color3 = fg2;
+        color11 = fg1;
+        color4 = fg2;
+        color12 = fg1;
+        color5 = fg2;
+        color13 = fg1;
+        color6 = fg2;
+        color14 = fg1;
+        color7 = fg1;
+        color15 = fg0;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${fg1}
-        set -g fish_color_command ${fg0}
-        set -g fish_color_keyword ${fg0}
-        set -g fish_color_quote ${fg2}
-        set -g fish_color_error ${fg0}
-        set -g fish_color_param ${fg1}
-        set -g fish_color_comment ${fg2}
-        set -g fish_color_selection --background=${bg2}
-        set -g fish_color_autosuggestion ${fg2}
-      '';
+      fish = theme.mkFishColors {
+        normal = fg1;
+        command = fg0;
+        keyword = fg0;
+        quote = fg2;
+        error = fg0;
+        param = fg1;
+        comment = fg2;
+        selection = bg2;
+        autosuggestion = fg2;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${fg1})"
-        error_symbol = "[❯](${fg0})"
-
-        [directory]
-        style = "bold ${fg0}"
-
-        [git_branch]
-        style = "bold ${fg2}"
-
-        [cmd_duration]
-        style = "bold ${fg2}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = fg1;
+        error = fg0;
+        directory = fg0;
+        gitBranch = fg2;
+        cmdDuration = fg2;
+      };
 
       rofi = rofi;
     };

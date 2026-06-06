@@ -199,65 +199,56 @@ in
         inactive_colors=${subtle}, ${surface}, #ffffff, ${highlightHigh}, ${overlay}, ${overlay}, ${subtle}, #ffffff, ${subtle}, ${base}, ${base}, #000000, ${iris}, ${highlightMed}, ${iris}, ${pine}, ${overlay}, ${highlightLow}, ${overlay}, ${subtle}, ${muted}, ${iris}
       '';
 
-      kitty = ''
-        # Rosé Pine Kitty
-        cursor ${rose}
-        cursor_text_color ${base}
-        foreground ${text}
-        background ${base}
-        selection_foreground ${base}
-        selection_background ${iris}
-        color0  ${highlightMed}
-        color8  ${highlightHigh}
-        color1  ${love}
-        color9  ${love}
-        color2  ${pine}
-        color10 ${foam}
-        color3  ${gold}
-        color11 ${gold}
-        color4  ${pine}
-        color12 ${pine}
-        color5  ${iris}
-        color13 ${iris}
-        color6  ${foam}
-        color14 ${foam}
-        color7  ${subtle}
-        color15 ${text}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Rosé Pine Kitty";
+        cursor = rose;
+        cursorText = base;
+        foreground = text;
+        background = base;
+        selectionForeground = base;
+        selectionBackground = iris;
+        color0 = highlightMed;
+        color8 = highlightHigh;
+        color1 = love;
+        color9 = love;
+        color2 = pine;
+        color10 = foam;
+        color3 = gold;
+        color11 = gold;
+        color4 = pine;
+        color12 = pine;
+        color5 = iris;
+        color13 = iris;
+        color6 = foam;
+        color14 = foam;
+        color7 = subtle;
+        color15 = text;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${text}
-        set -g fish_color_command ${iris}
-        set -g fish_color_keyword ${love}
-        set -g fish_color_quote ${gold}
-        set -g fish_color_redirection ${foam}
-        set -g fish_color_end ${subtle}
-        set -g fish_color_error ${love}
-        set -g fish_color_param ${text}
-        set -g fish_color_comment ${muted}
-        set -g fish_color_selection --background=${highlightMed}
-        set -g fish_color_search_match --background=${overlay}
-        set -g fish_color_operator ${iris}
-        set -g fish_color_escape ${rose}
-        set -g fish_color_autosuggestion ${muted}
-      '';
+      fish = theme.mkFishColors {
+        normal = text;
+        command = iris;
+        keyword = love;
+        quote = gold;
+        redirection = foam;
+        end = subtle;
+        error = love;
+        param = text;
+        comment = muted;
+        selection = highlightMed;
+        searchMatch = overlay;
+        operator = iris;
+        escape = rose;
+        autosuggestion = muted;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${iris})"
-        error_symbol = "[❯](${love})"
-
-        [directory]
-        style = "bold ${foam}"
-
-        [git_branch]
-        style = "bold ${rose}"
-
-        [cmd_duration]
-        style = "bold ${subtle}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = iris;
+        error = love;
+        directory = foam;
+        gitBranch = rose;
+        cmdDuration = subtle;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = base;
@@ -370,65 +361,56 @@ in
         inactive_colors=${d_subtle}, ${d_surface}, #ffffff, ${d_highlightHigh}, ${d_overlay}, ${d_overlay}, ${d_subtle}, #ffffff, ${d_subtle}, ${d_base}, ${d_base}, #000000, ${d_iris}, ${d_highlightMed}, ${d_iris}, ${d_pine}, ${d_overlay}, ${d_highlightLow}, ${d_overlay}, ${d_subtle}, ${d_muted}, ${d_iris}
       '';
 
-      kitty = ''
-        # Rosé Pine Dawn Kitty
-        cursor ${d_rose}
-        cursor_text_color ${d_base}
-        foreground ${d_text}
-        background ${d_base}
-        selection_foreground ${d_base}
-        selection_background ${d_iris}
-        color0  ${d_highlightMed}
-        color8  ${d_highlightHigh}
-        color1  ${d_love}
-        color9  ${d_love}
-        color2  ${d_pine}
-        color10 ${d_foam}
-        color3  ${d_gold}
-        color11 ${d_gold}
-        color4  ${d_pine}
-        color12 ${d_pine}
-        color5  ${d_iris}
-        color13 ${d_iris}
-        color6  ${d_foam}
-        color14 ${d_foam}
-        color7  ${d_subtle}
-        color15 ${d_text}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Rosé Pine Dawn Kitty";
+        cursor = d_rose;
+        cursorText = d_base;
+        foreground = d_text;
+        background = d_base;
+        selectionForeground = d_base;
+        selectionBackground = d_iris;
+        color0 = d_highlightMed;
+        color8 = d_highlightHigh;
+        color1 = d_love;
+        color9 = d_love;
+        color2 = d_pine;
+        color10 = d_foam;
+        color3 = d_gold;
+        color11 = d_gold;
+        color4 = d_pine;
+        color12 = d_pine;
+        color5 = d_iris;
+        color13 = d_iris;
+        color6 = d_foam;
+        color14 = d_foam;
+        color7 = d_subtle;
+        color15 = d_text;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${d_text}
-        set -g fish_color_command ${d_iris}
-        set -g fish_color_keyword ${d_love}
-        set -g fish_color_quote ${d_gold}
-        set -g fish_color_redirection ${d_foam}
-        set -g fish_color_end ${d_subtle}
-        set -g fish_color_error ${d_love}
-        set -g fish_color_param ${d_text}
-        set -g fish_color_comment ${d_muted}
-        set -g fish_color_selection --background=${d_highlightMed}
-        set -g fish_color_search_match --background=${d_overlay}
-        set -g fish_color_operator ${d_iris}
-        set -g fish_color_escape ${d_rose}
-        set -g fish_color_autosuggestion ${d_muted}
-      '';
+      fish = theme.mkFishColors {
+        normal = d_text;
+        command = d_iris;
+        keyword = d_love;
+        quote = d_gold;
+        redirection = d_foam;
+        end = d_subtle;
+        error = d_love;
+        param = d_text;
+        comment = d_muted;
+        selection = d_highlightMed;
+        searchMatch = d_overlay;
+        operator = d_iris;
+        escape = d_rose;
+        autosuggestion = d_muted;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${d_iris})"
-        error_symbol = "[❯](${d_love})"
-
-        [directory]
-        style = "bold ${d_foam}"
-
-        [git_branch]
-        style = "bold ${d_rose}"
-
-        [cmd_duration]
-        style = "bold ${d_subtle}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = d_iris;
+        error = d_love;
+        directory = d_foam;
+        gitBranch = d_rose;
+        cmdDuration = d_subtle;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = d_base;

@@ -227,65 +227,56 @@ in
         inactive_colors=${text}, ${mantle}, #ffffff, ${overlay1}, ${surface0}, ${surface0}, ${subtext1}, #ffffff, ${text}, ${base}, ${base}, #000000, ${mauve}, ${surface1}, ${mauve}, ${blue}, ${surface0}, ${crust}, ${surface0}, ${text}, ${subtext1}, ${mauve}
       '';
 
-      kitty = ''
-        # Catppuccin Kitty (Monochrome Pink/Purple)
-        cursor #e8cfe4
-        cursor_text_color #1a1623
-        foreground #ddd2e8
-        background #1b1824
-        selection_foreground #1b1824
-        selection_background #b9a6cf
-        color0  #2b2734
-        color8  #4a4458
-        color1  #d7a0b3
-        color9  #dfaec0
-        color2  #bca9d1
-        color10 #c8b8db
-        color3  #c9b3d8
-        color11 #d5c2e1
-        color4  #af9bc8
-        color12 #bcabd2
-        color5  #dcb8d2
-        color13 #e5c7dc
-        color6  #c8afd9
-        color14 #d2bfe0
-        color7  #d8cde2
-        color15 #e4ddea
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Catppuccin Kitty (Monochrome Pink/Purple)";
+        cursor = "#e8cfe4";
+        cursorText = "#1a1623";
+        foreground = "#ddd2e8";
+        background = "#1b1824";
+        selectionForeground = "#1b1824";
+        selectionBackground = "#b9a6cf";
+        color0 = "#2b2734";
+        color8 = "#4a4458";
+        color1 = "#d7a0b3";
+        color9 = "#dfaec0";
+        color2 = "#bca9d1";
+        color10 = "#c8b8db";
+        color3 = "#c9b3d8";
+        color11 = "#d5c2e1";
+        color4 = "#af9bc8";
+        color12 = "#bcabd2";
+        color5 = "#dcb8d2";
+        color13 = "#e5c7dc";
+        color6 = "#c8afd9";
+        color14 = "#d2bfe0";
+        color7 = "#d8cde2";
+        color15 = "#e4ddea";
+      };
 
-      fish = ''
-        set -g fish_color_normal ${text}
-        set -g fish_color_command ${mauve}
-        set -g fish_color_keyword ${pink}
-        set -g fish_color_quote ${lavender}
-        set -g fish_color_redirection ${mauve}
-        set -g fish_color_end ${pink}
-        set -g fish_color_error ${red}
-        set -g fish_color_param ${text}
-        set -g fish_color_comment ${overlay0}
-        set -g fish_color_selection --background=${surface1}
-        set -g fish_color_search_match --background=${surface0}
-        set -g fish_color_operator ${mauve}
-        set -g fish_color_escape ${pink}
-        set -g fish_color_autosuggestion ${overlay0}
-      '';
+      fish = theme.mkFishColors {
+        normal = text;
+        command = mauve;
+        keyword = pink;
+        quote = lavender;
+        redirection = mauve;
+        end = pink;
+        error = red;
+        param = text;
+        comment = overlay0;
+        selection = surface1;
+        searchMatch = surface0;
+        operator = mauve;
+        escape = pink;
+        autosuggestion = overlay0;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${flamingo})"
-        error_symbol = "[❯](${red})"
-
-        [directory]
-        style = "bold ${lavender}"
-
-        [git_branch]
-        style = "bold ${pink}"
-
-        [cmd_duration]
-        style = "bold ${subtext1}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = flamingo;
+        error = red;
+        directory = lavender;
+        gitBranch = pink;
+        cmdDuration = subtext1;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = base;
@@ -395,65 +386,56 @@ in
         inactive_colors=${l_text}, ${l_mantle}, #ffffff, ${l_overlay1}, ${l_surface0}, ${l_surface0}, ${l_subtext1}, #ffffff, ${l_text}, ${l_base}, ${l_base}, #000000, ${l_mauve}, ${l_surface1}, ${l_mauve}, ${l_blue}, ${l_surface0}, ${l_crust}, ${l_surface0}, ${l_text}, ${l_subtext1}, ${l_mauve}
       '';
 
-      kitty = ''
-        # Catppuccin Latte Kitty
-        cursor ${l_mauve}
-        cursor_text_color ${l_base}
-        foreground ${l_text}
-        background ${l_base}
-        selection_foreground ${l_base}
-        selection_background ${l_mauve}
-        color0  ${l_surface1}
-        color8  ${l_surface2}
-        color1  ${l_red}
-        color9  ${l_red}
-        color2  ${l_green}
-        color10 ${l_green}
-        color3  ${l_yellow}
-        color11 ${l_yellow}
-        color4  ${l_blue}
-        color12 ${l_blue}
-        color5  ${l_mauve}
-        color13 ${l_mauve}
-        color6  ${l_teal}
-        color14 ${l_teal}
-        color7  ${l_subtext1}
-        color15 ${l_text}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Catppuccin Latte Kitty";
+        cursor = l_mauve;
+        cursorText = l_base;
+        foreground = l_text;
+        background = l_base;
+        selectionForeground = l_base;
+        selectionBackground = l_mauve;
+        color0 = l_surface1;
+        color8 = l_surface2;
+        color1 = l_red;
+        color9 = l_red;
+        color2 = l_green;
+        color10 = l_green;
+        color3 = l_yellow;
+        color11 = l_yellow;
+        color4 = l_blue;
+        color12 = l_blue;
+        color5 = l_mauve;
+        color13 = l_mauve;
+        color6 = l_teal;
+        color14 = l_teal;
+        color7 = l_subtext1;
+        color15 = l_text;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${l_text}
-        set -g fish_color_command ${l_mauve}
-        set -g fish_color_keyword ${l_pink}
-        set -g fish_color_quote ${l_green}
-        set -g fish_color_redirection ${l_teal}
-        set -g fish_color_end ${l_pink}
-        set -g fish_color_error ${l_red}
-        set -g fish_color_param ${l_text}
-        set -g fish_color_comment ${l_overlay0}
-        set -g fish_color_selection --background=${l_surface1}
-        set -g fish_color_search_match --background=${l_surface0}
-        set -g fish_color_operator ${l_mauve}
-        set -g fish_color_escape ${l_pink}
-        set -g fish_color_autosuggestion ${l_overlay1}
-      '';
+      fish = theme.mkFishColors {
+        normal = l_text;
+        command = l_mauve;
+        keyword = l_pink;
+        quote = l_green;
+        redirection = l_teal;
+        end = l_pink;
+        error = l_red;
+        param = l_text;
+        comment = l_overlay0;
+        selection = l_surface1;
+        searchMatch = l_surface0;
+        operator = l_mauve;
+        escape = l_pink;
+        autosuggestion = l_overlay1;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${l_mauve})"
-        error_symbol = "[❯](${l_red})"
-
-        [directory]
-        style = "bold ${l_blue}"
-
-        [git_branch]
-        style = "bold ${l_pink}"
-
-        [cmd_duration]
-        style = "bold ${l_subtext1}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = l_mauve;
+        error = l_red;
+        directory = l_blue;
+        gitBranch = l_pink;
+        cmdDuration = l_subtext1;
+      };
 
       rofi = theme.mkProfilePickerRofi {
         background = l_base;

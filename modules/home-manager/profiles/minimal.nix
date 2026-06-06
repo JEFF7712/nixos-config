@@ -216,65 +216,56 @@ in
         inactive_colors=${fg2}, ${bg1}, #ffffff, ${bg3}, ${bg2}, ${bg2}, ${fg2}, #ffffff, ${fg2}, ${bg0}, ${bg0}, #000000, ${accent}, ${bg2}, ${accent}, ${fg2}, ${bg1}, ${bg0}, ${bg1}, ${fg2}, ${fg2}, ${accent}
       '';
 
-      kitty = ''
-        # Minimal dark
-        cursor ${fg1}
-        cursor_text_color ${bg0}
-        foreground ${fg1}
-        background ${bg0}
-        selection_foreground ${bg0}
-        selection_background ${bg3}
-        color0  ${bg1}
-        color8  ${bg3}
-        color1  ${err}
-        color9  ${err}
-        color2  ${fg2}
-        color10 ${fg1}
-        color3  ${fg2}
-        color11 ${fg1}
-        color4  ${fg2}
-        color12 ${fg1}
-        color5  ${fg2}
-        color13 ${fg1}
-        color6  ${fg2}
-        color14 ${fg1}
-        color7  ${fg1}
-        color15 ${fg0}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Minimal dark";
+        cursor = fg1;
+        cursorText = bg0;
+        foreground = fg1;
+        background = bg0;
+        selectionForeground = bg0;
+        selectionBackground = bg3;
+        color0 = bg1;
+        color8 = bg3;
+        color1 = err;
+        color9 = err;
+        color2 = fg2;
+        color10 = fg1;
+        color3 = fg2;
+        color11 = fg1;
+        color4 = fg2;
+        color12 = fg1;
+        color5 = fg2;
+        color13 = fg1;
+        color6 = fg2;
+        color14 = fg1;
+        color7 = fg1;
+        color15 = fg0;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${fg1}
-        set -g fish_color_command ${fg0}
-        set -g fish_color_keyword ${fg0}
-        set -g fish_color_quote ${fg2}
-        set -g fish_color_redirection ${fg2}
-        set -g fish_color_end ${fg2}
-        set -g fish_color_error ${fg0}
-        set -g fish_color_param ${fg1}
-        set -g fish_color_comment ${fg2}
-        set -g fish_color_selection --background=${bg2}
-        set -g fish_color_search_match --background=${bg1}
-        set -g fish_color_operator ${fg1}
-        set -g fish_color_escape ${fg2}
-        set -g fish_color_autosuggestion ${fg2}
-      '';
+      fish = theme.mkFishColors {
+        normal = fg1;
+        command = fg0;
+        keyword = fg0;
+        quote = fg2;
+        redirection = fg2;
+        end = fg2;
+        error = fg0;
+        param = fg1;
+        comment = fg2;
+        selection = bg2;
+        searchMatch = bg1;
+        operator = fg1;
+        escape = fg2;
+        autosuggestion = fg2;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${fg1})"
-        error_symbol = "[❯](${fg0})"
-
-        [directory]
-        style = "bold ${fg0}"
-
-        [git_branch]
-        style = "bold ${fg2}"
-
-        [cmd_duration]
-        style = "bold ${fg2}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = fg1;
+        error = fg0;
+        directory = fg0;
+        gitBranch = fg2;
+        cmdDuration = fg2;
+      };
 
       rofi = minimalRofi bg0 bg1 bg3 fg1 fg2 accent accent bg2;
     };
@@ -369,65 +360,56 @@ in
         inactive_colors=${l_fg2}, ${l_bg1}, #ffffff, ${l_bg3}, ${l_bg2}, ${l_bg2}, ${l_fg2}, #ffffff, ${l_fg2}, ${l_bg0}, ${l_bg0}, #000000, ${l_accent}, ${l_bg2}, ${l_accent}, ${l_fg2}, ${l_bg1}, ${l_bg0}, ${l_bg1}, ${l_fg2}, ${l_fg2}, ${l_accent}
       '';
 
-      kitty = ''
-        # Minimal light
-        cursor ${l_fg1}
-        cursor_text_color ${l_bg0}
-        foreground ${l_fg1}
-        background ${l_bg0}
-        selection_foreground ${l_bg0}
-        selection_background ${l_bg3}
-        color0  ${l_bg1}
-        color8  ${l_bg3}
-        color1  ${l_err}
-        color9  ${l_err}
-        color2  ${l_fg2}
-        color10 ${l_fg1}
-        color3  ${l_fg2}
-        color11 ${l_fg1}
-        color4  ${l_fg2}
-        color12 ${l_fg1}
-        color5  ${l_fg2}
-        color13 ${l_fg1}
-        color6  ${l_fg2}
-        color14 ${l_fg1}
-        color7  ${l_fg1}
-        color15 ${l_fg0}
-      '';
+      kitty = theme.mkKittyColors {
+        title = "Minimal light";
+        cursor = l_fg1;
+        cursorText = l_bg0;
+        foreground = l_fg1;
+        background = l_bg0;
+        selectionForeground = l_bg0;
+        selectionBackground = l_bg3;
+        color0 = l_bg1;
+        color8 = l_bg3;
+        color1 = l_err;
+        color9 = l_err;
+        color2 = l_fg2;
+        color10 = l_fg1;
+        color3 = l_fg2;
+        color11 = l_fg1;
+        color4 = l_fg2;
+        color12 = l_fg1;
+        color5 = l_fg2;
+        color13 = l_fg1;
+        color6 = l_fg2;
+        color14 = l_fg1;
+        color7 = l_fg1;
+        color15 = l_fg0;
+      };
 
-      fish = ''
-        set -g fish_color_normal ${l_fg1}
-        set -g fish_color_command ${l_fg0}
-        set -g fish_color_keyword ${l_fg0}
-        set -g fish_color_quote ${l_fg2}
-        set -g fish_color_redirection ${l_fg2}
-        set -g fish_color_end ${l_fg2}
-        set -g fish_color_error ${l_fg0}
-        set -g fish_color_param ${l_fg1}
-        set -g fish_color_comment ${l_fg2}
-        set -g fish_color_selection --background=${l_bg2}
-        set -g fish_color_search_match --background=${l_bg1}
-        set -g fish_color_operator ${l_fg1}
-        set -g fish_color_escape ${l_fg2}
-        set -g fish_color_autosuggestion ${l_fg2}
-      '';
+      fish = theme.mkFishColors {
+        normal = l_fg1;
+        command = l_fg0;
+        keyword = l_fg0;
+        quote = l_fg2;
+        redirection = l_fg2;
+        end = l_fg2;
+        error = l_fg0;
+        param = l_fg1;
+        comment = l_fg2;
+        selection = l_bg2;
+        searchMatch = l_bg1;
+        operator = l_fg1;
+        escape = l_fg2;
+        autosuggestion = l_fg2;
+      };
 
-      starship = ''
-        format = "$all"
-
-        [character]
-        success_symbol = "[❯](${l_fg1})"
-        error_symbol = "[❯](${l_fg0})"
-
-        [directory]
-        style = "bold ${l_fg0}"
-
-        [git_branch]
-        style = "bold ${l_fg2}"
-
-        [cmd_duration]
-        style = "bold ${l_fg2}"
-      '';
+      starship = theme.mkStarshipPrompt {
+        success = l_fg1;
+        error = l_fg0;
+        directory = l_fg0;
+        gitBranch = l_fg2;
+        cmdDuration = l_fg2;
+      };
 
       rofi = minimalRofi l_bg0 l_bg1 l_bg3 l_fg0 l_fg2 l_accent l_accent l_bg2;
     };
