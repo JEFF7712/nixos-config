@@ -64,6 +64,15 @@ stdenv.mkDerivation {
       --replace-fail \
         '#!/usr/bin/env python3' \
         '#!${python}/bin/python3'
+
+    # Upstream calls `python3 "$TRANSCRIPT_SCRIPT"` where TRANSCRIPT_SCRIPT is the
+    # bare name "xhisper_transcribe". python3 treats that as a cwd-relative path
+    # (no PATH lookup), so it silently fails. Drop the python3 prefix and rely on
+    # xhisper_transcribe's shebang, which points at our wrapped interpreter.
+    substituteInPlace xhisper.sh \
+      --replace-fail \
+        'python3 "$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null' \
+        '"$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null'
   '';
 
   makeFlags = [ "PREFIX=$(out)" ];
