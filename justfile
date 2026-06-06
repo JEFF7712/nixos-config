@@ -14,9 +14,12 @@ eval-all:
   just eval laptop
   just eval iso
 
+flake-check:
+  nix flake check
+
 check:
   just shell-check
-  nix flake show --no-write-lock-file >/dev/null
+  just flake-check
   just eval-all
   git diff --check
 
