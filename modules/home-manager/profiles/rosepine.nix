@@ -2,6 +2,7 @@
 
 let
   waybar = import ../../../lib/waybar.nix;
+  theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   # ── Rosé Pine Main (dark) ────────────────────────────────────────────────────
   base = "#191724";
   surface = "#1f1d2e";
@@ -59,57 +60,25 @@ in
       pillBorder = "#00000000";
     };
 
-    makoConfig = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${base}
-      text-color=${text}
-      border-color=${iris}
-      border-size=2
-      border-radius=8
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
+    makoConfig = theme.mkMakoConfig {
+      background = base;
+      text = text;
+      border = iris;
+      lowBorder = highlightHigh;
+      highBackground = surface;
+      highBorder = love;
+      highText = text;
+    };
 
-      [urgency=low]
-      border-color=${highlightHigh}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${surface}
-      border-color=${love}
-      text-color=${text}
-      default-timeout=0
-    '';
-
-    makoConfigLight = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${d_base}
-      text-color=${d_text}
-      border-color=${d_iris}
-      border-size=2
-      border-radius=8
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
-
-      [urgency=low]
-      border-color=${d_highlightHigh}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${d_surface}
-      border-color=${d_love}
-      text-color=${d_text}
-      default-timeout=0
-    '';
+    makoConfigLight = theme.mkMakoConfig {
+      background = d_base;
+      text = d_text;
+      border = d_iris;
+      lowBorder = d_highlightHigh;
+      highBackground = d_surface;
+      highBorder = d_love;
+      highText = d_text;
+    };
 
     cursor = {
       theme = "BreezeX-RosePine-Linux";

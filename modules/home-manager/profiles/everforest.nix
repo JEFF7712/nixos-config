@@ -2,6 +2,7 @@
 
 let
   waybar = import ../../../lib/waybar.nix;
+  theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   # ── Everforest Dark Hard ─────────────────────────────────────────────────────
   bg0 = "#272e33";
   bg1 = "#2e383c";
@@ -62,57 +63,25 @@ in
       pillBorder = "#1d2e383c";
     };
 
-    makoConfig = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${bg0}
-      text-color=${fg}
-      border-color=${green}
-      border-size=2
-      border-radius=8
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
+    makoConfig = theme.mkMakoConfig {
+      background = bg0;
+      text = fg;
+      border = green;
+      lowBorder = bg4;
+      highBackground = bg1;
+      highBorder = red;
+      highText = fg;
+    };
 
-      [urgency=low]
-      border-color=${bg4}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${bg1}
-      border-color=${red}
-      text-color=${fg}
-      default-timeout=0
-    '';
-
-    makoConfigLight = ''
-      font=JetBrainsMono Nerd Font 11
-      background-color=${l_bg0}
-      text-color=${l_fg}
-      border-color=${l_green}
-      border-size=2
-      border-radius=8
-      width=320
-      padding=12
-      margin=10
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
-
-      [urgency=low]
-      border-color=${l_bg3}
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=${l_bg1}
-      border-color=${l_red}
-      text-color=${l_fg}
-      default-timeout=0
-    '';
+    makoConfigLight = theme.mkMakoConfig {
+      background = l_bg0;
+      text = l_fg;
+      border = l_green;
+      lowBorder = l_bg3;
+      highBackground = l_bg1;
+      highBorder = l_red;
+      highText = l_fg;
+    };
 
     cursor = {
       theme = "Bibata-Modern-Classic";

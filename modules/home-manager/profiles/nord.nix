@@ -5,6 +5,7 @@
 
 let
   waybar = import ../../../lib/waybar.nix;
+  theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   nord0 = "#2e3440";
   nord1 = "#3b4252";
   nord2 = "#434c5e";
@@ -49,31 +50,20 @@ in
       dividerColor = nord3;
     };
 
-    makoConfig = ''
-      font=Iosevka Nerd Font 11
-      background-color=#2e3440
-      text-color=#d8dee9
-      border-color=#88c0d0
-      border-size=1
-      border-radius=0
-      width=320
-      padding=10
-      margin=6
-      default-timeout=5000
-      icons=1
-      max-icon-size=48
-      layer=overlay
-
-      [urgency=low]
-      border-color=#4c566a
-      default-timeout=3000
-
-      [urgency=high]
-      background-color=#3b4252
-      border-color=#bf616a
-      text-color=#eceff4
-      default-timeout=0
-    '';
+    makoConfig = theme.mkMakoConfig {
+      background = nord0;
+      text = nord4;
+      border = nord8;
+      lowBorder = nord3;
+      highBackground = nord1;
+      highBorder = nord11;
+      highText = nord6;
+      font = "Iosevka Nerd Font 11";
+      borderSize = 1;
+      borderRadius = 0;
+      padding = 10;
+      margin = 6;
+    };
 
     cursor = {
       theme = "Nordzy-cursors";
