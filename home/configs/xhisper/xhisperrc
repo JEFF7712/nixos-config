@@ -24,7 +24,7 @@ silence-percentage : 95
 stream-window-seconds       : 8
 stream-step-ms              : 500
 local-agreement-n           : 2
-auto-stop-silence-seconds   : 3
+auto-stop-silence-seconds   : 1.5
 overlay-y-offset            : 60
 
 # --- AI post-processing (ollama) ---------------------------------------------
