@@ -4,7 +4,7 @@
 # --- Model -------------------------------------------------------------------
 # Available: tiny, base, small, medium, large-v3 (and *.en variants for English-only).
 # small.en gives noticeably better partial stability during streaming.
-model-name : small.en
+model-name : small
 
 # Device: auto, cpu, or cuda.
 model-device : cuda
