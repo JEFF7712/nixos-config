@@ -20,6 +20,7 @@
 let
   python = python3Packages.python.withPackages (ps: [
     ps.faster-whisper
+    ps.evdev # for xhisper-wait-mod-release helper
   ]);
 
   runtimePath = lib.makeBinPath (
@@ -85,18 +86,55 @@ stdenv.mkDerivation {
     # script, paste() starts typing the status / transcript via uinput while
     # the physical Super key is often still held — so each character lands as
     # Mod+<char>, opening Obsidian / Thunar / Vesktop / etc. via the niri
-    # bindings on Mod+O, Mod+E, Mod+D. Sleep at paste() entry gives the user
-    # time to release the modifier before any synthetic keystrokes go out.
+    # bindings on Mod+O, Mod+E, Mod+D.
+    # We install a small evdev-polling helper (xhisper-wait-mod-release, see
+    # postInstall) that blocks until KEY_LEFTMETA/RIGHTMETA actually clear or
+    # 2 s elapses, then paste() invokes it before any synthetic keystrokes.
     substituteInPlace xhisper.sh \
       --replace-fail \
         'paste() {' \
-        'paste() { sleep 0.3 ;  # wait for Mod release — see xhisper-local default.nix'
+        'paste() { xhisper-wait-mod-release 2>/dev/null || sleep 0.3 ;'
   '';
 
   makeFlags = [ "PREFIX=$(out)" ];
 
   postInstall = ''
     install -Dm644 default_xhisperrc $out/share/xhisper/default_xhisperrc
+
+    # Polls evdev until Super (LEFTMETA / RIGHTMETA) is released on every
+    # keyboard, or 2 s elapses. Called by paste() to keep synthesized
+    # keystrokes from colliding with niri's Mod+letter app launchers.
+    cat > $out/bin/xhisper-wait-mod-release <<PYEOF
+    #!${python}/bin/python3
+    import time, evdev
+
+    devs = []
+    for path in evdev.list_devices():
+        try:
+            d = evdev.InputDevice(path)
+            caps = d.capabilities()
+            keys = caps.get(evdev.ecodes.EV_KEY, [])
+            if evdev.ecodes.KEY_LEFTMETA in keys or evdev.ecodes.KEY_RIGHTMETA in keys:
+                devs.append(d)
+        except (PermissionError, OSError):
+            continue
+
+    deadline = time.time() + 2.0
+    while time.time() < deadline:
+        held = False
+        for d in devs:
+            try:
+                ks = d.active_keys()
+                if evdev.ecodes.KEY_LEFTMETA in ks or evdev.ecodes.KEY_RIGHTMETA in ks:
+                    held = True
+                    break
+            except OSError:
+                continue
+        if not held:
+            break
+        time.sleep(0.02)
+    PYEOF
+    chmod +x $out/bin/xhisper-wait-mod-release
 
     wrapProgram $out/bin/xhisper \
       --prefix PATH : "$out/bin:${runtimePath}"
