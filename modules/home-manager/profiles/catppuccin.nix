@@ -287,87 +287,19 @@ in
         style = "bold ${subtext1}"
       '';
 
-      rofi = ''
-        * {
-            font:                        "JetBrainsMono Nerd Font 11";
-            background-color:            ${base};
-            text-color:                  ${text};
-            border-color:                ${surface1};
-            selected-normal-background:  ${surface0};
-            selected-normal-foreground:  ${mauve};
-            normal-background:           ${base};
-            normal-foreground:           ${text};
-        }
-
-        window {
-            width:              900px;
-            border:             2px solid;
-            border-color:       ${surface1};
-            border-radius:      8px;
-            padding:            12px;
-            background-color:   ${base};
-        }
-
-        mainbox {
-            spacing:            0;
-            children:           [ inputbar, listview ];
-        }
-
-        inputbar {
-            padding:            8px 12px;
-            margin:             0 0 10px 0;
-            background-color:   ${mantle};
-            border-radius:      6px;
-            children:           [ prompt, entry ];
-        }
-
-        prompt {
-            text-color:         ${mauve};
-            padding:            0 8px 0 0;
-        }
-
-        entry {
-            text-color:         ${text};
-            placeholder:        "Switch profile…";
-            placeholder-color:  ${surface1};
-        }
-
-        listview {
-            columns:            3;
-            lines:              2;
-            spacing:            10px;
-            fixed-height:       false;
-            scrollbar:          false;
-        }
-
-        element {
-            orientation:        vertical;
-            padding:            10px;
-            spacing:            8px;
-            border-radius:      6px;
-            background-color:   ${surface0};
-            cursor:             pointer;
-        }
-
-        element selected {
-            background-color:   ${surface1};
-            border:             2px solid;
-            border-color:       ${mauve};
-        }
-
-        element-icon {
-            size:               160px;
-            border-radius:      4px;
-            horizontal-align:   0.5;
-        }
-
-        element-text {
-            horizontal-align:   0.5;
-            vertical-align:     0.5;
-            text-color:         inherit;
-            font:               "JetBrainsMono Nerd Font 12";
-        }
-      '';
+      rofi = theme.mkProfilePickerRofi {
+        background = base;
+        text = text;
+        border = surface1;
+        selectedBackground = surface0;
+        selectedForeground = mauve;
+        inputBackground = mantle;
+        prompt = mauve;
+        placeholder = surface1;
+        elementBackground = surface0;
+        elementSelectedBackground = surface1;
+        elementSelectedBorder = mauve;
+      };
     };
     waybar = {
       config = waybar.mkConfig {
@@ -523,87 +455,19 @@ in
         style = "bold ${l_subtext1}"
       '';
 
-      rofi = ''
-        * {
-            font:                        "JetBrainsMono Nerd Font 11";
-            background-color:            ${l_base};
-            text-color:                  ${l_text};
-            border-color:                ${l_surface1};
-            selected-normal-background:  ${l_surface0};
-            selected-normal-foreground:  ${l_mauve};
-            normal-background:           ${l_base};
-            normal-foreground:           ${l_text};
-        }
-
-        window {
-            width:              900px;
-            border:             2px solid;
-            border-color:       ${l_surface1};
-            border-radius:      8px;
-            padding:            12px;
-            background-color:   ${l_base};
-        }
-
-        mainbox {
-            spacing:            0;
-            children:           [ inputbar, listview ];
-        }
-
-        inputbar {
-            padding:            8px 12px;
-            margin:             0 0 10px 0;
-            background-color:   ${l_mantle};
-            border-radius:      6px;
-            children:           [ prompt, entry ];
-        }
-
-        prompt {
-            text-color:         ${l_mauve};
-            padding:            0 8px 0 0;
-        }
-
-        entry {
-            text-color:         ${l_text};
-            placeholder:        "Switch profile…";
-            placeholder-color:  ${l_surface2};
-        }
-
-        listview {
-            columns:            3;
-            lines:              2;
-            spacing:            10px;
-            fixed-height:       false;
-            scrollbar:          false;
-        }
-
-        element {
-            orientation:        vertical;
-            padding:            10px;
-            spacing:            8px;
-            border-radius:      6px;
-            background-color:   ${l_surface0};
-            cursor:             pointer;
-        }
-
-        element selected {
-            background-color:   ${l_surface1};
-            border:             2px solid;
-            border-color:       ${l_mauve};
-        }
-
-        element-icon {
-            size:               160px;
-            border-radius:      4px;
-            horizontal-align:   0.5;
-        }
-
-        element-text {
-            horizontal-align:   0.5;
-            vertical-align:     0.5;
-            text-color:         inherit;
-            font:               "JetBrainsMono Nerd Font 12";
-        }
-      '';
+      rofi = theme.mkProfilePickerRofi {
+        background = l_base;
+        text = l_text;
+        border = l_surface1;
+        selectedBackground = l_surface0;
+        selectedForeground = l_mauve;
+        inputBackground = l_mantle;
+        prompt = l_mauve;
+        placeholder = l_surface2;
+        elementBackground = l_surface0;
+        elementSelectedBackground = l_surface1;
+        elementSelectedBorder = l_mauve;
+      };
     };
 
     waybarLight.style = waybar.mkPillStyle {
