@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
-# xhisper-stream — streaming dictation orchestrator (toggle / cancel).
-# See docs/superpowers/specs/2026-06-06-xhisper-streaming-overlay-design.md
+# xhisper-stream — dictation orchestrator (toggle / cancel) with overlay pill.
+#
+# Flow:
+#   1st Mod+Z  → start recording + show "🎤 listening…" overlay
+#   2nd Mod+Z  → stop, batch-transcribe, gemma3:4b cleanup, type at cursor
+#   Mod+Shift+Z → cancel: stop, hide overlay, nothing typed
+#
+# Uses xhisper-local's xhisper_transcribe (batch faster-whisper with
+# beam_size=5 + vad_filter) instead of streaming; sliding-window streaming
+# was less accurate than one-shot decode.
 set -euo pipefail
 
 PID_FILE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/xhisper-stream.pid"
 LOCK_FILE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/xhisper-stream.lock"
 LOG_FILE="/tmp/xhisper-stream.log"
 OVERLAY_SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/xhisper-overlay.sock"
+RECORDING="/tmp/xhisper-stream.wav"
 
 CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/xhisper/xhisperrc"
 
@@ -14,13 +23,12 @@ CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/xhisper/xhisperrc"
 model_name="small.en"
 model_device="cuda"
 model_language="en"
-stream_window_seconds=8
-stream_step_ms=500
-local_agreement_n=2
-auto_stop_silence_seconds=1.5
+transcription_prompt=""
 post_process_model="gemma3:4b"
 post_process_timeout=10
 post_process_mode="auto"
+non_ascii_initial_delay=0.15
+non_ascii_default_delay=0.025
 
 # --- Config loader (KEY : VALUE lines, # comments) ---
 if [ -f "$CONFIG_FILE" ]; then
@@ -33,13 +41,12 @@ if [ -f "$CONFIG_FILE" ]; then
       model-name) model_name="$value" ;;
       model-device) model_device="$value" ;;
       model-language) model_language="$value" ;;
-      stream-window-seconds) stream_window_seconds="$value" ;;
-      stream-step-ms) stream_step_ms="$value" ;;
-      local-agreement-n) local_agreement_n="$value" ;;
-      auto-stop-silence-seconds) auto_stop_silence_seconds="$value" ;;
+      transcription-prompt) transcription_prompt="$value" ;;
       post-process-model) post_process_model="$value" ;;
       post-process-timeout) post_process_timeout="$value" ;;
       post-process-mode) post_process_mode="$value" ;;
+      non-ascii-initial-delay) non_ascii_initial_delay="$value" ;;
+      non-ascii-default-delay) non_ascii_default_delay="$value" ;;
     esac
   done < "$CONFIG_FILE"
 fi
@@ -72,7 +79,6 @@ read_pid() {
   printf '%s' "$pid"
 }
 
-# --- Cancel: signal the running session, exit. ---
 if [ "$MODE" = "cancel" ]; then
   if pid=$(read_pid); then
     kill -USR1 "$pid"
@@ -81,7 +87,6 @@ if [ "$MODE" = "cancel" ]; then
   exit 0
 fi
 
-# --- Status: print state. ---
 if [ "$MODE" = "status" ]; then
   if pid=$(read_pid); then
     echo "recording (pid=$pid)"
@@ -91,14 +96,13 @@ if [ "$MODE" = "status" ]; then
   exit 0
 fi
 
-# --- Toggle: if a session is running, commit it; else start a new one. ---
+# Toggle: if a session is running, commit it; else start a new one.
 if pid=$(read_pid); then
   log "toggle: commit signal to pid=$pid"
   kill -TERM "$pid"
   exit 0
 fi
 
-# --- Start a new session (this process becomes the session). ---
 exec {lock_fd}> "$LOCK_FILE"
 if ! flock -n "$lock_fd"; then
   log "another invocation already starting; aborting"
@@ -108,36 +112,34 @@ fi
 echo $$ > "$PID_FILE"
 log "session start pid=$$"
 
-cleanup() {
-  log "cleanup pid=$$"
-  rm -f "$PID_FILE"
-}
-trap cleanup EXIT
+# ---- Session ----------------------------------------------------------------
 
-# ---- Session ------------------------------------------------------------------
-
-FINAL_TEXT=""
 COMMIT_FLAG=0
 CANCEL_FLAG=0
-PARTIALS_PIPE="${XDG_RUNTIME_DIR}/xhisper-stream.partials.$$"
-mkfifo "$PARTIALS_PIPE"
 
 mark_commit() { COMMIT_FLAG=1; }
 mark_cancel() {
   CANCEL_FLAG=1
-  # Hard-tear-down so the overlay disappears immediately rather than after the
-  # next 200 ms loop tick + 150 ms QML fade.
+  # Hard-tear-down so the overlay disappears immediately.
   kill "${OVERLAY_PID:-0}" 2>/dev/null || true
-  pkill -P $$ 2>/dev/null || true
+  pkill -P $$ pw-record 2>/dev/null || true
 }
 trap mark_commit TERM
 trap mark_cancel USR1
+
+cleanup() {
+  log "cleanup pid=$$"
+  pkill -P $$ 2>/dev/null || true
+  kill "${OVERLAY_PID:-0}" 2>/dev/null || true
+  rm -f "$PID_FILE" "$RECORDING"
+}
+trap cleanup EXIT
 
 # Spawn per-session overlay.
 qs -p "$HOME/.config/quickshell-xhisper" >> "$LOG_FILE" 2>&1 &
 OVERLAY_PID=$!
 
-# Wait briefly for overlay socket to appear.
+# Wait briefly for overlay socket to appear, then show the listening pill.
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   [ -S "$OVERLAY_SOCK" ] && break
   sleep 0.1
@@ -147,98 +149,66 @@ send_overlay() {
   printf '%s\n' "$1" | socat -t 0.1 - "UNIX-CONNECT:$OVERLAY_SOCK" 2>/dev/null || true
 }
 
-# Show pill immediately as "listening" so the user knows the mic is hot,
-# rather than waiting for the daemon's first partial (which can be 1–5 s
-# during cold model load).
 send_overlay '{"type":"partial","confirmed":"","tentative":"🎤 listening…"}'
 
-# Spawn pw-record → xhisper-streamd; capture daemon stdout to FIFO.
-pw-record --channels=1 --rate=16000 --format=s16 - 2>>"$LOG_FILE" \
-  | xhisper-streamd \
-      --model "$model_name" \
-      --device "$model_device" \
-      --language "$model_language" \
-      --window-seconds "$stream_window_seconds" \
-      --step-ms "$stream_step_ms" \
-      --agreement-n "$local_agreement_n" \
-      > "$PARTIALS_PIPE" 2>>"$LOG_FILE" &
-PIPELINE_DAEMON_PID=$!
+# Spawn pw-record writing to WAV in the background.
+rm -f "$RECORDING"
+pw-record --channels=1 --rate=16000 "$RECORDING" 2>>"$LOG_FILE" &
 
-LAST_CHANGE_MS=0    # 0 = no partials yet → silence timer disabled until daemon emits one
-SILENCE_MS=$(awk -v s="$auto_stop_silence_seconds" 'BEGIN { printf "%d", s * 1000 }')
-PREV_CONFIRMED=""
-PREV_TENTATIVE=""
-
-exec {pfd}< "$PARTIALS_PIPE"
-
-while :; do
-  if [ $CANCEL_FLAG -eq 1 ]; then
-    log "cancel: tearing down without typing"
-    send_overlay '{"type":"hide"}'
-    break
-  fi
-
-  if [ $COMMIT_FLAG -eq 1 ]; then
-    log "commit: draining daemon for final"
-    # Close stdin to daemon by killing pw-record; daemon emits final and exits.
-    pkill -TERM -P $$ pw-record 2>/dev/null || true
-    while IFS= read -r -t 5 line <&$pfd; do
-      [ -z "$line" ] && continue
-      kind=$(printf '%s' "$line" | jq -r '.type' 2>/dev/null || echo "")
-      if [ "$kind" = "final" ]; then
-        FINAL_TEXT=$(printf '%s' "$line" | jq -r '.text')
-        break
-      fi
-    done
-    send_overlay '{"type":"hide"}'
-    break
-  fi
-
-  if IFS= read -r -t 0.2 line <&$pfd; then
-    [ -z "$line" ] && continue
-    send_overlay "$line"
-    conf=$(printf '%s' "$line" | jq -r '.confirmed // ""' 2>/dev/null)
-    tent=$(printf '%s' "$line" | jq -r '.tentative // ""' 2>/dev/null)
-    if [ "$conf" != "$PREV_CONFIRMED" ] || [ "$tent" != "$PREV_TENTATIVE" ]; then
-      PREV_CONFIRMED="$conf"
-      PREV_TENTATIVE="$tent"
-      LAST_CHANGE_MS=$(date +%s%3N)
-    fi
-  fi
-
-  # Silence auto-commit, but only after the daemon has produced its first partial
-  # (otherwise model load on first run trips the timer before any audio is decoded).
-  if [ "$LAST_CHANGE_MS" -ne 0 ]; then
-    now_ms=$(date +%s%3N)
-    if [ $((now_ms - LAST_CHANGE_MS)) -ge "$SILENCE_MS" ]; then
-      log "silence auto-commit after ${auto_stop_silence_seconds}s"
-      COMMIT_FLAG=1
-    fi
-  fi
-
-  if ! kill -0 "$PIPELINE_DAEMON_PID" 2>/dev/null; then
-    log "daemon exited; treating as commit"
-    COMMIT_FLAG=1
-  fi
+# Block until COMMIT_FLAG or CANCEL_FLAG is set by a signal handler.
+while [ $COMMIT_FLAG -eq 0 ] && [ $CANCEL_FLAG -eq 0 ]; do
+  sleep 0.1
 done
 
-pkill -P $$ 2>/dev/null || true
-kill "$OVERLAY_PID" 2>/dev/null || true
-rm -f "$PARTIALS_PIPE"
-exec {pfd}<&-
+# Stop the recorder cleanly so the WAV file is finalized.
+pkill -P $$ pw-record 2>/dev/null || true
 
-if [ $CANCEL_FLAG -eq 1 ] || [ -z "${FINAL_TEXT// /}" ]; then
+# Wait briefly for pw-record to flush.
+sleep 0.2
+
+if [ $CANCEL_FLAG -eq 1 ]; then
+  log "cancelled — nothing typed"
+  send_overlay '{"type":"hide"}'
   exit 0
 fi
 
-# ---- Commit phase: ollama cleanup + xhispertoold typing ----------------------
-log "raw final: $FINAL_TEXT"
+# Commit: hide overlay, batch transcribe, cleanup, type.
+send_overlay '{"type":"hide"}'
 
-CLEANED="$FINAL_TEXT"
+if [ ! -s "$RECORDING" ]; then
+  log "no recording produced"
+  exit 0
+fi
+
+log "commit: transcribing $(stat -c%s "$RECORDING") bytes"
+
+# Build transcribe args.
+tx_args=(--model "$model_name" --device "$model_device")
+if [ -n "$model_language" ]; then
+  tx_args+=(--language "$model_language")
+fi
+if [ -n "$transcription_prompt" ]; then
+  tx_args+=(--prompt "$transcription_prompt")
+fi
+
+if ! RAW=$(xhisper_transcribe "$RECORDING" "${tx_args[@]}" 2>>"$LOG_FILE"); then
+  log "xhisper_transcribe failed"
+  exit 0
+fi
+
+RAW=$(printf '%s' "$RAW" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+log "raw: $RAW"
+
+if [ -z "$RAW" ]; then
+  log "empty transcript"
+  exit 0
+fi
+
+CLEANED="$RAW"
 if [ -n "$post_process_model" ] && command -v ollama >/dev/null 2>&1; then
   prompt="Fix grammar, punctuation, and capitalization. Output only the corrected text, nothing else.
 
-Input: $FINAL_TEXT
+Input: $RAW
 Output:"
   if cleaned=$(printf '%s' "$prompt" | timeout "$post_process_timeout" ollama run "$post_process_model" 2>/dev/null); then
     cleaned=$(printf '%s' "$cleaned" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
@@ -258,6 +228,7 @@ fi
 
 i=0
 len=${#CLEANED}
+first_unicode=1
 while [ $i -lt $len ]; do
   ch="${CLEANED:$i:1}"
   ascii=$(printf '%d' "'$ch")
@@ -266,7 +237,12 @@ while [ $i -lt $len ]; do
   else
     printf '%s' "$ch" | wl-copy
     xhispertool paste
-    sleep 0.025
+    if [ $first_unicode -eq 1 ]; then
+      sleep "$non_ascii_initial_delay"
+      first_unicode=0
+    else
+      sleep "$non_ascii_default_delay"
+    fi
   fi
   i=$((i + 1))
 done
