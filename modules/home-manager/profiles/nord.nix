@@ -36,7 +36,7 @@ in
       warm = nord12;
       fresh = nord14;
       barRadius = "0";
-      barHeight = "24";
+      barHeight = "26";
       barMargin = "0";
       showClockDate = "false";
       showWorkspaceNumbers = "true";
@@ -109,6 +109,7 @@ in
       borderInactiveColor = nord1;
       urgentColor = nord11;
       focusRingOff = true;
+      shadowOff = true;
       shadowSoftness = 0;
       shadowSpread = 0;
       shadowOffsetX = 0;

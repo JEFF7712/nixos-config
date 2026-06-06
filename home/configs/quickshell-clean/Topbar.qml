@@ -101,7 +101,7 @@ PanelWindow {
     anchors { top: true; left: true; right: true }
     margins { top: topbarWindow.barMargin; left: topbarWindow.barMargin; right: topbarWindow.barMargin }
     implicitHeight: topbarWindow.barHeight
-    exclusiveZone: topbarWindow.barHeight + topbarWindow.barMargin
+    exclusiveZone: topbarWindow.barHeight + (topbarWindow.barMargin > 0 ? topbarWindow.barMargin : 0)
     color: "transparent"
 
     Process {

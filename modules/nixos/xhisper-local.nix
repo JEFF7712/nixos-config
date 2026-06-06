@@ -7,7 +7,7 @@
 
 let
   cfg = config.xhisperLocal;
-  xhisperPkg = pkgs.callPackage ../../pkgs/xhisper-local {
+  xhisperPkg = pkgs.xhisper-local.override {
     ollama = if cfg.ollama.enable then cfg.ollama.package else null;
   };
 in

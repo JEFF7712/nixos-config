@@ -5,7 +5,7 @@
 PROFILES_DIR="$HOME/.config/desktop-profiles"
 PREVIEW_DIR="$HOME/nixos/home/assets/previews"
 ACTIVE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "")
-THEME="$HOME/nixos/home/configs/rofi/profile-switcher.rasi"
+THEME="$HOME/.config/rofi/profile-switcher.rasi"
 
 # Build the entry list and remember which row is the active profile so we can
 # pass it to rofi as an "urgent" row for visual highlighting.

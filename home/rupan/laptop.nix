@@ -76,9 +76,6 @@
     executable = true;
   };
 
-  # Rofi configs (out-of-store so they're editable without rebuild)
-  xdg.configFile."rofi".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/rofi";
   xdg.configFile."hypr/hyprlock.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/hypr/hyprlock.conf";
 

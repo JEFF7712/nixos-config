@@ -160,18 +160,8 @@
 
       xdg.configFile."niri".source =
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/niri";
-      xdg.configFile."kitty".source =
-        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/kitty";
       xdg.configFile."gtk-2.0".source =
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/gtk-2.0";
-      xdg.configFile."gtk-3.0".source =
-        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/gtk-3.0";
-      xdg.configFile."gtk-4.0".source =
-        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/gtk-4.0";
-      xdg.configFile."qt5ct".source =
-        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/qt5ct";
-      xdg.configFile."qt6ct".source =
-        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/qt6ct";
       xdg.configFile."swayosd".source =
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/swayosd";
       xdg.configFile."quickshell".source =
