@@ -17,7 +17,7 @@ model_language="en"
 stream_window_seconds=8
 stream_step_ms=500
 local_agreement_n=2
-auto_stop_silence_seconds=3
+auto_stop_silence_seconds=1.5
 post_process_model="gemma3:4b"
 post_process_timeout=10
 post_process_mode="auto"
@@ -140,6 +140,11 @@ send_overlay() {
   printf '%s\n' "$1" | socat -t 0.1 - "UNIX-CONNECT:$OVERLAY_SOCK" 2>/dev/null || true
 }
 
+# Show pill immediately as "listening" so the user knows the mic is hot,
+# rather than waiting for the daemon's first partial (which can be 1–5 s
+# during cold model load).
+send_overlay '{"type":"partial","confirmed":"","tentative":"🎤 listening…"}'
+
 # Spawn pw-record → xhisper-streamd; capture daemon stdout to FIFO.
 pw-record --channels=1 --rate=16000 --format=s16 - 2>>"$LOG_FILE" \
   | xhisper-streamd \
@@ -152,7 +157,8 @@ pw-record --channels=1 --rate=16000 --format=s16 - 2>>"$LOG_FILE" \
       > "$PARTIALS_PIPE" 2>>"$LOG_FILE" &
 PIPELINE_DAEMON_PID=$!
 
-LAST_CHANGE=0       # 0 = no partials yet → silence timer disabled until daemon emits one
+LAST_CHANGE_MS=0    # 0 = no partials yet → silence timer disabled until daemon emits one
+SILENCE_MS=$(awk -v s="$auto_stop_silence_seconds" 'BEGIN { printf "%d", s * 1000 }')
 PREV_CONFIRMED=""
 PREV_TENTATIVE=""
 
@@ -189,16 +195,16 @@ while :; do
     if [ "$conf" != "$PREV_CONFIRMED" ] || [ "$tent" != "$PREV_TENTATIVE" ]; then
       PREV_CONFIRMED="$conf"
       PREV_TENTATIVE="$tent"
-      LAST_CHANGE=$(date +%s)
+      LAST_CHANGE_MS=$(date +%s%3N)
     fi
   fi
 
   # Silence auto-commit, but only after the daemon has produced its first partial
   # (otherwise model load on first run trips the timer before any audio is decoded).
-  if [ "$LAST_CHANGE" -ne 0 ]; then
-    now=$(date +%s)
-    if [ $((now - LAST_CHANGE)) -ge "$auto_stop_silence_seconds" ]; then
-      log "silence auto-commit after $auto_stop_silence_seconds s"
+  if [ "$LAST_CHANGE_MS" -ne 0 ]; then
+    now_ms=$(date +%s%3N)
+    if [ $((now_ms - LAST_CHANGE_MS)) -ge "$SILENCE_MS" ]; then
+      log "silence auto-commit after ${auto_stop_silence_seconds}s"
       COMMIT_FLAG=1
     fi
   fi
