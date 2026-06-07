@@ -106,8 +106,14 @@ stdenv.mkDerivation {
     # keystrokes from colliding with niri's Mod+letter app launchers.
     cat > $out/bin/xhisper-wait-mod-release <<PYEOF
     #!${python}/bin/python3
-    import time, evdev
+    import sys, time, evdev
 
+    LOG = open("/tmp/xhisper-wait.log", "a")
+    def log(msg):
+        LOG.write(f"{time.time():.3f} {msg}\n")
+        LOG.flush()
+
+    log("--- helper start")
     devs = []
     for path in evdev.list_devices():
         try:
@@ -116,10 +122,20 @@ stdenv.mkDerivation {
             keys = caps.get(evdev.ecodes.EV_KEY, [])
             if evdev.ecodes.KEY_LEFTMETA in keys or evdev.ecodes.KEY_RIGHTMETA in keys:
                 devs.append(d)
-        except (PermissionError, OSError):
+                log(f"watching {path} {d.name}")
+        except (PermissionError, OSError) as e:
+            log(f"skip {path}: {e}")
             continue
 
+    log(f"initial active_keys snapshot:")
+    for d in devs:
+        try:
+            log(f"  {d.path} {d.name}: {d.active_keys()}")
+        except OSError as e:
+            log(f"  {d.path}: {e}")
+
     deadline = time.time() + 2.0
+    polls = 0
     while time.time() < deadline:
         held = False
         for d in devs:
@@ -127,12 +143,16 @@ stdenv.mkDerivation {
                 ks = d.active_keys()
                 if evdev.ecodes.KEY_LEFTMETA in ks or evdev.ecodes.KEY_RIGHTMETA in ks:
                     held = True
+                    if polls == 0:
+                        log(f"  HELD on {d.path}: {ks}")
                     break
             except OSError:
                 continue
+        polls += 1
         if not held:
             break
         time.sleep(0.02)
+    log(f"--- helper exit after {polls} polls, {time.time() - (deadline - 2.0):.3f}s")
     PYEOF
     chmod +x $out/bin/xhisper-wait-mod-release
 
