@@ -11,12 +11,12 @@ ShellRoot {
         color: "transparent"
 
         anchors { bottom: true; left: true; right: true }
-        margins.bottom: 50
-        implicitHeight: 100
+        margins.bottom: 20
+        implicitHeight: 72
 
         property string label: Quickshell.env("XHISPER_POPUP_TEXT") || ""
         property bool listening: label.indexOf("Listening") >= 0
-        property color baseColor: listening ? "#88c0d0" : "#b48ead"
+        property color baseColor: listening ? "#2b2f36" : "#3a2f36"
 
         WlrLayershell.namespace: "quickshell-xhisper-popup"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -25,23 +25,25 @@ ShellRoot {
 
         Item {
             anchors.centerIn: parent
-            width: 80
-            height: 80
+            width: 56
+            height: 56
 
-            // Outer ring that pulses outward and fades — the "Siri" sonar wave.
+            // Outer ring — sonar pulse outward.
             Rectangle {
                 anchors.centerIn: parent
-                width: 48
-                height: 48
+                width: 32
+                height: 32
                 radius: width / 2
                 color: "transparent"
                 border.color: root.baseColor
-                border.width: 2
+                border.width: 1.5
 
-                ParallelAnimation on scale {
+                NumberAnimation on scale {
                     loops: Animation.Infinite
                     running: true
-                    NumberAnimation { from: 1.0; to: 1.7; duration: 1400; easing.type: Easing.OutQuad }
+                    from: 1.0; to: 1.7
+                    duration: 1400
+                    easing.type: Easing.OutQuad
                 }
                 NumberAnimation on opacity {
                     loops: Animation.Infinite
@@ -51,16 +53,16 @@ ShellRoot {
                 }
             }
 
-            // Inner core: radial-style gradient circle that breathes gently.
+            // Inner core — dark gradient circle that breathes gently.
             Rectangle {
                 id: core
                 anchors.centerIn: parent
-                width: 36
-                height: 36
+                width: 22
+                height: 22
                 radius: width / 2
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: Qt.lighter(root.baseColor, 1.5) }
-                    GradientStop { position: 1.0; color: Qt.darker(root.baseColor, 1.2) }
+                    GradientStop { position: 0.0; color: Qt.lighter(root.baseColor, 1.6) }
+                    GradientStop { position: 1.0; color: Qt.darker(root.baseColor, 1.3) }
                 }
 
                 SequentialAnimation on scale {
