@@ -116,6 +116,47 @@ stdenv.mkDerivation {
   postInstall = ''
     install -Dm644 default_xhisperrc $out/share/xhisper/default_xhisperrc
 
+    # Reads the tail of /tmp/xhisper.wav (the file pw-record is writing) every
+    # 50 ms, computes RMS amplitude of the last 50 ms of samples, prints a
+    # normalised level (0–1) to stdout. Driven by quickshell-xhisper-popup's
+    # Process component so the Siri-ball scales with the user's voice.
+    cat > $out/bin/xhisper-amplitude-monitor <<PYEOF
+    #!${python}/bin/python3
+    import math, os, struct, sys, time
+
+    WAV = "/tmp/xhisper.wav"
+    CHUNK_BYTES = 1600  # 50 ms at 16 kHz mono s16le
+    HEADER = 44
+
+    sys.stdout.write("0.000\n")
+    sys.stdout.flush()
+    for _ in range(200):
+        if os.path.exists(WAV) and os.path.getsize(WAV) > HEADER:
+            break
+        time.sleep(0.05)
+
+    while True:
+        try:
+            sz = os.path.getsize(WAV)
+            if sz > HEADER:
+                with open(WAV, "rb") as f:
+                    f.seek(max(HEADER, sz - CHUNK_BYTES))
+                    data = f.read(CHUNK_BYTES)
+                n = len(data) // 2
+                if n > 0:
+                    ints = struct.unpack(f"<{n}h", data)
+                    rms = math.sqrt(sum(s * s for s in ints) / n) / 32768.0
+                    # Voice RMS is typically 0.005–0.25. sqrt-compress to 0–1.
+                    level = max(0.0, min(1.0, math.sqrt(rms * 6.0)))
+                    sys.stdout.write(f"{level:.3f}\n")
+                    sys.stdout.flush()
+        except (FileNotFoundError, OSError):
+            sys.stdout.write("0.000\n")
+            sys.stdout.flush()
+        time.sleep(0.05)
+    PYEOF
+    chmod +x $out/bin/xhisper-amplitude-monitor
+
     # Blocks until Super (LEFTMETA / RIGHTMETA) is released on every keyboard
     # device, or a generous timeout elapses. Called by paste() to keep
     # synthesized keystrokes from colliding with niri's Mod+letter app launchers.
