@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# xhisper-cancel — stop an in-flight xhisper recording without transcribing or
+# typing anything. Removes the cursor "(recording...)" status and tears down
+# the popup.
+set -euo pipefail
+
+# Kill the recorder if one is running.
+pkill -f 'pw-record.*xhisper.wav' 2>/dev/null || true
+rm -f /tmp/xhisper.wav
+
+# Tear down the listening popup.
+if [ -f /tmp/xhisper-popup.pid ]; then
+  kill "$(cat /tmp/xhisper-popup.pid)" 2>/dev/null || true
+  rm -f /tmp/xhisper-popup.pid
+fi
+
+# Erase the inline "(recording...)" that xhisper typed at the cursor.
+# Wait for Mod to be released first so backspaces don't collide with niri binds.
+if command -v xhispertoold >/dev/null && command -v xhispertool >/dev/null; then
+  if ! pgrep -x xhispertoold >/dev/null; then
+    xhispertoold >> /tmp/xhispertoold.log 2>&1 &
+    sleep 0.3
+  fi
+  xhisper-wait-mod-release 2>/dev/null || sleep 0.3
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14; do
+    xhispertool backspace
+  done
+fi

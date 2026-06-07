@@ -108,7 +108,7 @@ stdenv.mkDerivation {
     substituteInPlace xhisper.sh \
       --replace-fail \
         'paste "(transcribing...)"' \
-        'kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; XHISPER_POPUP_TEXT="💭 Transcribing…" qs -p "$HOME/.config/quickshell-xhisper-popup" >/dev/null 2>&1 & echo $! > /tmp/xhisper-popup.pid ; paste "(transcribing...)"'
+        'kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; rm -f /tmp/xhisper-popup.pid ; paste "(transcribing...)"'
   '';
 
   makeFlags = [ "PREFIX=$(out)" ];
