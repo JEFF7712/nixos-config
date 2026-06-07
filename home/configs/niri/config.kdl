@@ -248,6 +248,7 @@ binds {
     Mod+D { spawn "vesktop"; }
     Mod+Shift+T { spawn "toggle-variant"; }
     Mod+Z hotkey-overlay-title="Dictate (xhisper toggle)" { spawn "xhisper"; }
+    Mod+Shift+Z hotkey-overlay-title="Cancel dictation" { spawn "xhisper-cancel"; }
 
     Mod+C repeat=false { close-window; }
     Mod+Alt+O { toggle-window-rule-opacity; }
