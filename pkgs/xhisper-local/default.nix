@@ -55,10 +55,12 @@ stdenv.mkDerivation {
   postPatch = ''
     # Drop the upstream Pop!_OS-specific LD_LIBRARY_PATH hack — we provide
     # CUDA libs via nix-ld / the cuda-wrapped python if/when the user opts in.
+    # Also install an EXIT trap that dismisses the listening notification so
+    # it doesn't linger if the script crashes mid-record.
     substituteInPlace xhisper.sh \
       --replace-fail \
         'export LD_LIBRARY_PATH=/usr/local/lib/ollama/cuda_v12/lib:$LD_LIBRARY_PATH' \
-        '# LD_LIBRARY_PATH override removed for NixOS'
+        'trap "notify-send -a xhisper -h string:synchronous:xhisper -t 1 \" \" 2>/dev/null || true" EXIT  # LD_LIBRARY_PATH hack stripped; install notif-dismiss trap'
 
     # Point the Python entrypoint at our wrapped interpreter (faster-whisper available).
     substituteInPlace xhisper_transcribe.py \
@@ -94,6 +96,20 @@ stdenv.mkDerivation {
       --replace-fail \
         'paste() {' \
         'paste() { xhisper-wait-mod-release 2>/dev/null || sleep 0.3 ;'
+
+    # Fire notifications on record-start and transcribe-start so there's a
+    # visible "what is xhisper doing" indicator in addition to the inline text.
+    # The 'synchronous:xhisper' hint makes mako/dunst replace previous
+    # notifications with the same group, so the popup updates in place.
+    substituteInPlace xhisper.sh \
+      --replace-fail \
+        'paste "(recording...)"' \
+        'paste "(recording...)" ; notify-send -a xhisper -h string:synchronous:xhisper -t 0 "🎤 xhisper" "Listening…" 2>/dev/null || true'
+
+    substituteInPlace xhisper.sh \
+      --replace-fail \
+        'paste "(transcribing...)"' \
+        'notify-send -a xhisper -h string:synchronous:xhisper -t 0 "💭 xhisper" "Transcribing…" 2>/dev/null || true ; paste "(transcribing...)"'
   '';
 
   makeFlags = [ "PREFIX=$(out)" ];

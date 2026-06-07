@@ -3,7 +3,7 @@
 
 # Whisper model: tiny, base, small, medium, large-v3 (and *.en variants for
 # English-only after `nixos-rebuild switch` picks up the patched derivation).
-model-name : small
+model-name : small.en
 
 # Device: auto, cpu, or cuda.
 model-device : cuda
