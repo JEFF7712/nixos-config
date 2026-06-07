@@ -46,6 +46,10 @@
       url = "github:JEFF7712/terax-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    asus-numberpad-driver = {
+      url = "github:asus-linux-drivers/asus-numberpad-driver/v7.0.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

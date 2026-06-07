@@ -27,6 +27,7 @@
   nvidia.enable = true;
   niri.enable = true;
   general-laptop.enable = true;
+  asus-numpad.enable = true;
   audio.enable = true;
   ctls.enable = true;
   bluetooth.enable = true;
