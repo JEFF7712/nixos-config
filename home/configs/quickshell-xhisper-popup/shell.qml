@@ -1,6 +1,5 @@
-// xhisper popup — horizontal voice-memo style waveform at bottom-center.
-// A fixed-count row of vertical bars; each bar's height tracks one historical
-// amplitude sample. New samples push in on the right; old ones scroll left.
+// xhisper popup — dark static dot at bottom-center with a soft light halo
+// behind it that brightens and expands with the user's voice amplitude.
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -13,27 +12,12 @@ ShellRoot {
 
         anchors { bottom: true; left: true; right: true }
         margins.bottom: 20
-        implicitHeight: 56
+        implicitHeight: 96
 
         property string label: Quickshell.env("XHISPER_POPUP_TEXT") || ""
         property bool listening: label.indexOf("Listening") >= 0
-        property color barColor: listening ? "#15181f" : "#231921"
+        property color dotColor: listening ? "#15181f" : "#231921"
         property real level: 0.0
-        property int historySize: 32
-        property var history: []
-
-        Component.onCompleted: {
-            const h = []
-            for (let i = 0; i < historySize; i++) h.push(0.0)
-            history = h
-        }
-
-        onLevelChanged: {
-            if (!history.length) return
-            const h = history.slice(1)
-            h.push(root.level)
-            history = h
-        }
 
         WlrLayershell.namespace: "quickshell-xhisper-popup"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -52,25 +36,32 @@ ShellRoot {
             }
         }
 
-        Row {
-            id: waveRow
+        Item {
             anchors.centerIn: parent
-            spacing: 2
-            height: 32
+            width: 96
+            height: 96
 
-            Repeater {
-                model: root.historySize
-                Rectangle {
-                    required property int index
-                    width: 2
-                    radius: 1
-                    color: root.barColor
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: Math.max(2, (root.history[index] || 0) * waveRow.height * 1.6)
-                    Behavior on height {
-                        NumberAnimation { duration: 90; easing.type: Easing.OutQuad }
-                    }
-                }
+            // Halo — behind the dot. Diameter and opacity grow with amplitude
+            // so loud syllables emit a brighter, larger glow.
+            Rectangle {
+                anchors.centerIn: parent
+                width: 36 + root.level * 50
+                height: 36 + root.level * 50
+                radius: width / 2
+                color: "#ffffff"
+                opacity: root.level * 0.35
+                Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+                Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+                Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+            }
+
+            // Core dot — flat, dark, static.
+            Rectangle {
+                anchors.centerIn: parent
+                width: 28
+                height: 28
+                radius: width / 2
+                color: root.dotColor
             }
         }
     }
