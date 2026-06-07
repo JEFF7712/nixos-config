@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "asus-numberpad-driver": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1779784375,
+        "narHash": "sha256-PZKffqfdwBW6b7RgnbEG036MI8HxBn7rVnYR8svGbiw=",
+        "owner": "asus-linux-drivers",
+        "repo": "asus-numberpad-driver",
+        "rev": "3aebce77113cf599794c65d4fdd0f40ee8f2ef26",
+        "type": "github"
+      },
+      "original": {
+        "owner": "asus-linux-drivers",
+        "ref": "v7.0.0",
+        "repo": "asus-numberpad-driver",
+        "type": "github"
+      }
+    },
     "compchem-cctop": {
       "inputs": {
         "nixpkgs": [
@@ -551,6 +572,7 @@
     },
     "root": {
       "inputs": {
+        "asus-numberpad-driver": "asus-numberpad-driver",
         "compchem-cctop": "compchem-cctop",
         "flake-parts": "flake-parts",
         "globalprotect-openconnect": "globalprotect-openconnect",
