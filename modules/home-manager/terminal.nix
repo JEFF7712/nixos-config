@@ -57,7 +57,6 @@
       bat
       tealdeer
       fzf
-      ripgrep
       kitty
     ];
 
