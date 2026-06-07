@@ -146,17 +146,14 @@ stdenv.mkDerivation {
                 if n > 0:
                     ints = struct.unpack(f"<{n}h", data)
                     rms = math.sqrt(sum(s * s for s in ints) / n) / 32768.0
-                    # Noise-gated, expanded mapping for clear dynamic range:
-                    #   1. Subtract a fan/hum noise floor (everything below = 0).
-                    #   2. Linear-scale so loud speech (~rms 0.20) hits ~1.0.
-                    #   3. Power-curve >1 so quiet speech stays subtle and only
-                    #      real volume saturates the halo.
+                    # Noise gate: subtract a baseline RMS roughly at the level
+                    # of laptop fan / ambient hum so the popup doesn't react to
+                    # background noise. The remaining range gets sqrt-compressed
+                    # to 0–1 with extra gain to recover dynamic range.
                     NOISE_FLOOR = 0.020
-                    GAIN = 5.5
-                    CURVE = 1.4
+                    GAIN = 10.0
                     above = max(0.0, rms - NOISE_FLOOR)
-                    linear = min(1.0, above * GAIN)
-                    level = linear ** CURVE
+                    level = max(0.0, min(1.0, math.sqrt(above * GAIN)))
                     sys.stdout.write(f"{level:.3f}\n")
                     sys.stdout.flush()
         except (FileNotFoundError, OSError):
