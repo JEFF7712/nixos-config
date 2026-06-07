@@ -101,58 +101,60 @@ stdenv.mkDerivation {
   postInstall = ''
     install -Dm644 default_xhisperrc $out/share/xhisper/default_xhisperrc
 
-    # Polls evdev until Super (LEFTMETA / RIGHTMETA) is released on every
-    # keyboard, or 2 s elapses. Called by paste() to keep synthesized
-    # keystrokes from colliding with niri's Mod+letter app launchers.
+    # Blocks until Super (LEFTMETA / RIGHTMETA) is released on every keyboard
+    # device, or a generous timeout elapses. Called by paste() to keep
+    # synthesized keystrokes from colliding with niri's Mod+letter app launchers.
+    # Uses select() on evdev fds so it returns the instant the release event
+    # arrives instead of burning CPU polling.
     cat > $out/bin/xhisper-wait-mod-release <<PYEOF
     #!${python}/bin/python3
-    import sys, time, evdev
+    import select, sys, time, evdev
+    from evdev import ecodes
 
-    LOG = open("/tmp/xhisper-wait.log", "a")
-    def log(msg):
-        LOG.write(f"{time.time():.3f} {msg}\n")
-        LOG.flush()
+    TIMEOUT = 10.0
+    META_KEYS = (ecodes.KEY_LEFTMETA, ecodes.KEY_RIGHTMETA)
 
-    log("--- helper start")
     devs = []
     for path in evdev.list_devices():
         try:
             d = evdev.InputDevice(path)
             caps = d.capabilities()
-            keys = caps.get(evdev.ecodes.EV_KEY, [])
-            if evdev.ecodes.KEY_LEFTMETA in keys or evdev.ecodes.KEY_RIGHTMETA in keys:
+            keys = caps.get(ecodes.EV_KEY, [])
+            if any(k in keys for k in META_KEYS):
                 devs.append(d)
-                log(f"watching {path} {d.name}")
-        except (PermissionError, OSError) as e:
-            log(f"skip {path}: {e}")
+        except (PermissionError, OSError):
             continue
 
-    log(f"initial active_keys snapshot:")
-    for d in devs:
-        try:
-            log(f"  {d.path} {d.name}: {d.active_keys()}")
-        except OSError as e:
-            log(f"  {d.path}: {e}")
-
-    deadline = time.time() + 2.0
-    polls = 0
-    while time.time() < deadline:
-        held = False
+    def any_meta_held():
         for d in devs:
             try:
                 ks = d.active_keys()
-                if evdev.ecodes.KEY_LEFTMETA in ks or evdev.ecodes.KEY_RIGHTMETA in ks:
-                    held = True
-                    if polls == 0:
-                        log(f"  HELD on {d.path}: {ks}")
-                    break
+                if any(k in ks for k in META_KEYS):
+                    return True
             except OSError:
                 continue
-        polls += 1
-        if not held:
-            break
-        time.sleep(0.02)
-    log(f"--- helper exit after {polls} polls, {time.time() - (deadline - 2.0):.3f}s")
+        return False
+
+    if not any_meta_held():
+        sys.exit(0)
+
+    fd_map = {d.fd: d for d in devs}
+    deadline = time.time() + TIMEOUT
+    while time.time() < deadline:
+        r, _, _ = select.select(fd_map.keys(), [], [], deadline - time.time())
+        for fd in r:
+            try:
+                for ev in fd_map[fd].read():
+                    if (
+                        ev.type == ecodes.EV_KEY
+                        and ev.code in META_KEYS
+                        and ev.value == 0
+                    ):
+                        if not any_meta_held():
+                            sys.exit(0)
+            except (BlockingIOError, OSError):
+                continue
+    sys.exit(0)
     PYEOF
     chmod +x $out/bin/xhisper-wait-mod-release
 
