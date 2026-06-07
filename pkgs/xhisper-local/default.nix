@@ -150,7 +150,7 @@ stdenv.mkDerivation {
                     # of laptop fan / ambient hum so the popup doesn't react to
                     # background noise. The remaining range gets sqrt-compressed
                     # to 0–1 with extra gain to recover dynamic range.
-                    NOISE_FLOOR = 0.020
+                    NOISE_FLOOR = 0.010
                     GAIN = 10.0
                     above = max(0.0, rms - NOISE_FLOOR)
                     level = max(0.0, min(1.0, math.sqrt(above * GAIN)))
