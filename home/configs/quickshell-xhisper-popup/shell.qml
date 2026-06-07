@@ -1,5 +1,5 @@
-// xhisper popup — flat dark dot at bottom-center that pulses with the user's
-// voice. Reads normalised amplitude (0–1) on stdout of xhisper-amplitude-monitor.
+// xhisper popup — dark static dot at bottom-center with a soft light halo
+// behind it that brightens and expands with the user's voice amplitude.
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -12,11 +12,11 @@ ShellRoot {
 
         anchors { bottom: true; left: true; right: true }
         margins.bottom: 20
-        implicitHeight: 56
+        implicitHeight: 96
 
         property string label: Quickshell.env("XHISPER_POPUP_TEXT") || ""
         property bool listening: label.indexOf("Listening") >= 0
-        property color dotColor: listening ? "#2b2f36" : "#3a2f36"
+        property color dotColor: listening ? "#15181f" : "#231921"
         property real level: 0.0
 
         WlrLayershell.namespace: "quickshell-xhisper-popup"
@@ -36,17 +36,32 @@ ShellRoot {
             }
         }
 
-        Rectangle {
-            id: core
+        Item {
             anchors.centerIn: parent
-            width: 22
-            height: 22
-            radius: width / 2
-            color: root.dotColor
+            width: 96
+            height: 96
 
-            scale: 1.0 + root.level * 0.7
-            Behavior on scale {
-                NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+            // Halo — behind the dot. Diameter and opacity grow with amplitude
+            // so loud syllables emit a brighter, larger glow.
+            Rectangle {
+                anchors.centerIn: parent
+                width: 36 + root.level * 50
+                height: 36 + root.level * 50
+                radius: width / 2
+                color: "#ffffff"
+                opacity: root.level * 0.35
+                Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+                Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+                Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+            }
+
+            // Core dot — flat, dark, static.
+            Rectangle {
+                anchors.centerIn: parent
+                width: 28
+                height: 28
+                radius: width / 2
+                color: root.dotColor
             }
         }
     }
