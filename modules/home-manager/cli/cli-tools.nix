@@ -27,6 +27,8 @@
         inotify-tools
         mtr
         just
+        ripgrep
+        fd
       ]
       ++ [
         inputs.compchem-cctop.packages.${system}.default
