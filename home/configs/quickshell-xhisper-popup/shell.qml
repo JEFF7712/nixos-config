@@ -1,5 +1,6 @@
-// xhisper popup — static dark core at bottom-center; loud syllables emit
-// expanding rings that fade outward (sonar-ping behaviour).
+// xhisper popup — horizontal voice-memo style waveform at bottom-center.
+// A fixed-count row of vertical bars; each bar's height tracks one historical
+// amplitude sample. New samples push in on the right; old ones scroll left.
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -12,24 +13,26 @@ ShellRoot {
 
         anchors { bottom: true; left: true; right: true }
         margins.bottom: 20
-        implicitHeight: 110
+        implicitHeight: 56
 
         property string label: Quickshell.env("XHISPER_POPUP_TEXT") || ""
         property bool listening: label.indexOf("Listening") >= 0
-        property color dotColor: listening ? "#15181f" : "#231921"
+        property color barColor: listening ? "#15181f" : "#231921"
         property real level: 0.0
-        property real lastBurstAt: 0
-        property real threshold: 0.18
+        property int historySize: 32
+        property var history: []
 
-        property real burstScale: 1.0
-        property real burstOpacity: 0.0
+        Component.onCompleted: {
+            const h = []
+            for (let i = 0; i < historySize; i++) h.push(0.0)
+            history = h
+        }
 
         onLevelChanged: {
-            const now = Date.now()
-            if (root.listening && level > root.threshold && (now - root.lastBurstAt) > 320) {
-                root.lastBurstAt = now
-                burst.restart()
-            }
+            if (!history.length) return
+            const h = history.slice(1)
+            h.push(root.level)
+            history = h
         }
 
         WlrLayershell.namespace: "quickshell-xhisper-popup"
@@ -49,41 +52,25 @@ ShellRoot {
             }
         }
 
-        SequentialAnimation {
-            id: burst
-            PropertyAction { target: root; property: "burstScale"; value: 1.0 }
-            PropertyAction { target: root; property: "burstOpacity"; value: 0.65 }
-            ParallelAnimation {
-                NumberAnimation { target: root; property: "burstScale"; to: 3.2; duration: 900; easing.type: Easing.OutCubic }
-                NumberAnimation { target: root; property: "burstOpacity"; to: 0.0; duration: 900; easing.type: Easing.OutQuad }
-            }
-        }
-
-        Item {
+        Row {
+            id: waveRow
             anchors.centerIn: parent
-            width: 110
-            height: 110
+            spacing: 2
+            height: 32
 
-            // Expanding burst ring — triggered by amplitude > threshold.
-            Rectangle {
-                anchors.centerIn: parent
-                width: 32
-                height: 32
-                radius: width / 2
-                color: "transparent"
-                border.color: "#ffffff"
-                border.width: 1.5
-                scale: root.burstScale
-                opacity: root.burstOpacity
-            }
-
-            // Static dark core.
-            Rectangle {
-                anchors.centerIn: parent
-                width: 28
-                height: 28
-                radius: width / 2
-                color: root.dotColor
+            Repeater {
+                model: root.historySize
+                Rectangle {
+                    required property int index
+                    width: 2
+                    radius: 1
+                    color: root.barColor
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: Math.max(2, (root.history[index] || 0) * waveRow.height * 1.6)
+                    Behavior on height {
+                        NumberAnimation { duration: 90; easing.type: Easing.OutQuad }
+                    }
+                }
             }
         }
     }
