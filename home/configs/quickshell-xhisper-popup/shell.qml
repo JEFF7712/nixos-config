@@ -1,5 +1,5 @@
-// xhisper popup — dark static dot at bottom-center with a soft light halo
-// behind it that brightens and expands with the user's voice amplitude.
+// xhisper popup — static dark core at bottom-center; loud syllables emit
+// expanding rings that fade outward (sonar-ping behaviour).
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -12,12 +12,25 @@ ShellRoot {
 
         anchors { bottom: true; left: true; right: true }
         margins.bottom: 20
-        implicitHeight: 96
+        implicitHeight: 110
 
         property string label: Quickshell.env("XHISPER_POPUP_TEXT") || ""
         property bool listening: label.indexOf("Listening") >= 0
         property color dotColor: listening ? "#15181f" : "#231921"
         property real level: 0.0
+        property real lastBurstAt: 0
+        property real threshold: 0.18
+
+        property real burstScale: 1.0
+        property real burstOpacity: 0.0
+
+        onLevelChanged: {
+            const now = Date.now()
+            if (root.listening && level > root.threshold && (now - root.lastBurstAt) > 320) {
+                root.lastBurstAt = now
+                burst.restart()
+            }
+        }
 
         WlrLayershell.namespace: "quickshell-xhisper-popup"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -36,26 +49,35 @@ ShellRoot {
             }
         }
 
+        SequentialAnimation {
+            id: burst
+            PropertyAction { target: root; property: "burstScale"; value: 1.0 }
+            PropertyAction { target: root; property: "burstOpacity"; value: 0.65 }
+            ParallelAnimation {
+                NumberAnimation { target: root; property: "burstScale"; to: 3.2; duration: 900; easing.type: Easing.OutCubic }
+                NumberAnimation { target: root; property: "burstOpacity"; to: 0.0; duration: 900; easing.type: Easing.OutQuad }
+            }
+        }
+
         Item {
             anchors.centerIn: parent
-            width: 96
-            height: 96
+            width: 110
+            height: 110
 
-            // Halo — behind the dot. Diameter and opacity grow with amplitude
-            // so loud syllables emit a brighter, larger glow.
+            // Expanding burst ring — triggered by amplitude > threshold.
             Rectangle {
                 anchors.centerIn: parent
-                width: 36 + root.level * 50
-                height: 36 + root.level * 50
+                width: 32
+                height: 32
                 radius: width / 2
-                color: "#ffffff"
-                opacity: root.level * 0.35
-                Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
-                Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
-                Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+                color: "transparent"
+                border.color: "#ffffff"
+                border.width: 1.5
+                scale: root.burstScale
+                opacity: root.burstOpacity
             }
 
-            // Core dot — flat, dark, static.
+            // Static dark core.
             Rectangle {
                 anchors.centerIn: parent
                 width: 28
