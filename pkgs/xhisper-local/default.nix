@@ -60,7 +60,7 @@ stdenv.mkDerivation {
     substituteInPlace xhisper.sh \
       --replace-fail \
         'export LD_LIBRARY_PATH=/usr/local/lib/ollama/cuda_v12/lib:$LD_LIBRARY_PATH' \
-        'trap "notify-send -a xhisper -h string:synchronous:xhisper -t 1 \" \" 2>/dev/null || true" EXIT  # LD_LIBRARY_PATH hack stripped; install notif-dismiss trap'
+        'trap "kill \$(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null; rm -f /tmp/xhisper-popup.pid" EXIT  # LD_LIBRARY_PATH hack stripped; install popup-cleanup trap'
 
     # Point the Python entrypoint at our wrapped interpreter (faster-whisper available).
     substituteInPlace xhisper_transcribe.py \
@@ -97,19 +97,18 @@ stdenv.mkDerivation {
         'paste() {' \
         'paste() { xhisper-wait-mod-release 2>/dev/null || sleep 0.3 ;'
 
-    # Fire notifications on record-start and transcribe-start so there's a
-    # visible "what is xhisper doing" indicator in addition to the inline text.
-    # The 'synchronous:xhisper' hint makes mako/dunst replace previous
-    # notifications with the same group, so the popup updates in place.
+    # Spawn a tiny bottom-center quickshell pill on record-start, replace it on
+    # transcribe-start. The QML reads XHISPER_POPUP_TEXT from env at launch; we
+    # kill and respawn to "update" the text. EXIT trap above tears it down.
     substituteInPlace xhisper.sh \
       --replace-fail \
         'paste "(recording...)"' \
-        'paste "(recording...)" ; notify-send -a xhisper -h string:synchronous:xhisper -t 0 "🎤 xhisper" "Listening…" 2>/dev/null || true'
+        'paste "(recording...)" ; kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; XHISPER_POPUP_TEXT="🎤 Listening…" qs -p "$HOME/.config/quickshell-xhisper-popup" >/dev/null 2>&1 & echo $! > /tmp/xhisper-popup.pid'
 
     substituteInPlace xhisper.sh \
       --replace-fail \
         'paste "(transcribing...)"' \
-        'notify-send -a xhisper -h string:synchronous:xhisper -t 0 "💭 xhisper" "Transcribing…" 2>/dev/null || true ; paste "(transcribing...)"'
+        'kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; XHISPER_POPUP_TEXT="💭 Transcribing…" qs -p "$HOME/.config/quickshell-xhisper-popup" >/dev/null 2>&1 & echo $! > /tmp/xhisper-popup.pid ; paste "(transcribing...)"'
   '';
 
   makeFlags = [ "PREFIX=$(out)" ];
