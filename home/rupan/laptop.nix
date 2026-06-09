@@ -64,6 +64,7 @@
   cli-toys.enable = true;
   cli-tools.enable = true;
   ai-tools.enable = true;
+  agentConfig.enable = true;
   dev.enable = true;
   xhisper.enable = true;
   pulseAgent.enable = false;

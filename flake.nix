@@ -24,6 +24,10 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    claude-code-nix = {
+      url = "github:sadjow/claude-code-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.2.0";
     compchem-cctop = {
       url = "github:JEFF7712/cctop";

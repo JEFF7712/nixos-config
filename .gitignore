@@ -10,6 +10,7 @@
 /.claude
 /.worktrees
 CLAUDE.md
+AGENTS.md
 .mcp.json
 /.superpowers
 __pycache__/
