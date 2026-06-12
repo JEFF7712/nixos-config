@@ -37,6 +37,45 @@ pick_random_wallpaper() {
     | shuf -n 1
 }
 
+# profile_bar <profile>
+# The bar to run for a profile: a runtime override (bar-<profile> state file,
+# written by switch-bar) wins over the profile's meta.json default.
+profile_bar() {
+  local name="$1" ov="$PROFILES_DIR/bar-$1"
+
+  if [ -s "$ov" ]; then
+    cat "$ov"
+  else
+    jq -r '.bar // "noctalia"' "$PROFILES_DIR/$name/meta.json" 2>/dev/null || echo "noctalia"
+  fi
+}
+
+# Nix wraps mako; the process name is ".mako-wrapped", so a plain
+# `pgrep/pkill -x mako` never matches.
+mako_running() {
+  pgrep -x '\.?mako(-wrapped)?' >/dev/null 2>&1
+}
+
+stop_mako() {
+  pkill -x '\.?mako(-wrapped)?' 2>/dev/null || true
+}
+
+start_mako() {
+  mako_running || {
+    mako 2>/dev/null &
+    disown
+  }
+}
+
+restart_mako() {
+  stop_mako
+  for _ in $(seq 1 10); do
+    mako_running || break
+    sleep 0.1
+  done
+  start_mako
+}
+
 # pick_variant_file <variant> <dark-file> <light-file>
 # Prints the light file if variant is light and the file is non-empty; else the dark file.
 pick_variant_file() {
@@ -225,7 +264,47 @@ copy_profile_colors() {
   [ -s "$rofi" ] && cp "$rofi" "$CONFIG_HOME/rofi/profile-switcher.rasi"
   [ -s "$fish" ] && cp "$fish" "$CONFIG_HOME/fish/conf.d/matugen_theme.fish"
   [ -s "$starship" ] && cp "$starship" "$HOME/.config/starship_matugen.toml"
+
+  apply_btop_theme "$profile_dir" "$variant"
+  apply_tmux_colors "$profile_dir" "$variant"
   return 0
+}
+
+# apply_btop_theme <profile-dir> <variant>
+# Installs the variant-resolved theme as "profile" and points btop.conf at it.
+# Running btop instances pick it up on next start.
+apply_btop_theme() {
+  local profile_dir="$1" variant="$2"
+  local src conf
+
+  src=$(pick_variant_file "$variant" "$profile_dir/btop.theme" "$profile_dir/btop-light.theme")
+  [ -s "$src" ] || return 0
+
+  mkdir -p "$CONFIG_HOME/btop/themes"
+  cp "$src" "$CONFIG_HOME/btop/themes/profile.theme"
+
+  conf="$CONFIG_HOME/btop/btop.conf"
+  if [ -f "$conf" ]; then
+    if grep -q '^color_theme = ' "$conf"; then
+      sed -i 's|^color_theme = .*|color_theme = "profile"|' "$conf"
+    else
+      printf 'color_theme = "profile"\n' >> "$conf"
+    fi
+  fi
+}
+
+# apply_tmux_colors <profile-dir> <variant>
+# Installs the variant-resolved colors and reloads a running tmux server.
+apply_tmux_colors() {
+  local profile_dir="$1" variant="$2"
+  local src
+
+  src=$(pick_variant_file "$variant" "$profile_dir/tmux-colors.conf" "$profile_dir/tmux-colors-light.conf")
+  [ -s "$src" ] || return 0
+
+  mkdir -p "$CONFIG_HOME/tmux"
+  cp "$src" "$CONFIG_HOME/tmux/profile-colors.conf"
+  tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
 }
 
 # write_firefox_globals <runtime-file> <variant>

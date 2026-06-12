@@ -2,6 +2,7 @@
 set -euo pipefail
 
 STARTUP_MODE=0
+REAPPLY_MODE=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$SCRIPT_DIR/profile-common"
@@ -34,26 +35,119 @@ list_profiles() {
   done
 }
 
-if [ "${1:-}" = "--startup" ]; then
-  STARTUP_MODE=1
-  shift
-fi
+STATUS_FAILED=0
 
-if [ $STARTUP_MODE -eq 0 ] && [ $# -eq 0 ]; then
+mark() {
+  if [ "$1" = "ok" ]; then
+    printf '  [ok]      %s\n' "$2"
+  else
+    printf '  [MISSING] %s\n' "$2"
+    STATUS_FAILED=1
+  fi
+}
+
+profile_status() {
+  local active variant meta bar self link_target expected_target wallpaper_dir
+
+  active=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+  variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+  if [ -z "$active" ]; then
+    echo "No active profile recorded."
+    return 1
+  fi
+
+  meta="$PROFILES_DIR/$active/meta.json"
+  bar=$(profile_bar "$active")
+  self=$(jq -r '.selfThemed // false' "$meta" 2>/dev/null || echo "false")
+
+  bar_note=""
+  [ -s "$PROFILES_DIR/bar-$active" ] && bar_note=" [override]"
+  echo "Profile: $active (variant: $variant, bar: $bar$bar_note, self-themed: $self)"
+
+  case "$bar" in
+    noctalia)
+      if [ "$(systemctl --user is-active noctalia-shell 2>/dev/null)" = "active" ]; then
+        mark ok "noctalia-shell service"
+      else
+        mark fail "noctalia-shell service"
+      fi
+      ;;
+    waybar)
+      pgrep -f waybar >/dev/null 2>&1 && mark ok "waybar" || mark fail "waybar"
+      mako_running && mark ok "mako" || mark fail "mako"
+      ;;
+    quickshell | clean)
+      pgrep -f "quickshell.*quickshell-clean/shell.qml" >/dev/null 2>&1 \
+        && mark ok "quickshell topbar" || mark fail "quickshell topbar"
+      mako_running && mark ok "mako" || mark fail "mako"
+      ;;
+  esac
+
+  pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1 \
+    && mark ok "profile switcher popup" || mark fail "profile switcher popup"
+  pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1 \
+    && mark ok "app launcher" || mark fail "app launcher"
+
+  link_target=$(readlink "$ACTIVE_LINK" 2>/dev/null || echo "")
+  expected_target="$PROFILES_DIR/$active/niri-overrides.kdl"
+  if [ "$link_target" = "$expected_target" ]; then
+    mark ok "niri overrides symlink"
+  else
+    mark fail "niri overrides symlink (-> ${link_target:-none})"
+  fi
+
+  wallpaper_dir=$(cat "$(pick_variant_file "$variant" \
+    "$PROFILES_DIR/$active/wallpaper-dir" \
+    "$PROFILES_DIR/$active/wallpaper-dir-light")" 2>/dev/null || echo "")
+  if [ "$self" = "true" ] || [ -d "$wallpaper_dir" ]; then
+    mark ok "wallpaper dir"
+  else
+    mark fail "wallpaper dir ($wallpaper_dir)"
+  fi
+
+  if [ $STATUS_FAILED -eq 1 ]; then
+    echo "Run 'switch-profile --reapply' to restore the expected state."
+    return 1
+  fi
+}
+
+case "${1:-}" in
+  --startup)
+    STARTUP_MODE=1
+    shift
+    ;;
+  --reapply)
+    REAPPLY_MODE=1
+    shift
+    ;;
+  --status)
+    profile_status
+    exit $?
+    ;;
+  -t | --toggle)
+    exec toggle-variant
+    ;;
+esac
+
+if [ $STARTUP_MODE -eq 0 ] && [ $REAPPLY_MODE -eq 0 ] && [ $# -eq 0 ]; then
   list_profiles
   exit 0
-fi
-
-if [ $STARTUP_MODE -eq 0 ] && { [ "$1" = "-t" ] || [ "$1" = "--toggle" ]; }; then
-  exec toggle-variant
 fi
 
 if [ $STARTUP_MODE -eq 1 ]; then
   TARGET="${1:-$(cat "$ACTIVE_FILE" 2>/dev/null || echo "noctalia")}"
   TARGET_VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+elif [ $REAPPLY_MODE -eq 1 ]; then
+  TARGET=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+  [ -n "$TARGET" ] || {
+    echo "Error: no active profile to reapply." >&2
+    exit 1
+  }
+  TARGET_VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
 else
   TARGET="$1"
-  TARGET_VARIANT="dark"
+  # Restore this profile's last-used variant (defaults to dark)
+  TARGET_VARIANT=$(cat "$PROFILES_DIR/variant-$TARGET" 2>/dev/null || echo "dark")
 fi
 
 TARGET_DIR="$PROFILES_DIR/$TARGET"
@@ -76,16 +170,17 @@ if [ ! -d "$TARGET_DIR" ]; then
   exit 1
 fi
 
-# Read currently running bar from active profile
+# Read currently running bar from active profile (override-aware)
 CURRENT_BAR="noctalia"
 if [ -f "$ACTIVE_FILE" ]; then
   CURRENT=$(cat "$ACTIVE_FILE")
   if [ -f "$PROFILES_DIR/$CURRENT/meta.json" ]; then
-    CURRENT_BAR=$(jq -r '.bar' "$PROFILES_DIR/$CURRENT/meta.json")
+    CURRENT_BAR=$(profile_bar "$CURRENT")
   fi
 fi
 
-TARGET_BAR=$(jq -r '.bar' "$TARGET_DIR/meta.json")
+TARGET_BAR=$(profile_bar "$TARGET")
+TARGET_SELF_THEMED=$(jq -r '.selfThemed // false' "$TARGET_DIR/meta.json")
 TARGET_CURSOR=$(jq -r '.cursor' "$TARGET_DIR/meta.json")
 TARGET_CURSOR_SIZE=$(jq -r '.cursorSize' "$TARGET_DIR/meta.json")
 TARGET_WALLPAPER_DIR_FILE=$(pick_variant_file "$TARGET_VARIANT" "$TARGET_DIR/wallpaper-dir" "$TARGET_DIR/wallpaper-dir-light")
@@ -93,8 +188,20 @@ TARGET_WALLPAPER_DIR=$(cat "$TARGET_WALLPAPER_DIR_FILE" 2>/dev/null || echo "")
 
 echo "Switching to profile: $TARGET"
 
-# 1. Stop current bar
-if [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "noctalia" ]; then
+# 1. Stop current bar. Reapply can't trust CURRENT_BAR (switch-bar may have
+# just changed the override), so it stops every bar candidate.
+if [ $REAPPLY_MODE -eq 1 ]; then
+  echo "  Stopping bars..."
+  systemctl --user stop noctalia-shell 2>/dev/null || true
+  pkill -f waybar 2>/dev/null || true
+  pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    pgrep -f waybar >/dev/null 2>&1 || break
+    sleep 0.1
+  done
+  rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
+  stop_mako
+elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "noctalia" ]; then
   echo "  Stopping noctalia-shell..."
   systemctl --user stop noctalia-shell 2>/dev/null || true
 elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
@@ -105,29 +212,33 @@ elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
     pgrep -f waybar >/dev/null 2>&1 || break
     sleep 0.1
   done
-  # Clean up waybar configs so a stale Nord config doesn't persist
+  # Clean up waybar configs so a stale config doesn't persist
   rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
-  # Stop mako (nord uses mako; noctalia manages its own notifications)
-  pkill -x mako 2>/dev/null || true
+  # Stop mako (self-themed shells manage their own notifications)
+  stop_mako
 elif [ $STARTUP_MODE -eq 0 ] && { [ "$CURRENT_BAR" = "clean" ] || [ "$CURRENT_BAR" = "quickshell" ]; }; then
   echo "  Stopping quickshell topbar..."
   pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
-  pkill -x mako 2>/dev/null || true
+  stop_mako
 fi
 
-# 2. Copy color files (skip for noctalia — it manages its own colors)
-if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
+# 2. Copy color files (self-themed profiles manage their own colors)
+if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET_SELF_THEMED" != "true" ]; then
   echo "  Applying color files..."
   copy_profile_colors "$TARGET_DIR" "$TARGET_VARIANT"
   write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
   systemctl --user restart swayosd 2>/dev/null || true
-  # Generate pywal cache and push colors to Firefox via pywalfox
+  # pywal cache + Firefox push are slow; run them off the critical path
   if command -v wal >/dev/null 2>&1; then
-    echo "  Generating pywal colors..."
     WAL_THEME=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" pywal)
     [ -n "$WAL_THEME" ] || WAL_THEME="base16-nord"
-    wal --theme "$WAL_THEME" -q 2>/dev/null || true
-    command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
+    (
+      wal --theme "$WAL_THEME" -q 2>/dev/null || true
+      if command -v pywalfox >/dev/null 2>&1; then
+        pywalfox update 2>/dev/null || true
+      fi
+    ) &
+    disown
   fi
 fi
 
@@ -151,23 +262,23 @@ set_gtk_setting "$CONFIG_HOME/gtk-4.0/settings.ini" gtk-cursor-theme-size "$TARG
 apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
 apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
 
-# 6. Record active profile and variant preference
+# 6. Record active profile and variant preference (global + per-profile memory)
 if [ $STARTUP_MODE -eq 0 ]; then
   echo "$TARGET" > "$ACTIVE_FILE"
-  echo "dark" > "$VARIANT_FILE"
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
-elif [ "$TARGET_VARIANT" = "light" ]; then
+  echo "$TARGET_VARIANT" > "$VARIANT_FILE"
+  echo "$TARGET_VARIANT" > "$PROFILES_DIR/variant-$TARGET"
+fi
+if [ "$TARGET_VARIANT" = "light" ]; then
   gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
 else
   gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
 fi
 
-# 6b. Start new bar + manage awww (noctalia has its own wallpaper engine; waybar needs awww)
+# 6b. Start new bar + manage awww (noctalia has its own wallpaper engine; others need awww)
 if [ "$TARGET_BAR" = "noctalia" ]; then
   echo "  Starting noctalia-shell..."
   systemctl --user stop awww 2>/dev/null || true  # noctalia owns the wallpaper layer
   systemctl --user start noctalia-shell 2>/dev/null || true
-  sleep 1  # allow noctalia to come up before IPC call
 elif [ "$TARGET_BAR" = "waybar" ]; then
   echo "  Starting waybar..."
   systemctl --user start awww 2>/dev/null || true  # awww needed for static wallpapers
@@ -196,15 +307,7 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
     disown
   fi
   # Start mako for waybar profile notifications
-  if [ $STARTUP_MODE -eq 1 ]; then
-    pgrep -x mako >/dev/null 2>&1 || {
-      mako 2>/dev/null &
-      disown
-    }
-  else
-    mako 2>/dev/null &
-    disown
-  fi
+  start_mako
 elif [ "$TARGET_BAR" = "clean" ] || [ "$TARGET_BAR" = "quickshell" ]; then
   echo "  Starting quickshell topbar..."
   systemctl --user start awww 2>/dev/null || true
@@ -220,15 +323,7 @@ elif [ "$TARGET_BAR" = "clean" ] || [ "$TARGET_BAR" = "quickshell" ]; then
   apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
   apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
 
-  if [ $STARTUP_MODE -eq 1 ]; then
-    pgrep -x mako >/dev/null 2>&1 || {
-      mako 2>/dev/null &
-      disown
-    }
-  else
-    mako 2>/dev/null &
-    disown
-  fi
+  start_mako
 fi
 
 # 6c. Profile switcher popup — runs as a standalone Quickshell instance on
@@ -248,15 +343,28 @@ if ! pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1; then
   disown
 fi
 
-# 7. Set wallpaper (after bar start so noctalia IPC is available)
+# 7. Set wallpaper (self-themed: shell drives it via IPC, retried in the
+# background until the shell's IPC is up — replaces the old fixed sleeps)
 echo "  Setting wallpaper..."
-if [ "$TARGET" = "noctalia" ]; then
-  # wallpaper random requires a screen argument; call it for each connected output
-  while IFS= read -r screen; do
-    noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
-  done < <(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
-  # Wait for noctalia to generate colors.json, then apply user templates (including kitty)
+if [ "$TARGET_SELF_THEMED" = "true" ]; then
+  NOCTALIA_SCREENS=$(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
   (
+    first=1
+    while IFS= read -r screen; do
+      [ -n "$screen" ] || continue
+      if [ $first -eq 1 ]; then
+        for _ in $(seq 1 40); do
+          if noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null; then
+            break
+          fi
+          sleep 0.25
+        done
+        first=0
+      else
+        noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
+      fi
+    done <<< "$NOCTALIA_SCREENS"
+    # Wait for noctalia to generate colors.json, then apply user templates (including kitty)
     sleep 4
     NOCSHELL=$(readlink -f "$(which noctalia-shell)")
     NOCBASE="${NOCSHELL%/bin/noctalia-shell}"
@@ -268,6 +376,7 @@ if [ "$TARGET" = "noctalia" ]; then
         --mode dark 2>/dev/null || true
     fi
   ) &
+  disown
 elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   WALLPAPER=$(pick_random_wallpaper "$TARGET_WALLPAPER_DIR")
   if [ -n "$WALLPAPER" ]; then
@@ -285,16 +394,19 @@ elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   fi
 fi
 
-# 8. Signal kitty to reload colors (noctalia handles this via template-processor post_hook)
-if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET" != "noctalia" ]; then
+# 8. Signal kitty to reload colors (self-themed: template-processor post_hook handles it)
+if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET_SELF_THEMED" != "true" ]; then
   pkill -USR1 -x kitty 2>/dev/null || true
 fi
 
 if [ $STARTUP_MODE -eq 0 ]; then
-  # 9. Update per-app themes (Zed, Vesktop, Obsidian)
-  apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-  apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-  apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+  # 9. Per-app themes (Zed, Vesktop, Obsidian) — off the critical path
+  (
+    apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+  ) &
+  disown
 
   # 10. Notify
   notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true

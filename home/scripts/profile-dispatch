@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# profile-dispatch <action>
+# Routes profile-aware desktop actions to the right backend so niri keybinds
+# stay one-liners. The noctalia bar handles these itself via IPC; everything
+# else uses the generic tools (swayosd, waypaper, quickshell launcher).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+. "$SCRIPT_DIR/profile-common"
+
+ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+BAR="noctalia"
+[ -n "$ACTIVE" ] && BAR=$(profile_bar "$ACTIVE")
+
+on_noctalia() {
+  [ "$BAR" = "noctalia" ]
+}
+
+case "${1:-}" in
+  launcher)
+    if on_noctalia; then
+      noctalia-shell ipc --any-display call launcher toggle
+    else
+      qs -p "$REPO_HOME/configs/quickshell-launcher" ipc call launcher toggle
+    fi
+    ;;
+  wallpaper)
+    if on_noctalia; then
+      noctalia-shell ipc --any-display call wallpaper toggle
+    else
+      waypaper
+    fi
+    ;;
+  volume-up)
+    if on_noctalia; then
+      noctalia-shell ipc --any-display call volume increase
+    else
+      swayosd-client --output-volume raise
+    fi
+    ;;
+  volume-down)
+    if on_noctalia; then
+      noctalia-shell ipc --any-display call volume decrease
+    else
+      swayosd-client --output-volume lower
+    fi
+    ;;
+  volume-mute)
+    if on_noctalia; then
+      noctalia-shell ipc --any-display call volume muteOutput
+    else
+      swayosd-client --output-volume mute-toggle
+    fi
+    ;;
+  brightness-up)
+    if on_noctalia; then
+      noctalia-shell ipc --any-display call brightness increase
+    else
+      swayosd-client --brightness raise
+    fi
+    ;;
+  brightness-down)
+    if on_noctalia; then
+      noctalia-shell ipc --any-display call brightness decrease
+    else
+      swayosd-client --brightness lower
+    fi
+    ;;
+  *)
+    echo "Usage: profile-dispatch <launcher|wallpaper|volume-up|volume-down|volume-mute|brightness-up|brightness-down>" >&2
+    exit 1
+    ;;
+esac
