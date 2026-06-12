@@ -183,79 +183,22 @@ in
       gtk3 = gtk;
       gtk4 = gtk;
 
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          fg1
-          bg1
-          "#ffffff"
-          bg3
-          bg2
-          bg2
-          fg1
-          "#ffffff"
-          fg1
-          bg0
-          bg0
-          "#000000"
-          accent
-          bg2
-          accent
-          fg2
-          bg1
-          bg0
-          bg1
-          fg1
-          fg2
-          accent
-        ];
-        disabled = [
-          fg2
-          bg1
-          "#ffffff"
-          bg3
-          bg2
-          bg2
-          fg2
-          "#ffffff"
-          fg2
-          bg0
-          bg0
-          "#000000"
-          bg3
-          bg2
-          bg3
-          fg2
-          bg1
-          bg0
-          bg1
-          fg2
-          fg2
-          bg3
-        ];
-        inactive = [
-          fg2
-          bg1
-          "#ffffff"
-          bg3
-          bg2
-          bg2
-          fg2
-          "#ffffff"
-          fg2
-          bg0
-          bg0
-          "#000000"
-          accent
-          bg2
-          accent
-          fg2
-          bg1
-          bg0
-          bg1
-          fg2
-          fg2
-          accent
-        ];
+      qt6 = theme.mkQt6Roles {
+        windowText = fg1;
+        button = bg1;
+        midlight = bg3;
+        mid = bg2;
+        window = bg0;
+        highlight = accent;
+        highlightedText = bg2;
+        linkVisited = fg2;
+        alternateBase = bg1;
+        tooltipBase = bg0;
+        tooltipText = bg1;
+        secondaryText = fg2;
+        inactiveText = fg2;
+        disabledText = fg2;
+        disabledHighlight = bg3;
       };
 
       kitty = theme.mkKittyColors {
@@ -304,6 +247,28 @@ in
       };
 
       inherit rofi;
+
+      btop = theme.mkBtopTheme {
+        mainBg = bg0;
+        mainFg = fg1;
+        hiFg = accent;
+        selectedBg = bg2;
+        inactiveFg = fg2;
+        procMisc = fg2;
+        box = bg2;
+        gradLow = fg2;
+        gradMid = fg1;
+        gradHigh = fg0;
+      };
+
+      tmux = theme.mkTmuxColors {
+        bg = bg1;
+        fg = fg1;
+        accent = fg0;
+        secondary = fg2;
+        inactive = fg2;
+        border = bg2;
+      };
     };
   };
 }

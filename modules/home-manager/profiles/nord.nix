@@ -2,6 +2,7 @@
 
 # nordzy cursor/icon themes are used when available.
 # mako handles notifications (noctalia manages its own when active).
+# Dark-only profile; no colorsLight.
 
 let
   waybar = import ../../../lib/waybar.nix;
@@ -22,6 +23,34 @@ let
   nord13 = "#ebcb8b";
   nord14 = "#a3be8c";
   nord15 = "#b48ead";
+
+  gtkArgs = {
+    accent = nord8;
+    accentFg = nord0;
+    destructiveBg = nord11;
+    destructiveFg = nord6;
+    windowBg = nord0;
+    windowFg = nord4;
+    headerbarBg = nord1;
+    headerbarBackdrop = "@window_bg_color";
+    popoverBg = nord1;
+    cardBg = nord1;
+    dialogBg = nord0;
+    dialogFg = nord4;
+    sidebarBg = nord1;
+    sidebarBackdrop = "@window_bg_color";
+    sidebarBorder = "@window_bg_color";
+    secondarySidebarBg = nord0;
+    secondarySidebarFg = nord4;
+    unfocused = {
+      fg = "@window_fg_color";
+      text = "@view_fg_color";
+      bg = "@window_bg_color";
+      base = "@window_bg_color";
+      selectedBg = "@accent_bg_color";
+      selectedFg = "@accent_fg_color";
+    };
+  };
 in
 {
   desktopProfiles.profiles.nord = {
@@ -121,129 +150,30 @@ in
     };
 
     colors = {
-      gtk3 = theme.mkGtkColors {
-        title = "GTK3 Nord Theme";
-        accent = nord8;
-        accentFg = nord0;
-        destructiveBg = nord11;
-        destructiveFg = nord6;
-        windowBg = nord0;
-        windowFg = nord4;
-        headerbarBg = nord1;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = nord1;
-        cardBg = nord1;
-        dialogBg = nord0;
-        dialogFg = nord4;
-        sidebarBg = nord1;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = "@window_bg_color";
-        secondarySidebarBg = nord0;
-        secondarySidebarFg = nord4;
-        unfocused = {
-          fg = "@window_fg_color";
-          text = "@view_fg_color";
-          bg = "@window_bg_color";
-          base = "@window_bg_color";
-          selectedBg = "@accent_bg_color";
-          selectedFg = "@accent_fg_color";
-        };
-      };
+      gtk3 = theme.mkGtkColors (gtkArgs // { title = "GTK3 Nord Theme"; });
+      gtk4 = theme.mkGtkColors (
+        builtins.removeAttrs gtkArgs [ "unfocused" ] // { title = "GTK4 Nord Theme"; }
+      );
 
-      gtk4 = theme.mkGtkColors {
-        title = "GTK4 Nord Theme";
+      qt6 = theme.mkQt6Roles {
+        windowText = nord4;
+        button = nord1;
+        midlight = nord3;
+        mid = nord2;
+        window = nord0;
+        highlight = nord10;
+        highlightedText = nord6;
+        link = nord9;
+        linkVisited = nord8;
+        alternateBase = nord3;
+        tooltipBase = nord0;
+        tooltipText = nord3;
+        secondaryText = nord4;
         accent = nord8;
-        accentFg = nord0;
-        destructiveBg = nord11;
-        destructiveFg = nord6;
-        windowBg = nord0;
-        windowFg = nord4;
-        headerbarBg = nord1;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = nord1;
-        cardBg = nord1;
-        dialogBg = nord0;
-        dialogFg = nord4;
-        sidebarBg = nord1;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = "@window_bg_color";
-        secondarySidebarBg = nord0;
-        secondarySidebarFg = nord4;
-      };
-
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          nord4
-          nord1
-          "#ffffff"
-          nord3
-          nord2
-          nord2
-          nord4
-          "#ffffff"
-          nord4
-          nord0
-          nord0
-          "#000000"
-          nord10
-          nord6
-          nord9
-          nord8
-          nord3
-          nord0
-          nord3
-          nord4
-          nord4
-          nord8
-        ];
-        disabled = [
-          nord3
-          nord1
-          "#ffffff"
-          nord3
-          nord2
-          nord2
-          nord3
-          "#ffffff"
-          nord3
-          nord0
-          nord0
-          "#000000"
-          nord10
-          nord6
-          nord9
-          nord8
-          nord3
-          nord0
-          nord3
-          nord3
-          nord3
-          nord8
-        ];
-        inactive = [
-          nord4
-          nord1
-          "#ffffff"
-          nord3
-          nord2
-          nord2
-          nord4
-          "#ffffff"
-          nord4
-          nord0
-          nord0
-          "#000000"
-          nord10
-          nord6
-          nord9
-          nord8
-          nord3
-          nord0
-          nord3
-          nord4
-          nord4
-          nord8
-        ];
+        disabledText = nord3;
+        disabledHighlight = nord10;
+        disabledLink = nord9;
+        disabledAccent = nord8;
       };
 
       kitty = theme.mkKittyColors {
@@ -309,6 +239,28 @@ in
         elementBackground = nord1;
         elementSelectedBackground = nord2;
         elementSelectedBorder = nord8;
+      };
+
+      btop = theme.mkBtopTheme {
+        mainBg = nord0;
+        mainFg = nord4;
+        hiFg = nord8;
+        selectedBg = nord2;
+        inactiveFg = nord3;
+        procMisc = nord7;
+        box = nord2;
+        gradLow = nord14;
+        gradMid = nord13;
+        gradHigh = nord11;
+      };
+
+      tmux = theme.mkTmuxColors {
+        bg = nord1;
+        fg = nord4;
+        accent = nord8;
+        secondary = nord9;
+        inactive = nord3;
+        border = nord2;
       };
     };
 
