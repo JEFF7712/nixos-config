@@ -3,82 +3,229 @@
 let
   waybar = import ../../../lib/waybar.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
-  # ── Rosé Pine Main (dark) ────────────────────────────────────────────────────
-  base = "#191724";
-  surface = "#1f1d2e";
-  overlay = "#26233a";
-  muted = "#6e6a86";
-  subtle = "#908caa";
-  text = "#e0def4";
-  love = "#eb6f92"; # red/pink
-  gold = "#f6c177"; # yellow/gold
-  rose = "#ebbcba"; # rose/pink
-  pine = "#31748f"; # teal/blue
-  foam = "#9ccfd8"; # cyan
-  iris = "#c4a7e7"; # purple — main accent
-  highlightLow = "#21202e";
-  highlightMed = "#403d52";
-  highlightHigh = "#524f67";
 
-  # ── Rosé Pine Dawn (light) ───────────────────────────────────────────────────
-  d_base = "#faf4ed";
-  d_surface = "#fffaf3";
-  d_overlay = "#f2e9e1";
-  d_muted = "#9893a5";
-  d_subtle = "#797593";
-  d_text = "#575279";
-  d_love = "#b4637a";
-  d_gold = "#ea9d34";
-  d_rose = "#d7827e";
-  d_pine = "#286983";
-  d_foam = "#56949f";
-  d_iris = "#907aa9";
-  d_highlightLow = "#f4ede8";
-  d_highlightMed = "#dfdad9";
-  d_highlightHigh = "#cecacd";
+  # Rosé Pine (Main dark, Dawn light). One role mapping serves both variants;
+  # `barText` is only set for the light waybar (dark uses the style default).
+  dark = {
+    title = "Rosé Pine";
+    base = "#191724";
+    surface = "#1f1d2e";
+    overlay = "#26233a";
+    muted = "#6e6a86";
+    subtle = "#908caa";
+    text = "#e0def4";
+    love = "#eb6f92";
+    gold = "#f6c177";
+    rose = "#ebbcba";
+    pine = "#31748f";
+    foam = "#9ccfd8";
+    iris = "#c4a7e7";
+    highlightLow = "#21202e";
+    highlightMed = "#403d52";
+    highlightHigh = "#524f67";
+    barBg = "rgba(25, 23, 36, 0.6)";
+    barShadow = "rgba(16, 14, 24, 0.45)";
+  };
+
+  light = {
+    title = "Rosé Pine Dawn";
+    base = "#faf4ed";
+    surface = "#fffaf3";
+    overlay = "#f2e9e1";
+    muted = "#9893a5";
+    subtle = "#797593";
+    text = "#575279";
+    love = "#b4637a";
+    gold = "#ea9d34";
+    rose = "#d7827e";
+    pine = "#286983";
+    foam = "#56949f";
+    iris = "#907aa9";
+    highlightLow = "#f4ede8";
+    highlightMed = "#dfdad9";
+    highlightHigh = "#cecacd";
+    barBg = "rgba(250, 244, 237, 0.85)";
+    barShadow = "rgba(223, 218, 217, 0.5)";
+    barText = "#575279";
+  };
+
+  alpha = a: c: "#${a}${builtins.substring 1 6 c}";
+
+  mkColors =
+    p:
+    theme.mkGtkPair {
+      inherit (p) title;
+      accent = p.iris;
+      accentFg = p.base;
+      destructiveBg = p.love;
+      destructiveFg = p.base;
+      windowBg = p.base;
+      windowFg = p.text;
+      headerbarBg = p.surface;
+      headerbarBackdrop = "@window_bg_color";
+      popoverBg = p.surface;
+      cardBg = p.overlay;
+      dialogBg = p.surface;
+      dialogFg = p.text;
+      sidebarBg = p.surface;
+      sidebarBackdrop = "@window_bg_color";
+      sidebarBorder = p.highlightMed;
+      secondarySidebarBg = p.base;
+      secondarySidebarFg = p.subtle;
+      unfocused = {
+        fg = p.subtle;
+        text = p.muted;
+        bg = p.base;
+        inherit (p) base;
+        selectedBg = p.highlightMed;
+        selectedFg = p.text;
+      };
+    }
+    // {
+      qt6 = theme.mkQt6Roles {
+        windowText = p.text;
+        button = p.surface;
+        midlight = p.highlightHigh;
+        mid = p.overlay;
+        window = p.base;
+        highlight = p.iris;
+        highlightedText = p.highlightMed;
+        linkVisited = p.pine;
+        alternateBase = p.overlay;
+        tooltipBase = p.highlightLow;
+        tooltipText = p.overlay;
+        secondaryText = p.subtle;
+        inactiveText = p.subtle;
+        disabledText = p.muted;
+        disabledHighlight = p.highlightHigh;
+      };
+
+      kitty = theme.mkKittyColors {
+        title = "${p.title} Kitty";
+        cursor = p.rose;
+        cursorText = p.base;
+        foreground = p.text;
+        background = p.base;
+        selectionForeground = p.base;
+        selectionBackground = p.iris;
+        color0 = p.highlightMed;
+        color8 = p.highlightHigh;
+        color1 = p.love;
+        color9 = p.love;
+        color2 = p.pine;
+        color10 = p.foam;
+        color3 = p.gold;
+        color11 = p.gold;
+        color4 = p.pine;
+        color12 = p.pine;
+        color5 = p.iris;
+        color13 = p.iris;
+        color6 = p.foam;
+        color14 = p.foam;
+        color7 = p.subtle;
+        color15 = p.text;
+      };
+
+      fish = theme.mkFishColors {
+        normal = p.text;
+        command = p.iris;
+        keyword = p.love;
+        quote = p.gold;
+        redirection = p.foam;
+        end = p.subtle;
+        error = p.love;
+        param = p.text;
+        comment = p.muted;
+        selection = p.highlightMed;
+        searchMatch = p.overlay;
+        operator = p.iris;
+        escape = p.rose;
+        autosuggestion = p.muted;
+      };
+
+      starship = theme.mkStarshipPrompt {
+        success = p.iris;
+        error = p.love;
+        directory = p.foam;
+        gitBranch = p.rose;
+        cmdDuration = p.subtle;
+      };
+
+      rofi = theme.mkProfilePickerRofi {
+        background = p.base;
+        inherit (p) text;
+        border = p.highlightMed;
+        selectedBackground = p.overlay;
+        selectedForeground = p.iris;
+        inputBackground = p.surface;
+        prompt = p.iris;
+        placeholder = p.highlightHigh;
+        elementBackground = p.surface;
+        elementSelectedBackground = p.overlay;
+        elementSelectedBorder = p.iris;
+      };
+    };
+
+  mkMako =
+    p:
+    theme.mkMakoConfig {
+      background = p.base;
+      inherit (p) text;
+      border = p.iris;
+      lowBorder = p.highlightHigh;
+      highBackground = p.surface;
+      highBorder = p.love;
+      highText = p.text;
+    };
+
+  mkQuickshell = p: {
+    fg = p.base;
+    bg = alpha "dd" p.iris;
+    popupBg = alpha "cc" p.base;
+    rawBg = p.base;
+    accent = p.base;
+    second = p.surface;
+    warm = p.gold;
+    fresh = p.foam;
+    barRadius = "22";
+    barHeight = "32";
+    showClockDate = "false";
+    showWorkspaceNumbers = "false";
+    barFont = "FiraCode Nerd Font";
+    barBorder = "#00000000";
+    pillBg = "#00000000";
+    pillBorder = "#00000000";
+  };
+
+  mkWaybarStyle =
+    p:
+    waybar.mkPillStyle (
+      {
+        windowBg = p.barBg;
+        primary = p.iris;
+        borderColor = p.highlightMed;
+        shadowColor = p.barShadow;
+        activeBg = p.overlay;
+        hoverColor = p.rose;
+        clockColor = p.rose;
+        performanceColor = p.love;
+        balancedColor = p.iris;
+        powerSaverColor = p.pine;
+        warningColor = p.gold;
+        criticalColor = p.love;
+      }
+      // (if p ? barText then { textColor = p.barText; } else { })
+    );
 in
 {
   desktopProfiles.profiles.rosepine = {
     bar = "quickshell";
 
-    quickshellTheme = {
-      fg = base;
-      bg = "#ddc4a7e7";
-      popupBg = "#cc191724";
-      rawBg = base;
-      accent = base;
-      second = surface;
-      warm = gold;
-      fresh = foam;
-      barRadius = "22";
-      barHeight = "32";
-      showClockDate = "false";
-      showWorkspaceNumbers = "false";
-      barFont = "FiraCode Nerd Font";
-      barBorder = "#00000000";
-      pillBg = "#00000000";
-      pillBorder = "#00000000";
-    };
+    quickshellTheme = mkQuickshell dark;
+    quickshellThemeLight = mkQuickshell light;
 
-    makoConfig = theme.mkMakoConfig {
-      background = base;
-      text = text;
-      border = iris;
-      lowBorder = highlightHigh;
-      highBackground = surface;
-      highBorder = love;
-      highText = text;
-    };
-
-    makoConfigLight = theme.mkMakoConfig {
-      background = d_base;
-      text = d_text;
-      border = d_iris;
-      lowBorder = d_highlightHigh;
-      highBackground = d_surface;
-      highBorder = d_love;
-      highText = d_text;
-    };
+    makoConfig = mkMako dark;
+    makoConfigLight = mkMako light;
 
     cursor = {
       theme = "BreezeX-RosePine-Linux";
@@ -119,203 +266,14 @@ in
       shadowInactiveColor = "#100e1840";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
-      tabIndicatorActiveColor = iris;
-      tabIndicatorInactiveColor = highlightMed;
+      tabIndicatorActiveColor = dark.iris;
+      tabIndicatorInactiveColor = dark.highlightMed;
       windowOpacity = 0.97;
       windowHighlightOff = true;
     };
 
-    colors = {
-      gtk3 = theme.mkGtkColors {
-        title = "Rosé Pine";
-        accent = iris;
-        accentFg = base;
-        destructiveBg = love;
-        destructiveFg = base;
-        windowBg = base;
-        windowFg = text;
-        headerbarBg = surface;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = surface;
-        cardBg = overlay;
-        dialogBg = surface;
-        dialogFg = text;
-        sidebarBg = surface;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = highlightMed;
-        secondarySidebarBg = base;
-        secondarySidebarFg = subtle;
-        unfocused = {
-          fg = subtle;
-          text = muted;
-          bg = base;
-          base = base;
-          selectedBg = highlightMed;
-          selectedFg = text;
-        };
-      };
-
-      gtk4 = theme.mkGtkColors {
-        title = "Rosé Pine";
-        accent = iris;
-        accentFg = base;
-        destructiveBg = love;
-        destructiveFg = base;
-        windowBg = base;
-        windowFg = text;
-        headerbarBg = surface;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = surface;
-        cardBg = overlay;
-        dialogBg = surface;
-        dialogFg = text;
-        sidebarBg = surface;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = highlightMed;
-        secondarySidebarBg = base;
-        secondarySidebarFg = subtle;
-      };
-
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          text
-          surface
-          "#ffffff"
-          highlightHigh
-          overlay
-          overlay
-          text
-          "#ffffff"
-          text
-          base
-          base
-          "#000000"
-          iris
-          highlightMed
-          iris
-          pine
-          overlay
-          highlightLow
-          overlay
-          text
-          subtle
-          iris
-        ];
-        disabled = [
-          muted
-          surface
-          "#ffffff"
-          highlightHigh
-          overlay
-          overlay
-          muted
-          "#ffffff"
-          muted
-          base
-          base
-          "#000000"
-          highlightHigh
-          highlightMed
-          highlightHigh
-          pine
-          overlay
-          highlightLow
-          overlay
-          muted
-          muted
-          highlightHigh
-        ];
-        inactive = [
-          subtle
-          surface
-          "#ffffff"
-          highlightHigh
-          overlay
-          overlay
-          subtle
-          "#ffffff"
-          subtle
-          base
-          base
-          "#000000"
-          iris
-          highlightMed
-          iris
-          pine
-          overlay
-          highlightLow
-          overlay
-          subtle
-          muted
-          iris
-        ];
-      };
-
-      kitty = theme.mkKittyColors {
-        title = "Rosé Pine Kitty";
-        cursor = rose;
-        cursorText = base;
-        foreground = text;
-        background = base;
-        selectionForeground = base;
-        selectionBackground = iris;
-        color0 = highlightMed;
-        color8 = highlightHigh;
-        color1 = love;
-        color9 = love;
-        color2 = pine;
-        color10 = foam;
-        color3 = gold;
-        color11 = gold;
-        color4 = pine;
-        color12 = pine;
-        color5 = iris;
-        color13 = iris;
-        color6 = foam;
-        color14 = foam;
-        color7 = subtle;
-        color15 = text;
-      };
-
-      fish = theme.mkFishColors {
-        normal = text;
-        command = iris;
-        keyword = love;
-        quote = gold;
-        redirection = foam;
-        end = subtle;
-        error = love;
-        param = text;
-        comment = muted;
-        selection = highlightMed;
-        searchMatch = overlay;
-        operator = iris;
-        escape = rose;
-        autosuggestion = muted;
-      };
-
-      starship = theme.mkStarshipPrompt {
-        success = iris;
-        error = love;
-        directory = foam;
-        gitBranch = rose;
-        cmdDuration = subtle;
-      };
-
-      rofi = theme.mkProfilePickerRofi {
-        background = base;
-        text = text;
-        border = highlightMed;
-        selectedBackground = overlay;
-        selectedForeground = iris;
-        inputBackground = surface;
-        prompt = iris;
-        placeholder = highlightHigh;
-        elementBackground = surface;
-        elementSelectedBackground = overlay;
-        elementSelectedBorder = iris;
-      };
-    };
+    colors = mkColors dark;
+    colorsLight = mkColors light;
 
     waybar = {
       config = waybar.mkConfig {
@@ -323,228 +281,8 @@ in
         pill = true;
         scriptDir = "${config.repoPath}/home/scripts";
       };
-      style = waybar.mkPillStyle {
-        windowBg = "rgba(25, 23, 36, 0.6)";
-        primary = iris;
-        borderColor = highlightMed;
-        shadowColor = "rgba(16, 14, 24, 0.45)";
-        activeBg = overlay;
-        hoverColor = rose;
-        clockColor = rose;
-        performanceColor = love;
-        balancedColor = iris;
-        powerSaverColor = pine;
-        warningColor = gold;
-        criticalColor = love;
-      };
+      style = mkWaybarStyle dark;
     };
-
-    colorsLight = {
-      gtk3 = theme.mkGtkColors {
-        title = "Rosé Pine Dawn";
-        accent = d_iris;
-        accentFg = d_base;
-        destructiveBg = d_love;
-        destructiveFg = d_base;
-        windowBg = d_base;
-        windowFg = d_text;
-        headerbarBg = d_surface;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = d_surface;
-        cardBg = d_overlay;
-        dialogBg = d_surface;
-        dialogFg = d_text;
-        sidebarBg = d_surface;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = d_highlightMed;
-        secondarySidebarBg = d_base;
-        secondarySidebarFg = d_subtle;
-        unfocused = {
-          fg = d_subtle;
-          text = d_muted;
-          bg = d_base;
-          base = d_base;
-          selectedBg = d_highlightMed;
-          selectedFg = d_text;
-        };
-      };
-
-      gtk4 = theme.mkGtkColors {
-        title = "Rosé Pine Dawn";
-        accent = d_iris;
-        accentFg = d_base;
-        destructiveBg = d_love;
-        destructiveFg = d_base;
-        windowBg = d_base;
-        windowFg = d_text;
-        headerbarBg = d_surface;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = d_surface;
-        cardBg = d_overlay;
-        dialogBg = d_surface;
-        dialogFg = d_text;
-        sidebarBg = d_surface;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = d_highlightMed;
-        secondarySidebarBg = d_base;
-        secondarySidebarFg = d_subtle;
-      };
-
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          d_text
-          d_surface
-          "#ffffff"
-          d_highlightHigh
-          d_overlay
-          d_overlay
-          d_text
-          "#ffffff"
-          d_text
-          d_base
-          d_base
-          "#000000"
-          d_iris
-          d_highlightMed
-          d_iris
-          d_pine
-          d_overlay
-          d_highlightLow
-          d_overlay
-          d_text
-          d_subtle
-          d_iris
-        ];
-        disabled = [
-          d_muted
-          d_surface
-          "#ffffff"
-          d_highlightHigh
-          d_overlay
-          d_overlay
-          d_muted
-          "#ffffff"
-          d_muted
-          d_base
-          d_base
-          "#000000"
-          d_highlightHigh
-          d_highlightMed
-          d_highlightHigh
-          d_pine
-          d_overlay
-          d_highlightLow
-          d_overlay
-          d_muted
-          d_muted
-          d_highlightHigh
-        ];
-        inactive = [
-          d_subtle
-          d_surface
-          "#ffffff"
-          d_highlightHigh
-          d_overlay
-          d_overlay
-          d_subtle
-          "#ffffff"
-          d_subtle
-          d_base
-          d_base
-          "#000000"
-          d_iris
-          d_highlightMed
-          d_iris
-          d_pine
-          d_overlay
-          d_highlightLow
-          d_overlay
-          d_subtle
-          d_muted
-          d_iris
-        ];
-      };
-
-      kitty = theme.mkKittyColors {
-        title = "Rosé Pine Dawn Kitty";
-        cursor = d_rose;
-        cursorText = d_base;
-        foreground = d_text;
-        background = d_base;
-        selectionForeground = d_base;
-        selectionBackground = d_iris;
-        color0 = d_highlightMed;
-        color8 = d_highlightHigh;
-        color1 = d_love;
-        color9 = d_love;
-        color2 = d_pine;
-        color10 = d_foam;
-        color3 = d_gold;
-        color11 = d_gold;
-        color4 = d_pine;
-        color12 = d_pine;
-        color5 = d_iris;
-        color13 = d_iris;
-        color6 = d_foam;
-        color14 = d_foam;
-        color7 = d_subtle;
-        color15 = d_text;
-      };
-
-      fish = theme.mkFishColors {
-        normal = d_text;
-        command = d_iris;
-        keyword = d_love;
-        quote = d_gold;
-        redirection = d_foam;
-        end = d_subtle;
-        error = d_love;
-        param = d_text;
-        comment = d_muted;
-        selection = d_highlightMed;
-        searchMatch = d_overlay;
-        operator = d_iris;
-        escape = d_rose;
-        autosuggestion = d_muted;
-      };
-
-      starship = theme.mkStarshipPrompt {
-        success = d_iris;
-        error = d_love;
-        directory = d_foam;
-        gitBranch = d_rose;
-        cmdDuration = d_subtle;
-      };
-
-      rofi = theme.mkProfilePickerRofi {
-        background = d_base;
-        text = d_text;
-        border = d_highlightMed;
-        selectedBackground = d_overlay;
-        selectedForeground = d_iris;
-        inputBackground = d_surface;
-        prompt = d_iris;
-        placeholder = d_highlightHigh;
-        elementBackground = d_surface;
-        elementSelectedBackground = d_overlay;
-        elementSelectedBorder = d_iris;
-      };
-    };
-
-    waybarLight.style = waybar.mkPillStyle {
-      windowBg = "rgba(250, 244, 237, 0.85)";
-      primary = d_iris;
-      borderColor = d_highlightMed;
-      shadowColor = "rgba(223, 218, 217, 0.5)";
-      activeBg = d_overlay;
-      hoverColor = d_rose;
-      clockColor = d_rose;
-      textColor = d_text;
-      performanceColor = d_love;
-      balancedColor = d_iris;
-      powerSaverColor = d_pine;
-      warningColor = d_gold;
-      criticalColor = d_love;
-    };
+    waybarLight.style = mkWaybarStyle light;
   };
 }

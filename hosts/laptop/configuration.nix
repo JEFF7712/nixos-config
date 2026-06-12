@@ -1,5 +1,4 @@
 {
-  config,
   lib,
   pkgs,
   inputs,
@@ -72,6 +71,10 @@
   ];
 
   services.power-profiles-daemon.enable = true;
+  services.thermald.enable = true;
+  services.fwupd.enable = true;
+  services.asusd.enable = true;
+  zramSwap.enable = true;
   services.logind.settings.Login = {
     HandleLidSwitch = "ignore";
     HandleLidSwitchDocked = "ignore";
@@ -95,7 +98,7 @@
       enable = true;
       theme = "nixos-logo";
       themePackages = [ pkgs.plymouth-nixos-logo ];
-      logo = pkgs.plymouth-nixos-logo.logo;
+      inherit (pkgs.plymouth-nixos-logo) logo;
     };
 
     # Keep boot output quiet so Plymouth stays visible unless something fails.
@@ -132,19 +135,37 @@
     ];
   };
 
+  # switch/test are pinned to this repo's exact flake refs — a wildcard here
+  # would let any flake URI run as root. dry-activate stays globbed for
+  # nix-agent's headless dry runs.
   security.sudo.extraRules = [
     {
       users = [ "rupan" ];
-      commands = [
-        {
-          command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild dry-activate --flake *";
-          options = [ "NOPASSWD" ];
-        }
-        {
-          command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake *";
-          options = [ "NOPASSWD" ];
-        }
-      ];
+      commands =
+        let
+          rebuild = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
+          flakeRefs = [
+            "path\\:/home/rupan/nixos\\#laptop"
+            "/home/rupan/nixos\\#laptop"
+            ".\\#laptop"
+          ];
+        in
+        [
+          {
+            command = "${rebuild} dry-activate --flake *";
+            options = [ "NOPASSWD" ];
+          }
+        ]
+        ++ lib.concatMap (ref: [
+          {
+            command = "${rebuild} switch --flake ${ref}";
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "${rebuild} test --flake ${ref}";
+            options = [ "NOPASSWD" ];
+          }
+        ]) flakeRefs;
     }
   ];
 
@@ -206,18 +227,19 @@
   networking.networkmanager.wifi.macAddress = "preserve";
   networking.wireless.iwd.enable = false;
 
-  system.autoUpgrade = {
+  auto-update.enable = true;
+
+  programs.nh = {
     enable = true;
-    dates = "weekly";
+    flake = "/home/rupan/nixos";
+    clean = {
+      enable = true;
+      dates = "daily";
+      extraArgs = "--keep-since 7d --keep 3";
+    };
   };
 
-  nix.gc = {
-    automatic = true;
-    dates = "daily";
-    options = "--delete-older-than 7d";
-  };
-
-  nix.settings.auto-optimise-store = true;
+  nix.optimise.automatic = true;
 
   # Homelab Attic binary cache. Disabled while the homelab is offline.
   # extra-substituters: make the daemon fetch from it.

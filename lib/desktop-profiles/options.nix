@@ -51,10 +51,21 @@ in
         type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
         default = null;
         description = ''
-          Theme tokens for the modular quickshell bar. Keys: fg, bg, popupBg,
-          rawBg, accent, second, warm, fresh. Materialized as
+          Theme tokens for the modular quickshell bar (colors plus style keys
+          like barRadius, barHeight, flatMode — see shell.qml's applyTheme).
+          Materialized as
           ~/.config/desktop-profiles/<profile>/quickshell-theme.json and
           loaded at runtime by shell.qml.
+        '';
+      };
+
+      quickshellThemeLight = lib.mkOption {
+        type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
+        default = null;
+        description = ''
+          Light-variant theme tokens for the quickshell bar. Materialized as
+          quickshell-theme-light.json and picked up by shell.qml when
+          active-variant is light.
         '';
       };
 

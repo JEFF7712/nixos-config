@@ -60,7 +60,11 @@ ShellRoot {
         command: ["sh", "-c",
             "p=\"$HOME/.config/desktop-profiles\";" +
             "[ -f \"$p/active\" ] || exit 0;" +
-            "cat \"$p/$(cat $p/active)/quickshell-theme.json\" 2>/dev/null"
+            "d=\"$p/$(cat $p/active)\";" +
+            "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" +
+            "t=\"$d/quickshell-theme.json\";" +
+            "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" +
+            "cat \"$t\" 2>/dev/null"
         ]
         stdout: StdioCollector {
             onStreamFinished: {

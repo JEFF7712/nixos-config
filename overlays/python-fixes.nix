@@ -1,6 +1,6 @@
 final: prev:
 let
-  pythonOverrides = pyFinal: pyPrev: {
+  pythonOverrides = _pyFinal: pyPrev: {
     aioboto3 = pyPrev.aioboto3.overridePythonAttrs (old: {
       disabledTests = (old.disabledTests or [ ]) ++ [
         "test_dynamo_resource_query"
@@ -13,7 +13,7 @@ let
       ];
     });
 
-    fastmcp = pyPrev.fastmcp.overridePythonAttrs (old: {
+    fastmcp = pyPrev.fastmcp.overridePythonAttrs (_old: {
       doCheck = false;
     });
   };

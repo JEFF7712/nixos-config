@@ -1,5 +1,4 @@
 {
-  pkgs,
   lib,
   config,
   ...
@@ -18,7 +17,7 @@
 
     hardware.nvidia = {
       modesetting.enable = true;
-      open = false;
+      open = true;
       nvidiaSettings = true;
       prime = {
         intelBusId = "PCI:0:2:0";

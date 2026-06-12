@@ -18,7 +18,7 @@ let
   glassBorder = "rgba(255, 255, 255, 0.34)";
 
   gtk = theme.mkGtkColors {
-    accent = accent;
+    inherit accent;
     accentBg = "rgba(255, 255, 255, 0.24)";
     accentFg = bg0;
     destructiveBg = err;
@@ -303,7 +303,7 @@ in
         cmdDuration = fg2;
       };
 
-      rofi = rofi;
+      inherit rofi;
     };
   };
 }

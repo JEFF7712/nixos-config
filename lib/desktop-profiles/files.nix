@@ -81,11 +81,11 @@ let
     let
       base = {
         ".config/desktop-profiles/${name}/meta.json".text = builtins.toJSON {
-          bar = profile.bar;
+          inherit (profile) bar;
           cursor = profile.cursor.theme;
           cursorSize = profile.cursor.size;
-          fonts = profile.fonts;
-          appearance = profile.appearance;
+          inherit (profile) fonts;
+          inherit (profile) appearance;
           hasLightVariant = hasLight profile;
         };
         ".config/desktop-profiles/${name}/runtime.json".text = builtins.toJSON (runtimeFor name profile);
@@ -119,7 +119,9 @@ let
           ".config/desktop-profiles/${name}/mako-config-light".text = profile.makoConfigLight;
         };
 
-      waybarFiles = lib.optionalAttrs (profile.bar == "waybar" && profile.waybar.config != null) (
+      # Materialized regardless of the active bar choice so switching a
+      # profile's bar is a one-line change with no stale or missing files.
+      waybarFiles = lib.optionalAttrs (profile.waybar.config != null) (
         {
           ".config/desktop-profiles/${name}/waybar-config.jsonc".text = profile.waybar.config;
           ".config/desktop-profiles/${name}/waybar-style.css".text = orEmpty profile.waybar.style;
@@ -129,12 +131,15 @@ let
         }
       );
 
-      quickshellFiles = lib.optionalAttrs (profile.bar == "quickshell" || profile.bar == "clean") (
+      quickshellFiles =
         lib.optionalAttrs (profile.quickshellTheme != null) {
           ".config/desktop-profiles/${name}/quickshell-theme.json".text =
             builtins.toJSON profile.quickshellTheme;
         }
-      );
+        // lib.optionalAttrs (profile.quickshellThemeLight != null) {
+          ".config/desktop-profiles/${name}/quickshell-theme-light.json".text =
+            builtins.toJSON profile.quickshellThemeLight;
+        };
     in
     base // lightFiles // waybarFiles // quickshellFiles;
 in

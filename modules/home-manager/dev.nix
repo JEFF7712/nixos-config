@@ -9,11 +9,16 @@
 {
   options.dev.enable = lib.mkEnableOption "dev";
 
+  imports = [ inputs.nix-index-database.homeModules.nix-index ];
+
   config = lib.mkIf config.dev.enable {
     programs.direnv = {
       enable = true;
       nix-direnv.enable = true;
     };
+
+    programs.nix-index.enable = true;
+    programs.nix-index-database.comma.enable = true;
 
     home.packages = with pkgs; [
       geminicommit
@@ -30,12 +35,10 @@
       cloc
       code-cursor
       gh
-      glab
       bun
       pnpm
       ags
       uv
-      glab
       awscli
     ];
   };

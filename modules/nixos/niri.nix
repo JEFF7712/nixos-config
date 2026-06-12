@@ -22,11 +22,13 @@
       alacritty
     ];
 
-    environment.sessionVariables.NIXOS_OZONE_WL = "1";
+    # No global LIBVA_DRIVER_NAME / __GLX_VENDOR_LIBRARY_NAME: forcing the
+    # nvidia vendor session-wide defeats PRIME offload — every GLX app renders
+    # on the dGPU and keeps it awake. Per-app offload env lives in the game
+    # aliases; NVD_BACKEND only applies when something opts into nvidia VAAPI.
     environment.sessionVariables = {
+      NIXOS_OZONE_WL = "1";
       NVD_BACKEND = "direct";
-      LIBVA_DRIVER_NAME = "nvidia";
-      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     };
     services.upower.enable = true;
   };

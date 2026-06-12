@@ -57,7 +57,7 @@ in
 
     services.ollama = lib.mkIf cfg.ollama.enable {
       enable = true;
-      package = cfg.ollama.package;
+      inherit (cfg.ollama) package;
       loadModels = [ cfg.ollama.model ];
     };
   };
