@@ -33,4 +33,10 @@ dry:
   sudo nixos-rebuild dry-activate --flake .#laptop
 
 switch:
-  sudo nixos-rebuild switch --flake .#laptop
+  #!/usr/bin/env bash
+  # nixos-rebuild fallback bootstraps the first switch that installs nh
+  if command -v nh >/dev/null; then
+    nh os switch . -H laptop
+  else
+    sudo nixos-rebuild switch --flake .#laptop
+  fi
