@@ -96,6 +96,7 @@ let
         tooltipText = p.overlay;
         secondaryText = p.subtle;
         inactiveText = p.subtle;
+        inactiveSecondaryText = p.muted;
         disabledText = p.muted;
         disabledHighlight = p.highlightHigh;
       };
@@ -163,6 +164,28 @@ let
         elementBackground = p.surface;
         elementSelectedBackground = p.overlay;
         elementSelectedBorder = p.iris;
+      };
+
+      btop = theme.mkBtopTheme {
+        mainBg = p.base;
+        mainFg = p.text;
+        hiFg = p.iris;
+        selectedBg = p.highlightMed;
+        inactiveFg = p.muted;
+        procMisc = p.foam;
+        box = p.highlightMed;
+        gradLow = p.foam;
+        gradMid = p.gold;
+        gradHigh = p.love;
+      };
+
+      tmux = theme.mkTmuxColors {
+        bg = p.surface;
+        fg = p.text;
+        accent = p.iris;
+        secondary = p.subtle;
+        inactive = p.muted;
+        border = p.highlightMed;
       };
     };
 

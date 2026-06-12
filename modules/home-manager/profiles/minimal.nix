@@ -89,7 +89,7 @@ let
       };
 
       kitty = theme.mkKittyColors {
-        title = "${p.title} Kitty";
+        inherit (p) title;
         cursor = p.fg1;
         cursorText = p.bg0;
         foreground = p.fg1;
@@ -157,6 +157,28 @@ let
         inputRadius = 4;
         elementRadius = 4;
         iconRadius = 2;
+      };
+
+      btop = theme.mkBtopTheme {
+        mainBg = p.bg0;
+        mainFg = p.fg1;
+        hiFg = p.fg0;
+        selectedBg = p.bg2;
+        inactiveFg = p.fg2;
+        procMisc = p.fg2;
+        box = p.bg2;
+        gradLow = p.fg2;
+        gradMid = p.fg1;
+        gradHigh = p.fg0;
+      };
+
+      tmux = theme.mkTmuxColors {
+        bg = p.bg1;
+        fg = p.fg1;
+        accent = p.fg0;
+        secondary = p.fg2;
+        inactive = p.fg2;
+        border = p.bg2;
       };
     };
 

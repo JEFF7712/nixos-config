@@ -201,6 +201,28 @@ let
         elementSelectedBackground = p.surface1;
         elementSelectedBorder = p.mauve;
       };
+
+      btop = theme.mkBtopTheme {
+        mainBg = p.base;
+        mainFg = p.text;
+        hiFg = p.mauve;
+        selectedBg = p.surface1;
+        inactiveFg = p.overlay0;
+        procMisc = p.teal;
+        box = p.surface1;
+        gradLow = p.green;
+        gradMid = p.yellow;
+        gradHigh = p.red;
+      };
+
+      tmux = theme.mkTmuxColors {
+        bg = p.mantle;
+        fg = p.text;
+        accent = p.mauve;
+        secondary = p.subtext1;
+        inactive = p.overlay0;
+        border = p.surface1;
+      };
     };
 
   mkMako =

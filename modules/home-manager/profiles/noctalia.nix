@@ -6,6 +6,7 @@
 {
   desktopProfiles.profiles.noctalia = {
     bar = "noctalia";
+    selfThemed = true;
 
     cursor = {
       theme = "Adwaita";
