@@ -14,6 +14,7 @@
 
     programs.nixvim = {
       enable = true;
+      nixpkgs.source = inputs.nixpkgs;
       colorschemes.oxocarbon.enable = true;
       opts = {
         number = true;
@@ -72,6 +73,7 @@
         ll = "eza -l --icons";
         l = "eza --icons";
         lt = "eza --tree --level=2 --icons";
+        ltt = "eza --tree --level=3 --icons";
         la = "eza -a --icons";
         lla = "eza -la --icons";
         cd = "z";
@@ -92,7 +94,7 @@
         t = "talosctl";
         tf = "terragrunt";
         zz = "zeditor .";
-        nhc = "nh clean";
+        nhc = "nh clean all";
         ga = "git add .";
         gs = "git status";
         gp = "git push";

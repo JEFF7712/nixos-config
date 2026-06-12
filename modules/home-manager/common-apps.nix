@@ -18,7 +18,7 @@ in
       networkmanagerapplet
       vesktop
       pywalfox-native
-      zoom
+      pkgs-stable.zoom
       pkgs-stable.calibre
       zed-editor
       spotify-player
