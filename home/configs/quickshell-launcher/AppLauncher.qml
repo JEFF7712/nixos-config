@@ -10,19 +10,10 @@ PanelWindow {
     property bool shown: false
     property string query: ""
     property int focusedIndex: 0
-    property string activeProfile: ""
 
-    readonly property var profileAccents: ({
-        "noctalia":   "#b1c6ff",
-        "clean":      "#eeeeee",
-        "minimal":    "#e0e0e0",
-        "nord":       "#88c0d0",
-        "catppuccin": "#cba6f7",
-        "gruvbox":    "#fabd2f",
-        "rosepine":   "#c4a7e7",
-        "everforest": "#a7c080"
-    })
-    readonly property color accent: profileAccents[activeProfile] || "#ffffff"
+    property color accent: "#b1c6ff"
+    property color cardBg: Qt.rgba(0.13, 0.13, 0.13, 0.875)
+    property color textColor: "#ffffff"
 
     readonly property int columns: 6
     readonly property int visibleRows: 3
@@ -41,8 +32,14 @@ PanelWindow {
             : allEntries
     }
 
+    function applyTheme(theme) {
+        root.accent = theme && theme.accent ? theme.accent : "#b1c6ff"
+        root.cardBg = theme && theme.popupBg ? theme.popupBg : Qt.rgba(0.13, 0.13, 0.13, 0.875)
+        root.textColor = theme && theme.fg ? theme.fg : "#ffffff"
+    }
+
     function open() {
-        activeProc.running = true
+        themeLoader.running = true
         query = ""
         focusedIndex = 0
         shown = true
@@ -92,10 +89,27 @@ PanelWindow {
     implicitHeight: root.searchBarHeight + root.columnGap + root.gridHeight + cardPadding
 
     Process {
-        id: activeProc
-        command: ["sh", "-c", "cat \"$HOME\"/.config/desktop-profiles/active 2>/dev/null || true"]
+        id: themeLoader
+        running: true
+        command: ["sh", "-c",
+            "p=\"$HOME/.config/desktop-profiles\";" +
+            "[ -f \"$p/active\" ] || exit 0;" +
+            "d=\"$p/$(cat $p/active)\";" +
+            "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" +
+            "t=\"$d/quickshell-theme.json\";" +
+            "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" +
+            "cat \"$t\" 2>/dev/null"
+        ]
         stdout: StdioCollector {
-            onStreamFinished: { root.activeProfile = text.trim() }
+            onStreamFinished: {
+                const txt = this.text.trim()
+                if (!txt) { root.applyTheme(null); return }
+                try {
+                    root.applyTheme(JSON.parse(txt))
+                } catch (e) {
+                    console.warn("quickshell-theme.json parse failed:", e)
+                }
+            }
         }
     }
 
@@ -103,7 +117,7 @@ PanelWindow {
         id: card
         anchors.fill: parent
         radius: 18
-        color: Qt.rgba(0.13, 0.13, 0.13, 0.875)
+        color: root.cardBg
         border.width: 1
         border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
         opacity: root.shown ? 1.0 : 0.0
@@ -137,9 +151,9 @@ PanelWindow {
                     anchors.leftMargin: 14
                     anchors.rightMargin: 14
                     verticalAlignment: TextInput.AlignVCenter
-                    color: "white"
+                    color: root.textColor
                     selectionColor: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.45)
-                    selectedTextColor: "white"
+                    selectedTextColor: root.textColor
                     font.family: "JetBrainsMono Nerd Font"
                     font.pixelSize: 13
                     text: root.query
@@ -182,7 +196,7 @@ PanelWindow {
                         anchors.fill: parent
                         verticalAlignment: Text.AlignVCenter
                         text: "Search…"
-                        color: Qt.rgba(1, 1, 1, 0.35)
+                        color: Qt.rgba(root.textColor.r, root.textColor.g, root.textColor.b, 0.35)
                         font: queryInput.font
                         visible: queryInput.text.length === 0
                     }
@@ -196,7 +210,7 @@ PanelWindow {
                 Text {
                     anchors.centerIn: parent
                     text: "no matches"
-                    color: Qt.rgba(1, 1, 1, 0.35)
+                    color: Qt.rgba(root.textColor.r, root.textColor.g, root.textColor.b, 0.35)
                     font.family: "JetBrainsMono Nerd Font"
                     font.pixelSize: 11
                     font.italic: true
@@ -258,7 +272,7 @@ PanelWindow {
                                 anchors.bottomMargin: 10
                                 width: parent.width - 12
                                 text: modelData.name
-                                color: "white"
+                                color: root.textColor
                                 opacity: tile.hovered || tile.isFocused ? 1.0 : 0.78
                                 font.family: "JetBrainsMono Nerd Font"
                                 font.pixelSize: 10

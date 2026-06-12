@@ -38,6 +38,14 @@ let
       type = lib.types.nullOr lib.types.str;
       default = null;
     };
+    hyprlock = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+    };
+    cava = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+    };
   };
 in
 {

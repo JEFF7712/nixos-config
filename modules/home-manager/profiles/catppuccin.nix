@@ -223,6 +223,21 @@ let
         inactive = p.overlay0;
         border = p.surface1;
       };
+
+      hyprlock = theme.mkHyprlockColors {
+        fg = p.text;
+        muted = p.subtext0;
+        accent = p.mauve;
+        surface = p.crust;
+        surfaceAlt = p.mantle;
+        error = p.red;
+      };
+
+      cava = theme.mkCavaColors {
+        gradLow = p.green;
+        gradMid = p.yellow;
+        gradHigh = p.red;
+      };
     };
 
   mkMako =

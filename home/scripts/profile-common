@@ -267,6 +267,8 @@ copy_profile_colors() {
 
   apply_btop_theme "$profile_dir" "$variant"
   apply_tmux_colors "$profile_dir" "$variant"
+  apply_hyprlock_colors "$profile_dir" "$variant"
+  apply_cava_colors "$profile_dir" "$variant"
   return 0
 }
 
@@ -305,6 +307,69 @@ apply_tmux_colors() {
   mkdir -p "$CONFIG_HOME/tmux"
   cp "$src" "$CONFIG_HOME/tmux/profile-colors.conf"
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
+}
+
+# apply_hyprlock_colors <profile-dir> <variant>
+# Installs the variant-resolved $variables; hyprlock.conf sources this file,
+# so the next lock invocation picks them up.
+apply_hyprlock_colors() {
+  local profile_dir="$1" variant="$2"
+  local src
+
+  src=$(pick_variant_file "$variant" "$profile_dir/hyprlock-colors.conf" "$profile_dir/hyprlock-colors-light.conf")
+  [ -s "$src" ] || return 0
+
+  mkdir -p "$CONFIG_HOME/hypr"
+  cp "$src" "$CONFIG_HOME/hypr/profile-colors.conf"
+}
+
+# replace_cava_color_section <section-file>
+# Swaps the [color] section of the cava config for the given file's content
+# (other sections preserved) and signals running instances (SIGUSR2 =
+# re-read colors from config).
+replace_cava_color_section() {
+  local src="$1" conf="$CONFIG_HOME/cava/config" tmp
+
+  mkdir -p "$CONFIG_HOME/cava"
+  [ -f "$conf" ] || printf '[general]\n' > "$conf"
+
+  tmp=$(mktemp)
+  awk '
+    /^\[color\]/ { skip = 1; next }
+    /^\[/ { skip = 0 }
+    !skip { print }
+  ' "$conf" > "$tmp"
+  printf '\n' >> "$tmp"
+  cat "$src" >> "$tmp"
+  mv "$tmp" "$conf"
+
+  pkill -USR2 -x cava 2>/dev/null || true
+}
+
+# apply_cava_colors <profile-dir> <variant>
+apply_cava_colors() {
+  local profile_dir="$1" variant="$2"
+  local src
+
+  src=$(pick_variant_file "$variant" "$profile_dir/cava-colors" "$profile_dir/cava-colors-light")
+  [ -s "$src" ] || return 0
+
+  replace_cava_color_section "$src"
+}
+
+# restore_cava_noctalia_theme
+# Self-themed profiles use noctalia's generated cava theme; point the [color]
+# section back at it after a static profile's gradient replaced it.
+restore_cava_noctalia_theme() {
+  local tmp
+
+  [ -f "$CONFIG_HOME/cava/config" ] || return 0
+  [ -f "$CONFIG_HOME/cava/themes/noctalia" ] || return 0
+
+  tmp=$(mktemp)
+  printf "[color]\ntheme = 'noctalia'\n" > "$tmp"
+  replace_cava_color_section "$tmp"
+  rm -f "$tmp"
 }
 
 # write_firefox_globals <runtime-file> <variant>

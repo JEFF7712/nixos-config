@@ -262,6 +262,23 @@ in
         inactive = nord3;
         border = nord2;
       };
+
+      # Matches the pre-profile hyprlock.conf values; the muted tone and the
+      # darker-than-nord0 surface are not palette colors.
+      hyprlock = theme.mkHyprlockColors {
+        fg = nord6;
+        muted = "#aeb7c5";
+        accent = nord8;
+        surface = "#171b22";
+        surfaceAlt = nord0;
+        error = nord11;
+      };
+
+      cava = theme.mkCavaColors {
+        gradLow = nord14;
+        gradMid = nord13;
+        gradHigh = nord11;
+      };
     };
 
     waybar = {

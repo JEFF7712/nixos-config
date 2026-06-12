@@ -180,6 +180,21 @@ let
         inactive = p.fg2;
         border = p.bg2;
       };
+
+      hyprlock = theme.mkHyprlockColors {
+        fg = p.fg0;
+        muted = p.fg2;
+        inherit (p) accent;
+        surface = p.bg0;
+        surfaceAlt = p.bg1;
+        error = p.err;
+      };
+
+      cava = theme.mkCavaColors {
+        gradLow = p.fg2;
+        gradMid = p.fg1;
+        gradHigh = p.fg0;
+      };
     };
 
   mkMako =

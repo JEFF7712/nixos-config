@@ -269,6 +269,21 @@ in
         inactive = fg2;
         border = bg2;
       };
+
+      hyprlock = theme.mkHyprlockColors {
+        fg = fg0;
+        muted = fg2;
+        inherit accent;
+        surface = bg0;
+        surfaceAlt = bg1;
+        error = err;
+      };
+
+      cava = theme.mkCavaColors {
+        gradLow = fg2;
+        gradMid = fg1;
+        gradHigh = fg0;
+      };
     };
   };
 }

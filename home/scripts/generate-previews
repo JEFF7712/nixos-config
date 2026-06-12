@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+. "$SCRIPT_DIR/profile-common"
+
+PREVIEW_DIR="$REPO_HOME/assets/previews"
+TARGET_WIDTH=1920
+
+usage() {
+  echo "Usage: generate-previews [-y] [profile...]"
+  echo "Regenerates rofi profile-picker preview images by switching through"
+  echo "profiles and screenshotting each. Disruptive: the desktop will flash"
+  echo "through every theme. Restores the current profile/variant afterwards."
+}
+
+ASSUME_YES=0
+PROFILES=()
+for arg in "$@"; do
+  case "$arg" in
+    -y) ASSUME_YES=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    -*)
+      echo "Error: unknown flag '$arg'" >&2
+      usage >&2
+      exit 1
+      ;;
+    *) PROFILES+=("$arg") ;;
+  esac
+done
+
+if [ ${#PROFILES[@]} -eq 0 ]; then
+  for dir in "$PROFILES_DIR"/*/; do
+    [ -d "$dir" ] || continue
+    PROFILES+=("$(basename "$dir")")
+  done
+fi
+
+for name in "${PROFILES[@]}"; do
+  if [ ! -d "$PROFILES_DIR/$name" ]; then
+    echo "Error: profile '$name' not found in $PROFILES_DIR" >&2
+    exit 1
+  fi
+done
+
+if [ $ASSUME_YES -eq 0 ]; then
+  echo "This will cycle the desktop through ${#PROFILES[@]} profile(s):"
+  printf '  %s\n' "${PROFILES[@]}"
+  read -r -p "Your screen will flash through every theme. Continue? [y/N] " reply
+  case "$reply" in
+    y | Y | yes | YES) ;;
+    *)
+      echo "Aborted."
+      exit 1
+      ;;
+  esac
+fi
+
+ORIG_PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+ORIG_VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+if [ -z "$ORIG_PROFILE" ]; then
+  echo "Error: no active profile recorded in $ACTIVE_FILE" >&2
+  exit 1
+fi
+
+RESTORED=0
+restore() {
+  [ $RESTORED -eq 1 ] && return 0
+  RESTORED=1
+  rm -f "$PREVIEW_DIR"/.tmp.*.png
+  echo "Restoring original profile: $ORIG_PROFILE ($ORIG_VARIANT)"
+  switch-profile "$ORIG_PROFILE" || true
+  if [ "$ORIG_VARIANT" = "light" ]; then
+    toggle-variant light || true
+  fi
+}
+trap restore EXIT INT TERM
+
+# Capture the focused output (fall back to the first listed one).
+OUTPUT=$(niri msg focused-output 2>/dev/null | sed -n 's/^Output ".*" (\(.*\))$/\1/p' | head -n 1)
+if [ -z "$OUTPUT" ]; then
+  OUTPUT=$(niri msg outputs 2>/dev/null | sed -n 's/^Output ".*" (\(.*\))$/\1/p' | head -n 1)
+fi
+
+SCALER=""
+if command -v magick >/dev/null 2>&1; then
+  SCALER="magick"
+elif command -v convert >/dev/null 2>&1; then
+  SCALER="convert"
+fi
+
+GRIM_SCALE=""
+if [ -z "$SCALER" ]; then
+  # No ImageMagick: downscale at capture time with grim's scale factor,
+  # relative to the output's logical width.
+  LOGICAL_WIDTH=$([ -n "$OUTPUT" ] && niri msg outputs 2>/dev/null \
+    | awk -v out="($OUTPUT)" '
+        $0 ~ "^Output " && index($0, out) { found = 1 }
+        found && /Logical size:/ { split($3, wh, "x"); print wh[1]; exit }')
+  if [ -n "${LOGICAL_WIDTH:-}" ] && [ "$LOGICAL_WIDTH" -gt 0 ]; then
+    GRIM_SCALE=$(awk -v t="$TARGET_WIDTH" -v w="$LOGICAL_WIDTH" 'BEGIN { printf "%.4f", t / w }')
+  fi
+fi
+
+capture() {
+  # tmp lives next to dest so the final mv is an atomic same-fs rename.
+  local dest="$1" tmp
+  tmp=$(mktemp -p "$PREVIEW_DIR" --suffix=.png .tmp.XXXXXX) || return 1
+
+  local grim_args=()
+  [ -n "$OUTPUT" ] && grim_args+=(-o "$OUTPUT")
+
+  if [ -n "$SCALER" ]; then
+    if ! grim "${grim_args[@]}" "$tmp" ||
+      ! "$SCALER" "$tmp" -resize "${TARGET_WIDTH}x" "$tmp"; then
+      rm -f "$tmp"
+      return 1
+    fi
+  else
+    [ -n "$GRIM_SCALE" ] && grim_args+=(-s "$GRIM_SCALE")
+    if ! grim "${grim_args[@]}" "$tmp"; then
+      rm -f "$tmp"
+      return 1
+    fi
+  fi
+
+  mv "$tmp" "$dest"
+}
+
+settle_delay() {
+  local name="$1"
+  if [ "$name" = "noctalia" ] ||
+    [ "$(jq -r '.selfThemed // false' "$PROFILES_DIR/$name/meta.json" 2>/dev/null)" = "true" ]; then
+    echo 10
+  else
+    echo 5
+  fi
+}
+
+mkdir -p "$PREVIEW_DIR"
+
+OK=()
+FAILED=()
+i=0
+for name in "${PROFILES[@]}"; do
+  i=$((i + 1))
+  echo "[$i/${#PROFILES[@]}] $name: switching..."
+  if ! switch-profile "$name"; then
+    echo "[$i/${#PROFILES[@]}] $name: switch-profile failed, skipping" >&2
+    FAILED+=("$name")
+    continue
+  fi
+
+  delay=$(settle_delay "$name")
+  echo "[$i/${#PROFILES[@]}] $name: settling ${delay}s..."
+  sleep "$delay"
+
+  echo "[$i/${#PROFILES[@]}] $name: capturing..."
+  if capture "$PREVIEW_DIR/$name.png"; then
+    echo "[$i/${#PROFILES[@]}] $name: saved $PREVIEW_DIR/$name.png"
+    OK+=("$name")
+  else
+    echo "[$i/${#PROFILES[@]}] $name: capture failed" >&2
+    FAILED+=("$name")
+  fi
+done
+
+restore
+trap - EXIT INT TERM
+
+echo
+echo "Summary: ${#OK[@]} generated, ${#FAILED[@]} failed."
+[ ${#OK[@]} -gt 0 ] && printf '  ok:     %s\n' "${OK[@]}"
+[ ${#FAILED[@]} -gt 0 ] && printf '  failed: %s\n' "${FAILED[@]}"
+[ ${#FAILED[@]} -eq 0 ]

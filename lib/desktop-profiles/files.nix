@@ -101,6 +101,8 @@ let
         ".config/desktop-profiles/${name}/rofi-theme.rasi".text = orEmpty profile.colors.rofi;
         ".config/desktop-profiles/${name}/btop.theme".text = orEmpty profile.colors.btop;
         ".config/desktop-profiles/${name}/tmux-colors.conf".text = orEmpty profile.colors.tmux;
+        ".config/desktop-profiles/${name}/hyprlock-colors.conf".text = orEmpty profile.colors.hyprlock;
+        ".config/desktop-profiles/${name}/cava-colors".text = orEmpty profile.colors.cava;
         ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides profile;
       }
       // lib.optionalAttrs (profile.makoConfig != null) {
@@ -118,6 +120,9 @@ let
           ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
           ".config/desktop-profiles/${name}/btop-light.theme".text = orEmpty profile.colorsLight.btop;
           ".config/desktop-profiles/${name}/tmux-colors-light.conf".text = orEmpty profile.colorsLight.tmux;
+          ".config/desktop-profiles/${name}/hyprlock-colors-light.conf".text =
+            orEmpty profile.colorsLight.hyprlock;
+          ".config/desktop-profiles/${name}/cava-colors-light".text = orEmpty profile.colorsLight.cava;
         }
         // lib.optionalAttrs (profile.makoConfigLight != null) {
           ".config/desktop-profiles/${name}/mako-config-light".text = profile.makoConfigLight;

@@ -187,6 +187,21 @@ let
         inactive = p.muted;
         border = p.highlightMed;
       };
+
+      hyprlock = theme.mkHyprlockColors {
+        fg = p.text;
+        muted = p.subtle;
+        accent = p.iris;
+        surface = p.base;
+        surfaceAlt = p.surface;
+        error = p.love;
+      };
+
+      cava = theme.mkCavaColors {
+        gradLow = p.foam;
+        gradMid = p.gold;
+        gradHigh = p.love;
+      };
     };
 
   mkMako =
