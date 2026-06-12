@@ -234,10 +234,10 @@ binds {
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
     Mod+P hotkey-overlay-title="Profile Switcher" { spawn "bash" "-c" "qs -p \"$HOME/nixos/home/configs/quickshell-switcher\" ipc call profile toggle"; }
-    Mod+Space hotkey-overlay-title="App Launcher" { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call launcher toggle; else qs -p \"$HOME/nixos/home/configs/quickshell-launcher\" ipc call launcher toggle; fi"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "profile-dispatch" "launcher"; }
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "lock-screen"; }
     Mod+F { spawn "firefox"; }
-    Mod+W { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call wallpaper toggle; else waypaper; fi"; }
+    Mod+W { spawn "profile-dispatch" "wallpaper"; }
     Mod+S { spawn "spotify"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
@@ -359,12 +359,12 @@ binds {
     Mod+Alt+L { spawn "wl-copy" "https://www.linkedin.com/in/rupan-sunderapandyan/"; }
     Mod+Alt+A { spawn "wl-copy" "538 West Washington Ave Apt 504"; }
 
-    XF86AudioRaiseVolume allow-when-locked=true { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call volume increase; else swayosd-client --output-volume raise; fi"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call volume decrease; else swayosd-client --output-volume lower; fi"; }
-    XF86AudioMute allow-when-locked=true { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call volume muteOutput; else swayosd-client --output-volume mute-toggle; fi"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "profile-dispatch" "volume-up"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "profile-dispatch" "volume-down"; }
+    XF86AudioMute allow-when-locked=true { spawn "profile-dispatch" "volume-mute"; }
 
-    XF86MonBrightnessUp allow-when-locked=true { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call brightness increase; else swayosd-client --brightness raise; fi"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "bash" "-c" "p=$(cat ~/.config/desktop-profiles/active 2>/dev/null); if [ \"$p\" = \"noctalia\" ]; then noctalia-shell ipc --any-display call brightness decrease; else swayosd-client --brightness lower; fi"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "profile-dispatch" "brightness-up"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "profile-dispatch" "brightness-down"; }
 
 
     // Screenshots
