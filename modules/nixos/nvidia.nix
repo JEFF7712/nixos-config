@@ -30,6 +30,10 @@
     };
 
     hardware.nvidia-container-toolkit.enable = true;
+    systemd.services.nvidia-container-toolkit-cdi-generator = {
+      restartIfChanged = false;
+      serviceConfig.SuccessExitStatus = [ 1 ];
+    };
 
     # Performance mode that uses GPU and iGPU with sync
     specialisation.performance.configuration = {
