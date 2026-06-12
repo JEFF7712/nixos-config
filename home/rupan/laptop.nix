@@ -77,6 +77,9 @@
     name: _:
     lib.nameValuePair ".local/bin/${name}" {
       source = config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/scripts/${name}";
+      # New scripts get hand-made symlinks before the first rebuild that
+      # manages them; overwrite instead of aborting activation.
+      force = true;
     }
   ) (builtins.readDir ../scripts);
 
