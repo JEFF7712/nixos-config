@@ -30,6 +30,14 @@ let
       type = lib.types.nullOr lib.types.str;
       default = null;
     };
+    btop = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+    };
+    tmux = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+    };
   };
 in
 {
@@ -45,6 +53,16 @@ in
           "waybar"
         ];
         description = "Which bar to run for this profile.";
+      };
+
+      selfThemed = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          The profile's shell manages its own colors and wallpaper at runtime
+          (noctalia). Switching scripts skip color-file copies, wallpaper
+          setting, and kitty reload for self-themed profiles.
+        '';
       };
 
       quickshellTheme = lib.mkOption {
