@@ -18,17 +18,36 @@ if [ "$HAS_LIGHT" != "true" ]; then
 fi
 
 CURRENT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
-if [ "$CURRENT" = "dark" ]; then
-  NEW="light"
-else
-  NEW="dark"
-fi
+
+# With an explicit argument, set that variant (no-op if already active);
+# without one, flip.
+case "${1:-}" in
+  dark | light)
+    NEW="$1"
+    if [ "$NEW" = "$CURRENT" ]; then
+      echo "$PROFILE is already $CURRENT."
+      exit 0
+    fi
+    ;;
+  "")
+    if [ "$CURRENT" = "dark" ]; then
+      NEW="light"
+    else
+      NEW="dark"
+    fi
+    ;;
+  *)
+    echo "Usage: toggle-variant [dark|light]" >&2
+    exit 1
+    ;;
+esac
 
 echo "Switching $PROFILE: $CURRENT → $NEW"
 
 # Record the new variant first so anything reading active-variant from here on
 # (quickshell theme loader, startup re-apply) sees the right value.
 echo "$NEW" > "$VARIANT_FILE"
+echo "$NEW" > "$PROFILES_DIR/variant-$PROFILE"
 
 copy_profile_colors "$PROFILE_DIR" "$NEW"
 apply_profile_fonts "$CONFIG_HOME" "$PROFILE_DIR/meta.json"
@@ -80,17 +99,18 @@ if [ "$BAR" != "noctalia" ] && [ -f "$PROFILE_DIR/mako-config" ]; then
   if [ -s "$MAKO_CONFIG" ]; then
     mkdir -p "$HOME/.config/mako"
     install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
-    pkill -x mako 2>/dev/null || true
-    mako 2>/dev/null &
-    disown
+    restart_mako
   fi
 fi
 
-# Per-app themes
+# Per-app themes (slow ones off the critical path)
 write_firefox_globals "$PROFILE_RUNTIME" "$NEW"
-apply_zed_theme "$PROFILE_RUNTIME" "$NEW"
-apply_vesktop_theme "$PROFILE_RUNTIME" "$NEW"
-apply_obsidian_scheme "$PROFILE_RUNTIME" "$NEW"
+(
+  apply_zed_theme "$PROFILE_RUNTIME" "$NEW"
+  apply_vesktop_theme "$PROFILE_RUNTIME" "$NEW"
+  apply_obsidian_scheme "$PROFILE_RUNTIME" "$NEW"
+) &
+disown
 
 # System color-scheme preference
 if [ "$NEW" = "light" ]; then

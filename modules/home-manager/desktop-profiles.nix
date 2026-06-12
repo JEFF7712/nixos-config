@@ -25,9 +25,69 @@ in
       type = lib.types.attrsOf profileOptions.profileType;
       default = { };
     };
+
+    autoVariant = {
+      enable = lib.mkEnableOption "scheduled dark/light variant switching";
+
+      lightTime = lib.mkOption {
+        type = lib.types.str;
+        default = "08:00";
+        description = "Time of day (HH:MM) to switch to the light variant.";
+      };
+
+      darkTime = lib.mkOption {
+        type = lib.types.str;
+        default = "20:00";
+        description = "Time of day (HH:MM) to switch back to dark. Must be later than lightTime.";
+      };
+    };
   };
 
   config = lib.mkIf config.desktopProfiles.enable {
+    assertions = lib.flatten (
+      lib.mapAttrsToList (name: p: [
+        {
+          assertion = (p.bar == "quickshell" || p.bar == "clean") -> p.quickshellTheme != null;
+          message = "desktopProfiles.profiles.${name}: bar \"${p.bar}\" requires quickshellTheme.";
+        }
+        {
+          assertion = p.bar == "waybar" -> p.waybar.config != null;
+          message = "desktopProfiles.profiles.${name}: bar \"waybar\" requires waybar.config.";
+        }
+        {
+          assertion =
+            profileFiles.hasLight p -> (p.quickshellTheme == null -> p.quickshellThemeLight == null);
+          message = "desktopProfiles.profiles.${name}: defines quickshellThemeLight without a quickshellTheme.";
+        }
+        {
+          assertion =
+            (profileFiles.hasLight p && p.quickshellTheme != null) -> p.quickshellThemeLight != null;
+          message = "desktopProfiles.profiles.${name}: has a light variant but no quickshellThemeLight — the bar would stay dark when toggling.";
+        }
+      ]) config.desktopProfiles.profiles
+    );
+
+    systemd.user.services.auto-variant = lib.mkIf config.desktopProfiles.autoVariant.enable {
+      Unit.Description = "Apply scheduled desktop profile variant";
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${config.home.homeDirectory}/.local/bin/auto-variant ${config.desktopProfiles.autoVariant.lightTime} ${config.desktopProfiles.autoVariant.darkTime}";
+        Environment = "PATH=${config.home.homeDirectory}/.local/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin";
+      };
+    };
+
+    systemd.user.timers.auto-variant = lib.mkIf config.desktopProfiles.autoVariant.enable {
+      Unit.Description = "Scheduled desktop profile variant switching";
+      Timer = {
+        OnCalendar = [
+          config.desktopProfiles.autoVariant.lightTime
+          config.desktopProfiles.autoVariant.darkTime
+        ];
+        Persistent = true;
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
+
     home.packages = lib.flatten (
       lib.mapAttrsToList (
         _name: profile: lib.optional (profile.cursor.package != null) profile.cursor.package
@@ -77,6 +137,7 @@ in
       copy_live_dir "${config.repoPath}/home/configs/qt5ct" "$HOME/.config/qt5ct"
       copy_live_dir "${config.repoPath}/home/configs/qt6ct" "$HOME/.config/qt6ct"
       copy_live_dir "${config.repoPath}/home/configs/rofi" "$HOME/.config/rofi"
+      copy_live_dir "${config.repoPath}/home/configs/tmux" "$HOME/.config/tmux"
       copy_live_dir \
         "${config.repoPath}/home/configs/firefox/chrome" \
         "$HOME/.mozilla/firefox/09longn9.default-release/chrome"

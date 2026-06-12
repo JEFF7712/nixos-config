@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# switch-bar [waybar|quickshell|default]
+# Override which bar the active profile runs, without a rebuild. The override
+# persists per profile (bar-<profile> state file); `default` removes it.
+# No argument prints the current state.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+. "$SCRIPT_DIR/profile-common"
+
+ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+[ -n "$ACTIVE" ] || {
+  echo "No active profile." >&2
+  exit 1
+}
+
+PROFILE_DIR="$PROFILES_DIR/$ACTIVE"
+OVERRIDE_FILE="$PROFILES_DIR/bar-$ACTIVE"
+DEFAULT_BAR=$(jq -r '.bar // "noctalia"' "$PROFILE_DIR/meta.json" 2>/dev/null || echo "noctalia")
+
+case "${1:-}" in
+  "")
+    echo "Profile: $ACTIVE"
+    echo "Default bar: $DEFAULT_BAR"
+    if [ -s "$OVERRIDE_FILE" ]; then
+      echo "Override:    $(cat "$OVERRIDE_FILE")"
+    else
+      echo "Override:    none"
+    fi
+    echo "Usage: switch-bar [waybar|quickshell|default]"
+    exit 0
+    ;;
+  waybar)
+    [ -f "$PROFILE_DIR/waybar-config.jsonc" ] || {
+      echo "Error: profile '$ACTIVE' has no waybar config." >&2
+      exit 1
+    }
+    ;;
+  quickshell | clean)
+    [ -s "$PROFILE_DIR/quickshell-theme.json" ] || {
+      echo "Error: profile '$ACTIVE' has no quickshell theme." >&2
+      exit 1
+    }
+    ;;
+  default)
+    rm -f "$OVERRIDE_FILE"
+    exec switch-profile --reapply
+    ;;
+  *)
+    echo "Usage: switch-bar [waybar|quickshell|default]" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$1" = "$(profile_bar "$ACTIVE")" ]; then
+  echo "Bar '$1' is already active for $ACTIVE."
+  exit 0
+fi
+
+echo "$1" > "$OVERRIDE_FILE"
+exec switch-profile --reapply

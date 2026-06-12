@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# auto-variant <light-time HH:MM> <dark-time HH:MM>
+# Applies the variant the current time of day calls for (light between
+# light-time and dark-time, dark otherwise; assumes light-time < dark-time).
+# Idempotent — safe to run from timers, login, or resume.
+set -euo pipefail
+
+LIGHT="${1:-08:00}"
+DARK="${2:-20:00}"
+
+now=$(date +%H%M)
+light="${LIGHT/:/}"
+dark="${DARK/:/}"
+
+if [ "$now" -ge "$light" ] && [ "$now" -lt "$dark" ]; then
+  want="light"
+else
+  want="dark"
+fi
+
+exec toggle-variant "$want"
