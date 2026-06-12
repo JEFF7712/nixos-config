@@ -44,7 +44,7 @@
         lsp = {
           enable = true;
           servers = {
-            nil_ls.enable = true;
+            nixd.enable = true;
             pyright.enable = true;
             clangd.enable = true;
           };
@@ -67,7 +67,7 @@
     programs.fish = {
       enable = true;
       shellAliases = {
-        cniri = "sudo $EDITOR ${config.repoPath}/home/configs/niri/config.kdl";
+        cniri = "$EDITOR ${config.repoPath}/home/configs/niri/config.kdl";
         ls = "eza --icons";
         ll = "eza -l --icons";
         l = "eza --icons";
@@ -77,13 +77,14 @@
         cd = "z";
         cds = "zi";
         kprune = "kubectl delete pods -A --field-selector=status.phase=Failed,status.phase=Succeeded,status.phase==Completed";
-        gg = "git add . && gmc && git push";
+        gg = "ga && gmc && gp";
         cities = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/cities-skylines-II/Cities2.exe";
         stellaris = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/stellaris/stellaris.exe";
         zed = "zeditor";
-        bnix = "cd ${config.repoPath} && sudo nixos-rebuild switch --flake path:${config.repoPath}#laptop";
-        bnix-test = "cd ${config.repoPath} && sudo nixos-rebuild test --flake path:${config.repoPath}#laptop";
-        pnix = "cd ${config.repoPath} && nix fmt . && git add -A && git commit -m 'Updates' && git push";
+        njs = "cd ${config.repoPath} && just switch";
+        njst = "cd ${config.repoPath} && sudo nixos-rebuild test --flake path:${config.repoPath}#laptop";
+        njp = "cd ${config.repoPath} && nix fmt . && git add -A && gmc -y && git push";
+        nju = "cd ${config.repoPath} && just update";
       };
       shellAbbrs = {
         sp = "switch-profile";
@@ -91,21 +92,19 @@
         t = "talosctl";
         tf = "terragrunt";
         zz = "zeditor .";
+        nhc = "nh clean";
+        ga = "git add .";
         gs = "git status";
-        ngc = "nix-collect-garbage -d";
         gp = "git push";
+        gd = "git diff";
         cc = "cursor .";
         claude = "claude --dangerously-skip-permissions";
         codex = "codex --yolo";
-        bn = "bnix";
-        bnt = "bnix-test";
-        pn = "pnix";
         ci = "$HOME/projects/ci-dashboard.sh";
       };
       interactiveShellInit = ''
         set fish_greeting ""
         set -gx STARSHIP_CONFIG $HOME/.config/starship_matugen.toml
-        set -gx EDITOR nano
       '';
     };
 

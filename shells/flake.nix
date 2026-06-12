@@ -22,7 +22,7 @@
 
         myPython = pkgs.python3.override {
           packageOverrides = pySelf: pySuper: {
-            mdtraj = pySuper.mdtraj.overridePythonAttrs (old: {
+            mdtraj = pySuper.mdtraj.overridePythonAttrs (_old: {
               doCheck = false;
             });
             imbalanced-learn = pySuper.imbalanced-learn.overridePythonAttrs (old: {

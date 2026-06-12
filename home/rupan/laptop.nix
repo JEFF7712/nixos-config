@@ -70,12 +70,15 @@
   pulseAgent.enable = false;
   desktopProfiles.enable = lib.mkDefault true;
 
-  # Scripts — symlink home/scripts/ into ~/.local/bin
-  home.file.".local/bin" = {
-    source = ../scripts;
-    recursive = true;
-    executable = true;
-  };
+  # Scripts — out-of-store symlinks into ~/.local/bin so edits apply without
+  # rebuild and `readlink -f` resolves back into the repo (profile-common
+  # derives REPO_HOME from it).
+  home.file = lib.mapAttrs' (
+    name: _:
+    lib.nameValuePair ".local/bin/${name}" {
+      source = config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/scripts/${name}";
+    }
+  ) (builtins.readDir ../scripts);
 
   xdg.configFile."hypr/hyprlock.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/hypr/hyprlock.conf";

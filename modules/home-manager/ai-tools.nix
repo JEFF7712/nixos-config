@@ -14,7 +14,7 @@
     (lib.mkIf config.ai-tools.enable {
       home.packages =
         let
-          system = pkgs.stdenv.hostPlatform.system;
+          inherit (pkgs.stdenv.hostPlatform) system;
         in
         (with pkgs; [
           opencode

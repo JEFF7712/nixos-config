@@ -12,7 +12,7 @@
   config = lib.mkIf config.cli-tools.enable {
     home.packages =
       let
-        system = pkgs.stdenv.hostPlatform.system;
+        inherit (pkgs.stdenv.hostPlatform) system;
       in
       with pkgs;
       [
@@ -29,6 +29,13 @@
         just
         ripgrep
         fd
+        dust
+        hyperfine
+        difftastic
+        watchexec
+        nvd
+        nix-output-monitor
+        shellcheck
       ]
       ++ [
         inputs.compchem-cctop.packages.${system}.default

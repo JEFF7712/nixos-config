@@ -30,11 +30,12 @@ jobs:
     - name: Install Nix
       uses: DeterminateSystems/nix-installer-action@main
 
-    # 2. Enable Magic Cache
-    - name: Magic Nix Cache
-      uses: DeterminateSystems/magic-nix-cache-action@main
+    # 2. Binary cache (magic-nix-cache was discontinued upstream)
+    - name: Cachix
+      uses: cachix/cachix-action@v15
       with:
-        use-flakehub: false
+        name: jeff7712
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
     # 3. Build the ISO
     - name: Build ISO

@@ -6,7 +6,10 @@
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,7 +18,14 @@
       url = "github:Gerg-L/spicetify-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+    nix-vscode-extensions = {
+      url = "github:nix-community/nix-vscode-extensions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,7 +47,10 @@
       url = "github:MercuryTechnologies/mercury-cli";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    globalprotect-openconnect.url = "github:yuezk/GlobalProtect-openconnect";
+    globalprotect-openconnect = {
+      url = "github:yuezk/GlobalProtect-openconnect";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     niri-blur = {
       url = "github:niri-wm/niri";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -63,22 +76,22 @@
       nixpkgs-stable,
       home-manager,
       nix-vscode-extensions,
-      nixvim,
-      globalprotect-openconnect,
       ...
     }@inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" ];
       imports = [ inputs.treefmt-nix.flakeModule ];
 
-      perSystem =
-        { pkgs, ... }:
-        {
-          treefmt = {
-            projectRootFile = "flake.nix";
-            programs.nixfmt.enable = true;
-          };
+      perSystem = _: {
+        treefmt = {
+          projectRootFile = "flake.nix";
+          programs.nixfmt.enable = true;
+          programs.statix.enable = true;
+          programs.deadnix.enable = true;
+          settings.formatter.statix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
+          settings.formatter.deadnix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
         };
+      };
 
       flake =
         let

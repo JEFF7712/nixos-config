@@ -2,9 +2,11 @@
 # Profile switcher using rofi dmenu mode.
 # Rofi closes immediately after selection, then switch-profile runs in background.
 
-PROFILES_DIR="$HOME/.config/desktop-profiles"
-PREVIEW_DIR="$HOME/nixos/home/assets/previews"
-ACTIVE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "")
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/profile-common"
+
+PREVIEW_DIR="$REPO_HOME/assets/previews"
+ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 THEME="$HOME/.config/rofi/profile-switcher.rasi"
 
 # Build the entry list and remember which row is the active profile so we can

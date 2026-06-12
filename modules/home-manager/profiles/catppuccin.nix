@@ -1,107 +1,266 @@
 { pkgs, config, ... }:
 
 # Catppuccin desktop profile — Mocha (dark) + Latte (light).
+# One role mapping serves both variants; slots that intentionally differ
+# between Mocha and Latte (fish*, starship*, rofiPlaceholder, bar*) are
+# palette entries. Mocha additionally replaces the derived kitty theme with
+# a custom monochrome pink/purple scheme.
 let
   waybar = import ../../../lib/waybar.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
-  # ── Mocha (dark) ────────────────────────────────────────────────────────────
-  rosewater = "#f5e0dc";
-  flamingo = "#f2cdcd";
-  pink = "#f5c2e7";
-  mauve = "#cba6f7";
-  red = "#f38ba8";
-  maroon = "#eba0ac";
-  peach = "#fab387";
-  yellow = "#f9e2af";
-  green = "#a6e3a1";
-  teal = "#94e2d5";
-  sky = "#89dceb";
-  sapphire = "#74c7ec";
-  blue = "#89b4fa";
-  lavender = "#b4befe";
-  text = "#cdd6f4";
-  subtext1 = "#bac2de";
-  subtext0 = "#a6adc8";
-  overlay2 = "#9399b2";
-  overlay1 = "#7f849c";
-  overlay0 = "#6c7086";
-  surface2 = "#585b70";
-  surface1 = "#45475a";
-  surface0 = "#313244";
-  base = "#1e1e2e";
-  mantle = "#181825";
-  crust = "#11111b";
 
-  # ── Latte (light) ───────────────────────────────────────────────────────────
-  l_rosewater = "#dc8a78";
-  l_flamingo = "#dd7878";
-  l_pink = "#ea76cb";
-  l_mauve = "#8839ef";
-  l_red = "#d20f39";
-  l_maroon = "#e64553";
-  l_peach = "#fe640b";
-  l_yellow = "#df8e1d";
-  l_green = "#40a02b";
-  l_teal = "#179299";
-  l_sky = "#04a5e5";
-  l_sapphire = "#209fb5";
-  l_blue = "#1e66f5";
-  l_lavender = "#7287fd";
-  l_text = "#4c4f69";
-  l_subtext1 = "#5c5f77";
-  l_subtext0 = "#6c6f85";
-  l_overlay2 = "#7c7f93";
-  l_overlay1 = "#8c8fa1";
-  l_overlay0 = "#9ca0b0";
-  l_surface2 = "#acb0be";
-  l_surface1 = "#bcc0cc";
-  l_surface0 = "#ccd0da";
-  l_base = "#eff1f5";
-  l_mantle = "#e6e9ef";
-  l_crust = "#dce0e8";
+  dark = rec {
+    title = "Catppuccin Mocha";
+    flamingo = "#f2cdcd";
+    pink = "#f5c2e7";
+    mauve = "#cba6f7";
+    red = "#f38ba8";
+    peach = "#fab387";
+    yellow = "#f9e2af";
+    green = "#a6e3a1";
+    teal = "#94e2d5";
+    blue = "#89b4fa";
+    lavender = "#b4befe";
+    text = "#cdd6f4";
+    subtext1 = "#bac2de";
+    subtext0 = "#a6adc8";
+    overlay2 = "#9399b2";
+    overlay1 = "#7f849c";
+    overlay0 = "#6c7086";
+    surface2 = "#585b70";
+    surface1 = "#45475a";
+    surface0 = "#313244";
+    base = "#1e1e2e";
+    mantle = "#181825";
+    crust = "#11111b";
+    fishQuote = lavender;
+    fishRedirection = mauve;
+    fishAutosuggestion = overlay0;
+    starshipSuccess = flamingo;
+    starshipDirectory = lavender;
+    rofiPlaceholder = surface1;
+    barBg = "rgba(24, 24, 37, 0.6)";
+    barShadow = "rgba(17, 17, 27, 0.45)";
+    barPrimary = pink;
+    barBorder = surface0;
+    barCritical = pink;
+  };
+
+  light = rec {
+    title = "Catppuccin Latte";
+    pink = "#ea76cb";
+    mauve = "#8839ef";
+    red = "#d20f39";
+    peach = "#fe640b";
+    yellow = "#df8e1d";
+    green = "#40a02b";
+    teal = "#179299";
+    blue = "#1e66f5";
+    text = "#4c4f69";
+    subtext1 = "#5c5f77";
+    subtext0 = "#6c6f85";
+    overlay2 = "#7c7f93";
+    overlay1 = "#8c8fa1";
+    overlay0 = "#9ca0b0";
+    surface2 = "#acb0be";
+    surface1 = "#bcc0cc";
+    surface0 = "#ccd0da";
+    base = "#eff1f5";
+    mantle = "#e6e9ef";
+    crust = "#dce0e8";
+    fishQuote = green;
+    fishRedirection = teal;
+    fishAutosuggestion = overlay1;
+    starshipSuccess = mauve;
+    starshipDirectory = blue;
+    rofiPlaceholder = surface2;
+    barBg = "rgba(239, 241, 245, 0.85)";
+    barShadow = "rgba(220, 224, 232, 0.6)";
+    barPrimary = mauve;
+    barBorder = surface1;
+    barCritical = red;
+    barText = text;
+  };
+
+  alpha = a: c: "#${a}${builtins.substring 1 6 c}";
+
+  mkColors =
+    p:
+    theme.mkGtkPair {
+      inherit (p) title;
+      accent = p.mauve;
+      accentFg = p.base;
+      destructiveBg = p.red;
+      destructiveFg = p.base;
+      windowBg = p.base;
+      windowFg = p.text;
+      headerbarBg = p.mantle;
+      headerbarBackdrop = "@window_bg_color";
+      popoverBg = p.mantle;
+      cardBg = p.surface0;
+      dialogBg = p.mantle;
+      dialogFg = p.text;
+      sidebarBg = p.mantle;
+      sidebarBackdrop = "@window_bg_color";
+      sidebarBorder = p.surface1;
+      secondarySidebarBg = p.base;
+      secondarySidebarFg = p.subtext1;
+      unfocused = {
+        fg = p.subtext0;
+        text = p.overlay2;
+        bg = p.base;
+        inherit (p) base;
+        selectedBg = p.surface1;
+        selectedFg = p.base;
+      };
+    }
+    // {
+      qt6 = theme.mkQt6Roles {
+        windowText = p.text;
+        button = p.mantle;
+        midlight = p.overlay1;
+        mid = p.surface0;
+        window = p.base;
+        highlight = p.mauve;
+        highlightedText = p.surface1;
+        linkVisited = p.blue;
+        alternateBase = p.surface0;
+        tooltipBase = p.crust;
+        tooltipText = p.surface0;
+        secondaryText = p.subtext1;
+        inactiveText = p.subtext1;
+        inactiveWindowText = p.text;
+        inactiveButtonText = p.text;
+        inactivePlaceholderText = p.text;
+        disabledText = p.overlay0;
+        disabledHighlight = p.surface2;
+        disabledSecondaryText = p.overlay1;
+      };
+
+      kitty = theme.mkKittyColors {
+        title = "${p.title} Kitty";
+        cursor = p.mauve;
+        cursorText = p.base;
+        foreground = p.text;
+        background = p.base;
+        selectionForeground = p.base;
+        selectionBackground = p.mauve;
+        color0 = p.surface1;
+        color8 = p.surface2;
+        color1 = p.red;
+        color9 = p.red;
+        color2 = p.green;
+        color10 = p.green;
+        color3 = p.yellow;
+        color11 = p.yellow;
+        color4 = p.blue;
+        color12 = p.blue;
+        color5 = p.mauve;
+        color13 = p.mauve;
+        color6 = p.teal;
+        color14 = p.teal;
+        color7 = p.subtext1;
+        color15 = p.text;
+      };
+
+      fish = theme.mkFishColors {
+        normal = p.text;
+        command = p.mauve;
+        keyword = p.pink;
+        quote = p.fishQuote;
+        redirection = p.fishRedirection;
+        end = p.pink;
+        error = p.red;
+        param = p.text;
+        comment = p.overlay0;
+        selection = p.surface1;
+        searchMatch = p.surface0;
+        operator = p.mauve;
+        escape = p.pink;
+        autosuggestion = p.fishAutosuggestion;
+      };
+
+      starship = theme.mkStarshipPrompt {
+        success = p.starshipSuccess;
+        error = p.red;
+        directory = p.starshipDirectory;
+        gitBranch = p.pink;
+        cmdDuration = p.subtext1;
+      };
+
+      rofi = theme.mkProfilePickerRofi {
+        background = p.base;
+        inherit (p) text;
+        border = p.surface1;
+        selectedBackground = p.surface0;
+        selectedForeground = p.mauve;
+        inputBackground = p.mantle;
+        prompt = p.mauve;
+        placeholder = p.rofiPlaceholder;
+        elementBackground = p.surface0;
+        elementSelectedBackground = p.surface1;
+        elementSelectedBorder = p.mauve;
+      };
+    };
+
+  mkMako =
+    p:
+    theme.mkMakoConfig {
+      background = p.base;
+      inherit (p) text;
+      border = p.mauve;
+      lowBorder = p.surface1;
+      highBackground = p.mantle;
+      highBorder = p.red;
+      highText = p.text;
+    };
+
+  mkQuickshell = p: {
+    fg = p.pink;
+    bg = alpha "99" p.mantle;
+    popupBg = alpha "cc" p.base;
+    rawBg = p.base;
+    accent = p.mauve;
+    second = p.pink;
+    warm = p.peach;
+    fresh = p.green;
+    barRadius = "22";
+    barHeight = "32";
+    showClockDate = "false";
+    showWorkspaceNumbers = "false";
+    barFont = "FiraCode Nerd Font";
+    barBorder = "#00000000";
+    pillBg = "#00000000";
+    pillBorder = "#00000000";
+  };
+
+  mkWaybarStyle =
+    p:
+    waybar.mkPillStyle (
+      {
+        windowBg = p.barBg;
+        primary = p.barPrimary;
+        borderColor = p.barBorder;
+        shadowColor = p.barShadow;
+        activeBg = p.surface0;
+        performanceColor = p.red;
+        balancedColor = p.mauve;
+        powerSaverColor = p.green;
+        warningColor = p.yellow;
+        criticalColor = p.barCritical;
+      }
+      // (if p ? barText then { textColor = p.barText; } else { })
+    );
 in
 {
   desktopProfiles.profiles.catppuccin = {
     bar = "quickshell";
 
-    quickshellTheme = {
-      fg = pink;
-      bg = "#99181825";
-      popupBg = "#cc1e1e2e";
-      rawBg = base;
-      accent = mauve;
-      second = pink;
-      warm = peach;
-      fresh = green;
-      barRadius = "22";
-      barHeight = "32";
-      showClockDate = "false";
-      showWorkspaceNumbers = "false";
-      barFont = "FiraCode Nerd Font";
-      barBorder = "#00000000";
-      pillBg = "#00000000";
-      pillBorder = "#00000000";
-    };
+    quickshellTheme = mkQuickshell dark;
+    quickshellThemeLight = mkQuickshell light;
 
-    makoConfig = theme.mkMakoConfig {
-      background = base;
-      text = text;
-      border = mauve;
-      lowBorder = surface1;
-      highBackground = mantle;
-      highBorder = red;
-      highText = text;
-    };
-
-    makoConfigLight = theme.mkMakoConfig {
-      background = l_base;
-      text = l_text;
-      border = l_mauve;
-      lowBorder = l_surface1;
-      highBackground = l_mantle;
-      highBorder = l_red;
-      highText = l_text;
-    };
+    makoConfig = mkMako dark;
+    makoConfigLight = mkMako light;
 
     cursor = {
       theme = "catppuccin-mocha-mauve-cursors";
@@ -133,12 +292,12 @@ in
     niri = {
       gaps = 8;
       borderOff = true;
-      borderActiveColor = mauve;
-      borderInactiveColor = surface1;
-      urgentColor = red;
+      borderActiveColor = dark.mauve;
+      borderInactiveColor = dark.surface1;
+      urgentColor = dark.red;
       focusRingOff = true;
-      focusRingActiveColor = mauve;
-      focusRingInactiveColor = surface1;
+      focusRingActiveColor = dark.mauve;
+      focusRingInactiveColor = dark.surface1;
       shadowSoftness = 28;
       shadowSpread = 4;
       shadowOffsetX = 0;
@@ -147,138 +306,13 @@ in
       shadowInactiveColor = "#11111b44";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
-      tabIndicatorActiveColor = mauve;
-      tabIndicatorInactiveColor = surface1;
+      tabIndicatorActiveColor = dark.mauve;
+      tabIndicatorInactiveColor = dark.surface1;
       windowOpacity = 0.97;
       windowHighlightOff = true;
     };
 
-    colors = {
-      gtk3 = theme.mkGtkColors {
-        title = "Catppuccin Mocha";
-        accent = mauve;
-        accentFg = base;
-        destructiveBg = red;
-        destructiveFg = base;
-        windowBg = base;
-        windowFg = text;
-        headerbarBg = mantle;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = mantle;
-        cardBg = surface0;
-        dialogBg = mantle;
-        dialogFg = text;
-        sidebarBg = mantle;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = surface1;
-        secondarySidebarBg = base;
-        secondarySidebarFg = subtext1;
-        unfocused = {
-          fg = subtext0;
-          text = overlay2;
-          bg = base;
-          base = base;
-          selectedBg = surface1;
-          selectedFg = base;
-        };
-      };
-
-      gtk4 = theme.mkGtkColors {
-        title = "Catppuccin Mocha";
-        accent = mauve;
-        accentFg = base;
-        destructiveBg = red;
-        destructiveFg = base;
-        windowBg = base;
-        windowFg = text;
-        headerbarBg = mantle;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = mantle;
-        cardBg = surface0;
-        dialogBg = mantle;
-        dialogFg = text;
-        sidebarBg = mantle;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = surface1;
-        secondarySidebarBg = base;
-        secondarySidebarFg = subtext1;
-      };
-
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          text
-          mantle
-          "#ffffff"
-          overlay1
-          surface0
-          surface0
-          text
-          "#ffffff"
-          text
-          base
-          base
-          "#000000"
-          mauve
-          surface1
-          mauve
-          blue
-          surface0
-          crust
-          surface0
-          text
-          subtext1
-          mauve
-        ];
-        disabled = [
-          overlay0
-          mantle
-          "#ffffff"
-          overlay1
-          surface0
-          surface0
-          overlay0
-          "#ffffff"
-          overlay0
-          base
-          base
-          "#000000"
-          surface2
-          surface1
-          surface2
-          blue
-          surface0
-          crust
-          surface0
-          overlay0
-          overlay1
-          surface2
-        ];
-        inactive = [
-          text
-          mantle
-          "#ffffff"
-          overlay1
-          surface0
-          surface0
-          subtext1
-          "#ffffff"
-          text
-          base
-          base
-          "#000000"
-          mauve
-          surface1
-          mauve
-          blue
-          surface0
-          crust
-          surface0
-          text
-          subtext1
-          mauve
-        ];
-      };
-
+    colors = mkColors dark // {
       kitty = theme.mkKittyColors {
         title = "Catppuccin Kitty (Monochrome Pink/Purple)";
         cursor = "#e8cfe4";
@@ -304,270 +338,17 @@ in
         color7 = "#d8cde2";
         color15 = "#e4ddea";
       };
-
-      fish = theme.mkFishColors {
-        normal = text;
-        command = mauve;
-        keyword = pink;
-        quote = lavender;
-        redirection = mauve;
-        end = pink;
-        error = red;
-        param = text;
-        comment = overlay0;
-        selection = surface1;
-        searchMatch = surface0;
-        operator = mauve;
-        escape = pink;
-        autosuggestion = overlay0;
-      };
-
-      starship = theme.mkStarshipPrompt {
-        success = flamingo;
-        error = red;
-        directory = lavender;
-        gitBranch = pink;
-        cmdDuration = subtext1;
-      };
-
-      rofi = theme.mkProfilePickerRofi {
-        background = base;
-        text = text;
-        border = surface1;
-        selectedBackground = surface0;
-        selectedForeground = mauve;
-        inputBackground = mantle;
-        prompt = mauve;
-        placeholder = surface1;
-        elementBackground = surface0;
-        elementSelectedBackground = surface1;
-        elementSelectedBorder = mauve;
-      };
     };
+    colorsLight = mkColors light;
+
     waybar = {
       config = waybar.mkConfig {
         floating = true;
         pill = true;
         scriptDir = "${config.repoPath}/home/scripts";
       };
-      style = waybar.mkPillStyle {
-        windowBg = "rgba(24, 24, 37, 0.6)";
-        primary = pink;
-        borderColor = surface0;
-        shadowColor = "rgba(17, 17, 27, 0.45)";
-        activeBg = surface0;
-        performanceColor = red;
-        balancedColor = mauve;
-        powerSaverColor = green;
-        warningColor = yellow;
-        criticalColor = pink;
-      };
+      style = mkWaybarStyle dark;
     };
-
-    colorsLight = {
-      gtk3 = theme.mkGtkColors {
-        title = "Catppuccin Latte";
-        accent = l_mauve;
-        accentFg = l_base;
-        destructiveBg = l_red;
-        destructiveFg = l_base;
-        windowBg = l_base;
-        windowFg = l_text;
-        headerbarBg = l_mantle;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = l_mantle;
-        cardBg = l_surface0;
-        dialogBg = l_mantle;
-        dialogFg = l_text;
-        sidebarBg = l_mantle;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = l_surface1;
-        secondarySidebarBg = l_base;
-        secondarySidebarFg = l_subtext1;
-        unfocused = {
-          fg = l_subtext0;
-          text = l_overlay2;
-          bg = l_base;
-          base = l_base;
-          selectedBg = l_surface1;
-          selectedFg = l_base;
-        };
-      };
-
-      gtk4 = theme.mkGtkColors {
-        title = "Catppuccin Latte";
-        accent = l_mauve;
-        accentFg = l_base;
-        destructiveBg = l_red;
-        destructiveFg = l_base;
-        windowBg = l_base;
-        windowFg = l_text;
-        headerbarBg = l_mantle;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = l_mantle;
-        cardBg = l_surface0;
-        dialogBg = l_mantle;
-        dialogFg = l_text;
-        sidebarBg = l_mantle;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = l_surface1;
-        secondarySidebarBg = l_base;
-        secondarySidebarFg = l_subtext1;
-      };
-
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          l_text
-          l_mantle
-          "#ffffff"
-          l_overlay1
-          l_surface0
-          l_surface0
-          l_text
-          "#ffffff"
-          l_text
-          l_base
-          l_base
-          "#000000"
-          l_mauve
-          l_surface1
-          l_mauve
-          l_blue
-          l_surface0
-          l_crust
-          l_surface0
-          l_text
-          l_subtext1
-          l_mauve
-        ];
-        disabled = [
-          l_overlay0
-          l_mantle
-          "#ffffff"
-          l_overlay1
-          l_surface0
-          l_surface0
-          l_overlay0
-          "#ffffff"
-          l_overlay0
-          l_base
-          l_base
-          "#000000"
-          l_surface2
-          l_surface1
-          l_surface2
-          l_blue
-          l_surface0
-          l_crust
-          l_surface0
-          l_overlay0
-          l_overlay1
-          l_surface2
-        ];
-        inactive = [
-          l_text
-          l_mantle
-          "#ffffff"
-          l_overlay1
-          l_surface0
-          l_surface0
-          l_subtext1
-          "#ffffff"
-          l_text
-          l_base
-          l_base
-          "#000000"
-          l_mauve
-          l_surface1
-          l_mauve
-          l_blue
-          l_surface0
-          l_crust
-          l_surface0
-          l_text
-          l_subtext1
-          l_mauve
-        ];
-      };
-
-      kitty = theme.mkKittyColors {
-        title = "Catppuccin Latte Kitty";
-        cursor = l_mauve;
-        cursorText = l_base;
-        foreground = l_text;
-        background = l_base;
-        selectionForeground = l_base;
-        selectionBackground = l_mauve;
-        color0 = l_surface1;
-        color8 = l_surface2;
-        color1 = l_red;
-        color9 = l_red;
-        color2 = l_green;
-        color10 = l_green;
-        color3 = l_yellow;
-        color11 = l_yellow;
-        color4 = l_blue;
-        color12 = l_blue;
-        color5 = l_mauve;
-        color13 = l_mauve;
-        color6 = l_teal;
-        color14 = l_teal;
-        color7 = l_subtext1;
-        color15 = l_text;
-      };
-
-      fish = theme.mkFishColors {
-        normal = l_text;
-        command = l_mauve;
-        keyword = l_pink;
-        quote = l_green;
-        redirection = l_teal;
-        end = l_pink;
-        error = l_red;
-        param = l_text;
-        comment = l_overlay0;
-        selection = l_surface1;
-        searchMatch = l_surface0;
-        operator = l_mauve;
-        escape = l_pink;
-        autosuggestion = l_overlay1;
-      };
-
-      starship = theme.mkStarshipPrompt {
-        success = l_mauve;
-        error = l_red;
-        directory = l_blue;
-        gitBranch = l_pink;
-        cmdDuration = l_subtext1;
-      };
-
-      rofi = theme.mkProfilePickerRofi {
-        background = l_base;
-        text = l_text;
-        border = l_surface1;
-        selectedBackground = l_surface0;
-        selectedForeground = l_mauve;
-        inputBackground = l_mantle;
-        prompt = l_mauve;
-        placeholder = l_surface2;
-        elementBackground = l_surface0;
-        elementSelectedBackground = l_surface1;
-        elementSelectedBorder = l_mauve;
-      };
-    };
-
-    waybarLight.style = waybar.mkPillStyle {
-      windowBg = "rgba(239, 241, 245, 0.85)";
-      primary = l_mauve;
-      borderColor = l_surface1;
-      shadowColor = "rgba(220, 224, 232, 0.6)";
-      activeBg = l_surface0;
-      textColor = l_text;
-      performanceColor = l_red;
-      balancedColor = l_mauve;
-      powerSaverColor = l_green;
-      warningColor = l_yellow;
-      criticalColor = l_red;
-    };
+    waybarLight.style = mkWaybarStyle light;
   };
 }

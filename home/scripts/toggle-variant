@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROFILES_DIR="$HOME/.config/desktop-profiles"
-ACTIVE_FILE="$PROFILES_DIR/active"
-VARIANT_FILE="$PROFILES_DIR/active-variant"
-REPO="$HOME/nixos/home"
-CONFIG_HOME="$HOME/.config"
-FIREFOX_CHROME="$HOME/.mozilla/firefox/09longn9.default-release/chrome"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$SCRIPT_DIR/profile-common"
@@ -16,7 +10,7 @@ PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 
 PROFILE_DIR="$PROFILES_DIR/$PROFILE"
 PROFILE_RUNTIME="$PROFILE_DIR/runtime.json"
-HAS_LIGHT=$(python3 -c "import json; d=json.load(open('$PROFILE_DIR/meta.json')); print(str(d.get('hasLightVariant', False)).lower())" 2>/dev/null || echo "false")
+HAS_LIGHT=$(jq -r '.hasLightVariant // false' "$PROFILE_DIR/meta.json" 2>/dev/null || echo "false")
 
 if [ "$HAS_LIGHT" != "true" ]; then
   echo "Profile '$PROFILE' has no light variant — nothing to do."
@@ -32,32 +26,11 @@ fi
 
 echo "Switching $PROFILE: $CURRENT → $NEW"
 
-# Pick the right file for the new variant (fall back to dark file if light missing)
-pick() {
-  local dark_f="$1" light_f="$2"
-  if [ "$NEW" = "light" ] && [ -s "$light_f" ]; then
-    echo "$light_f"
-  else
-    echo "$dark_f"
-  fi
-}
+# Record the new variant first so anything reading active-variant from here on
+# (quickshell theme loader, startup re-apply) sees the right value.
+echo "$NEW" > "$VARIANT_FILE"
 
-GTK3=$(pick    "$PROFILE_DIR/gtk-3.0.css"         "$PROFILE_DIR/gtk-3.0-light.css")
-GTK4=$(pick    "$PROFILE_DIR/gtk-4.0.css"         "$PROFILE_DIR/gtk-4.0-light.css")
-QT6=$(pick     "$PROFILE_DIR/qt6ct.conf"           "$PROFILE_DIR/qt6ct-light.conf")
-KITTY=$(pick   "$PROFILE_DIR/kitty-colors.conf"    "$PROFILE_DIR/kitty-colors-light.conf")
-ROFI=$(pick    "$PROFILE_DIR/rofi-theme.rasi"      "$PROFILE_DIR/rofi-theme-light.rasi")
-FISH=$(pick    "$PROFILE_DIR/fish-theme.fish"      "$PROFILE_DIR/fish-theme-light.fish")
-STARSHIP=$(pick "$PROFILE_DIR/starship.toml"       "$PROFILE_DIR/starship-light.toml")
-
-[ -s "$GTK3" ]    && cp "$GTK3"    "$CONFIG_HOME/gtk-3.0/noctalia.css"
-[ -s "$GTK4" ]    && cp "$GTK4"    "$CONFIG_HOME/gtk-4.0/noctalia.css"
-[ -s "$QT6" ]     && cp "$QT6"     "$CONFIG_HOME/qt6ct/colors/noctalia.conf"
-[ -s "$QT6" ]     && cp "$QT6"     "$CONFIG_HOME/qt5ct/colors/noctalia.conf"
-[ -s "$KITTY" ]   && cp "$KITTY"   "$CONFIG_HOME/kitty/colors.conf"
-[ -s "$ROFI" ]    && cp "$ROFI"    "$CONFIG_HOME/rofi/profile-switcher.rasi"
-[ -s "$FISH" ]    && cp "$FISH"    "$HOME/.config/fish/conf.d/matugen_theme.fish"
-[ -s "$STARSHIP" ] && cp "$STARSHIP" "$HOME/.config/starship_matugen.toml"
+copy_profile_colors "$PROFILE_DIR" "$NEW"
 apply_profile_fonts "$CONFIG_HOME" "$PROFILE_DIR/meta.json"
 apply_profile_appearance "$CONFIG_HOME" "$PROFILE_DIR/meta.json" "$NEW"
 systemctl --user restart swayosd 2>/dev/null || true
@@ -84,15 +57,26 @@ if [ -d "$WALLPAPER_DIR" ]; then
   fi
 fi
 
-# Waybar style (only for waybar profiles)
-BAR=$(python3 -c "import json; print(json.load(open('$PROFILE_DIR/meta.json'))['bar'])" 2>/dev/null || echo "")
+# Bar-specific reloads
+BAR=$(jq -r '.bar // empty' "$PROFILE_DIR/meta.json" 2>/dev/null || echo "")
 if [ "$BAR" = "waybar" ]; then
-  WAYBAR_STYLE=$(pick "$PROFILE_DIR/waybar-style.css" "$PROFILE_DIR/waybar-style-light.css")
+  WAYBAR_STYLE=$(pick_variant_file "$NEW" "$PROFILE_DIR/waybar-style.css" "$PROFILE_DIR/waybar-style-light.css")
   if [ -s "$WAYBAR_STYLE" ]; then
     cp --remove-destination "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
     pkill -SIGUSR2 waybar 2>/dev/null || true
   fi
-  MAKO_CONFIG=$(pick "$PROFILE_DIR/mako-config" "$PROFILE_DIR/mako-config-light")
+  apply_profile_fonts "$CONFIG_HOME" "$PROFILE_DIR/meta.json"
+  apply_profile_appearance "$CONFIG_HOME" "$PROFILE_DIR/meta.json" "$NEW"
+elif [ "$BAR" = "quickshell" ] || [ "$BAR" = "clean" ]; then
+  # The topbar reads its theme JSON (variant-aware) only at startup; restart it.
+  pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
+  quickshell -p "$REPO_HOME/configs/quickshell-clean/shell.qml" 2>/dev/null &
+  disown
+fi
+
+# Mako (used by all non-noctalia bars)
+if [ "$BAR" != "noctalia" ] && [ -f "$PROFILE_DIR/mako-config" ]; then
+  MAKO_CONFIG=$(pick_variant_file "$NEW" "$PROFILE_DIR/mako-config" "$PROFILE_DIR/mako-config-light")
   if [ -s "$MAKO_CONFIG" ]; then
     mkdir -p "$HOME/.config/mako"
     install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
@@ -100,95 +84,13 @@ if [ "$BAR" = "waybar" ]; then
     mako 2>/dev/null &
     disown
   fi
-  apply_profile_fonts "$CONFIG_HOME" "$PROFILE_DIR/meta.json"
-  apply_profile_appearance "$CONFIG_HOME" "$PROFILE_DIR/meta.json" "$NEW"
 fi
 
-# Firefox _globals.css
-FF_GLOBALS="$FIREFOX_CHROME/DownToneUI/_globals.css"
-COLOR_SCHEME="dark"
-[ "$NEW" = "light" ] && COLOR_SCHEME="light"
-
-FF_MAIN=$(profile_runtime_value "$PROFILE_RUNTIME" "$NEW" firefox main)
-FF_SEC=$(profile_runtime_value "$PROFILE_RUNTIME" "$NEW" firefox secondary)
-FF_ACCENT=$(profile_runtime_value "$PROFILE_RUNTIME" "$NEW" firefox accent)
-FF_TEXT=$(profile_runtime_value "$PROFILE_RUNTIME" "$NEW" firefox text)
-FF_ACCENT_HSL=$(profile_runtime_value "$PROFILE_RUNTIME" "$NEW" firefox accentHsl)
-
-if [ -n "$FF_MAIN" ]; then
-  cat > "$FF_GLOBALS" << EOF
-/* ============================================================================
- * Shared: should be copied to Sidebery settings > Styles editor
- * ========================================================================= */
-
-* {
-  --dtui-theme-color-scheme: ${COLOR_SCHEME};
-  --dtui-theme-main-color: $FF_MAIN;
-  --dtui-theme-secondary-color: $FF_SEC;
-  --dtui-theme-accent-color: $FF_ACCENT;
-  --dtui-theme-text-color: $FF_TEXT;
-
-  --dtui-theme-accent-low-alpha: 0.5;
-  --dtui-theme-accent-mid-alpha: 0.75;
-  --dtui-theme-accent-high-contrast: $FF_ACCENT_HSL;
-  --dtui-theme-text-low-alpha: 0.5;
-  --dtui-theme-text-mid-alpha: 0.75;
-
-  --dtui-theme-separator-color: rgba(var(--dtui-theme-text-color), 0.1);
-  --dtui-theme-border-color: rgba(var(--dtui-theme-text-color), 0);
-  --dtui-theme-border-width: 2px;
-  --dtui-theme-border-radius: 6px;
-
-  --dtui-sidebar-hover-debounce: 0ms;
-  --dtui-sidebar-animation-speed: 300ms;
-}
-
-/* ============================================================================
- * Others
- * ========================================================================= */
-
-* {
-  --dtui-theme-shadow-margin: 6px;
-  --dtui-theme-shadow: 0px 0px var(--dtui-theme-shadow-margin) hsla(0, 0%, 0%, 0.4);
-
-  --dtui-sidebar-collapsed-width: 34px;
-  --dtui-sidebar-no-extend-width: 34px;
-  --dtui-sidebar-extended-width: 270px;
-  --dtui-bookmarks-hover-debounce: 200ms;
-  --dtui-bookmarks-animation-speed: 200ms;
-  --dtui-menu-animation-speed: 250ms;
-  --dtui-window-animation-speed: 350ms;
-  --dtui-urlbar-animation-speed: 300ms;
-
-  --dtui-bookmarks-inner-height: 20px;
-}
-EOF
-fi
-
-# Zed theme
-ZED_SETTINGS="$HOME/.config/zed/settings.json"
-if [ -f "$ZED_SETTINGS" ]; then
-  ZED_THEME=$(profile_runtime_value "$PROFILE_RUNTIME" "$NEW" zed theme)
-  ZED_ICON=$(profile_runtime_value "$PROFILE_RUNTIME" "$NEW" zed icon)
-  [ -n "$ZED_THEME" ] && set_zed_theme "$ZED_SETTINGS" "$ZED_THEME" "$NEW"
-  [ -n "$ZED_ICON" ] && set_zed_icon_theme "$ZED_SETTINGS" "$NEW" "$ZED_ICON"
-fi
-
-# Obsidian Minimal Theme
-OBSIDIAN_MINIMAL="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
-if [ -f "$OBSIDIAN_MINIMAL" ]; then
-  OBS_SCHEME=$(profile_runtime_string "$PROFILE_RUNTIME" "$NEW" obsidian)
-  if [ -n "$OBS_SCHEME" ]; then
-    python3 -c "
-import json
-with open('$OBSIDIAN_MINIMAL', 'r') as f:
-    s = json.load(f)
-s['darkScheme'] = '$OBS_SCHEME'
-with open('$OBSIDIAN_MINIMAL', 'w') as f:
-    json.dump(s, f, indent=4)
-" 2>/dev/null || true
-  fi
-fi
+# Per-app themes
+write_firefox_globals "$PROFILE_RUNTIME" "$NEW"
+apply_zed_theme "$PROFILE_RUNTIME" "$NEW"
+apply_vesktop_theme "$PROFILE_RUNTIME" "$NEW"
+apply_obsidian_scheme "$PROFILE_RUNTIME" "$NEW"
 
 # System color-scheme preference
 if [ "$NEW" = "light" ]; then
@@ -196,9 +98,6 @@ if [ "$NEW" = "light" ]; then
 else
   gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
 fi
-
-# Save new variant
-echo "$NEW" > "$VARIANT_FILE"
 
 notify-send "Desktop Profile" "$PROFILE → $NEW" 2>/dev/null || true
 echo "Done. $PROFILE is now $NEW."

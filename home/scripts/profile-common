@@ -1,4 +1,31 @@
 #!/usr/bin/env bash
+# Shared paths and helpers for desktop-profile scripts. Sourced, not executed.
+
+# Resolve through the ~/.local/bin symlink so REPO_HOME tracks repoPath.
+# Falls back to ~/nixos/home when scripts were copied into the store
+# (e.g. the ISO) instead of out-of-store symlinked.
+PROFILE_COMMON_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO_HOME="$(dirname "$(dirname "$PROFILE_COMMON_PATH")")"
+[ -d "$REPO_HOME/configs" ] || REPO_HOME="$HOME/nixos/home"
+
+PROFILES_DIR="$HOME/.config/desktop-profiles"
+ACTIVE_FILE="$PROFILES_DIR/active"
+VARIANT_FILE="$PROFILES_DIR/active-variant"
+ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
+CONFIG_HOME="$HOME/.config"
+OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
+
+firefox_chrome_dir() {
+  local d
+  for d in "$HOME/.mozilla/firefox/"*.default-release; do
+    if [ -d "$d" ]; then
+      printf '%s\n' "$d/chrome"
+      return 0
+    fi
+  done
+  return 1
+}
+FIREFOX_CHROME="$(firefox_chrome_dir || true)"
 
 pick_random_wallpaper() {
   local wallpaper_dir="$1"
@@ -8,6 +35,18 @@ pick_random_wallpaper() {
   find "$wallpaper_dir" -maxdepth 1 \
     -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
     | shuf -n 1
+}
+
+# pick_variant_file <variant> <dark-file> <light-file>
+# Prints the light file if variant is light and the file is non-empty; else the dark file.
+pick_variant_file() {
+  local variant="$1" dark_f="$2" light_f="$3"
+
+  if [ "$variant" = "light" ] && [ -s "$light_f" ]; then
+    printf '%s\n' "$light_f"
+  else
+    printf '%s\n' "$dark_f"
+  fi
 }
 
 set_zed_theme() {
@@ -154,4 +193,161 @@ profile_runtime_value() {
     --arg key "$key" \
     '.[$section][$variant][$key] // .[$section].dark[$key] // empty' \
     "$runtime_file" 2>/dev/null || true
+}
+
+profile_meta_value() {
+  local meta_file="$1"
+  local filter="$2"
+
+  [ -f "$meta_file" ] || return 0
+  jq -r "$filter" "$meta_file" 2>/dev/null || true
+}
+
+# copy_profile_colors <profile-dir> <variant>
+# Copies the variant-resolved color files into the live config locations.
+copy_profile_colors() {
+  local profile_dir="$1" variant="$2"
+  local gtk3 gtk4 qt6 kitty rofi fish starship
+
+  gtk3=$(pick_variant_file "$variant" "$profile_dir/gtk-3.0.css" "$profile_dir/gtk-3.0-light.css")
+  gtk4=$(pick_variant_file "$variant" "$profile_dir/gtk-4.0.css" "$profile_dir/gtk-4.0-light.css")
+  qt6=$(pick_variant_file "$variant" "$profile_dir/qt6ct.conf" "$profile_dir/qt6ct-light.conf")
+  kitty=$(pick_variant_file "$variant" "$profile_dir/kitty-colors.conf" "$profile_dir/kitty-colors-light.conf")
+  rofi=$(pick_variant_file "$variant" "$profile_dir/rofi-theme.rasi" "$profile_dir/rofi-theme-light.rasi")
+  fish=$(pick_variant_file "$variant" "$profile_dir/fish-theme.fish" "$profile_dir/fish-theme-light.fish")
+  starship=$(pick_variant_file "$variant" "$profile_dir/starship.toml" "$profile_dir/starship-light.toml")
+
+  [ -s "$gtk3" ] && cp "$gtk3" "$CONFIG_HOME/gtk-3.0/noctalia.css"
+  [ -s "$gtk4" ] && cp "$gtk4" "$CONFIG_HOME/gtk-4.0/noctalia.css"
+  [ -s "$qt6" ] && cp "$qt6" "$CONFIG_HOME/qt6ct/colors/noctalia.conf"
+  [ -s "$qt6" ] && cp "$qt6" "$CONFIG_HOME/qt5ct/colors/noctalia.conf"
+  [ -s "$kitty" ] && cp "$kitty" "$CONFIG_HOME/kitty/colors.conf"
+  [ -s "$rofi" ] && cp "$rofi" "$CONFIG_HOME/rofi/profile-switcher.rasi"
+  [ -s "$fish" ] && cp "$fish" "$CONFIG_HOME/fish/conf.d/matugen_theme.fish"
+  [ -s "$starship" ] && cp "$starship" "$HOME/.config/starship_matugen.toml"
+  return 0
+}
+
+# write_firefox_globals <runtime-file> <variant>
+# Regenerates the Sidebery/DownToneUI _globals.css from the profile runtime colors.
+write_firefox_globals() {
+  local runtime_file="$1" variant="$2"
+  local globals main sec accent text accent_hsl scheme
+
+  [ -n "$FIREFOX_CHROME" ] || return 0
+  globals="$FIREFOX_CHROME/DownToneUI/_globals.css"
+  [ -d "$(dirname "$globals")" ] || return 0
+
+  main=$(profile_runtime_value "$runtime_file" "$variant" firefox main)
+  sec=$(profile_runtime_value "$runtime_file" "$variant" firefox secondary)
+  accent=$(profile_runtime_value "$runtime_file" "$variant" firefox accent)
+  text=$(profile_runtime_value "$runtime_file" "$variant" firefox text)
+  accent_hsl=$(profile_runtime_value "$runtime_file" "$variant" firefox accentHsl)
+  [ -n "$main" ] || return 0
+
+  scheme="dark"
+  [ "$variant" = "light" ] && scheme="light"
+
+  cat > "$globals" << EOF
+/* ============================================================================
+ * Shared: should be copied to Sidebery settings > Styles editor
+ * ========================================================================= */
+
+* {
+  --dtui-theme-color-scheme: $scheme;
+  --dtui-theme-main-color: $main;
+  --dtui-theme-secondary-color: $sec;
+  --dtui-theme-accent-color: $accent;
+  --dtui-theme-text-color: $text;
+
+  --dtui-theme-accent-low-alpha: 0.5;
+  --dtui-theme-accent-mid-alpha: 0.75;
+  --dtui-theme-accent-high-contrast: $accent_hsl;
+  --dtui-theme-text-low-alpha: 0.5;
+  --dtui-theme-text-mid-alpha: 0.75;
+
+  --dtui-theme-separator-color: rgba(var(--dtui-theme-text-color), 0.1);
+  --dtui-theme-border-color: rgba(var(--dtui-theme-text-color), 0);
+  --dtui-theme-border-width: 2px;
+  --dtui-theme-border-radius: 6px;
+
+  --dtui-sidebar-hover-debounce: 0ms;
+  --dtui-sidebar-animation-speed: 300ms;
+}
+
+/* ============================================================================
+ * Others
+ * ========================================================================= */
+
+* {
+  --dtui-theme-shadow-margin: 6px;
+  --dtui-theme-shadow: 0px 0px var(--dtui-theme-shadow-margin) hsla(0, 0%, 0%, 0.4);
+
+  --dtui-sidebar-collapsed-width: 34px;
+  --dtui-sidebar-no-extend-width: 34px;
+  --dtui-sidebar-extended-width: 270px;
+  --dtui-bookmarks-hover-debounce: 200ms;
+  --dtui-bookmarks-animation-speed: 200ms;
+  --dtui-menu-animation-speed: 250ms;
+  --dtui-window-animation-speed: 350ms;
+  --dtui-urlbar-animation-speed: 300ms;
+
+  --dtui-bookmarks-inner-height: 20px;
+}
+EOF
+}
+
+# apply_zed_theme <runtime-file> <variant>
+apply_zed_theme() {
+  local runtime_file="$1" variant="$2"
+  local settings="$CONFIG_HOME/zed/settings.json"
+  local theme icon
+
+  [ -f "$settings" ] || return 0
+  theme=$(profile_runtime_value "$runtime_file" "$variant" zed theme)
+  icon=$(profile_runtime_value "$runtime_file" "$variant" zed icon)
+  if [ -n "$theme" ]; then
+    set_zed_theme "$settings" "$theme" "$variant"
+  fi
+  if [ -n "$icon" ]; then
+    set_zed_icon_theme "$settings" "$variant" "$icon"
+  fi
+}
+
+# apply_vesktop_theme <runtime-file> <variant>
+apply_vesktop_theme() {
+  local runtime_file="$1" variant="$2"
+  local settings="$CONFIG_HOME/vesktop/settings/settings.json"
+  local theme tmp
+
+  [ -f "$settings" ] || return 0
+  theme=$(profile_runtime_string "$runtime_file" "$variant" vesktop)
+  [ -n "$theme" ] || return 0
+
+  tmp=$(mktemp)
+  if jq --indent 4 --arg t "$theme" '.enabledThemes = [$t]' "$settings" > "$tmp" 2>/dev/null; then
+    mv "$tmp" "$settings"
+  else
+    rm -f "$tmp"
+  fi
+}
+
+# apply_obsidian_scheme <runtime-file> <variant>
+# Obsidian stays in dark appearance mode; the variant-resolved scheme is
+# written to darkScheme so light variants show light colors without flipping
+# Obsidian's base theme.
+apply_obsidian_scheme() {
+  local runtime_file="$1" variant="$2"
+  local scheme tmp
+
+  [ -f "$OBSIDIAN_MINIMAL_SETTINGS" ] || return 0
+  scheme=$(profile_runtime_string "$runtime_file" "$variant" obsidian)
+  [ -n "$scheme" ] || return 0
+
+  tmp=$(mktemp)
+  if jq --indent 4 --arg s "$scheme" '.darkScheme = $s' "$OBSIDIAN_MINIMAL_SETTINGS" > "$tmp" 2>/dev/null; then
+    mv "$tmp" "$OBSIDIAN_MINIMAL_SETTINGS"
+  else
+    rm -f "$tmp"
+  fi
 }

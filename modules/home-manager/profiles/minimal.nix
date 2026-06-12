@@ -4,98 +4,221 @@ let
   waybar = import ../../../lib/waybar.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
 
-  # Dark — neutral greys only
-  bg0 = "#141414";
-  bg1 = "#1c1c1c";
-  bg2 = "#262626";
-  bg3 = "#3a3a3a";
-  fg0 = "#f2f2f2";
-  fg1 = "#c8c8c8";
-  fg2 = "#8a8a8a";
-  accent = "#e0e0e0";
-  err = "#5c5c5c";
+  # Neutral greys only. One role mapping serves dark and light; `rofiText`
+  # and `hoverBg` are the two slots that differ beyond the palette itself.
+  dark = rec {
+    title = "Minimal dark";
+    bg0 = "#141414";
+    bg1 = "#1c1c1c";
+    bg2 = "#262626";
+    bg3 = "#3a3a3a";
+    fg0 = "#f2f2f2";
+    fg1 = "#c8c8c8";
+    fg2 = "#8a8a8a";
+    accent = "#e0e0e0";
+    err = "#5c5c5c";
+    rofiText = fg1;
+    hoverBg = "rgba(255,255,255,0.06)";
+  };
 
-  # Light
-  l_bg0 = "#fafafa";
-  l_bg1 = "#f0f0f0";
-  l_bg2 = "#e2e2e2";
-  l_bg3 = "#c8c8c8";
-  l_fg0 = "#141414";
-  l_fg1 = "#2e2e2e";
-  l_fg2 = "#5a5a5a";
-  l_accent = "#1a1a1a";
-  l_err = "#a3a3a3";
+  light = rec {
+    title = "Minimal light";
+    bg0 = "#fafafa";
+    bg1 = "#f0f0f0";
+    bg2 = "#e2e2e2";
+    bg3 = "#c8c8c8";
+    fg0 = "#141414";
+    fg1 = "#2e2e2e";
+    fg2 = "#5a5a5a";
+    accent = "#1a1a1a";
+    err = "#a3a3a3";
+    rofiText = fg0;
+    hoverBg = "rgba(0,0,0,0.06)";
+  };
 
-  minimalRofi =
-    bg: surface: border: fg: subtle: selBorder: selFg: selBg:
-    theme.mkProfilePickerRofi {
-      background = bg;
-      text = fg;
-      border = border;
-      selectedBackground = surface;
-      selectedForeground = selFg;
-      inputBackground = surface;
-      prompt = fg;
-      placeholder = subtle;
-      elementBackground = surface;
-      elementSelectedBackground = selBg;
-      elementSelectedBorder = selBorder;
-      borderWidth = 1;
-      selectedBorderWidth = 1;
-      windowRadius = 4;
-      inputRadius = 4;
-      elementRadius = 4;
-      iconRadius = 2;
+  alpha = a: c: "#${a}${builtins.substring 1 6 c}";
+
+  mkColors =
+    p:
+    theme.mkGtkPair {
+      inherit (p) title;
+      inherit (p) accent;
+      accentBg = p.bg3;
+      accentFg = p.bg0;
+      destructiveBg = p.err;
+      destructiveFg = p.fg0;
+      windowBg = p.bg0;
+      windowFg = p.fg1;
+      headerbarBg = p.bg1;
+      headerbarBackdrop = "@window_bg_color";
+      popoverBg = p.bg1;
+      cardBg = p.bg1;
+      dialogBg = p.bg0;
+      dialogFg = p.fg1;
+      sidebarBg = p.bg1;
+      sidebarBackdrop = "@window_bg_color";
+      sidebarBorder = p.bg2;
+      secondarySidebarBg = p.bg0;
+      secondarySidebarFg = p.fg2;
+      unfocused = {
+        fg = p.fg2;
+        text = p.fg2;
+        bg = p.bg0;
+        base = p.bg0;
+        selectedBg = p.bg2;
+        selectedFg = p.fg0;
+      };
+    }
+    // {
+      qt6 = theme.mkQt6Roles {
+        windowText = p.fg1;
+        button = p.bg1;
+        midlight = p.bg3;
+        mid = p.bg2;
+        window = p.bg0;
+        highlight = p.accent;
+        highlightedText = p.bg2;
+        linkVisited = p.fg2;
+        alternateBase = p.bg1;
+        tooltipBase = p.bg0;
+        tooltipText = p.bg1;
+        secondaryText = p.fg2;
+        inactiveText = p.fg2;
+        disabledText = p.fg2;
+        disabledHighlight = p.bg3;
+      };
+
+      kitty = theme.mkKittyColors {
+        title = "${p.title} Kitty";
+        cursor = p.fg1;
+        cursorText = p.bg0;
+        foreground = p.fg1;
+        background = p.bg0;
+        selectionForeground = p.bg0;
+        selectionBackground = p.bg3;
+        color0 = p.bg1;
+        color8 = p.bg3;
+        color1 = p.err;
+        color9 = p.err;
+        color2 = p.fg2;
+        color10 = p.fg1;
+        color3 = p.fg2;
+        color11 = p.fg1;
+        color4 = p.fg2;
+        color12 = p.fg1;
+        color5 = p.fg2;
+        color13 = p.fg1;
+        color6 = p.fg2;
+        color14 = p.fg1;
+        color7 = p.fg1;
+        color15 = p.fg0;
+      };
+
+      fish = theme.mkFishColors {
+        normal = p.fg1;
+        command = p.fg0;
+        keyword = p.fg0;
+        quote = p.fg2;
+        redirection = p.fg2;
+        end = p.fg2;
+        error = p.fg0;
+        param = p.fg1;
+        comment = p.fg2;
+        selection = p.bg2;
+        searchMatch = p.bg1;
+        operator = p.fg1;
+        escape = p.fg2;
+        autosuggestion = p.fg2;
+      };
+
+      starship = theme.mkStarshipPrompt {
+        success = p.fg1;
+        error = p.fg0;
+        directory = p.fg0;
+        gitBranch = p.fg2;
+        cmdDuration = p.fg2;
+      };
+
+      rofi = theme.mkProfilePickerRofi {
+        background = p.bg0;
+        text = p.rofiText;
+        border = p.bg3;
+        selectedBackground = p.bg1;
+        selectedForeground = p.accent;
+        inputBackground = p.bg1;
+        prompt = p.rofiText;
+        placeholder = p.fg2;
+        elementBackground = p.bg1;
+        elementSelectedBackground = p.bg2;
+        elementSelectedBorder = p.accent;
+        borderWidth = 1;
+        selectedBorderWidth = 1;
+        windowRadius = 4;
+        inputRadius = 4;
+        elementRadius = 4;
+        iconRadius = 2;
+      };
+    };
+
+  mkMako =
+    p:
+    theme.mkMakoConfig {
+      background = p.bg0;
+      text = p.fg1;
+      border = p.bg3;
+      lowBorder = p.bg2;
+      highBackground = p.bg1;
+      highBorder = p.err;
+      highText = p.fg0;
+      borderSize = 1;
+      borderRadius = 4;
+    };
+
+  mkQuickshell = p: {
+    fg = p.fg0;
+    bg = "#00000000";
+    popupBg = alpha "cc" p.bg0;
+    rawBg = p.bg0;
+    inherit (p) accent;
+    second = p.fg1;
+    warm = p.fg1;
+    fresh = p.fg1;
+    barRadius = "0";
+    barHeight = "26";
+    barMargin = "2";
+    showClockDate = "false";
+    showWorkspaceNumbers = "false";
+    barFont = "Iosevka Nerd Font";
+    barBorder = "#00000000";
+    barInnerHighlight = "#00000000";
+    pillBg = "#00000000";
+    pillBorder = "#00000000";
+  };
+
+  mkWaybarStyle =
+    p:
+    waybar.mkFlatStyle {
+      fg = p.fg1;
+      activeText = p.fg0;
+      activeUnderline = p.fg0;
+      clockColor = p.fg1;
+      performanceColor = p.fg2;
+      balancedColor = p.fg1;
+      powerSaverColor = p.fg2;
+      warningColor = p.accent;
+      criticalColor = p.fg0;
+      inherit (p) hoverBg;
     };
 in
 {
   desktopProfiles.profiles.minimal = {
     bar = "quickshell";
 
-    quickshellTheme = {
-      fg = fg0;
-      bg = "#00000000";
-      popupBg = "#cc141414";
-      rawBg = bg0;
-      accent = accent;
-      second = fg1;
-      warm = fg1;
-      fresh = fg1;
-      barRadius = "0";
-      barHeight = "26";
-      barMargin = "2";
-      showClockDate = "false";
-      showWorkspaceNumbers = "false";
-      barFont = "Iosevka Nerd Font";
-      barBorder = "#00000000";
-      barInnerHighlight = "#00000000";
-      pillBg = "#00000000";
-      pillBorder = "#00000000";
-    };
+    quickshellTheme = mkQuickshell dark;
+    quickshellThemeLight = mkQuickshell light;
 
-    makoConfig = theme.mkMakoConfig {
-      background = bg0;
-      text = fg1;
-      border = bg3;
-      lowBorder = bg2;
-      highBackground = bg1;
-      highBorder = err;
-      highText = fg0;
-      borderSize = 1;
-      borderRadius = 4;
-    };
-
-    makoConfigLight = theme.mkMakoConfig {
-      background = l_bg0;
-      text = l_fg1;
-      border = l_bg3;
-      lowBorder = l_bg2;
-      highBackground = l_bg1;
-      highBorder = l_err;
-      highText = l_fg0;
-      borderSize = 1;
-      borderRadius = 4;
-    };
+    makoConfig = mkMako dark;
+    makoConfigLight = mkMako light;
 
     cursor = {
       theme = "Bibata-Modern-Ice";
@@ -136,403 +259,19 @@ in
       shadowInactiveColor = "#00000012";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = true;
-      tabIndicatorActiveColor = fg1;
-      tabIndicatorInactiveColor = bg3;
+      tabIndicatorActiveColor = dark.fg1;
+      tabIndicatorInactiveColor = dark.bg3;
       windowOpacity = 1.0;
       windowHighlightOff = true;
     };
 
-    colors = {
-      gtk3 = theme.mkGtkColors {
-        title = "Minimal dark";
-        accent = accent;
-        accentBg = bg3;
-        accentFg = bg0;
-        destructiveBg = err;
-        destructiveFg = fg0;
-        windowBg = bg0;
-        windowFg = fg1;
-        headerbarBg = bg1;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = bg1;
-        cardBg = bg1;
-        dialogBg = bg0;
-        dialogFg = fg1;
-        sidebarBg = bg1;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = bg2;
-        secondarySidebarBg = bg0;
-        secondarySidebarFg = fg2;
-        unfocused = {
-          fg = fg2;
-          text = fg2;
-          bg = bg0;
-          base = bg0;
-          selectedBg = bg2;
-          selectedFg = fg0;
-        };
-      };
-
-      gtk4 = theme.mkGtkColors {
-        title = "Minimal dark";
-        accent = accent;
-        accentBg = bg3;
-        accentFg = bg0;
-        destructiveBg = err;
-        destructiveFg = fg0;
-        windowBg = bg0;
-        windowFg = fg1;
-        headerbarBg = bg1;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = bg1;
-        cardBg = bg1;
-        dialogBg = bg0;
-        dialogFg = fg1;
-        sidebarBg = bg1;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = bg2;
-        secondarySidebarBg = bg0;
-        secondarySidebarFg = fg2;
-      };
-
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          fg1
-          bg1
-          "#ffffff"
-          bg3
-          bg2
-          bg2
-          fg1
-          "#ffffff"
-          fg1
-          bg0
-          bg0
-          "#000000"
-          accent
-          bg2
-          accent
-          fg2
-          bg1
-          bg0
-          bg1
-          fg1
-          fg2
-          accent
-        ];
-        disabled = [
-          fg2
-          bg1
-          "#ffffff"
-          bg3
-          bg2
-          bg2
-          fg2
-          "#ffffff"
-          fg2
-          bg0
-          bg0
-          "#000000"
-          bg3
-          bg2
-          bg3
-          fg2
-          bg1
-          bg0
-          bg1
-          fg2
-          fg2
-          bg3
-        ];
-        inactive = [
-          fg2
-          bg1
-          "#ffffff"
-          bg3
-          bg2
-          bg2
-          fg2
-          "#ffffff"
-          fg2
-          bg0
-          bg0
-          "#000000"
-          accent
-          bg2
-          accent
-          fg2
-          bg1
-          bg0
-          bg1
-          fg2
-          fg2
-          accent
-        ];
-      };
-
-      kitty = theme.mkKittyColors {
-        title = "Minimal dark";
-        cursor = fg1;
-        cursorText = bg0;
-        foreground = fg1;
-        background = bg0;
-        selectionForeground = bg0;
-        selectionBackground = bg3;
-        color0 = bg1;
-        color8 = bg3;
-        color1 = err;
-        color9 = err;
-        color2 = fg2;
-        color10 = fg1;
-        color3 = fg2;
-        color11 = fg1;
-        color4 = fg2;
-        color12 = fg1;
-        color5 = fg2;
-        color13 = fg1;
-        color6 = fg2;
-        color14 = fg1;
-        color7 = fg1;
-        color15 = fg0;
-      };
-
-      fish = theme.mkFishColors {
-        normal = fg1;
-        command = fg0;
-        keyword = fg0;
-        quote = fg2;
-        redirection = fg2;
-        end = fg2;
-        error = fg0;
-        param = fg1;
-        comment = fg2;
-        selection = bg2;
-        searchMatch = bg1;
-        operator = fg1;
-        escape = fg2;
-        autosuggestion = fg2;
-      };
-
-      starship = theme.mkStarshipPrompt {
-        success = fg1;
-        error = fg0;
-        directory = fg0;
-        gitBranch = fg2;
-        cmdDuration = fg2;
-      };
-
-      rofi = minimalRofi bg0 bg1 bg3 fg1 fg2 accent accent bg2;
-    };
+    colors = mkColors dark;
+    colorsLight = mkColors light;
 
     waybar = {
       config = waybar.mkConfig { scriptDir = "${config.repoPath}/home/scripts"; };
-      style = waybar.mkFlatStyle {
-        fg = fg1;
-        activeText = fg0;
-        activeUnderline = fg0;
-        clockColor = fg1;
-        performanceColor = fg2;
-        balancedColor = fg1;
-        powerSaverColor = fg2;
-        warningColor = accent;
-        criticalColor = fg0;
-        hoverBg = "rgba(255,255,255,0.06)";
-      };
+      style = mkWaybarStyle dark;
     };
-
-    colorsLight = {
-      gtk3 = theme.mkGtkColors {
-        title = "Minimal light";
-        accent = l_accent;
-        accentBg = l_bg3;
-        accentFg = l_bg0;
-        destructiveBg = l_err;
-        destructiveFg = l_fg0;
-        windowBg = l_bg0;
-        windowFg = l_fg1;
-        headerbarBg = l_bg1;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = l_bg1;
-        cardBg = l_bg1;
-        dialogBg = l_bg0;
-        dialogFg = l_fg1;
-        sidebarBg = l_bg1;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = l_bg2;
-        secondarySidebarBg = l_bg0;
-        secondarySidebarFg = l_fg2;
-        unfocused = {
-          fg = l_fg2;
-          text = l_fg2;
-          bg = l_bg0;
-          base = l_bg0;
-          selectedBg = l_bg2;
-          selectedFg = l_fg0;
-        };
-      };
-
-      gtk4 = theme.mkGtkColors {
-        title = "Minimal light";
-        accent = l_accent;
-        accentBg = l_bg3;
-        accentFg = l_bg0;
-        destructiveBg = l_err;
-        destructiveFg = l_fg0;
-        windowBg = l_bg0;
-        windowFg = l_fg1;
-        headerbarBg = l_bg1;
-        headerbarBackdrop = "@window_bg_color";
-        popoverBg = l_bg1;
-        cardBg = l_bg1;
-        dialogBg = l_bg0;
-        dialogFg = l_fg1;
-        sidebarBg = l_bg1;
-        sidebarBackdrop = "@window_bg_color";
-        sidebarBorder = l_bg2;
-        secondarySidebarBg = l_bg0;
-        secondarySidebarFg = l_fg2;
-      };
-
-      qt6 = theme.mkQt6ColorScheme {
-        active = [
-          l_fg1
-          l_bg1
-          "#ffffff"
-          l_bg3
-          l_bg2
-          l_bg2
-          l_fg1
-          "#ffffff"
-          l_fg1
-          l_bg0
-          l_bg0
-          "#000000"
-          l_accent
-          l_bg2
-          l_accent
-          l_fg2
-          l_bg1
-          l_bg0
-          l_bg1
-          l_fg1
-          l_fg2
-          l_accent
-        ];
-        disabled = [
-          l_fg2
-          l_bg1
-          "#ffffff"
-          l_bg3
-          l_bg2
-          l_bg2
-          l_fg2
-          "#ffffff"
-          l_fg2
-          l_bg0
-          l_bg0
-          "#000000"
-          l_bg3
-          l_bg2
-          l_bg3
-          l_fg2
-          l_bg1
-          l_bg0
-          l_bg1
-          l_fg2
-          l_fg2
-          l_bg3
-        ];
-        inactive = [
-          l_fg2
-          l_bg1
-          "#ffffff"
-          l_bg3
-          l_bg2
-          l_bg2
-          l_fg2
-          "#ffffff"
-          l_fg2
-          l_bg0
-          l_bg0
-          "#000000"
-          l_accent
-          l_bg2
-          l_accent
-          l_fg2
-          l_bg1
-          l_bg0
-          l_bg1
-          l_fg2
-          l_fg2
-          l_accent
-        ];
-      };
-
-      kitty = theme.mkKittyColors {
-        title = "Minimal light";
-        cursor = l_fg1;
-        cursorText = l_bg0;
-        foreground = l_fg1;
-        background = l_bg0;
-        selectionForeground = l_bg0;
-        selectionBackground = l_bg3;
-        color0 = l_bg1;
-        color8 = l_bg3;
-        color1 = l_err;
-        color9 = l_err;
-        color2 = l_fg2;
-        color10 = l_fg1;
-        color3 = l_fg2;
-        color11 = l_fg1;
-        color4 = l_fg2;
-        color12 = l_fg1;
-        color5 = l_fg2;
-        color13 = l_fg1;
-        color6 = l_fg2;
-        color14 = l_fg1;
-        color7 = l_fg1;
-        color15 = l_fg0;
-      };
-
-      fish = theme.mkFishColors {
-        normal = l_fg1;
-        command = l_fg0;
-        keyword = l_fg0;
-        quote = l_fg2;
-        redirection = l_fg2;
-        end = l_fg2;
-        error = l_fg0;
-        param = l_fg1;
-        comment = l_fg2;
-        selection = l_bg2;
-        searchMatch = l_bg1;
-        operator = l_fg1;
-        escape = l_fg2;
-        autosuggestion = l_fg2;
-      };
-
-      starship = theme.mkStarshipPrompt {
-        success = l_fg1;
-        error = l_fg0;
-        directory = l_fg0;
-        gitBranch = l_fg2;
-        cmdDuration = l_fg2;
-      };
-
-      rofi = minimalRofi l_bg0 l_bg1 l_bg3 l_fg0 l_fg2 l_accent l_accent l_bg2;
-    };
-
-    waybarLight.style = waybar.mkFlatStyle {
-      fg = l_fg1;
-      activeText = l_fg0;
-      activeUnderline = l_fg0;
-      clockColor = l_fg1;
-      performanceColor = l_fg2;
-      balancedColor = l_fg1;
-      powerSaverColor = l_fg2;
-      warningColor = l_accent;
-      criticalColor = l_fg0;
-      hoverBg = "rgba(0,0,0,0.06)";
-    };
+    waybarLight.style = mkWaybarStyle light;
   };
 }

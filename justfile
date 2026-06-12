@@ -5,7 +5,7 @@ fmt:
   nix fmt
 
 shell-check:
-  bash -n home/scripts/profile-common home/scripts/switch-profile home/scripts/toggle-variant home/scripts/rofi-profile
+  shellcheck -S error home/scripts/*
 
 eval target="laptop":
   nix eval --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.toplevel.drvPath"

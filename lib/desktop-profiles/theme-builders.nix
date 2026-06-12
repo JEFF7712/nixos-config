@@ -1,4 +1,10 @@
-{
+rec {
+  # GTK3 and GTK4 share the same color args; GTK4 has no unfocused_* support.
+  mkGtkPair = args: {
+    gtk3 = mkGtkColors args;
+    gtk4 = mkGtkColors (builtins.removeAttrs args [ "unfocused" ]);
+  };
+
   mkGtkColors =
     {
       accent,
@@ -105,6 +111,120 @@
       disabled_colors=${join disabled}
       inactive_colors=${join inactive}
     '';
+
+  # Role-based qt5ct/qt6ct color scheme. Slot order (22 entries):
+  # WindowText, Button, Light, Midlight, Dark, Mid, Text, BrightText,
+  # ButtonText, Base, Window, Shadow, Highlight, HighlightedText, Link,
+  # LinkVisited, AlternateBase, ToolTipBase, ToolTipText, PlaceholderText,
+  # <secondary>, Accent.
+  mkQt6Roles =
+    {
+      windowText,
+      button,
+      midlight,
+      mid,
+      window,
+      highlight,
+      highlightedText,
+      linkVisited,
+      alternateBase,
+      tooltipBase,
+      tooltipText,
+      secondaryText,
+      disabledText,
+      disabledHighlight,
+      base ? window,
+      link ? highlight,
+      accent ? highlight,
+      text ? windowText,
+      buttonText ? windowText,
+      placeholderText ? text,
+      inactiveText ? text,
+      inactiveWindowText ? inactiveText,
+      inactiveButtonText ? inactiveText,
+      inactivePlaceholderText ? inactiveText,
+      disabledHighlightedText ? highlightedText,
+      disabledLink ? disabledHighlight,
+      disabledAccent ? disabledHighlight,
+      disabledSecondaryText ? disabledText,
+      light ? "#ffffff",
+      brightText ? "#ffffff",
+      shadow ? "#000000",
+    }:
+    mkQt6ColorScheme {
+      active = [
+        windowText
+        button
+        light
+        midlight
+        mid
+        mid
+        text
+        brightText
+        buttonText
+        base
+        window
+        shadow
+        highlight
+        highlightedText
+        link
+        linkVisited
+        alternateBase
+        tooltipBase
+        tooltipText
+        placeholderText
+        secondaryText
+        accent
+      ];
+      disabled = [
+        disabledText
+        button
+        light
+        midlight
+        mid
+        mid
+        disabledText
+        brightText
+        disabledText
+        base
+        window
+        shadow
+        disabledHighlight
+        disabledHighlightedText
+        disabledLink
+        linkVisited
+        alternateBase
+        tooltipBase
+        tooltipText
+        disabledText
+        disabledSecondaryText
+        disabledAccent
+      ];
+      inactive = [
+        inactiveWindowText
+        button
+        light
+        midlight
+        mid
+        mid
+        inactiveText
+        brightText
+        inactiveButtonText
+        base
+        window
+        shadow
+        highlight
+        highlightedText
+        link
+        linkVisited
+        alternateBase
+        tooltipBase
+        tooltipText
+        inactivePlaceholderText
+        secondaryText
+        accent
+      ];
+    };
 
   mkKittyColors =
     {
