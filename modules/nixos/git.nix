@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -17,6 +18,9 @@
         credential."https://gist.github.com".helper = "!gh auth git-credential";
         init.defaultBranch = "main";
         safe.directory = "/home/rupan/nixos";
+        # difftastic for human-facing diffs; --no-ext-diff to opt out.
+        # git log -p / git show need --ext-diff to use it.
+        diff.external = lib.getExe pkgs.difftastic;
       };
     };
   };
