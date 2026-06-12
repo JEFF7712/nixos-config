@@ -531,6 +531,56 @@ rec {
       set -g clock-mode-colour "${accent}"
     '';
 
+  # hyprlock $variables, sourced from ~/.config/hypr/profile-colors.conf.
+  # hyprlang colors are rgb(RRGGBB)/rgba(RRGGBBAA) without the leading '#',
+  # so hex palette colors are converted; alphas are hex suffixes.
+  mkHyprlockColors =
+    {
+      fg,
+      muted,
+      accent,
+      surface,
+      surfaceAlt,
+      error,
+      border ? accent,
+      surfaceAlpha ? "d9",
+      surfaceAltAlpha ? "c8",
+      borderAlpha ? "e6",
+      errorAlpha ? "e6",
+    }:
+    let
+      hex = c: builtins.substring 1 6 c;
+      rgb = c: "rgb(${hex c})";
+      rgba = c: a: "rgba(${hex c}${a})";
+    in
+    ''
+      $fg = ${rgb fg}
+      $muted = ${rgb muted}
+      $accent = ${rgb accent}
+      $surface = ${rgba surface surfaceAlpha}
+      $surface_alt = ${rgba surfaceAlt surfaceAltAlpha}
+      $border = ${rgba border borderAlpha}
+      $error = ${rgba error errorAlpha}
+    '';
+
+  # cava [color] section, swapped into ~/.config/cava/config by
+  # apply_cava_colors. cava requires hex colors to be quoted.
+  mkCavaColors =
+    {
+      gradLow,
+      gradMid,
+      gradHigh,
+      foreground ? gradHigh,
+    }:
+    ''
+      [color]
+      foreground = '${foreground}'
+      gradient = 1
+      gradient_color_1 = '${gradLow}'
+      gradient_color_2 = '${gradMid}'
+      gradient_color_3 = '${gradHigh}'
+    '';
+
   mkMakoConfig =
     {
       background,

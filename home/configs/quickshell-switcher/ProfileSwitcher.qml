@@ -12,21 +12,16 @@ PanelWindow {
     property string activeProfile: ""
     property int focusedIndex: -1
 
-    readonly property var profileAccents: ({
-        "noctalia":   "#b1c6ff",
-        "clean":      "#eeeeee",
-        "minimal":    "#e0e0e0",
-        "nord":       "#88c0d0",
-        "catppuccin": "#cba6f7",
-        "gruvbox":    "#fabd2f",
-        "rosepine":   "#c4a7e7",
-        "everforest": "#a7c080"
-    })
-    readonly property color accent: profileAccents[activeProfile] || "#ffffff"
+    property color accent: "#ffffff"
+
+    function applyTheme(theme) {
+        root.accent = theme && theme.accent ? theme.accent : "#ffffff"
+    }
 
     function open() {
         listProc.running = true
         activeProc.running = true
+        themeLoader.running = true
         shown = true
     }
     function close() {
@@ -79,6 +74,31 @@ PanelWindow {
         command: ["sh", "-c", "cat \"$HOME\"/.config/desktop-profiles/active 2>/dev/null || true"]
         stdout: StdioCollector {
             onStreamFinished: { root.activeProfile = text.trim() }
+        }
+    }
+
+    Process {
+        id: themeLoader
+        running: true
+        command: ["sh", "-c",
+            "p=\"$HOME/.config/desktop-profiles\";" +
+            "[ -f \"$p/active\" ] || exit 0;" +
+            "d=\"$p/$(cat $p/active)\";" +
+            "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" +
+            "t=\"$d/quickshell-theme.json\";" +
+            "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" +
+            "cat \"$t\" 2>/dev/null"
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const txt = this.text.trim()
+                if (!txt) { root.applyTheme(null); return }
+                try {
+                    root.applyTheme(JSON.parse(txt))
+                } catch (e) {
+                    console.warn("quickshell-theme.json parse failed:", e)
+                }
+            }
         }
     }
 

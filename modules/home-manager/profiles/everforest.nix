@@ -191,6 +191,21 @@ let
         inactive = p.grey1;
         border = p.bg2;
       };
+
+      hyprlock = theme.mkHyprlockColors {
+        inherit (p) fg;
+        muted = p.grey1;
+        accent = p.green;
+        surface = p.bg0;
+        surfaceAlt = p.bg1;
+        error = p.red;
+      };
+
+      cava = theme.mkCavaColors {
+        gradLow = p.green;
+        gradMid = p.yellow;
+        gradHigh = p.red;
+      };
     };
 
   mkMako =

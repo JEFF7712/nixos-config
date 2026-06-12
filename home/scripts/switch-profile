@@ -240,6 +240,9 @@ if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET_SELF_THEMED" != "true" ]; then
     ) &
     disown
   fi
+elif [ $STARTUP_MODE -eq 0 ]; then
+  # Self-themed target: hand cava back to noctalia's generated theme
+  restore_cava_noctalia_theme
 fi
 
 # 3. Update niri overrides symlink atomically (tmp + mv avoids missing-file window)

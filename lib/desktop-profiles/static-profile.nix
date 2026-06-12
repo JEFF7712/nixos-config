@@ -2,7 +2,8 @@
 #
 # A profile built with mkStaticProfile is mostly just a palette: the canonical
 # roles below feed default mappings for every theme slot (gtk, qt6, kitty,
-# fish, starship, rofi, btop, tmux, mako, quickshell, waybar). Anything a
+# fish, starship, rofi, btop, tmux, hyprlock, cava, mako, quickshell,
+# waybar). Anything a
 # theme does differently goes in `overrides.<slot>` (an attrset of builder
 # args, or a function `palette: attrset` for per-variant values).
 #
@@ -220,6 +221,20 @@ let
         }
         // ov "tmux"
       );
+
+      hyprlock = theme.mkHyprlockColors (
+        {
+          fg = r.fg0;
+          muted = r.fg3;
+          inherit (r) accent;
+          surface = r.bgDim;
+          surfaceAlt = r.bg1;
+          error = r.red;
+        }
+        // ov "hyprlock"
+      );
+
+      cava = theme.mkCavaColors ({ inherit (r) gradLow gradMid gradHigh; } // ov "cava");
     };
 
   mkStaticProfile =
