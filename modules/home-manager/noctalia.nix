@@ -7,7 +7,7 @@
 }:
 
 let
-  cfg = config.programs.noctalia-shell;
+  cfg = config.programs.noctalia;
 in
 {
   options.noctalia.enable = lib.mkEnableOption "enable noctalia";
@@ -105,34 +105,30 @@ in
       style = "bold {{colors.on_surface_variant.default.hex}}"
     '';
 
-    xdg.configFile."noctalia/settings.json".force = true;
-
-    programs.noctalia-shell = {
+    programs.noctalia = {
       enable = true;
       systemd.enable = false;
-      user-templates = {
-        config = {
-          scheme_type = "scheme_tonal-spot";
-        };
-
-        templates = {
-          kitty = {
-            input_path = "~/.config/noctalia/templates/kitty.conf";
-            output_path = "~/.config/kitty/colors.conf";
-            post_hook = "${pkgs.procps}/bin/pkill -USR1 kitty";
-          };
-          fish = {
-            input_path = "~/.config/noctalia/templates/fish.fish";
-            output_path = "~/.config/fish/conf.d/matugen_theme.fish";
-          };
-          starship = {
-            input_path = "~/.config/noctalia/templates/starship.toml";
-            output_path = "~/.config/starship_matugen.toml";
-          };
-        };
-      };
       settings = {
         settingsVersion = 31;
+        theme = {
+          templates = {
+            user = {
+              kitty = {
+                input_path = "~/.config/noctalia/templates/kitty.conf";
+                output_path = "~/.config/kitty/colors.conf";
+                post_hook = "${pkgs.procps}/bin/pkill -USR1 kitty";
+              };
+              fish = {
+                input_path = "~/.config/noctalia/templates/fish.fish";
+                output_path = "~/.config/fish/conf.d/matugen_theme.fish";
+              };
+              starship = {
+                input_path = "~/.config/noctalia/templates/starship.toml";
+                output_path = "~/.config/starship_matugen.toml";
+              };
+            };
+          };
+        };
         templates = {
           enableUserTemplates = true;
           kitty = false;
@@ -662,7 +658,6 @@ in
       };
     };
 
-    # Upstream deprecated `programs.noctalia-shell.systemd.enable`.
     # Keep package/config generation from the upstream Home Manager module,
     # but own the user service locally so rebuilds keep working.
     systemd.user.services.noctalia-shell = {
@@ -672,15 +667,10 @@ in
         PartOf = [ config.wayland.systemd.target ];
         After = [ config.wayland.systemd.target ];
         X-Restart-Triggers =
-          lib.optional (cfg.settings != { }) "${config.xdg.configFile."noctalia/settings.json".source}"
-          ++ lib.optional (cfg.colors != { }) "${config.xdg.configFile."noctalia/colors.json".source}"
-          ++ lib.optional (cfg.plugins != { }) "${config.xdg.configFile."noctalia/plugins.json".source}"
-          ++ lib.optional (
-            cfg.user-templates != { }
-          ) "${config.xdg.configFile."noctalia/user-templates.toml".source}"
+          lib.optional (cfg.settings != { }) "${config.xdg.configFile."noctalia/config.toml".source}"
           ++ lib.mapAttrsToList (
-            name: _: "${config.xdg.configFile."noctalia/plugins/${name}/settings.json".source}"
-          ) cfg.pluginSettings;
+            name: _: "${config.xdg.configFile."noctalia/palettes/${name}.json".source}"
+          ) cfg.customPalettes;
       };
       Service = {
         # Only start noctalia-shell when the noctalia profile is active.
