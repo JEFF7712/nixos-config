@@ -143,6 +143,7 @@ rec {
       inactiveWindowText ? inactiveText,
       inactiveButtonText ? inactiveText,
       inactivePlaceholderText ? inactiveText,
+      inactiveSecondaryText ? secondaryText,
       disabledHighlightedText ? highlightedText,
       disabledLink ? disabledHighlight,
       disabledAccent ? disabledHighlight,
@@ -221,7 +222,7 @@ rec {
         tooltipBase
         tooltipText
         inactivePlaceholderText
-        secondaryText
+        inactiveSecondaryText
         accent
       ];
     };
@@ -447,6 +448,87 @@ rec {
           text-color:         inherit;
           font:               "${textFont}";
       }
+    '';
+
+  # btop theme file (~/.config/btop/themes/). One low→mid→high gradient is
+  # applied to every gradient group (cpu, temp, mem, net, process).
+  mkBtopTheme =
+    {
+      mainBg,
+      mainFg,
+      hiFg,
+      selectedBg,
+      inactiveFg,
+      procMisc,
+      box,
+      gradLow,
+      gradMid,
+      gradHigh,
+      title ? mainFg,
+      selectedFg ? hiFg,
+      graphText ? mainFg,
+      meterBg ? selectedBg,
+    }:
+    let
+      gradient = group: ''
+        theme[${group}_start]="${gradLow}"
+        theme[${group}_mid]="${gradMid}"
+        theme[${group}_end]="${gradHigh}"
+      '';
+    in
+    ''
+      theme[main_bg]="${mainBg}"
+      theme[main_fg]="${mainFg}"
+      theme[title]="${title}"
+      theme[hi_fg]="${hiFg}"
+      theme[selected_bg]="${selectedBg}"
+      theme[selected_fg]="${selectedFg}"
+      theme[inactive_fg]="${inactiveFg}"
+      theme[graph_text]="${graphText}"
+      theme[meter_bg]="${meterBg}"
+      theme[proc_misc]="${procMisc}"
+      theme[cpu_box]="${box}"
+      theme[mem_box]="${box}"
+      theme[net_box]="${box}"
+      theme[proc_box]="${box}"
+      theme[div_line]="${box}"
+    ''
+    + builtins.concatStringsSep "" (
+      map gradient [
+        "temp"
+        "cpu"
+        "free"
+        "cached"
+        "available"
+        "used"
+        "download"
+        "upload"
+        "process"
+      ]
+    );
+
+  # tmux status/pane colors, sourced from ~/.config/tmux/profile-colors.conf.
+  mkTmuxColors =
+    {
+      bg,
+      fg,
+      accent,
+      inactive,
+      secondary ? accent,
+      border ? inactive,
+      activeBorder ? accent,
+    }:
+    ''
+      set -g status-style "bg=${bg},fg=${fg}"
+      set -g status-left-style "fg=${accent},bold"
+      set -g status-right-style "fg=${secondary}"
+      set -g window-status-current-style "fg=${accent},bold"
+      set -g window-status-style "fg=${inactive}"
+      set -g pane-border-style "fg=${border}"
+      set -g pane-active-border-style "fg=${activeBorder}"
+      set -g message-style "bg=${bg},fg=${accent}"
+      set -g mode-style "bg=${accent},fg=${bg}"
+      set -g clock-mode-colour "${accent}"
     '';
 
   mkMakoConfig =

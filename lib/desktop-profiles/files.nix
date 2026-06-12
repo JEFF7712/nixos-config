@@ -81,7 +81,7 @@ let
     let
       base = {
         ".config/desktop-profiles/${name}/meta.json".text = builtins.toJSON {
-          inherit (profile) bar;
+          inherit (profile) bar selfThemed;
           cursor = profile.cursor.theme;
           cursorSize = profile.cursor.size;
           inherit (profile) fonts;
@@ -99,6 +99,8 @@ let
         ".config/desktop-profiles/${name}/fish-theme.fish".text = orEmpty profile.colors.fish;
         ".config/desktop-profiles/${name}/starship.toml".text = orEmpty profile.colors.starship;
         ".config/desktop-profiles/${name}/rofi-theme.rasi".text = orEmpty profile.colors.rofi;
+        ".config/desktop-profiles/${name}/btop.theme".text = orEmpty profile.colors.btop;
+        ".config/desktop-profiles/${name}/tmux-colors.conf".text = orEmpty profile.colors.tmux;
         ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides profile;
       }
       // lib.optionalAttrs (profile.makoConfig != null) {
@@ -114,6 +116,8 @@ let
           ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
           ".config/desktop-profiles/${name}/starship-light.toml".text = orEmpty profile.colorsLight.starship;
           ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
+          ".config/desktop-profiles/${name}/btop-light.theme".text = orEmpty profile.colorsLight.btop;
+          ".config/desktop-profiles/${name}/tmux-colors-light.conf".text = orEmpty profile.colorsLight.tmux;
         }
         // lib.optionalAttrs (profile.makoConfigLight != null) {
           ".config/desktop-profiles/${name}/mako-config-light".text = profile.makoConfigLight;
