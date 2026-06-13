@@ -328,43 +328,22 @@
         "type": "github"
       }
     },
-    "niri-blur": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "rust-overlay": "rust-overlay_2"
-      },
-      "locked": {
-        "lastModified": 1780938415,
-        "narHash": "sha256-QHyIMGSbCQW8d5qbOrMsm6gem10bO3Au2YLa3alJfHo=",
-        "owner": "niri-wm",
-        "repo": "niri",
-        "rev": "6f1a2c5f0e8274223d4204b1f8d6f7f91538967e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "niri-wm",
-        "repo": "niri",
-        "type": "github"
-      }
-    },
     "nix-agent": {
       "inputs": {
         "flake-utils": "flake-utils_4",
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1774292178,
-        "narHash": "sha256-QLChyk0/B+gPoKsXAFn6hGVirEeRJvOInAAiLkEQL4c=",
+        "lastModified": 1781327114,
+        "narHash": "sha256-GMP+G082gummGzKpeJvWIOGhZojO1sQECYIDPH1LXp8=",
         "owner": "JEFF7712",
         "repo": "nix-agent",
-        "rev": "ffd8a9b825e03709cfd1c6ee5d1a381990009e53",
+        "rev": "d558f6c5b22adb579d0b6358bb6410ea8fc393c1",
         "type": "github"
       },
       "original": {
         "owner": "JEFF7712",
-        "ref": "v0.2.0",
+        "ref": "v0.5.0",
         "repo": "nix-agent",
         "type": "github"
       }
@@ -571,7 +550,6 @@
         "home-manager": "home-manager",
         "import-tree": "import-tree",
         "mercury-cli": "mercury-cli",
-        "niri-blur": "niri-blur",
         "nix-agent": "nix-agent",
         "nix-index-database": "nix-index-database",
         "nix-vscode-extensions": "nix-vscode-extensions",
@@ -612,27 +590,6 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "rev": "2c7510a559416d07242621d036847152d970612b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "oxalica",
-        "repo": "rust-overlay",
-        "type": "github"
-      }
-    },
-    "rust-overlay_2": {
-      "inputs": {
-        "nixpkgs": [
-          "niri-blur",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1757989933,
-        "narHash": "sha256-9cpKYWWPCFhgwQTww8S94rTXgg8Q8ydFv9fXM6I8xQM=",
-        "owner": "oxalica",
-        "repo": "rust-overlay",
-        "rev": "8249aa3442fb9b45e615a35f39eca2fe5510d7c3",
         "type": "github"
       },
       "original": {

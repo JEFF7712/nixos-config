@@ -38,7 +38,7 @@
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.2.0";
+    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.5.0";
     compchem-cctop = {
       url = "github:JEFF7712/cctop";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -49,10 +49,6 @@
     };
     globalprotect-openconnect = {
       url = "github:yuezk/GlobalProtect-openconnect";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    niri-blur = {
-      url = "github:niri-wm/niri";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     stasis = {
@@ -97,7 +93,7 @@
         let
           system = "x86_64-linux";
           overlays = import ./overlays {
-            inherit inputs nix-vscode-extensions;
+            inherit nix-vscode-extensions;
           };
 
           pkgs = import nixpkgs {
