@@ -406,11 +406,13 @@ if [ $STARTUP_MODE -eq 0 ]; then
   # 9. Repaint open GTK apps (their CSS name is unchanged across profiles)
   nudge_gtk_reload
 
-  # 10. Per-app themes (Zed, Vesktop, Obsidian) — off the critical path
+  # 10. Per-app themes (Zed, Vesktop, Obsidian, Spotify/spicetify) — off the
+  # critical path (spicetify apply re-patches xpui and may relaunch Spotify)
   (
     apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
   ) &
   disown
 

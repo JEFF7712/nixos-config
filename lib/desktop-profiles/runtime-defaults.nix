@@ -26,6 +26,8 @@
     vesktop.dark = "catppuccin.theme.css";
     obsidian.dark = "minimal-catppuccin-dark";
     obsidian.light = "minimal-catppuccin-light";
+    spicetify.dark = "catppuccin-mocha";
+    spicetify.light = "catppuccin-latte";
   };
 
   nord = {
@@ -43,6 +45,7 @@
     };
     vesktop.dark = "nord.theme.css";
     obsidian.dark = "minimal-nord-dark";
+    spicetify.dark = "Nord";
   };
 
   noctalia = {
@@ -52,6 +55,7 @@
     };
     vesktop.dark = "noctalia.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
+    spicetify.dark = "Comfy";
   };
 
   gruvbox = {
@@ -81,6 +85,9 @@
     vesktop.dark = "gruvbox.theme.css";
     obsidian.dark = "minimal-gruvbox-dark";
     obsidian.light = "minimal-gruvbox-light";
+    # Comfy ships no gruvbox scheme; Kanagawa is the closest warm/earthy match.
+    spicetify.dark = "Kanagawa";
+    spicetify.light = "Hikari";
   };
 
   rosepine = {
@@ -110,6 +117,8 @@
     vesktop.dark = "rosepine.theme.css";
     obsidian.dark = "minimal-rose-pine-dark";
     obsidian.light = "minimal-rose-pine-light";
+    spicetify.dark = "rose-pine";
+    spicetify.light = "rose-pine-dawn";
   };
 
   everforest = {
@@ -139,6 +148,8 @@
     vesktop.dark = "everforest.theme.css";
     obsidian.dark = "minimal-everforest-dark";
     obsidian.light = "minimal-everforest-light";
+    spicetify.dark = "Everforest";
+    spicetify.light = "Hikari";
   };
 
   minimal = {
@@ -168,6 +179,8 @@
     vesktop.dark = "minimal.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
     obsidian.light = "minimal-flexoki-light";
+    spicetify.dark = "Mono";
+    spicetify.light = "Hikari";
   };
 
   clean = {
@@ -185,5 +198,6 @@
     };
     vesktop.dark = "minimal.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
+    spicetify.dark = "Mono";
   };
 }

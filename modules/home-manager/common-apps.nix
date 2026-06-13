@@ -8,9 +8,31 @@
 }:
 let
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+
+  # Mutable spicetify. spicetify-nix bakes the theme into a read-only store
+  # Spotify that can't be re-themed at runtime; instead we keep a writable copy
+  # of Spotify under $HOME that `spicetify apply` can patch live, letting the
+  # desktop-profile switcher swap the Comfy color scheme per profile (see
+  # apply_spicetify_theme in home/scripts/profile-common). spicetify-nix is
+  # still the source of the Comfy theme and the extension files.
+  comfyTheme = spicePkgs.themes.comfy;
+  spiceExtensions = with spicePkgs.extensions; [
+    fullAppDisplay
+    shuffle
+    hidePodcasts
+    adblock
+    beautiful-lyrics
+    CoverAmbience
+  ];
+  spiceState = ".local/share/spotify-spiced";
+  spicetifyBin = "${pkgs.spicetify-cli}/bin/spicetify";
+  extList = builtins.concatStringsSep "|" (map (e: e.name) spiceExtensions);
+  # Launches the writable, spiced copy instead of the read-only store Spotify.
+  spotifyLauncher = pkgs.writeShellScriptBin "spotify" ''
+    exec "$HOME/${spiceState}/app/spotify" "$@"
+  '';
 in
 {
-  imports = [ inputs.spicetify-nix.homeManagerModules.default ];
   options.common-apps.enable = lib.mkEnableOption "common-apps";
   config = lib.mkIf config.common-apps.enable {
 
@@ -22,6 +44,8 @@ in
       pkgs-stable.calibre
       zed-editor
       spotify-player
+      spicetify-cli
+      spotifyLauncher
     ];
 
     programs.firefox = {
@@ -84,21 +108,63 @@ in
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
     '';
 
-    programs.spicetify = {
-      enable = true;
-
-      theme = spicePkgs.themes.comfy;
-      colorScheme = "Spotify";
-
-      enabledExtensions = with spicePkgs.extensions; [
-        fullAppDisplay
-        shuffle
-        hidePodcasts
-        adblock
-        beautiful-lyrics
-        CoverAmbience
+    xdg.desktopEntries.spotify = {
+      name = "Spotify";
+      genericName = "Music Player";
+      exec = "spotify %U";
+      icon = "${pkgs.spotify}/share/icons/hicolor/512x512/apps/spotify-client.png";
+      terminal = false;
+      type = "Application";
+      categories = [
+        "Audio"
+        "Music"
+        "Player"
+        "AudioVideo"
       ];
+      mimeType = [ "x-scheme-handler/spotify" ];
+      settings.StartupWMClass = "spotify";
     };
+
+    # Build/refresh the writable Spotify copy and its spicetify config. The
+    # 300 MB copy is only rebuilt when the Spotify store path changes (stamp
+    # check); `backup apply` runs once per fresh copy. Runtime color-scheme
+    # switching is handled by apply_spicetify_theme in switch-profile.
+    home.activation.spicetifyMutable = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      export SPICETIFY_CONFIG="$HOME/.config/spicetify"
+      state="$HOME/${spiceState}"
+      src="${pkgs.spotify}/share/spotify"
+      stamp="$state/.store-path"
+
+      if [ "$(cat "$stamp" 2>/dev/null)" != "${pkgs.spotify}" ]; then
+        run rm -rf "$state/app"
+        run mkdir -p "$state"
+        run cp -r "$src" "$state/app"
+        run chmod -R u+w "$state/app"
+        run sed -i "s|$src/.spotify-wrapped|$state/app/.spotify-wrapped|g" "$state/app/spotify"
+        run sh -c "echo '${pkgs.spotify}' > '$stamp'"
+        fresh=1
+      fi
+
+      run mkdir -p "$SPICETIFY_CONFIG/Themes" "$SPICETIFY_CONFIG/Extensions" "$HOME/.config/spotify"
+      run rm -rf "$SPICETIFY_CONFIG/Themes/Comfy"
+      run cp -r "${comfyTheme.src}" "$SPICETIFY_CONFIG/Themes/Comfy"
+      run chmod -R u+w "$SPICETIFY_CONFIG/Themes/Comfy"
+      ${lib.concatMapStringsSep "\n      " (
+        e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
+      ) spiceExtensions}
+
+      run ${spicetifyBin} config \
+        spotify_path "$state/app" \
+        prefs_path "$HOME/.config/spotify/prefs" \
+        current_theme Comfy \
+        color_scheme Comfy \
+        inject_css 1 replace_colors 1 overwrite_assets 1 \
+        extensions "${extList}" > /dev/null 2>&1 || true
+
+      if [ -n "''${fresh:-}" ] || [ -e "$state/app/Apps/xpui.spa" ]; then
+        run ${spicetifyBin} -n backup apply > /dev/null 2>&1 || true
+      fi
+    '';
 
     programs.vscode = {
       enable = true;
