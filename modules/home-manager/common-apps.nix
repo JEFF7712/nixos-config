@@ -39,6 +39,7 @@ let
           catppuccin
           sleek
           dribbblish
+          bloom
         ]
       );
   spiceExtensions = with spicePkgs.extensions; [
