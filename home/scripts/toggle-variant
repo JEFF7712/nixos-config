@@ -119,5 +119,8 @@ else
   gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
 fi
 
+# Repaint open GTK apps (their CSS name is unchanged across variants)
+nudge_gtk_reload
+
 notify-send "Desktop Profile" "$PROFILE → $NEW" 2>/dev/null || true
 echo "Done. $PROFILE is now $NEW."
