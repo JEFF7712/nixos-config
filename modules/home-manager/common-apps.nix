@@ -142,6 +142,11 @@ in
         run chmod -R u+w "$state/app"
         run sed -i "s|$src/.spotify-wrapped|$state/app/.spotify-wrapped|g" "$state/app/spotify"
         run sh -c "echo '${pkgs.spotify}' > '$stamp'"
+        # Drop any stale backup/version record (e.g. from a prior Spotify
+        # version or the old spicetify-nix setup) so `backup apply` re-records
+        # the version of the fresh copy; a mismatch otherwise blocks every
+        # subsequent `spicetify apply`.
+        run rm -rf "$SPICETIFY_CONFIG/Backup" "$SPICETIFY_CONFIG/config-xpui.ini"
         fresh=1
       fi
 
@@ -149,6 +154,10 @@ in
       run rm -rf "$SPICETIFY_CONFIG/Themes/Comfy"
       run cp -r "${comfyTheme.src}" "$SPICETIFY_CONFIG/Themes/Comfy"
       run chmod -R u+w "$SPICETIFY_CONFIG/Themes/Comfy"
+      # Comfy's user.css only @imports its stylesheet from comfy-themes.github.io,
+      # which Spotify's renderer CSP blocks — the theme flashes then reverts to
+      # default. Inject the bundled app.css directly so it's self-contained.
+      run cp "$SPICETIFY_CONFIG/Themes/Comfy/app.css" "$SPICETIFY_CONFIG/Themes/Comfy/user.css"
       ${lib.concatMapStringsSep "\n      " (
         e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
       ) spiceExtensions}
@@ -159,6 +168,7 @@ in
         current_theme Comfy \
         color_scheme Comfy \
         inject_css 1 replace_colors 1 overwrite_assets 1 \
+        inject_theme_js 0 \
         extensions "${extList}" > /dev/null 2>&1 || true
 
       if [ -n "''${fresh:-}" ] || [ -e "$state/app/Apps/xpui.spa" ]; then
