@@ -1,3 +1,10 @@
+let
+  # Per-profile spicetify pick: (current_theme, color_scheme, inject_theme_js).
+  # js=1 only for themes that need their own script (e.g. Dribbblish); Comfy
+  # uses js=0 since its script overrides the color scheme. Consumed by
+  # apply_spicetify_theme in home/scripts/profile-common.
+  spice = theme: scheme: js: { inherit theme scheme js; };
+in
 {
   catppuccin = {
     firefox.dark = {
@@ -26,8 +33,8 @@
     vesktop.dark = "catppuccin.theme.css";
     obsidian.dark = "minimal-catppuccin-dark";
     obsidian.light = "minimal-catppuccin-light";
-    spicetify.dark = "catppuccin-mocha";
-    spicetify.light = "catppuccin-latte";
+    spicetify.dark = spice "catppuccin" "mocha" 0;
+    spicetify.light = spice "catppuccin" "latte" 0;
   };
 
   nord = {
@@ -45,7 +52,7 @@
     };
     vesktop.dark = "nord.theme.css";
     obsidian.dark = "minimal-nord-dark";
-    spicetify.dark = "Nord";
+    spicetify.dark = spice "Comfy" "Nord" 0;
   };
 
   noctalia = {
@@ -55,7 +62,7 @@
     };
     vesktop.dark = "noctalia.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
-    spicetify.dark = "Comfy";
+    spicetify.dark = spice "Comfy" "Comfy" 0;
   };
 
   gruvbox = {
@@ -85,9 +92,8 @@
     vesktop.dark = "gruvbox.theme.css";
     obsidian.dark = "minimal-gruvbox-dark";
     obsidian.light = "minimal-gruvbox-light";
-    # Comfy ships no gruvbox scheme; Kanagawa is the closest warm/earthy match.
-    spicetify.dark = "Kanagawa";
-    spicetify.light = "Hikari";
+    spicetify.dark = spice "Dribbblish" "gruvbox-material-dark" 1;
+    spicetify.light = spice "Comfy" "Hikari" 0;
   };
 
   rosepine = {
@@ -117,8 +123,8 @@
     vesktop.dark = "rosepine.theme.css";
     obsidian.dark = "minimal-rose-pine-dark";
     obsidian.light = "minimal-rose-pine-light";
-    spicetify.dark = "rose-pine";
-    spicetify.light = "rose-pine-dawn";
+    spicetify.dark = spice "Comfy" "rose-pine" 0;
+    spicetify.light = spice "Comfy" "rose-pine-dawn" 0;
   };
 
   everforest = {
@@ -148,8 +154,8 @@
     vesktop.dark = "everforest.theme.css";
     obsidian.dark = "minimal-everforest-dark";
     obsidian.light = "minimal-everforest-light";
-    spicetify.dark = "Everforest";
-    spicetify.light = "Hikari";
+    spicetify.dark = spice "Comfy" "Everforest" 0;
+    spicetify.light = spice "Comfy" "Hikari" 0;
   };
 
   minimal = {
@@ -179,8 +185,8 @@
     vesktop.dark = "minimal.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
     obsidian.light = "minimal-flexoki-light";
-    spicetify.dark = "Mono";
-    spicetify.light = "Hikari";
+    spicetify.dark = spice "Sleek" "VantaBlack" 0;
+    spicetify.light = spice "Comfy" "Hikari" 0;
   };
 
   clean = {
@@ -198,6 +204,6 @@
     };
     vesktop.dark = "minimal.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
-    spicetify.dark = "Mono";
+    spicetify.dark = spice "Sleek" "UltraBlack" 0;
   };
 }

@@ -12,10 +12,35 @@ let
   # Mutable spicetify. spicetify-nix bakes the theme into a read-only store
   # Spotify that can't be re-themed at runtime; instead we keep a writable copy
   # of Spotify under $HOME that `spicetify apply` can patch live, letting the
-  # desktop-profile switcher swap the Comfy color scheme per profile (see
+  # desktop-profile switcher swap the theme + color scheme per profile (see
   # apply_spicetify_theme in home/scripts/profile-common). spicetify-nix is
-  # still the source of the Comfy theme and the extension files.
-  comfyTheme = spicePkgs.themes.comfy;
+  # still the source of the themes and the extension files.
+  #
+  # Each profile picks a (theme, scheme, js) triple in runtime-defaults.nix.
+  # Themes are installed generically: theme.js is staged as theme.script.js so
+  # inject_theme_js can load it per-theme (Dribbblish needs it; Comfy's would
+  # fight our scheme control, so its profiles set js=0), a remote-@import
+  # user.css is replaced with the bundled app.css (Comfy's is CSP-blocked), and
+  # any additionalCss is appended.
+  spiceThemes =
+    map
+      (t: {
+        inherit (t) name src;
+        addCss =
+          let
+            c = t.additionalCss or "";
+          in
+          if c != "" then pkgs.writeText "${t.name}-additional.css" c else null;
+      })
+      (
+        with spicePkgs.themes;
+        [
+          comfy
+          catppuccin
+          sleek
+          dribbblish
+        ]
+      );
   spiceExtensions = with spicePkgs.extensions; [
     fullAppDisplay
     shuffle
@@ -151,13 +176,23 @@ in
       fi
 
       run mkdir -p "$SPICETIFY_CONFIG/Themes" "$SPICETIFY_CONFIG/Extensions" "$HOME/.config/spotify"
-      run rm -rf "$SPICETIFY_CONFIG/Themes/Comfy"
-      run cp -r "${comfyTheme.src}" "$SPICETIFY_CONFIG/Themes/Comfy"
-      run chmod -R u+w "$SPICETIFY_CONFIG/Themes/Comfy"
-      # Comfy's user.css only @imports its stylesheet from comfy-themes.github.io,
-      # which Spotify's renderer CSP blocks — the theme flashes then reverts to
-      # default. Inject the bundled app.css directly so it's self-contained.
-      run cp "$SPICETIFY_CONFIG/Themes/Comfy/app.css" "$SPICETIFY_CONFIG/Themes/Comfy/user.css"
+      ${lib.concatMapStringsSep "\n" (t: ''
+        td="$SPICETIFY_CONFIG/Themes/${t.name}"
+        run rm -rf "$td"
+        run cp -r "${t.src}" "$td"
+        run chmod -R u+w "$td"
+        # A user.css that only @imports a remote stylesheet (e.g. Comfy ->
+        # github.io) is blocked by Spotify's CSP; swap in the bundled app.css.
+        if [ -f "$td/app.css" ] && grep -qE 'import +url\(.*https?:' "$td/user.css" 2>/dev/null; then
+          run cp "$td/app.css" "$td/user.css"
+        fi
+        # Stage the theme's JS as theme.script.js so inject_theme_js loads it
+        # only when this theme is active (Dribbblish requires it).
+        if [ -f "$td/theme.js" ] && [ ! -f "$td/theme.script.js" ]; then
+          run cp "$td/theme.js" "$td/theme.script.js"
+        fi
+        ${lib.optionalString (t.addCss != null) ''run sh -c "cat '${t.addCss}' >> '$td/user.css'"''}
+      '') spiceThemes}
       ${lib.concatMapStringsSep "\n      " (
         e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
       ) spiceExtensions}
