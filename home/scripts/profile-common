@@ -519,3 +519,22 @@ apply_obsidian_scheme() {
     rm -f "$tmp"
   fi
 }
+
+# apply_spicetify_theme <runtime-file> <variant>
+# Points the Comfy theme at the profile's variant-resolved color scheme and
+# re-applies it. A running Spotify is restarted by `spicetify apply` (live
+# switch); when Spotify is closed we patch xpui in place with --no-restart so
+# the next launch shows the new scheme without launching it now.
+apply_spicetify_theme() {
+  local runtime_file="$1" variant="$2"
+  local scheme
+  command -v spicetify >/dev/null 2>&1 || return 0
+  scheme=$(profile_runtime_string "$runtime_file" "$variant" spicetify)
+  [ -n "$scheme" ] || return 0
+  spicetify config color_scheme "$scheme" >/dev/null 2>&1 || return 0
+  if pgrep -f spotify-spiced >/dev/null 2>&1; then
+    spicetify apply >/dev/null 2>&1 || true
+  else
+    spicetify -n apply >/dev/null 2>&1 || true
+  fi
+}
