@@ -204,6 +204,27 @@ apply_profile_appearance() {
   fi
 }
 
+# nudge_gtk_reload
+# Open GTK3/4 (and libadwaita) apps only re-read the @import'd profile CSS
+# (~/.config/gtk-*/noctalia.css) when the GTK theme *name* changes. Every
+# profile shares one theme name (adw-gtk3-dark), so a color switch fires no
+# change signal and open apps keep stale colors. Flip the theme to a sentinel
+# and back to force the notify::gtk-theme-name signal → CSS re-read.
+nudge_gtk_reload() {
+  local gs real sentinel
+  gs=$(command -v gsettings) || return 0
+  real=$("$gs" get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'")
+  [ -n "$real" ] || return 0
+  if [ "$real" = "Adwaita" ]; then
+    sentinel="Adwaita-dark"
+  else
+    sentinel="Adwaita"
+  fi
+  "$gs" set org.gnome.desktop.interface gtk-theme "$sentinel" 2>/dev/null || true
+  sleep 0.15
+  "$gs" set org.gnome.desktop.interface gtk-theme "$real" 2>/dev/null || true
+}
+
 profile_runtime_string() {
   local runtime_file="$1"
   local variant="$2"

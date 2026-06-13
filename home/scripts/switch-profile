@@ -403,7 +403,10 @@ if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET_SELF_THEMED" != "true" ]; then
 fi
 
 if [ $STARTUP_MODE -eq 0 ]; then
-  # 9. Per-app themes (Zed, Vesktop, Obsidian) — off the critical path
+  # 9. Repaint open GTK apps (their CSS name is unchanged across profiles)
+  nudge_gtk_reload
+
+  # 10. Per-app themes (Zed, Vesktop, Obsidian) — off the critical path
   (
     apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
@@ -411,7 +414,7 @@ if [ $STARTUP_MODE -eq 0 ]; then
   ) &
   disown
 
-  # 10. Notify
+  # 11. Notify
   notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
   echo "Done. Profile '$TARGET' is now active."
 else
