@@ -521,17 +521,25 @@ apply_obsidian_scheme() {
 }
 
 # apply_spicetify_theme <runtime-file> <variant>
-# Points the Comfy theme at the profile's variant-resolved color scheme and
-# re-applies it. A running Spotify is restarted by `spicetify apply` (live
-# switch); when Spotify is closed we patch xpui in place with --no-restart so
-# the next launch shows the new scheme without launching it now.
+# Sets the profile's variant-resolved spicetify theme, color scheme, and
+# inject_theme_js, then re-applies. The runtime `spicetify` entry is an object
+# { theme, scheme, js } (js gates the theme's own script: 1 for themes like
+# Dribbblish that need it, 0 for Comfy whose script fights scheme control). A
+# running Spotify is restarted by `spicetify apply` (live switch); when closed
+# we patch xpui with --no-restart so the next launch shows it without
+# launching now.
 apply_spicetify_theme() {
   local runtime_file="$1" variant="$2"
-  local scheme
+  local theme scheme js
   command -v spicetify >/dev/null 2>&1 || return 0
-  scheme=$(profile_runtime_string "$runtime_file" "$variant" spicetify)
+  theme=$(profile_runtime_value "$runtime_file" "$variant" spicetify theme)
+  scheme=$(profile_runtime_value "$runtime_file" "$variant" spicetify scheme)
+  js=$(profile_runtime_value "$runtime_file" "$variant" spicetify js)
   [ -n "$scheme" ] || return 0
-  spicetify config color_scheme "$scheme" >/dev/null 2>&1 || return 0
+  [ -n "$theme" ] || theme="Comfy"
+  [ -n "$js" ] || js="0"
+  spicetify config current_theme "$theme" color_scheme "$scheme" inject_theme_js "$js" \
+    >/dev/null 2>&1 || return 0
   if pgrep -f spotify-spiced >/dev/null 2>&1; then
     spicetify apply >/dev/null 2>&1 || true
   else
