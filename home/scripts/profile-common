@@ -277,14 +277,17 @@ copy_profile_colors() {
   fish=$(pick_variant_file "$variant" "$profile_dir/fish-theme.fish" "$profile_dir/fish-theme-light.fish")
   starship=$(pick_variant_file "$variant" "$profile_dir/starship.toml" "$profile_dir/starship-light.toml")
 
-  [ -s "$gtk3" ] && cp "$gtk3" "$CONFIG_HOME/gtk-3.0/noctalia.css"
-  [ -s "$gtk4" ] && cp "$gtk4" "$CONFIG_HOME/gtk-4.0/noctalia.css"
-  [ -s "$qt6" ] && cp "$qt6" "$CONFIG_HOME/qt6ct/colors/noctalia.conf"
-  [ -s "$qt6" ] && cp "$qt6" "$CONFIG_HOME/qt5ct/colors/noctalia.conf"
-  [ -s "$kitty" ] && cp "$kitty" "$CONFIG_HOME/kitty/colors.conf"
-  [ -s "$rofi" ] && cp "$rofi" "$CONFIG_HOME/rofi/profile-switcher.rasi"
-  [ -s "$fish" ] && cp "$fish" "$CONFIG_HOME/fish/conf.d/matugen_theme.fish"
-  [ -s "$starship" ] && cp "$starship" "$HOME/.config/starship_matugen.toml"
+  # install (not cp): the sources are read-only nix-store files, so a plain
+  # cp to a not-yet-existing dest creates it 0444 and the next switch's cp
+  # then fails with EACCES. install always writes a fresh 0644 file.
+  [ -s "$gtk3" ] && install -m 644 "$gtk3" "$CONFIG_HOME/gtk-3.0/noctalia.css"
+  [ -s "$gtk4" ] && install -m 644 "$gtk4" "$CONFIG_HOME/gtk-4.0/noctalia.css"
+  [ -s "$qt6" ] && install -m 644 "$qt6" "$CONFIG_HOME/qt6ct/colors/noctalia.conf"
+  [ -s "$qt6" ] && install -m 644 "$qt6" "$CONFIG_HOME/qt5ct/colors/noctalia.conf"
+  [ -s "$kitty" ] && install -m 644 "$kitty" "$CONFIG_HOME/kitty/colors.conf"
+  [ -s "$rofi" ] && install -m 644 "$rofi" "$CONFIG_HOME/rofi/profile-switcher.rasi"
+  [ -s "$fish" ] && install -m 644 "$fish" "$CONFIG_HOME/fish/conf.d/matugen_theme.fish"
+  [ -s "$starship" ] && install -m 644 "$starship" "$HOME/.config/starship_matugen.toml"
 
   apply_btop_theme "$profile_dir" "$variant"
   apply_tmux_colors "$profile_dir" "$variant"
@@ -304,7 +307,7 @@ apply_btop_theme() {
   [ -s "$src" ] || return 0
 
   mkdir -p "$CONFIG_HOME/btop/themes"
-  cp "$src" "$CONFIG_HOME/btop/themes/profile.theme"
+  install -m 644 "$src" "$CONFIG_HOME/btop/themes/profile.theme"
 
   conf="$CONFIG_HOME/btop/btop.conf"
   if [ -f "$conf" ]; then
@@ -326,7 +329,7 @@ apply_tmux_colors() {
   [ -s "$src" ] || return 0
 
   mkdir -p "$CONFIG_HOME/tmux"
-  cp "$src" "$CONFIG_HOME/tmux/profile-colors.conf"
+  install -m 644 "$src" "$CONFIG_HOME/tmux/profile-colors.conf"
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
 }
 
@@ -341,7 +344,7 @@ apply_hyprlock_colors() {
   [ -s "$src" ] || return 0
 
   mkdir -p "$CONFIG_HOME/hypr"
-  cp "$src" "$CONFIG_HOME/hypr/profile-colors.conf"
+  install -m 644 "$src" "$CONFIG_HOME/hypr/profile-colors.conf"
 }
 
 # replace_cava_color_section <section-file>
