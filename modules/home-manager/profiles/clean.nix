@@ -100,11 +100,12 @@ in
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/clean";
 
     makoConfig = theme.mkMakoConfig {
-      background = "#14141499";
+      # match the clean bar (#66101010), a touch more opaque
+      background = "#10101080";
       text = fg1;
       border = "#ffffff66";
       lowBorder = "#ffffff44";
-      highBackground = "#202020bb";
+      highBackground = "#1a1a1ab3";
       highBorder = "#ffffffaa";
       highText = fg0;
       borderSize = 1;
