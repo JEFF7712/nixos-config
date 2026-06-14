@@ -160,55 +160,35 @@ label {
     valign = center
 }
 
-label {
-    monitor =
-    text = $USER
-    color = \$fg
-    font_size = 18
-    font_family = \$font
-    position = 0, -70
-    halign = center
-    valign = center
-}
-
 input-field {
     monitor =
     size = 360, 54
-    outline_thickness = 2
+    outline_thickness = 0
     rounding = 10
 
-    outer_color = \$border
-    inner_color = \$surface_alt
+    outer_color = rgba(00000000)
+    inner_color = rgba(00000000)
     font_color = \$fg
-    check_color = \$accent
+    check_color = \$fg
     fail_color = \$error
 
     font_family = \$font
-    placeholder_text = Password
+    placeholder_text = <span></span>
     fail_text = \$PAMFAIL
     check_text = Checking...
     capslock_color = $(rgba_color "$(theme_value warm "#ebcb8b")" "ebcb8b" "e6")
+    swap_font_color = true
     fade_on_empty = false
     dots_size = 0.24
     dots_spacing = 0.22
-    shadow_passes = 2
-    shadow_size = 4
+    shadow_passes = 0
+    shadow_size = 0
 
-    position = 0, -128
+    position = 0, -104
     halign = center
     valign = center
 }
 
-label {
-    monitor =
-    text = cmd[update:10000] bash -lc 'cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1 | sed "s/$/%/"'
-    color = \$muted
-    font_size = 14
-    font_family = \$font
-    position = 28, 26
-    halign = left
-    valign = bottom
-}
 EOF
 
   exec hyprlock --config "$RUNTIME_CONFIG" --grace 0

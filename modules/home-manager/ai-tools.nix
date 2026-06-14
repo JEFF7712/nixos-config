@@ -20,6 +20,7 @@
           opencode
           codex
           mcp-nixos
+          sox
         ])
         ++ [
           inputs.claude-code-nix.packages.${system}.claude-code

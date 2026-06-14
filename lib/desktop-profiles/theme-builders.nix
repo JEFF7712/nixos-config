@@ -590,16 +590,23 @@ rec {
       highBorder,
       highText,
       lowBorder,
-      font ? "JetBrainsMono Nerd Font 11",
-      borderSize ? 2,
-      borderRadius ? 8,
-      width ? 320,
-      padding ? 12,
-      margin ? 10,
+      progressColor ? null,
+      font ? "JetBrainsMono Nerd Font 10",
+      borderSize ? 1,
+      borderRadius ? 12,
+      width ? 300,
+      height ? 110,
+      padding ? "10,14",
+      margin ? 8,
+      outerMargin ? 12,
       defaultTimeout ? 5000,
       lowTimeout ? 3000,
       highTimeout ? 0,
-      maxIconSize ? 48,
+      maxIconSize ? 32,
+      iconBorderRadius ? (if borderRadius == 0 then 0 else 6),
+      iconLocation ? "left",
+      groupBy ? "app-name",
+      bodyAlpha ? "70",
     }:
     ''
       font=${font}
@@ -609,12 +616,26 @@ rec {
       border-size=${toString borderSize}
       border-radius=${toString borderRadius}
       width=${toString width}
+      height=${toString height}
       padding=${toString padding}
       margin=${toString margin}
+      outer-margin=${toString outerMargin}
       default-timeout=${toString defaultTimeout}
       icons=1
       max-icon-size=${toString maxIconSize}
+      icon-border-radius=${toString iconBorderRadius}
+      icon-location=${iconLocation}
+      markup=1
+      actions=1
+      text-alignment=left
       layer=overlay
+      anchor=top-right
+      ${if progressColor != null then "progress-color=over ${progressColor}" else ""}
+      ${if groupBy != null then "group-by=${groupBy}" else ""}
+      format=<b>%s</b>\n<span alpha="${bodyAlpha}%%">%b</span>
+
+      [grouped]
+      format=<b>%s</b>\n<span alpha="${bodyAlpha}%%">%b</span>
 
       [urgency=low]
       border-color=${lowBorder}

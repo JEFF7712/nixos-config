@@ -282,17 +282,69 @@ let
         }
         // applyOv quickshell r;
 
+      # mako wants #RRGGBBAA (alpha last), unlike the Qt #AARRGGBB `alpha` helper.
+      makoAlpha = a: c: "#${builtins.substring 1 6 c}${a}";
+
+      hexDigit = "0123456789abcdef";
+      hexMap = {
+        "0" = 0;
+        "1" = 1;
+        "2" = 2;
+        "3" = 3;
+        "4" = 4;
+        "5" = 5;
+        "6" = 6;
+        "7" = 7;
+        "8" = 8;
+        "9" = 9;
+        "a" = 10;
+        "b" = 11;
+        "c" = 12;
+        "d" = 13;
+        "e" = 14;
+        "f" = 15;
+        "A" = 10;
+        "B" = 11;
+        "C" = 12;
+        "D" = 13;
+        "E" = 14;
+        "F" = 15;
+      };
+      hex2ToInt = s: hexMap.${builtins.substring 0 1 s} * 16 + hexMap.${builtins.substring 1 1 s};
+      intToHex2 =
+        n:
+        let
+          c = if n > 255 then 255 else n;
+          hi = c / 16;
+          lo = c - hi * 16;
+        in
+        "${builtins.substring hi 1 hexDigit}${builtins.substring lo 1 hexDigit}";
+
+      # Qt #AARRGGBB -> mako #RRGGBBAA, raising alpha by `bump` (clamped to ff)
+      # so notifications sit slightly more opaque than the bar they match.
+      barBgToMako =
+        bump: c:
+        if builtins.stringLength c == 9 then
+          "#${builtins.substring 3 6 c}${intToHex2 (hex2ToInt (builtins.substring 1 2 c) + bump)}"
+        else
+          c;
+
       mkMakoFor =
         r:
+        let
+          # Match the quickshell bar background, a touch more opaque (+0x1a alpha).
+          barBg = barBgToMako 26 (mkQs r).bg;
+        in
         theme.mkMakoConfig (
           {
-            background = r.bg0;
+            background = barBg;
             text = r.fg1;
-            border = r.accent;
-            lowBorder = r.bg3;
-            highBackground = r.bg1;
+            border = makoAlpha "59" r.accent;
+            lowBorder = makoAlpha "26" r.fg3;
+            highBackground = barBg;
             highBorder = r.red;
             highText = r.fg0;
+            progressColor = makoAlpha "2e" r.accent;
           }
           // applyOv (overrides.mako or { }) r
         );

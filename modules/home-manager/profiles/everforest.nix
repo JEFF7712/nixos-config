@@ -118,6 +118,8 @@ in
 
     quickshell = r: {
       fresh = r.blue;
+      pillBg = "#00000000";
+      pillBorder = "#00000000";
     };
 
     cursor = {
