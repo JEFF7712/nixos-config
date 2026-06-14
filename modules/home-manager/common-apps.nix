@@ -24,24 +24,30 @@ let
   # any additionalCss is appended.
   spiceThemes =
     map
-      (t: {
-        inherit (t) name src;
+      (e: {
+        inherit (e.theme) name src;
         addCss =
           let
-            c = t.additionalCss or "";
+            c = e.theme.additionalCss or "";
           in
-          if c != "" then pkgs.writeText "${t.name}-additional.css" c else null;
+          if c != "" then pkgs.writeText "${e.theme.name}-additional.css" c else null;
+        assets = e.assets or null;
+        rewrite = e.rewrite or null;
       })
-      (
-        with spicePkgs.themes;
-        [
-          comfy
-          catppuccin
-          sleek
-          dribbblish
-          bloom
-        ]
-      );
+      [
+        { theme = spicePkgs.themes.comfy; }
+        { theme = spicePkgs.themes.catppuccin; }
+        { theme = spicePkgs.themes.sleek; }
+        { theme = spicePkgs.themes.dribbblish; }
+        {
+          # Bloom masks its icons/noise from a CDN that Spotify's CSP blocks (broken
+          # play button etc.). Vendor the repo's assets (a sibling of the theme src)
+          # and strip the CDN prefix so the URLs resolve from the copied assets.
+          theme = spicePkgs.themes.bloom;
+          assets = "${builtins.dirOf (toString spicePkgs.themes.bloom.src)}/assets";
+          rewrite = "https://nimsandu.github.io/spicetify-bloom/assets/";
+        }
+      ];
   spiceExtensions = with spicePkgs.extensions; [
     fullAppDisplay
     shuffle
@@ -193,6 +199,11 @@ in
           run cp "$td/theme.js" "$td/theme.script.js"
         fi
         ${lib.optionalString (t.addCss != null) ''run sh -c "cat '${t.addCss}' >> '$td/user.css'"''}
+        ${lib.optionalString (t.assets != null) ''
+          run mkdir -p "$td/assets"
+          run sh -c "cp -r '${t.assets}/.' '$td/assets/'"
+          run sed -i "s|${t.rewrite}||g" "$td/user.css"
+        ''}
       '') spiceThemes}
       ${lib.concatMapStringsSep "\n      " (
         e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
@@ -201,14 +212,32 @@ in
       run ${spicetifyBin} config \
         spotify_path "$state/app" \
         prefs_path "$HOME/.config/spotify/prefs" \
-        current_theme Comfy \
-        color_scheme Comfy \
         inject_css 1 replace_colors 1 overwrite_assets 1 \
-        inject_theme_js 0 \
         extensions "${extList}" > /dev/null 2>&1 || true
 
+      # Apply the active desktop profile's spicetify pick (theme/scheme/js) so a
+      # rebuild or Spotify update doesn't leave Spotify on a stale/default theme
+      # until the next manual profile switch. Falls back to Comfy. Tolerates the
+      # old string-form runtime.json via `objects`.
+      sp_active=$(cat "$HOME/.config/desktop-profiles/active" 2>/dev/null || echo "")
+      sp_variant=$(cat "$HOME/.config/desktop-profiles/active-variant" 2>/dev/null || echo "dark")
+      sp_rt="$HOME/.config/desktop-profiles/$sp_active/runtime.json"
+      sp_theme=Comfy
+      sp_scheme=Comfy
+      sp_js=0
+      if [ -n "$sp_active" ] && [ -f "$sp_rt" ]; then
+        sp_theme=$(${pkgs.jq}/bin/jq -r --arg v "$sp_variant" '((.spicetify[$v] // .spicetify.dark) | objects | .theme) // "Comfy"' "$sp_rt" 2>/dev/null || echo Comfy)
+        sp_scheme=$(${pkgs.jq}/bin/jq -r --arg v "$sp_variant" '((.spicetify[$v] // .spicetify.dark) | objects | .scheme) // "Comfy"' "$sp_rt" 2>/dev/null || echo Comfy)
+        sp_js=$(${pkgs.jq}/bin/jq -r --arg v "$sp_variant" '((.spicetify[$v] // .spicetify.dark) | objects | .js) // 0' "$sp_rt" 2>/dev/null || echo 0)
+      fi
+      run ${spicetifyBin} config current_theme "$sp_theme" color_scheme "$sp_scheme" inject_theme_js "$sp_js" > /dev/null 2>&1 || true
+
+      # --no-restart so a rebuild never interrupts a running Spotify; the patched
+      # xpui is picked up on its next launch.
       if [ -n "''${fresh:-}" ] || [ -e "$state/app/Apps/xpui.spa" ]; then
         run ${spicetifyBin} -n backup apply > /dev/null 2>&1 || true
+      else
+        run ${spicetifyBin} -n apply > /dev/null 2>&1 || true
       fi
     '';
 
