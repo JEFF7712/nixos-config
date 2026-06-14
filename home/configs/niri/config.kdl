@@ -241,7 +241,7 @@ binds {
     Mod+S { spawn "spotify"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
-    Mod+B { spawn "noctalia-shell" "ipc" "--any-display" "call" "bar" "toggle"; }
+    Mod+B { spawn "toggle-bar"; }
     Mod+Alt+V { spawn "noctalia-shell" "ipc" "--any-display" "call" "launcher" "clipboard"; }
     Mod+R { spawn "random-wallpaper"; }
     Mod+O {spawn "obsidian"; }
