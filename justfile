@@ -17,7 +17,6 @@ eval-all:
 flake-check:
   nix flake check
 
-# Render every desktop profile and fail on empty color slots / bad meta.json.
 check-profiles host="laptop" user="rupan":
   nix eval --no-write-lock-file --impure --json \
     ".#nixosConfigurations.{{host}}.config.home-manager.users.{{user}}.home.file" \
@@ -40,10 +39,4 @@ dry:
   sudo nixos-rebuild dry-activate --flake .#laptop
 
 switch:
-  #!/usr/bin/env bash
-  # nixos-rebuild fallback bootstraps the first switch that installs nh
-  if command -v nh >/dev/null; then
-    nh os switch . -H laptop
-  else
-    sudo nixos-rebuild switch --flake .#laptop
-  fi
+  nh os switch . -H laptop

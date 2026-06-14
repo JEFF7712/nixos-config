@@ -26,9 +26,9 @@ InfoPopup {
             width: 70
             height: 70
             radius: 8
-            color: Qt.rgba(1, 1, 1, 0.06)
+            color: root.pillBg
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.1)
+            border.color: root.pillBorder
             clip: true
 
             Image {
@@ -90,7 +90,7 @@ InfoPopup {
     Rectangle {
         width: parent.width
         height: 1
-        color: Qt.rgba(1, 1, 1, 0.08)
+        color: root.dividerColor
     }
 
     Row {
@@ -112,11 +112,11 @@ InfoPopup {
                     ? Qt.rgba(1, 1, 1, 0.18)
                     : btnMouse.containsMouse
                         ? Qt.rgba(1, 1, 1, 0.10)
-                        : btn.primary ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+                        : btn.primary ? root.pillBg : "transparent"
                 border.width: 1
                 border.color: btnMouse.containsMouse
                     ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.5)
-                    : btn.primary ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                    : root.pillBorder
                 Behavior on color { ColorAnimation { duration: 160 } }
                 Behavior on border.color { ColorAnimation { duration: 160 } }
                 scale: btnMouse.pressed ? 0.92 : 1.0

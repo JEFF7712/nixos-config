@@ -24,7 +24,7 @@ InfoPopup {
     Rectangle {
         width: parent.width
         height: 1
-        color: Qt.rgba(1, 1, 1, 0.08)
+        color: root.dividerColor
     }
 
     InfoRow { label: "charge"; value: root.charge;       themeFg: root.themeFg; active: root.shown }
@@ -37,7 +37,7 @@ InfoPopup {
     Rectangle {
         width: parent.width
         height: 1
-        color: Qt.rgba(1, 1, 1, 0.08)
+        color: root.dividerColor
         visible: root.thresholdWritable
     }
 
@@ -46,6 +46,8 @@ InfoPopup {
         checked: root.chargeLimit <= 80
         themeFg: root.themeFg
         themeAccent: root.themeAccent
+        themeRawBg: root.themeRawBg
+        dividerColor: root.dividerColor
         visible: root.thresholdWritable
         onToggled: {
             limitProc.target = (root.chargeLimit <= 80) ? "100" : "80"

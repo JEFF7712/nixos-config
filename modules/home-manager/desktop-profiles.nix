@@ -75,6 +75,17 @@ in
             );
           message = "desktopProfiles.profiles.${name}: not self-themed but missing core colors (gtk3/gtk4/kitty/qt6) — check the palette.";
         }
+        {
+          # The inverse invariant: a self-themed profile (noctalia) must leave
+          # its colors null so the shell owns them at runtime. A stray static
+          # color here would be written but never applied — a silent mistake.
+          assertion =
+            !p.selfThemed
+            || (
+              p.colors.gtk3 == null && p.colors.gtk4 == null && p.colors.kitty == null && p.colors.qt6 == null
+            );
+          message = "desktopProfiles.profiles.${name}: self-themed but defines static colors (gtk3/gtk4/kitty/qt6) — leave them null.";
+        }
       ]) config.desktopProfiles.profiles
     );
 

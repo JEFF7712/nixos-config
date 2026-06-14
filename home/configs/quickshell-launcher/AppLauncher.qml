@@ -14,6 +14,13 @@ PanelWindow {
     property color accent: "#b1c6ff"
     property color cardBg: Qt.rgba(0.13, 0.13, 0.13, 0.875)
     property color textColor: "#ffffff"
+    property color cardBorder: "#3dffffff"
+    property color innerHighlight: "#0fffffff"
+    property color pillBg: "#0affffff"
+    property color pillBorder: "#14ffffff"
+    property bool flatMode: false
+    readonly property int cardRadius: flatMode ? 0 : 18
+    readonly property int innerRadius: flatMode ? 0 : 10
 
     readonly property int columns: 6
     readonly property int visibleRows: 3
@@ -36,6 +43,11 @@ PanelWindow {
         root.accent = theme && theme.accent ? theme.accent : "#b1c6ff"
         root.cardBg = theme && theme.popupBg ? theme.popupBg : Qt.rgba(0.13, 0.13, 0.13, 0.875)
         root.textColor = theme && theme.fg ? theme.fg : "#ffffff"
+        root.flatMode = !!(theme && theme.flatMode === "true")
+        root.cardBorder = theme && theme.barBorder ? theme.barBorder : "#3dffffff"
+        root.innerHighlight = theme && theme.barInnerHighlight ? theme.barInnerHighlight : "#0fffffff"
+        root.pillBg = theme && theme.pillBg ? theme.pillBg : "#0affffff"
+        root.pillBorder = theme && theme.pillBorder ? theme.pillBorder : "#14ffffff"
     }
 
     function open() {
@@ -116,14 +128,21 @@ PanelWindow {
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: 18
+        radius: root.cardRadius
         color: root.cardBg
         border.width: 1
-        border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
+        border.color: root.cardBorder
         opacity: root.shown ? 1.0 : 0.0
         scale: root.shown ? 1.0 : 0.96
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
         Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.55; mass: 0.7 } }
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: Math.max(0, parent.radius - 1)
+            color: root.innerHighlight
+        }
 
         MouseArea { anchors.fill: parent }
 
@@ -137,12 +156,12 @@ PanelWindow {
                 id: searchBar
                 width: parent.width
                 height: 38
-                radius: 10
-                color: Qt.rgba(1, 1, 1, 0.06)
+                radius: root.innerRadius
+                color: root.pillBg
                 border.width: 1
                 border.color: queryInput.activeFocus
                     ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.55)
-                    : Qt.rgba(1, 1, 1, 0.10)
+                    : root.pillBorder
                 Behavior on border.color { ColorAnimation { duration: 140 } }
 
                 TextInput {
@@ -243,12 +262,12 @@ PanelWindow {
                             anchors.centerIn: parent
                             width: root.tileWidth
                             height: root.tileHeight
-                            radius: 10
-                            color: tile.isFocused ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                            radius: root.innerRadius
+                            color: tile.isFocused ? root.pillBg : "transparent"
                             border.width: 1
                             border.color: tile.hovered || tile.isFocused
                                 ? root.accent
-                                : Qt.rgba(1, 1, 1, 0.06)
+                                : root.pillBorder
                             Behavior on border.color { ColorAnimation { duration: 120 } }
                             Behavior on color { ColorAnimation { duration: 120 } }
 

@@ -118,12 +118,12 @@ in
         }
 
         layer-rule {
-            match namespace="^quickshell-clean-topbar$"
+            match namespace="^quickshell-topbar$"
             geometry-corner-radius 0
         }
 
         layer-rule {
-            match namespace="^quickshell-clean-popup$"
+            match namespace="^quickshell-popup$"
             geometry-corner-radius 0
         }
 
@@ -153,6 +153,7 @@ in
       pillBg = "#00000000";
       pillBorder = "#00000000";
       flatMode = "true";
+      showBarDividers = "false";
       dividerColor = p.bg3;
     };
 

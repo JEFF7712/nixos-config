@@ -16,6 +16,8 @@ InfoPopup {
         checked: root.wifiEnabled
         themeFg: root.themeFg
         themeAccent: root.themeAccent
+        themeRawBg: root.themeRawBg
+        dividerColor: root.dividerColor
         onToggled: {
             toggleProc.target = root.wifiEnabled ? "off" : "on"
             toggleProc.running = true
@@ -25,7 +27,7 @@ InfoPopup {
     Rectangle {
         width: parent.width
         height: 1
-        color: Qt.rgba(1, 1, 1, 0.08)
+        color: root.dividerColor
         visible: root.wifiEnabled
     }
 

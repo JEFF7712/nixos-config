@@ -12,16 +12,9 @@ PanelWindow {
     property string activeProfile: ""
     property int focusedIndex: -1
 
-    property color accent: "#ffffff"
-
-    function applyTheme(theme) {
-        root.accent = theme && theme.accent ? theme.accent : "#ffffff"
-    }
-
     function open() {
         listProc.running = true
         activeProc.running = true
-        themeLoader.running = true
         shown = true
     }
     function close() {
@@ -78,31 +71,6 @@ PanelWindow {
     }
 
     Process {
-        id: themeLoader
-        running: true
-        command: ["sh", "-c",
-            "p=\"$HOME/.config/desktop-profiles\";" +
-            "[ -f \"$p/active\" ] || exit 0;" +
-            "d=\"$p/$(cat $p/active)\";" +
-            "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" +
-            "t=\"$d/quickshell-theme.json\";" +
-            "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" +
-            "cat \"$t\" 2>/dev/null"
-        ]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const txt = this.text.trim()
-                if (!txt) { root.applyTheme(null); return }
-                try {
-                    root.applyTheme(JSON.parse(txt))
-                } catch (e) {
-                    console.warn("quickshell-theme.json parse failed:", e)
-                }
-            }
-        }
-    }
-
-    Process {
         id: switchProc
         command: ["true"]
     }
@@ -127,7 +95,7 @@ PanelWindow {
         radius: 18
         color: Qt.rgba(0.08, 0.08, 0.08, 0.32)
         border.width: 1
-        border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
+        border.color: Qt.rgba(1, 1, 1, 0.14)
         opacity: root.shown ? 1.0 : 0.0
         scale: root.shown ? 1.0 : 0.96
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -161,9 +129,9 @@ PanelWindow {
                         color: "transparent"
                         border.width: 1
                         border.color: tile.highlight
-                            ? root.accent
+                            ? Qt.rgba(1, 1, 1, 0.85)
                             : (tile.isActive
-                                ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.55)
+                                ? Qt.rgba(1, 1, 1, 0.45)
                                 : Qt.rgba(1, 1, 1, 0.10))
                         Behavior on border.color { ColorAnimation { duration: 120 } }
                     }

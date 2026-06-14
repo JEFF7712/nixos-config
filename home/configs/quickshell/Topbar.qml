@@ -22,6 +22,7 @@ PanelWindow {
     property bool showWorkspaceNumbers: true
     property string barFont: "JetBrainsMono Nerd Font"
     property bool flatMode: false
+    property bool showBarDividers: true
     property color dividerColor: "#1affffff"
     property color barBorderColor: "#3dffffff"
     property color barInnerHighlight: "#0fffffff"
@@ -94,7 +95,7 @@ PanelWindow {
         topbarWindow.run("playerctl " + (delta > 0 ? "next" : "previous"))
     }
 
-    WlrLayershell.namespace: "quickshell-clean-topbar"
+    WlrLayershell.namespace: "quickshell-topbar"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
@@ -632,7 +633,7 @@ PanelWindow {
         }
 
         Rectangle {
-            visible: wsRoot.flat
+            visible: wsRoot.flat && topbarWindow.showBarDividers
             width: 1
             anchors.right: parent.right
             anchors.top: parent.top
@@ -740,7 +741,7 @@ PanelWindow {
         }
 
         Rectangle {
-            visible: statRoot.flat
+            visible: statRoot.flat && topbarWindow.showBarDividers
             width: 1
             anchors.left: parent.left
             anchors.top: parent.top

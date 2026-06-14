@@ -6,6 +6,8 @@ Item {
     property bool checked: false
     property color themeFg: "#ffffff"
     property color themeAccent: "#ffffff"
+    property color themeRawBg: "#141414"
+    property color dividerColor: Qt.rgba(1, 1, 1, 0.1)
     signal toggled()
 
     width: parent.width
@@ -28,11 +30,11 @@ Item {
         radius: 8
         color: root.checked
             ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.85)
-            : Qt.rgba(1, 1, 1, 0.10)
+            : root.dividerColor
         border.width: 1
         border.color: root.checked
             ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.4)
-            : Qt.rgba(1, 1, 1, 0.18)
+            : root.dividerColor
         Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutCubic } }
         Behavior on border.color { ColorAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
@@ -43,7 +45,7 @@ Item {
             radius: 6
             anchors.verticalCenter: parent.verticalCenter
             x: root.checked ? parent.width - width - 2 : 2
-            color: root.checked ? "#141414" : "#ffffff"
+            color: root.checked ? root.themeRawBg : root.themeFg
             Behavior on x { SpringAnimation { spring: 4; damping: 0.55; mass: 0.6 } }
             Behavior on color { ColorAnimation { duration: 220 } }
         }

@@ -13,62 +13,43 @@ ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 BAR="noctalia"
 [ -n "$ACTIVE" ] && BAR=$(profile_bar "$ACTIVE")
 
-on_noctalia() {
-  [ "$BAR" = "noctalia" ]
-}
+# Per action: the noctalia IPC subcommand (appended to `noctalia-shell ipc
+# --any-display call`) and the generic command for every other bar. To add an
+# action, add one row to each table; to add a bar backend, branch on $BAR below.
+declare -A NOCTALIA=(
+  [launcher]="launcher toggle"
+  [wallpaper]="wallpaper toggle"
+  [volume-up]="volume increase"
+  [volume-down]="volume decrease"
+  [volume-mute]="volume muteOutput"
+  [brightness-up]="brightness increase"
+  [brightness-down]="brightness decrease"
+)
+declare -A GENERIC=(
+  [launcher]="qs -p $REPO_HOME/configs/quickshell-launcher ipc call launcher toggle"
+  [wallpaper]="waypaper"
+  [volume-up]="swayosd-client --output-volume raise"
+  [volume-down]="swayosd-client --output-volume lower"
+  [volume-mute]="swayosd-client --output-volume mute-toggle"
+  [brightness-up]="swayosd-client --brightness raise"
+  [brightness-down]="swayosd-client --brightness lower"
+)
 
-case "${1:-}" in
-  launcher)
-    if on_noctalia; then
-      noctalia-shell ipc --any-display call launcher toggle
-    else
-      qs -p "$REPO_HOME/configs/quickshell-launcher" ipc call launcher toggle
-    fi
-    ;;
-  wallpaper)
-    if on_noctalia; then
-      noctalia-shell ipc --any-display call wallpaper toggle
-    else
-      waypaper
-    fi
-    ;;
-  volume-up)
-    if on_noctalia; then
-      noctalia-shell ipc --any-display call volume increase
-    else
-      swayosd-client --output-volume raise
-    fi
-    ;;
-  volume-down)
-    if on_noctalia; then
-      noctalia-shell ipc --any-display call volume decrease
-    else
-      swayosd-client --output-volume lower
-    fi
-    ;;
-  volume-mute)
-    if on_noctalia; then
-      noctalia-shell ipc --any-display call volume muteOutput
-    else
-      swayosd-client --output-volume mute-toggle
-    fi
-    ;;
-  brightness-up)
-    if on_noctalia; then
-      noctalia-shell ipc --any-display call brightness increase
-    else
-      swayosd-client --brightness raise
-    fi
-    ;;
-  brightness-down)
-    if on_noctalia; then
-      noctalia-shell ipc --any-display call brightness decrease
-    else
-      swayosd-client --brightness lower
-    fi
-    ;;
-  *)
-    echo "Usage: profile-dispatch <launcher|wallpaper|volume-up|volume-down|volume-mute|brightness-up|brightness-down>" >&2
-    exit 1
-    ;;
-esac
+ACTION="${1:-}"
+if [ -z "$ACTION" ] || [ -z "${NOCTALIA[$ACTION]:-}" ]; then
+  echo "Usage: profile-dispatch <$(
+    IFS='|'
+    echo "${!NOCTALIA[*]}"
+  )>" >&2
+  exit 1
+fi
+
+# Word-splitting on the table value is intentional (the commands are trusted
+# constants; $REPO_HOME holds no spaces).
+if [ "$BAR" = "noctalia" ]; then
+  # shellcheck disable=SC2086
+  noctalia-shell ipc --any-display call ${NOCTALIA[$ACTION]}
+else
+  # shellcheck disable=SC2086
+  ${GENERIC[$ACTION]}
+fi

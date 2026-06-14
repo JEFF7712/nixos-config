@@ -33,11 +33,9 @@ InfoPopup {
             Rectangle {
                 anchors.fill: parent
                 radius: 6
-                color: closeMouse.containsMouse
-                    ? Qt.rgba(1, 1, 1, 0.04)
-                    : Qt.rgba(1, 1, 1, 0.04)
+                color: root.pillBg
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.06)
+                border.color: root.pillBorder
             }
 
             Column {

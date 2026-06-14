@@ -9,11 +9,11 @@ ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 [ -n "$ACTIVE" ] || exit 0
 
 BAR=$(profile_bar "$ACTIVE")
-QUICKSHELL_TOPBAR="$REPO_HOME/configs/quickshell-clean/shell.qml"
+QUICKSHELL_TOPBAR="$REPO_HOME/configs/quickshell/shell.qml"
 
 toggle_quickshell() {
-  if pgrep -f "quickshell.*quickshell-clean/shell.qml" >/dev/null 2>&1; then
-    pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
+  if pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1; then
+    pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
   else
     quickshell -p "$QUICKSHELL_TOPBAR" >/dev/null 2>&1 &
     disown

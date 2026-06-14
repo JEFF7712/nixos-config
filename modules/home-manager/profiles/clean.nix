@@ -127,7 +127,7 @@ in
       windowHighlightOff = true;
       extraConfig = ''
         layer-rule {
-            match namespace="^quickshell-clean-topbar$"
+            match namespace="^quickshell-topbar$"
             geometry-corner-radius 15
             opacity 0.9
             background-effect {
@@ -139,7 +139,7 @@ in
         }
 
         layer-rule {
-            match namespace="^quickshell-clean-popup$"
+            match namespace="^quickshell-popup$"
             geometry-corner-radius 15
         }
 

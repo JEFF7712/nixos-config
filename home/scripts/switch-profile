@@ -77,7 +77,7 @@ profile_status() {
       mako_running && mark ok "mako" || mark fail "mako"
       ;;
     quickshell | clean)
-      pgrep -f "quickshell.*quickshell-clean/shell.qml" >/dev/null 2>&1 \
+      pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 \
         && mark ok "quickshell topbar" || mark fail "quickshell topbar"
       mako_running && mark ok "mako" || mark fail "mako"
       ;;
@@ -194,7 +194,7 @@ if [ $REAPPLY_MODE -eq 1 ]; then
   echo "  Stopping bars..."
   systemctl --user stop noctalia-shell 2>/dev/null || true
   pkill -f waybar 2>/dev/null || true
-  pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
+  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
   for _ in $(seq 1 20); do
     pgrep -f waybar >/dev/null 2>&1 || break
     sleep 0.1
@@ -218,7 +218,7 @@ elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
   stop_mako
 elif [ $STARTUP_MODE -eq 0 ] && { [ "$CURRENT_BAR" = "clean" ] || [ "$CURRENT_BAR" = "quickshell" ]; }; then
   echo "  Stopping quickshell topbar..."
-  pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
+  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
   stop_mako
 fi
 
@@ -314,8 +314,8 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
 elif [ "$TARGET_BAR" = "clean" ] || [ "$TARGET_BAR" = "quickshell" ]; then
   echo "  Starting quickshell topbar..."
   systemctl --user start awww 2>/dev/null || true
-  pkill -f "quickshell.*quickshell-clean/shell.qml" 2>/dev/null || true
-  quickshell -p "$REPO_HOME/configs/quickshell-clean/shell.qml" 2>/dev/null &
+  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
+  quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 2>/dev/null &
   disown
 
   if [ -f "$TARGET_DIR/mako-config" ]; then

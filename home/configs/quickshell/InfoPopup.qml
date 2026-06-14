@@ -12,13 +12,21 @@ PanelWindow {
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color themeAccent: "#ffffff"
+    property color themeRawBg: "#141414"
+    property color themeBorder: Qt.rgba(1, 1, 1, 0.24)
+    property color innerHighlight: Qt.rgba(1, 1, 1, 0.06)
+    property color dividerColor: Qt.rgba(1, 1, 1, 0.1)
+    property color pillBg: Qt.rgba(1, 1, 1, 0.05)
+    property color pillBorder: Qt.rgba(1, 1, 1, 0.1)
+    property bool flatMode: false
+    readonly property int cardRadius: flatMode ? 0 : 15
     default property alias body: contentColumn.data
 
     function open() { root.shown = true }
     function close() { root.shown = false }
     function toggle() { root.shown = !root.shown }
 
-    WlrLayershell.namespace: "quickshell-clean-popup"
+    WlrLayershell.namespace: "quickshell-popup"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
@@ -46,10 +54,10 @@ PanelWindow {
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: 15
+        radius: root.cardRadius
         color: root.themeBg
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.24)
+        border.color: root.themeBorder
         opacity: root.shown ? 1.0 : 0.0
         scale: root.shown ? 1.0 : 0.96
         transformOrigin: Item.TopRight
@@ -59,8 +67,8 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
-            radius: parent.radius - 1
-            color: Qt.rgba(1, 1, 1, 0.06)
+            radius: Math.max(0, parent.radius - 1)
+            color: root.innerHighlight
         }
 
         Column {
@@ -84,7 +92,7 @@ PanelWindow {
             Rectangle {
                 width: outerColumn.width
                 height: 1
-                color: Qt.rgba(1, 1, 1, 0.1)
+                color: root.dividerColor
             }
 
             Column {

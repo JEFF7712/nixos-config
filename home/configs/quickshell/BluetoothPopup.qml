@@ -16,6 +16,8 @@ InfoPopup {
         checked: root.btEnabled
         themeFg: root.themeFg
         themeAccent: root.themeAccent
+        themeRawBg: root.themeRawBg
+        dividerColor: root.dividerColor
         onToggled: {
             if (!root.adapter) return
             toggleProc.target = root.btEnabled ? "false" : "true"
@@ -26,7 +28,7 @@ InfoPopup {
     Rectangle {
         width: parent.width
         height: 1
-        color: Qt.rgba(1, 1, 1, 0.08)
+        color: root.dividerColor
         visible: root.btEnabled
     }
 

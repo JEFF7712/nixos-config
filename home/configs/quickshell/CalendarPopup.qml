@@ -139,7 +139,7 @@ InfoPopup {
                     anchors.centerIn: parent
                     text: modelData.day || ""
                     color: parent.isToday
-                        ? "#141414"
+                        ? root.themeRawBg
                         : modelData.current
                             ? root.themeFg
                             : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.18)
