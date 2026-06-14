@@ -17,10 +17,17 @@ eval-all:
 flake-check:
   nix flake check
 
+# Render every desktop profile and fail on empty color slots / bad meta.json.
+check-profiles host="laptop" user="rupan":
+  nix eval --no-write-lock-file --impure --json \
+    ".#nixosConfigurations.{{host}}.config.home-manager.users.{{user}}.home.file" \
+    --apply 'import ./checks/profiles.nix'
+
 check:
   just shell-check
   just flake-check
   just eval-all
+  just check-profiles
   git diff --check
 
 update:

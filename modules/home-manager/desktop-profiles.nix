@@ -64,6 +64,17 @@ in
             (profileFiles.hasLight p && p.quickshellTheme != null) -> p.quickshellThemeLight != null;
           message = "desktopProfiles.profiles.${name}: has a light variant but no quickshellThemeLight — the bar would stay dark when toggling.";
         }
+        {
+          # A non-self-themed profile that leaves core color slots null renders
+          # empty theme files (blank GTK/Qt/kitty) — almost always a broken
+          # palette. Self-themed profiles (noctalia) manage colors at runtime.
+          assertion =
+            p.selfThemed
+            || (
+              p.colors.gtk3 != null && p.colors.gtk4 != null && p.colors.kitty != null && p.colors.qt6 != null
+            );
+          message = "desktopProfiles.profiles.${name}: not self-themed but missing core colors (gtk3/gtk4/kitty/qt6) — check the palette.";
+        }
       ]) config.desktopProfiles.profiles
     );
 
@@ -116,31 +127,75 @@ in
       fi
     '';
 
+    # These dirs are real copies (not store symlinks) because the runtime
+    # profile scripts mutate files inside them. Repo edits to the base files
+    # must still propagate without clobbering runtime-applied theme state, so:
+    #   - "owned" files (whole-file rewritten on every profile switch) are
+    #     seeded once and never touched again here.
+    #   - base files are re-copied only when the *repo* version's content hash
+    #     changes (tracked per-file), so a live copy carrying runtime sed
+    #     patches is left alone unless you actually edited it in the repo.
     home.activation.initDesktopProfileLiveConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      copy_live_dir() {
-        src="$1"
-        dest="$2"
+      STATE="$HOME/.local/state/desktop-profiles/synced-hashes"
+      $DRY_RUN_CMD mkdir -p "$STATE"
 
-        if [ -L "$dest" ]; then
-          $DRY_RUN_CMD rm -f "$dest"
-        fi
-
-        if [ ! -e "$dest" ]; then
-          $DRY_RUN_CMD mkdir -p "$(dirname "$dest")"
-          $DRY_RUN_CMD cp -R "$src" "$dest"
-        fi
+      record_hash() {
+        # Skip the side-effecting stamp write during dry-activate.
+        [ -n "''${DRY_RUN_CMD:-}" ] || printf '%s' "$2" > "$1"
       }
 
-      copy_live_dir "${config.repoPath}/home/configs/kitty" "$HOME/.config/kitty"
-      copy_live_dir "${config.repoPath}/home/configs/gtk-3.0" "$HOME/.config/gtk-3.0"
-      copy_live_dir "${config.repoPath}/home/configs/gtk-4.0" "$HOME/.config/gtk-4.0"
-      copy_live_dir "${config.repoPath}/home/configs/qt5ct" "$HOME/.config/qt5ct"
-      copy_live_dir "${config.repoPath}/home/configs/qt6ct" "$HOME/.config/qt6ct"
-      copy_live_dir "${config.repoPath}/home/configs/rofi" "$HOME/.config/rofi"
-      copy_live_dir "${config.repoPath}/home/configs/tmux" "$HOME/.config/tmux"
-      copy_live_dir \
-        "${config.repoPath}/home/configs/firefox/chrome" \
-        "$HOME/.mozilla/firefox/09longn9.default-release/chrome"
+      sync_live_config() {
+        # $1=src dir  $2=dest dir  $3=space-separated owned (seed-once) rel paths
+        local src="$1" dest="$2" f rel d h stamp stored o is_owned
+        [ -d "$src" ] || return 0
+
+        while IFS= read -r -d ''' f; do
+          rel="''${f#"$src"/}"
+          d="$dest/$rel"
+
+          is_owned=0
+          for o in $3; do
+            [ "$o" = "$rel" ] && { is_owned=1; break; }
+          done
+          if [ "$is_owned" = 1 ]; then
+            [ -e "$d" ] || $DRY_RUN_CMD install -Dm644 "$f" "$d"
+            continue
+          fi
+
+          h=$(sha256sum "$f" | cut -d' ' -f1)
+          stamp="$STATE/$(printf '%s' "$d" | sha256sum | cut -d' ' -f1)"
+          stored=$(cat "$stamp" 2>/dev/null || echo "")
+
+          if [ ! -e "$d" ]; then
+            $DRY_RUN_CMD install -Dm644 "$f" "$d"
+            record_hash "$stamp" "$h"
+          elif [ -z "$stored" ]; then
+            # First run against an existing checkout: adopt current state so a
+            # runtime-patched live file is not reset; propagate from next edit.
+            record_hash "$stamp" "$h"
+          elif [ "$stored" != "$h" ]; then
+            $DRY_RUN_CMD install -Dm644 "$f" "$d"
+            record_hash "$stamp" "$h"
+          fi
+        done < <(find "$src" -type f -print0)
+      }
+
+      CFG="${config.repoPath}/home/configs"
+      sync_live_config "$CFG/kitty"   "$HOME/.config/kitty"   "colors.conf"
+      sync_live_config "$CFG/gtk-3.0" "$HOME/.config/gtk-3.0" "noctalia.css settings.ini"
+      sync_live_config "$CFG/gtk-4.0" "$HOME/.config/gtk-4.0" "noctalia.css settings.ini"
+      sync_live_config "$CFG/qt5ct"   "$HOME/.config/qt5ct"   "colors/noctalia.conf"
+      sync_live_config "$CFG/qt6ct"   "$HOME/.config/qt6ct"   "colors/noctalia.conf qt6ct.conf"
+      sync_live_config "$CFG/rofi"    "$HOME/.config/rofi"    "profile-switcher.rasi"
+      sync_live_config "$CFG/tmux"    "$HOME/.config/tmux"    ""
+
+      # Firefox profile dir name varies per machine; resolve the default-release
+      # profile by glob instead of a hardcoded id.
+      for ff in "$HOME/.mozilla/firefox/"*.default-release; do
+        [ -d "$ff" ] || continue
+        sync_live_config "$CFG/firefox/chrome" "$ff/chrome" "DownToneUI/_globals.css"
+        break
+      done
     '';
   };
 }

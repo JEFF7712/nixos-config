@@ -1,19 +1,23 @@
 { pkgs, config, ... }:
 
+# Everforest Hard (dark + light) on the static-profile default mapping.
+# `bg5` (bright terminal black) and `makoLow` (low-urgency notification
+# border) are extra palette keys outside the canonical roles.
 let
-  waybar = import ../../../lib/waybar.nix;
-  theme = import ../../../lib/desktop-profiles/theme-builders.nix;
+  static = import ../../../lib/desktop-profiles/static-profile.nix;
 
-  # Everforest Hard. One role mapping below serves dark and light; `makoLow`
-  # is the low-urgency notification border (bg4 dark, bg3 light upstream).
   dark = {
     title = "Everforest Dark Hard";
     bg0 = "#272e33";
     bg1 = "#2e383c";
     bg2 = "#374145";
     bg3 = "#414b50";
-    bg5 = "#4f5b58";
-    fg = "#d3c6aa";
+    fg1 = "#d3c6aa";
+    fg2 = "#9da9a0";
+    fg3 = "#859289";
+    fg4 = "#7a8478";
+    accent = "#a7c080";
+    accent2 = "#83c092";
     red = "#e67e80";
     orange = "#e69875";
     yellow = "#dbbc7f";
@@ -21,9 +25,7 @@ let
     aqua = "#83c092";
     blue = "#7fbbb3";
     purple = "#d699b6";
-    grey0 = "#7a8478";
-    grey1 = "#859289";
-    grey2 = "#9da9a0";
+    bg5 = "#4f5b58";
     makoLow = "#495156";
     barBg = "rgba(39, 46, 51, 0.6)";
     barShadow = "rgba(20, 24, 27, 0.45)";
@@ -35,8 +37,12 @@ let
     bg1 = "#f4f0d9";
     bg2 = "#efebd4";
     bg3 = "#e6e2cc";
-    bg5 = "#bec5b2";
-    fg = "#5c6a72";
+    fg1 = "#5c6a72";
+    fg2 = "#829181";
+    fg3 = "#939f91";
+    fg4 = "#a6b0a0";
+    accent = "#8da101";
+    accent2 = "#35a77c";
     red = "#f85552";
     orange = "#f57d26";
     yellow = "#dfa000";
@@ -44,227 +50,75 @@ let
     aqua = "#35a77c";
     blue = "#3a94c5";
     purple = "#df69ba";
-    grey0 = "#a6b0a0";
-    grey1 = "#939f91";
-    grey2 = "#829181";
+    bg5 = "#bec5b2";
     makoLow = "#e6e2cc";
     barBg = "rgba(255, 249, 232, 0.85)";
     barShadow = "rgba(190, 197, 178, 0.45)";
   };
 
-  alpha = a: c: "#${a}${builtins.substring 1 6 c}";
-
-  mkColors =
-    p:
-    theme.mkGtkPair {
-      inherit (p) title;
-      accent = p.green;
-      accentFg = p.bg0;
-      destructiveBg = p.red;
-      destructiveFg = p.fg;
-      windowBg = p.bg0;
-      windowFg = p.fg;
-      headerbarBg = p.bg1;
-      headerbarBackdrop = "@window_bg_color";
-      popoverBg = p.bg1;
-      cardBg = p.bg1;
-      dialogBg = p.bg0;
-      dialogFg = p.fg;
-      sidebarBg = p.bg1;
-      sidebarBackdrop = "@window_bg_color";
-      sidebarBorder = p.bg2;
-      secondarySidebarBg = p.bg0;
-      secondarySidebarFg = p.grey2;
+  overrides = {
+    gtk = r: {
       unfocused = {
-        fg = p.grey2;
-        text = p.grey1;
-        bg = p.bg0;
-        base = p.bg0;
-        selectedBg = p.bg2;
-        selectedFg = p.fg;
-      };
-    }
-    // {
-      qt6 = theme.mkQt6Roles {
-        windowText = p.fg;
-        button = p.bg1;
-        midlight = p.bg3;
-        mid = p.bg2;
-        window = p.bg0;
-        highlight = p.green;
-        highlightedText = p.bg0;
-        linkVisited = p.blue;
-        alternateBase = p.bg1;
-        tooltipBase = p.bg0;
-        tooltipText = p.bg1;
-        secondaryText = p.grey1;
-        inactiveText = p.grey2;
-        disabledText = p.grey1;
-        disabledHighlight = p.bg3;
-        disabledHighlightedText = p.bg2;
-        disabledSecondaryText = p.grey0;
-      };
-
-      kitty = theme.mkKittyColors {
-        title = "${p.title} Kitty";
-        cursor = p.fg;
-        cursorText = p.bg0;
-        foreground = p.fg;
-        background = p.bg0;
-        selectionForeground = p.bg0;
-        selectionBackground = p.green;
-        color0 = p.bg3;
-        color8 = p.bg5;
-        color1 = p.red;
-        color9 = p.red;
-        color2 = p.green;
-        color10 = p.green;
-        color3 = p.yellow;
-        color11 = p.yellow;
-        color4 = p.blue;
-        color12 = p.blue;
-        color5 = p.purple;
-        color13 = p.purple;
-        color6 = p.aqua;
-        color14 = p.aqua;
-        color7 = p.grey2;
-        color15 = p.fg;
-      };
-
-      fish = theme.mkFishColors {
-        normal = p.fg;
-        command = p.green;
-        keyword = p.aqua;
-        quote = p.yellow;
-        redirection = p.blue;
-        end = p.grey1;
-        error = p.red;
-        param = p.fg;
-        comment = p.grey0;
-        selection = p.bg2;
-        searchMatch = p.bg1;
-        operator = p.aqua;
-        escape = p.orange;
-        autosuggestion = p.grey0;
-      };
-
-      starship = theme.mkStarshipPrompt {
-        success = p.green;
-        error = p.red;
-        directory = p.aqua;
-        gitBranch = p.yellow;
-        cmdDuration = p.grey1;
-      };
-
-      rofi = theme.mkProfilePickerRofi {
-        background = p.bg0;
-        text = p.fg;
-        border = p.bg2;
-        selectedBackground = p.bg1;
-        selectedForeground = p.green;
-        inputBackground = p.bg1;
-        prompt = p.green;
-        placeholder = p.bg3;
-        elementBackground = p.bg1;
-        elementSelectedBackground = p.bg2;
-        elementSelectedBorder = p.green;
-      };
-
-      btop = theme.mkBtopTheme {
-        mainBg = p.bg0;
-        mainFg = p.fg;
-        hiFg = p.green;
-        selectedBg = p.bg2;
-        inactiveFg = p.grey1;
-        procMisc = p.aqua;
-        box = p.bg2;
-        gradLow = p.green;
-        gradMid = p.yellow;
-        gradHigh = p.red;
-      };
-
-      tmux = theme.mkTmuxColors {
-        bg = p.bg1;
-        inherit (p) fg;
-        accent = p.green;
-        secondary = p.grey2;
-        inactive = p.grey1;
-        border = p.bg2;
-      };
-
-      hyprlock = theme.mkHyprlockColors {
-        inherit (p) fg;
-        muted = p.grey1;
-        accent = p.green;
-        surface = p.bg0;
-        surfaceAlt = p.bg1;
-        error = p.red;
-      };
-
-      cava = theme.mkCavaColors {
-        gradLow = p.green;
-        gradMid = p.yellow;
-        gradHigh = p.red;
+        fg = r.fg2;
+        text = r.fg3;
+        bg = r.bg0;
+        base = r.bg0;
+        selectedBg = r.bg2;
+        selectedFg = r.fg1;
       };
     };
-
-  mkMako =
-    p:
-    theme.mkMakoConfig {
-      background = p.bg0;
-      text = p.fg;
-      border = p.green;
-      lowBorder = p.makoLow;
-      highBackground = p.bg1;
-      highBorder = p.red;
-      highText = p.fg;
+    qt6 = r: {
+      secondaryText = r.fg3;
+      disabledText = r.fg3;
     };
-
-  mkQuickshell = p: {
-    inherit (p) fg;
-    bg = alpha "66" p.bg0;
-    popupBg = alpha "cc" p.bg0;
-    rawBg = p.bg0;
-    accent = p.green;
-    second = p.grey2;
-    warm = p.orange;
-    fresh = p.blue;
-    barRadius = "10";
-    barHeight = "32";
-    showClockDate = "false";
-    showWorkspaceNumbers = "false";
-    barFont = "Hack Nerd Font";
-    barBorder = "#00000000";
-    pillBorder = alpha "1d" p.bg1;
+    kitty = r: {
+      color0 = r.bg3;
+      color8 = r.bg5;
+      color7 = r.fg2;
+    };
+    fish = r: {
+      quote = r.yellow;
+      redirection = r.blue;
+      end = r.fg3;
+      param = r.fg1;
+      escape = r.orange;
+    };
+    starship = r: {
+      directory = r.aqua;
+      gitBranch = r.yellow;
+      cmdDuration = r.fg3;
+    };
+    btop = r: {
+      inactiveFg = r.fg3;
+      procMisc = r.aqua;
+    };
+    tmux = r: {
+      inactive = r.fg3;
+    };
+    mako = r: {
+      lowBorder = r.makoLow;
+    };
+    waybarStyle = r: {
+      hoverColor = r.yellow;
+      clockColor = r.yellow;
+      powerSaverColor = r.aqua;
+    };
   };
-
-  mkWaybarStyle =
-    p:
-    waybar.mkFloatingStyle {
-      windowBg = p.barBg;
-      primary = p.green;
-      borderColor = p.bg2;
-      shadowColor = p.barShadow;
-      activeBg = p.bg2;
-      hoverColor = p.yellow;
-      clockColor = p.yellow;
-      textColor = p.fg;
-      performanceColor = p.red;
-      balancedColor = p.green;
-      powerSaverColor = p.aqua;
-      warningColor = p.yellow;
-      criticalColor = p.red;
-    };
 in
 {
-  desktopProfiles.profiles.everforest = {
+  desktopProfiles.profiles.everforest = static.mkStaticProfile {
+    palette = dark;
+    paletteLight = light;
+    inherit overrides;
     bar = "quickshell";
+    waybarStyle = "floating";
+    scriptDir = "${config.repoPath}/home/scripts";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/everforest";
+    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/everforest-light";
 
-    quickshellTheme = mkQuickshell dark;
-    quickshellThemeLight = mkQuickshell light;
-
-    makoConfig = mkMako dark;
-    makoConfigLight = mkMako light;
+    quickshell = r: {
+      fresh = r.blue;
+    };
 
     cursor = {
       theme = "Bibata-Modern-Classic";
@@ -290,9 +144,6 @@ in
       iconThemeLight = "Tela-green-light";
     };
 
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/everforest";
-    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/everforest-light";
-
     niri = {
       gaps = 8;
       borderOff = true;
@@ -305,22 +156,9 @@ in
       shadowInactiveColor = "#0f161340";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
-      tabIndicatorActiveColor = dark.green;
       tabIndicatorInactiveColor = dark.bg3;
       windowOpacity = 0.96;
       windowHighlightOff = true;
     };
-
-    colors = mkColors dark;
-    colorsLight = mkColors light;
-
-    waybar = {
-      config = waybar.mkConfig {
-        floating = true;
-        scriptDir = "${config.repoPath}/home/scripts";
-      };
-      style = mkWaybarStyle dark;
-    };
-    waybarLight.style = mkWaybarStyle light;
   };
 }
