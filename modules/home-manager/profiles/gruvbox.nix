@@ -97,24 +97,87 @@ in
     };
 
     niri = {
-      gaps = 8;
-      borderOff = true;
+      gaps = 6;
+      borderOff = false;
+      borderWidth = 2;
       focusRingOff = true;
-      shadowSoftness = 30;
-      shadowSpread = 6;
-      shadowOffsetX = 0;
-      shadowOffsetY = 7;
-      shadowColor = "#1d202180";
-      shadowInactiveColor = "#1d202140";
+      shadowSoftness = 0;
+      shadowSpread = 0;
+      shadowOffsetX = 5;
+      shadowOffsetY = 5;
+      shadowColor = "#1d2021";
+      shadowInactiveColor = "#1d2021";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = false;
       windowOpacity = 0.96;
       windowHighlightOff = true;
+      extraConfig = ''
+        window-rule {
+            geometry-corner-radius 0
+            clip-to-geometry true
+        }
+
+        layer-rule {
+            match namespace="^quickshell-clean-topbar$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^quickshell-clean-popup$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^rofi$"
+            geometry-corner-radius 0
+            opacity 1.0
+        }
+
+        layer-rule {
+            match namespace="^mako$"
+            geometry-corner-radius 0
+        }
+      '';
     };
 
     quickshell = p: {
       barFont = "Hack Nerd Font";
-      barBorder = p.accent;
+      bg = "#ee282828";
+      popupBg = "#ee282828";
+      barRadius = "0";
+      barHeight = "30";
+      barMargin = "0";
+      showWorkspaceNumbers = "true";
+      barBorder = "#00000000";
+      barInnerHighlight = "#00000000";
+      pillBg = "#00000000";
+      pillBorder = "#00000000";
+      flatMode = "true";
+      dividerColor = p.bg3;
+    };
+
+    overrides = {
+      rofi = p: {
+        border = p.accent;
+        selectedBackground = p.bg2;
+        elementSelectedBorder = p.accent2;
+        borderWidth = 2;
+        selectedBorderWidth = 2;
+        windowRadius = 0;
+        inputRadius = 0;
+        elementRadius = 0;
+        iconRadius = 0;
+      };
+
+      mako = p: {
+        border = p.accent;
+        lowBorder = p.bg3;
+        highBorder = p.orange;
+        borderSize = 2;
+        borderRadius = 0;
+        padding = 10;
+        margin = 6;
+      };
     };
   };
 }

@@ -153,10 +153,10 @@ let
         elementSelectedBorder = p.accent;
         borderWidth = 1;
         selectedBorderWidth = 1;
-        windowRadius = 4;
-        inputRadius = 4;
-        elementRadius = 4;
-        iconRadius = 2;
+        windowRadius = 0;
+        inputRadius = 0;
+        elementRadius = 0;
+        iconRadius = 0;
       };
 
       btop = theme.mkBtopTheme {
@@ -208,7 +208,7 @@ let
       highBorder = p.err;
       highText = p.fg0;
       borderSize = 1;
-      borderRadius = 4;
+      borderRadius = 0;
     };
 
   mkQuickshell = p: {
@@ -285,21 +285,49 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/minimal-light";
 
     niri = {
-      gaps = 8;
+      gaps = 6;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 3;
+      shadowOff = true;
+      shadowSoftness = 0;
       shadowSpread = 0;
       shadowOffsetX = 0;
-      shadowOffsetY = 1;
-      shadowColor = "#00000020";
-      shadowInactiveColor = "#00000012";
-      shadowDrawBehindWindow = true;
+      shadowOffsetY = 0;
+      shadowColor = "#00000000";
+      shadowInactiveColor = "#00000000";
+      shadowDrawBehindWindow = false;
       tabIndicatorOff = true;
       tabIndicatorActiveColor = dark.fg1;
       tabIndicatorInactiveColor = dark.bg3;
       windowOpacity = 1.0;
       windowHighlightOff = true;
+      extraConfig = ''
+        window-rule {
+            geometry-corner-radius 0
+            clip-to-geometry true
+        }
+
+        layer-rule {
+            match namespace="^quickshell-clean-topbar$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^quickshell-clean-popup$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^rofi$"
+            geometry-corner-radius 0
+            opacity 1.0
+        }
+
+        layer-rule {
+            match namespace="^mako$"
+            geometry-corner-radius 0
+        }
+      '';
     };
 
     colors = mkColors dark;
