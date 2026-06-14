@@ -33,6 +33,11 @@ let
           if c != "" then pkgs.writeText "${e.theme.name}-additional.css" c else null;
         assets = e.assets or null;
         rewrite = e.rewrite or null;
+        patch =
+          let
+            p = e.patch or "";
+          in
+          if p != "" then pkgs.writeText "${e.theme.name}-patch.css" p else null;
       })
       [
         { theme = spicePkgs.themes.comfy; }
@@ -46,6 +51,20 @@ let
           theme = spicePkgs.themes.bloom;
           assets = "${builtins.dirOf (toString spicePkgs.themes.bloom.src)}/assets";
           rewrite = "https://nimsandu.github.io/spicetify-bloom/assets/";
+          # Bloom omits mask sizing on the card/row play buttons, so the icon
+          # tiles (mask-repeat:repeat) and renders as a split shape. Pin centered.
+          patch = ''
+            .main-playButton-button,
+            .main-playButton-PlayButton > button,
+            .main-trackList-rowPlayPauseButton {
+              mask-repeat: no-repeat !important;
+              -webkit-mask-repeat: no-repeat !important;
+              mask-size: 50% !important;
+              -webkit-mask-size: 50% !important;
+              mask-position: center !important;
+              -webkit-mask-position: center !important;
+            }
+          '';
         }
       ];
   spiceExtensions = with spicePkgs.extensions; [
@@ -208,6 +227,7 @@ in
           run chmod -R u+w "$td/assets"
           run sed -i "s|${t.rewrite}||g" "$td/user.css"
         ''}
+        ${lib.optionalString (t.patch != null) ''run sh -c "cat '${t.patch}' >> '$td/user.css'"''}
       '') spiceThemes}
       ${lib.concatMapStringsSep "\n      " (
         e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
