@@ -185,6 +185,9 @@ in
       run mkdir -p "$SPICETIFY_CONFIG/Themes" "$SPICETIFY_CONFIG/Extensions" "$HOME/.config/spotify"
       ${lib.concatMapStringsSep "\n" (t: ''
         td="$SPICETIFY_CONFIG/Themes/${t.name}"
+        # Prior runs may have left read-only store copies (e.g. vendored
+        # assets); make the tree writable so rm -rf can always replace it.
+        chmod -R u+w "$td" 2>/dev/null || true
         run rm -rf "$td"
         run cp -r "${t.src}" "$td"
         run chmod -R u+w "$td"
@@ -202,6 +205,7 @@ in
         ${lib.optionalString (t.assets != null) ''
           run mkdir -p "$td/assets"
           run sh -c "cp -r '${t.assets}/.' '$td/assets/'"
+          run chmod -R u+w "$td/assets"
           run sed -i "s|${t.rewrite}||g" "$td/user.css"
         ''}
       '') spiceThemes}
