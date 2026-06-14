@@ -44,28 +44,9 @@ let
         { theme = spicePkgs.themes.catppuccin; }
         { theme = spicePkgs.themes.sleek; }
         { theme = spicePkgs.themes.dribbblish; }
-        {
-          # Bloom masks its icons/noise from a CDN that Spotify's CSP blocks (broken
-          # play button etc.). Vendor the repo's assets (a sibling of the theme src)
-          # and strip the CDN prefix so the URLs resolve from the copied assets.
-          theme = spicePkgs.themes.bloom;
-          assets = "${builtins.dirOf (toString spicePkgs.themes.bloom.src)}/assets";
-          rewrite = "https://nimsandu.github.io/spicetify-bloom/assets/";
-          # Bloom omits mask sizing on the card/row play buttons, so the icon
-          # tiles (mask-repeat:repeat) and renders as a split shape. Pin centered.
-          patch = ''
-            .main-playButton-button,
-            .main-playButton-PlayButton > button,
-            .main-trackList-rowPlayPauseButton {
-              mask-repeat: no-repeat !important;
-              -webkit-mask-repeat: no-repeat !important;
-              mask-size: 50% !important;
-              -webkit-mask-size: 50% !important;
-              mask-position: center !important;
-              -webkit-mask-position: center !important;
-            }
-          '';
-        }
+        # A theme that pulls assets from a CDN (Spotify's CSP blocks them) can
+        # set `assets` (a dir to vendor) + `rewrite` (the URL prefix to strip),
+        # and `patch` for a trailing user.css fixup. See git history for Bloom.
       ];
   spiceExtensions = with spicePkgs.extensions; [
     fullAppDisplay
