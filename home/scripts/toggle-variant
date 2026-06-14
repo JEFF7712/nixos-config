@@ -86,7 +86,7 @@ if [ "$BAR" = "waybar" ]; then
   fi
   apply_profile_fonts "$CONFIG_HOME" "$PROFILE_DIR/meta.json"
   apply_profile_appearance "$CONFIG_HOME" "$PROFILE_DIR/meta.json" "$NEW"
-elif [ "$BAR" = "quickshell" ] || [ "$BAR" = "clean" ]; then
+elif [ "$BAR" = "quickshell" ]; then
   # The topbar reads its theme JSON (variant-aware) only at startup; restart it.
   pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
   quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 2>/dev/null &

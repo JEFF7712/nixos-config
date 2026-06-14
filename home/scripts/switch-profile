@@ -76,7 +76,7 @@ profile_status() {
       pgrep -f waybar >/dev/null 2>&1 && mark ok "waybar" || mark fail "waybar"
       mako_running && mark ok "mako" || mark fail "mako"
       ;;
-    quickshell | clean)
+    quickshell)
       pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 \
         && mark ok "quickshell topbar" || mark fail "quickshell topbar"
       mako_running && mark ok "mako" || mark fail "mako"
@@ -216,7 +216,7 @@ elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
   rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
   # Stop mako (self-themed shells manage their own notifications)
   stop_mako
-elif [ $STARTUP_MODE -eq 0 ] && { [ "$CURRENT_BAR" = "clean" ] || [ "$CURRENT_BAR" = "quickshell" ]; }; then
+elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "quickshell" ]; then
   echo "  Stopping quickshell topbar..."
   pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
   stop_mako
@@ -311,7 +311,7 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
   fi
   # Start mako for waybar profile notifications
   start_mako
-elif [ "$TARGET_BAR" = "clean" ] || [ "$TARGET_BAR" = "quickshell" ]; then
+elif [ "$TARGET_BAR" = "quickshell" ]; then
   echo "  Starting quickshell topbar..."
   systemctl --user start awww 2>/dev/null || true
   pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true

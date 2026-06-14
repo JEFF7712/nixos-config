@@ -18,8 +18,21 @@ ShellRoot {
     property int barRadius: 15
     property int barHeight: 44
     property int barMargin: 10
+    property bool showWorkspaces: true
+    property bool showClock: true
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
+    property bool showActiveWindow: true
+    property bool showMedia: true
+    property bool showVolume: true
+    property bool showBrightness: true
+    property bool showNetwork: true
+    property bool showBluetooth: true
+    property bool showIdleInhibitor: true
+    property bool showPowerProfile: true
+    property bool showBattery: true
+    property bool showNotifications: true
+    property bool showSystem: true
     property string barFont: "JetBrainsMono Nerd Font"
     property bool flatMode: false
     property bool showBarDividers: true
@@ -44,8 +57,21 @@ ShellRoot {
         if (theme.barRadius)         root.barRadius          = parseInt(theme.barRadius)
         if (theme.barHeight)         root.barHeight          = parseInt(theme.barHeight)
         if (theme.barMargin)         root.barMargin          = parseInt(theme.barMargin)
+        if (theme.showWorkspaces)    root.showWorkspaces     = theme.showWorkspaces === "true"
+        if (theme.showClock)         root.showClock          = theme.showClock === "true"
         if (theme.showClockDate)     root.showClockDate      = theme.showClockDate === "true"
         if (theme.showWorkspaceNumbers) root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true"
+        if (theme.showActiveWindow)  root.showActiveWindow   = theme.showActiveWindow === "true"
+        if (theme.showMedia)         root.showMedia          = theme.showMedia === "true"
+        if (theme.showVolume)        root.showVolume         = theme.showVolume === "true"
+        if (theme.showBrightness)    root.showBrightness     = theme.showBrightness === "true"
+        if (theme.showNetwork)       root.showNetwork        = theme.showNetwork === "true"
+        if (theme.showBluetooth)     root.showBluetooth      = theme.showBluetooth === "true"
+        if (theme.showIdleInhibitor) root.showIdleInhibitor  = theme.showIdleInhibitor === "true"
+        if (theme.showPowerProfile)  root.showPowerProfile   = theme.showPowerProfile === "true"
+        if (theme.showBattery)       root.showBattery        = theme.showBattery === "true"
+        if (theme.showNotifications) root.showNotifications  = theme.showNotifications === "true"
+        if (theme.showSystem)        root.showSystem         = theme.showSystem === "true"
         if (theme.barFont)           root.barFont            = theme.barFont
         if (theme.flatMode)          root.flatMode           = theme.flatMode === "true"
         if (theme.showBarDividers)   root.showBarDividers    = theme.showBarDividers === "true"
@@ -119,8 +145,21 @@ ShellRoot {
         barRadius: root.barRadius
         barHeight: root.barHeight
         barMargin: root.barMargin
+        showWorkspaces: root.showWorkspaces
+        showClock: root.showClock
         showClockDate: root.showClockDate
         showWorkspaceNumbers: root.showWorkspaceNumbers
+        showActiveWindow: root.showActiveWindow
+        showMedia: root.showMedia
+        showVolume: root.showVolume
+        showBrightness: root.showBrightness
+        showNetwork: root.showNetwork
+        showBluetooth: root.showBluetooth
+        showIdleInhibitor: root.showIdleInhibitor
+        showPowerProfile: root.showPowerProfile
+        showBattery: root.showBattery
+        showNotifications: root.showNotifications
+        showSystem: root.showSystem
         barFont: root.barFont
         flatMode: root.flatMode
         showBarDividers: root.showBarDividers

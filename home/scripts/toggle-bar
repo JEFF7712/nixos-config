@@ -33,7 +33,7 @@ case "$BAR" in
   noctalia)
     noctalia-shell ipc --any-display call bar toggle
     ;;
-  quickshell | clean)
+  quickshell)
     toggle_quickshell
     ;;
   waybar)

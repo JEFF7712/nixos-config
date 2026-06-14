@@ -47,7 +47,7 @@ in
     assertions = lib.flatten (
       lib.mapAttrsToList (name: p: [
         {
-          assertion = (p.bar == "quickshell" || p.bar == "clean") -> p.quickshellTheme != null;
+          assertion = p.bar == "quickshell" -> p.quickshellTheme != null;
           message = "desktopProfiles.profiles.${name}: bar \"${p.bar}\" requires quickshellTheme.";
         }
         {

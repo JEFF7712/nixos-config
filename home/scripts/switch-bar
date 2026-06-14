@@ -37,7 +37,7 @@ case "${1:-}" in
       exit 1
     }
     ;;
-  quickshell | clean)
+  quickshell)
     [ -s "$PROFILE_DIR/quickshell-theme.json" ] || {
       echo "Error: profile '$ACTIVE' has no quickshell theme." >&2
       exit 1

@@ -148,6 +148,8 @@ in
       barHeight = "30";
       barMargin = "0";
       showWorkspaceNumbers = "true";
+      showActiveWindow = "false";
+      showMedia = "false";
       barBorder = "#00000000";
       barInnerHighlight = "#00000000";
       pillBg = "#00000000";

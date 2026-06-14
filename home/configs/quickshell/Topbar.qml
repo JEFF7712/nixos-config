@@ -18,8 +18,21 @@ PanelWindow {
     property int barRadius: 15
     property int barHeight: 44
     property int barMargin: 10
+    property bool showWorkspaces: true
+    property bool showClock: true
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
+    property bool showActiveWindow: true
+    property bool showMedia: true
+    property bool showVolume: true
+    property bool showBrightness: true
+    property bool showNetwork: true
+    property bool showBluetooth: true
+    property bool showIdleInhibitor: true
+    property bool showPowerProfile: true
+    property bool showBattery: true
+    property bool showNotifications: true
+    property bool showSystem: true
     property string barFont: "JetBrainsMono Nerd Font"
     property bool flatMode: false
     property bool showBarDividers: true
@@ -343,11 +356,12 @@ PanelWindow {
 
         Item {
             id: workspacesArea
+            visible: topbarWindow.showWorkspaces
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: topbarWindow.flatMode ? 0 : 14
-            width: wsRow.implicitWidth
-            height: topbarWindow.flatMode ? parent.height : wsRow.implicitHeight
+            width: visible ? wsRow.implicitWidth : 0
+            height: visible ? (topbarWindow.flatMode ? parent.height : wsRow.implicitHeight) : 0
 
             Row {
                 id: wsRow
@@ -384,7 +398,7 @@ PanelWindow {
             spacing: topbarWindow.flatMode ? 0 : 6
 
             StatPill {
-                visible: topbarWindow.mediaStatus !== "" && topbarWindow.mediaStatus !== "Stopped"
+                visible: topbarWindow.showMedia && topbarWindow.mediaStatus !== "" && topbarWindow.mediaStatus !== "Stopped"
                 icon: topbarWindow.mediaStatus === "Playing" ? "󰏤" : "󰐊"
                 value: topbarWindow.mediaTitle.length > 22
                     ? topbarWindow.mediaTitle.substring(0, 21) + "…"
@@ -397,6 +411,7 @@ PanelWindow {
                 onScrolled: (delta) => topbarWindow.adjustMedia(delta)
             }
             StatPill {
+                visible: topbarWindow.showVolume
                 icon: topbarWindow.volumeMuted ? "󰖁" : "󰕾"
                 value: topbarWindow.volumeLevel
                 tint: topbarWindow.volumeMuted
@@ -407,12 +422,14 @@ PanelWindow {
                 onScrolled: (delta) => topbarWindow.adjustVolume(delta)
             }
             StatPill {
+                visible: topbarWindow.showBrightness
                 icon: "󰃞"
                 value: topbarWindow.brightnessLevel
                 tint: topbarWindow.themeWarm
                 onScrolled: (delta) => topbarWindow.adjustBrightness(delta)
             }
             StatPill {
+                visible: topbarWindow.showNetwork
                 icon: topbarWindow.networkIcon
                 value: ""
                 tint: topbarWindow.themeSecond
@@ -420,6 +437,7 @@ PanelWindow {
                 onRightClicked: topbarWindow.run("kitty -e nmtui")
             }
             StatPill {
+                visible: topbarWindow.showBluetooth
                 icon: "󰂯"
                 value: ""
                 tint: topbarWindow.themeSecond
@@ -427,6 +445,7 @@ PanelWindow {
                 onRightClicked: topbarWindow.run("blueman-manager")
             }
             StatPill {
+                visible: topbarWindow.showIdleInhibitor
                 icon: topbarWindow.idleInhibited ? "󰅶" : "󰾪"
                 value: ""
                 tint: topbarWindow.idleInhibited
@@ -435,6 +454,7 @@ PanelWindow {
                 onActivated: idleInhibitToggleProc.running = true
             }
             StatPill {
+                visible: topbarWindow.showPowerProfile
                 icon: topbarWindow.powerProfileIcons[topbarWindow.powerProfile] || "󰾅"
                 value: ""
                 tint: topbarWindow.powerProfile === "performance"
@@ -445,12 +465,14 @@ PanelWindow {
                 onActivated: topbarWindow.cyclePowerProfile()
             }
             StatPill {
+                visible: topbarWindow.showBattery
                 icon: topbarWindow.batteryIcon
                 value: topbarWindow.batteryPercent
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.batteryClicked()
             }
             StatPill {
+                visible: topbarWindow.showNotifications
                 icon: "󰂚"
                 value: topbarWindow.notificationCount > 9
                     ? "9+"
@@ -463,6 +485,7 @@ PanelWindow {
                 onActivated: topbarWindow.notificationsClicked()
             }
             StatPill {
+                visible: topbarWindow.showSystem
                 icon: "󰐥"
                 value: ""
                 tint: topbarWindow.themeAccent
@@ -473,10 +496,11 @@ PanelWindow {
 
         Item {
             id: clockArea
+            visible: topbarWindow.showClock
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            width: clockColumn.implicitWidth + 16
-            height: clockColumn.implicitHeight + 8
+            width: visible ? clockColumn.implicitWidth + 16 : 0
+            height: visible ? clockColumn.implicitHeight + 8 : 0
 
             ColumnLayout {
                 id: clockColumn
@@ -521,6 +545,7 @@ PanelWindow {
         }
 
         RowLayout {
+            visible: topbarWindow.showActiveWindow
             anchors.left: workspacesArea.right
             anchors.right: clockArea.left
             anchors.verticalCenter: parent.verticalCenter
