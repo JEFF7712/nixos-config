@@ -204,6 +204,6 @@ in
     };
     vesktop.dark = "minimal.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
-    spicetify.dark = spice "Bloom" "darkmono" 1;
+    spicetify.dark = spice "Comfy" "Mono" 0;
   };
 }

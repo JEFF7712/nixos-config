@@ -176,6 +176,23 @@ in
                 saturation 1.2
             }
         }
+
+        // Spotify glass: compositor-level transparency + blur over the
+        // wallpaper, independent of the spicetify theme (so it never breaks on
+        // Spotify UI updates). Slightly less transparent than the 0.72 global
+        // so the now-playing text stays readable.
+        window-rule {
+            match app-id="Spotify"
+            geometry-corner-radius 12
+            clip-to-geometry true
+            opacity 0.85
+            background-effect {
+                blur true
+                xray true
+                noise 0.015
+                saturation 1.2
+            }
+        }
       '';
     };
 
