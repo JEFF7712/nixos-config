@@ -34,8 +34,57 @@ pick_random_wallpaper() {
   [ -d "$wallpaper_dir" ] || return 1
 
   find "$wallpaper_dir" -maxdepth 1 \
-    -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
+    -type f \( \
+      -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \
+      -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.mkv" -o -iname "*.mov" \
+    \) \
     | shuf -n 1
+}
+
+wallpaper_backend() {
+  case "${1,,}" in
+    *.jpg | *.jpeg | *.png | *.webp)
+      printf 'image\n'
+      ;;
+    *.mp4 | *.webm | *.mkv | *.mov)
+      printf 'video\n'
+      ;;
+  esac
+}
+
+wait_for_awww() {
+  local attempts="${1:-20}"
+
+  for _ in $(seq 1 "$attempts"); do
+    if awww query >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.25
+  done
+
+  return 1
+}
+
+stop_video_wallpaper() {
+  pkill -x mpvpaper 2>/dev/null || true
+}
+
+set_wallpaper() {
+  local wallpaper="$1"
+
+  case "$(wallpaper_backend "$wallpaper")" in
+    image)
+      stop_video_wallpaper
+      systemctl --user start awww 2>/dev/null || true
+      wait_for_awww 20 || true
+      awww img "$wallpaper" --transition-type fade --transition-duration 1 2>/dev/null || true
+      ;;
+    video)
+      systemctl --user stop awww 2>/dev/null || true
+      stop_video_wallpaper
+      mpvpaper -f -p -o "no-audio loop" '*' "$wallpaper" >/dev/null 2>&1 || true
+      ;;
+  esac
 }
 
 # profile_bar <profile>

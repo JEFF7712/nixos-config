@@ -104,6 +104,17 @@ let
         opacity ${toString profile.niri.windowOpacity}
     }
 
+    ${lib.optionalString (!focus) ''
+      window-rule {
+          match is-active=true
+          opacity 0.8
+      }
+      window-rule {
+          match is-active=false
+          opacity 0.6
+      }
+    ''}
+
     window-rule {
         geometry-corner-radius 10
         clip-to-geometry true

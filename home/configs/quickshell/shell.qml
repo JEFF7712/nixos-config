@@ -18,6 +18,7 @@ ShellRoot {
     property int barRadius: 15
     property int barHeight: 44
     property int barMargin: 10
+    property int barMarginTop: barMargin
     property int exclusiveZoneOffset: 0
     property bool showWorkspaces: true
     property bool showClock: true
@@ -28,107 +29,135 @@ ShellRoot {
     property bool showVolume: true
     property bool showNetwork: true
     property bool showBluetooth: true
-    property bool showIdleInhibitor: true
     property bool showBattery: true
     property bool showNotifications: true
     property bool showSystem: true
     property string barFont: "JetBrainsMono Nerd Font"
     property bool flatMode: false
     property bool showBarDividers: true
+    property string moduleAnimationStyle: "fade"
+    property bool popupAttachToBar: false
     property color dividerColor: "#1affffff"
     property color barBorderColor: "#3dffffff"
     property color barInnerHighlight: "#0fffffff"
     property color pillBg: "#0affffff"
     property color pillBorder: "#14ffffff"
 
-    readonly property int popupTopMargin: barMargin + barHeight + 10
+    readonly property int popupTopMargin: barMarginTop + barHeight + (popupAttachToBar ? 0 : 10)
 
     function applyTheme(theme) {
-        if (!theme) return
-        if (theme.fg)                root.themeFg            = theme.fg
-        if (theme.bg)                root.themeBg            = theme.bg
-        if (theme.popupBg)           root.popupBg            = theme.popupBg
-        if (theme.rawBg)             root.themeRawBg         = theme.rawBg
-        if (theme.accent)            root.themeAccent        = theme.accent
-        if (theme.second)            root.themeSecond        = theme.second
-        if (theme.warm)              root.themeWarm          = theme.warm
-        if (theme.fresh)             root.themeFresh         = theme.fresh
-        if (theme.barRadius)         root.barRadius          = parseInt(theme.barRadius)
-        if (theme.barHeight)         root.barHeight          = parseInt(theme.barHeight)
-        if (theme.barMargin)         root.barMargin          = parseInt(theme.barMargin)
-        if (theme.exclusiveZoneOffset !== undefined) root.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset)
-        if (theme.showWorkspaces)    root.showWorkspaces     = theme.showWorkspaces === "true"
-        if (theme.showClock)         root.showClock          = theme.showClock === "true"
-        if (theme.showClockDate)     root.showClockDate      = theme.showClockDate === "true"
-        if (theme.showWorkspaceNumbers) root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true"
-        if (theme.showActiveWindow)  root.showActiveWindow   = theme.showActiveWindow === "true"
-        if (theme.showMedia)         root.showMedia          = theme.showMedia === "true"
-        if (theme.showVolume)        root.showVolume         = theme.showVolume === "true"
-        if (theme.showNetwork)       root.showNetwork        = theme.showNetwork === "true"
-        if (theme.showBluetooth)     root.showBluetooth      = theme.showBluetooth === "true"
-        if (theme.showIdleInhibitor) root.showIdleInhibitor  = theme.showIdleInhibitor === "true"
-        if (theme.showBattery)       root.showBattery        = theme.showBattery === "true"
-        if (theme.showNotifications) root.showNotifications  = theme.showNotifications === "true"
-        if (theme.showSystem)        root.showSystem         = theme.showSystem === "true"
-        if (theme.barFont)           root.barFont            = theme.barFont
-        if (theme.flatMode)          root.flatMode           = theme.flatMode === "true"
-        if (theme.showBarDividers)   root.showBarDividers    = theme.showBarDividers === "true"
-        if (theme.dividerColor)      root.dividerColor       = theme.dividerColor
-        if (theme.barBorder)         root.barBorderColor     = theme.barBorder
-        if (theme.barInnerHighlight) root.barInnerHighlight  = theme.barInnerHighlight
-        if (theme.pillBg)            root.pillBg             = theme.pillBg
-        if (theme.pillBorder)        root.pillBorder         = theme.pillBorder
+        if (!theme)
+            return;
+        if (theme.fg)
+            root.themeFg = theme.fg;
+        if (theme.bg)
+            root.themeBg = theme.bg;
+        if (theme.popupBg)
+            root.popupBg = theme.popupBg;
+        if (theme.rawBg)
+            root.themeRawBg = theme.rawBg;
+        if (theme.accent)
+            root.themeAccent = theme.accent;
+        if (theme.second)
+            root.themeSecond = theme.second;
+        if (theme.warm)
+            root.themeWarm = theme.warm;
+        if (theme.fresh)
+            root.themeFresh = theme.fresh;
+        if (theme.barRadius)
+            root.barRadius = parseInt(theme.barRadius);
+        if (theme.barHeight)
+            root.barHeight = parseInt(theme.barHeight);
+        if (theme.barMargin)
+            root.barMargin = parseInt(theme.barMargin);
+        if (theme.barMarginTop !== undefined)
+            root.barMarginTop = parseInt(theme.barMarginTop);
+        if (theme.exclusiveZoneOffset !== undefined)
+            root.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset);
+        if (theme.showWorkspaces)
+            root.showWorkspaces = theme.showWorkspaces === "true";
+        if (theme.showClock)
+            root.showClock = theme.showClock === "true";
+        if (theme.showClockDate)
+            root.showClockDate = theme.showClockDate === "true";
+        if (theme.showWorkspaceNumbers)
+            root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true";
+        if (theme.showActiveWindow)
+            root.showActiveWindow = theme.showActiveWindow === "true";
+        if (theme.showMedia)
+            root.showMedia = theme.showMedia === "true";
+        if (theme.showVolume)
+            root.showVolume = theme.showVolume === "true";
+        if (theme.showNetwork)
+            root.showNetwork = theme.showNetwork === "true";
+        if (theme.showBluetooth)
+            root.showBluetooth = theme.showBluetooth === "true";
+        if (theme.showBattery)
+            root.showBattery = theme.showBattery === "true";
+        if (theme.showNotifications)
+            root.showNotifications = theme.showNotifications === "true";
+        if (theme.showSystem)
+            root.showSystem = theme.showSystem === "true";
+        if (theme.barFont)
+            root.barFont = theme.barFont;
+        if (theme.flatMode)
+            root.flatMode = theme.flatMode === "true";
+        if (theme.showBarDividers)
+            root.showBarDividers = theme.showBarDividers === "true";
+        if (theme.moduleAnimationStyle)
+            root.moduleAnimationStyle = theme.moduleAnimationStyle;
+        if (theme.popupAttachToBar)
+            root.popupAttachToBar = theme.popupAttachToBar === "true";
+        if (theme.dividerColor)
+            root.dividerColor = theme.dividerColor;
+        if (theme.barBorder)
+            root.barBorderColor = theme.barBorder;
+        if (theme.barInnerHighlight)
+            root.barInnerHighlight = theme.barInnerHighlight;
+        if (theme.pillBg)
+            root.pillBg = theme.pillBg;
+        if (theme.pillBorder)
+            root.pillBorder = theme.pillBorder;
     }
 
     Process {
         id: themeLoader
         running: true
-        command: ["sh", "-c",
-            "p=\"$HOME/.config/desktop-profiles\";" +
-            "[ -f \"$p/active\" ] || exit 0;" +
-            "d=\"$p/$(cat $p/active)\";" +
-            "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" +
-            "t=\"$d/quickshell-theme.json\";" +
-            "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" +
-            "cat \"$t\" 2>/dev/null"
-        ]
+        command: ["sh", "-c", "p=\"$HOME/.config/desktop-profiles\";" + "[ -f \"$p/active\" ] || exit 0;" + "d=\"$p/$(cat $p/active)\";" + "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" + "t=\"$d/quickshell-theme.json\";" + "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" + "cat \"$t\" 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const txt = this.text.trim()
-                if (!txt) return
+                const txt = this.text.trim();
+                if (!txt)
+                    return;
                 try {
-                    root.applyTheme(JSON.parse(txt))
+                    root.applyTheme(JSON.parse(txt));
                 } catch (e) {
-                    console.warn("quickshell-theme.json parse failed:", e)
+                    console.warn("quickshell-theme.json parse failed:", e);
                 }
             }
         }
     }
 
-    readonly property bool anyPopupShown:
-        wifiPopup.shown || bluetoothPopup.shown || batteryPopup.shown
-        || calendarPopup.shown || notificationsPopup.shown || systemPopup.shown
-        || mediaPopup.shown
+    readonly property bool anyPopupShown: volumePopup.shown || wifiPopup.shown || bluetoothPopup.shown || batteryPopup.shown || calendarPopup.shown || notificationsPopup.shown || systemPopup.shown || mediaPopup.shown
 
     function showOnly(target) {
-        const popups = [
-            wifiPopup, bluetoothPopup, batteryPopup,
-            calendarPopup, notificationsPopup, systemPopup, mediaPopup
-        ]
+        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
         for (const p of popups) {
-            if (p !== target) p.close()
+            if (p !== target)
+                p.close();
         }
-        target.toggle()
+        target.toggle();
     }
 
     function closeAll() {
-        wifiPopup.close()
-        bluetoothPopup.close()
-        batteryPopup.close()
-        calendarPopup.close()
-        notificationsPopup.close()
-        systemPopup.close()
-        mediaPopup.close()
+        volumePopup.close();
+        wifiPopup.close();
+        bluetoothPopup.close();
+        batteryPopup.close();
+        calendarPopup.close();
+        notificationsPopup.close();
+        systemPopup.close();
+        mediaPopup.close();
     }
 
     Topbar {
@@ -143,6 +172,7 @@ ShellRoot {
         barRadius: root.barRadius
         barHeight: root.barHeight
         barMargin: root.barMargin
+        barMarginTop: root.barMarginTop
         exclusiveZoneOffset: root.exclusiveZoneOffset
         showWorkspaces: root.showWorkspaces
         showClock: root.showClock
@@ -153,13 +183,13 @@ ShellRoot {
         showVolume: root.showVolume
         showNetwork: root.showNetwork
         showBluetooth: root.showBluetooth
-        showIdleInhibitor: root.showIdleInhibitor
         showBattery: root.showBattery
         showNotifications: root.showNotifications
         showSystem: root.showSystem
         barFont: root.barFont
         flatMode: root.flatMode
         showBarDividers: root.showBarDividers
+        moduleAnimationStyle: root.moduleAnimationStyle
         dividerColor: root.dividerColor
         barBorderColor: root.barBorderColor
         barInnerHighlight: root.barInnerHighlight
@@ -167,6 +197,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         notificationCount: notificationsPopup.unreadCount
 
+        onVolumeClicked: root.showOnly(volumePopup)
         onWifiClicked: root.showOnly(wifiPopup)
         onBluetoothClicked: root.showOnly(bluetoothPopup)
         onBatteryClicked: root.showOnly(batteryPopup)
@@ -174,6 +205,27 @@ ShellRoot {
         onNotificationsClicked: root.showOnly(notificationsPopup)
         onSystemClicked: root.showOnly(systemPopup)
         onMediaClicked: root.showOnly(mediaPopup)
+    }
+
+    VolumePopup {
+        id: volumePopup
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+        themeRawBg: root.themeRawBg
+        themeBorder: root.barBorderColor
+        innerHighlight: root.barInnerHighlight
+        dividerColor: root.dividerColor
+        pillBg: root.pillBg
+        pillBorder: root.pillBorder
+        flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
+        topMargin: root.popupTopMargin
+        volumeLevel: topbar.volumeLevel
+        muted: topbar.volumeMuted
+        onSetVolume: percent => topbar.setVolume(percent)
+        onToggleMute: topbar.run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
+        onOpenMixer: topbar.run("pavucontrol")
     }
 
     WifiPopup {
@@ -188,6 +240,7 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         topMargin: root.popupTopMargin
     }
 
@@ -203,6 +256,7 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         topMargin: root.popupTopMargin
     }
 
@@ -218,9 +272,10 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         topMargin: root.popupTopMargin
         powerProfile: topbar.powerProfile
-        onSelectProfile: (name) => topbar.setPowerProfile(name)
+        onSelectProfile: name => topbar.setPowerProfile(name)
     }
 
     CalendarPopup {
@@ -235,6 +290,7 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         topMargin: root.popupTopMargin
     }
 
@@ -251,6 +307,7 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         topMargin: root.popupTopMargin
     }
 
@@ -260,12 +317,14 @@ ShellRoot {
         themeBg: root.popupBg
         themeAccent: root.themeAccent
         themeRawBg: root.themeRawBg
+        themeWarm: root.themeWarm
         themeBorder: root.barBorderColor
         innerHighlight: root.barInnerHighlight
         dividerColor: root.dividerColor
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         topMargin: root.popupTopMargin
         cpuUsage: topbar.cpuUsage
         ramUsage: topbar.ramUsage
@@ -284,6 +343,7 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         topMargin: root.popupTopMargin
         status: topbar.mediaStatus
         track: topbar.mediaTitle
@@ -292,11 +352,32 @@ ShellRoot {
         artUrl: topbar.mediaArtUrl
     }
 
+    NotificationToasts {
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+        themeWarm: root.themeWarm
+        themeRawBg: root.themeRawBg
+        themeBorder: root.barBorderColor
+        innerHighlight: root.barInnerHighlight
+        dividerColor: root.dividerColor
+        flatMode: root.flatMode
+        barFont: root.barFont
+        topMargin: root.popupTopMargin
+    }
+
     PanelWindow {
         id: catcher
         visible: root.anyPopupShown
-        anchors { top: true; bottom: true; left: true; right: true }
-        margins { top: 64 }
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
+        margins {
+            top: 64
+        }
         exclusiveZone: -1
         color: "transparent"
         WlrLayershell.namespace: "quickshell-catcher"

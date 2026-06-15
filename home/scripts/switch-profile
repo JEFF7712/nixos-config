@@ -7,19 +7,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$SCRIPT_DIR/profile-common"
 
-wait_for_awww() {
-  local attempts="${1:-20}"
-
-  for _ in $(seq 1 "$attempts"); do
-    if awww query >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 0.25
-  done
-
-  return 1
-}
-
 list_profiles() {
   local current=""
   [ -f "$ACTIVE_FILE" ] && current=$(cat "$ACTIVE_FILE")
@@ -351,10 +338,23 @@ if ! pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1; then
   disown
 fi
 
+# 6e. Re-arm focus-mode notification muting — mako restarts with each profile
+# switch and resets to its default mode, so re-apply dnd if focus is active.
+if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$TARGET" != "noctalia" ]; then
+  (
+    for _ in $(seq 1 15); do
+      makoctl mode -a dnd 2>/dev/null && break
+      sleep 0.2
+    done
+  ) &
+  disown
+fi
+
 # 7. Set wallpaper (self-themed: shell drives it via IPC, retried in the
 # background until the shell's IPC is up — replaces the old fixed sleeps)
 echo "  Setting wallpaper..."
 if [ "$TARGET_SELF_THEMED" = "true" ]; then
+  stop_video_wallpaper
   NOCTALIA_SCREENS=$(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
   (
     first=1
@@ -388,10 +388,9 @@ if [ "$TARGET_SELF_THEMED" = "true" ]; then
 elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   WALLPAPER=$(pick_random_wallpaper "$TARGET_WALLPAPER_DIR")
   if [ -n "$WALLPAPER" ]; then
-    wait_for_awww 20
-    awww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
+    set_wallpaper "$WALLPAPER"
   else
-    echo "  Warning: no wallpaper images found in $TARGET_WALLPAPER_DIR"
+    echo "  Warning: no supported wallpapers found in $TARGET_WALLPAPER_DIR"
   fi
   # Update waypaper config so its folder picker opens the right directory
   WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"

@@ -231,6 +231,8 @@ let
     barInnerHighlight = "#00000000";
     pillBg = "#00000000";
     pillBorder = "#00000000";
+    moduleAnimationStyle = "slide";
+    popupAttachToBar = "true";
   };
 
   mkWaybarStyle =

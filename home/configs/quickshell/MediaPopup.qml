@@ -12,7 +12,7 @@ InfoPopup {
     property string artUrl: ""
 
     function exec(cmd) {
-        Quickshell.execDetached(["sh", "-c", cmd])
+        Quickshell.execDetached(["sh", "-c", cmd]);
     }
 
     Item {
@@ -45,7 +45,10 @@ InfoPopup {
                 anchors.centerIn: parent
                 text: "󰎈"
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.3)
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 28 }
+                font {
+                    family: "JetBrainsMono Nerd Font"
+                    pixelSize: 28
+                }
                 visible: cover.status !== Image.Ready
             }
         }
@@ -61,7 +64,11 @@ InfoPopup {
                 width: parent.width
                 text: root.track || "—"
                 color: root.themeFg
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: Font.Medium }
+                font {
+                    family: "JetBrainsMono Nerd Font"
+                    pixelSize: 11
+                    weight: Font.Medium
+                }
                 wrapMode: Text.WordWrap
                 maximumLineCount: 2
                 elide: Text.ElideRight
@@ -71,7 +78,10 @@ InfoPopup {
                 width: parent.width
                 text: root.artist
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.65)
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 10 }
+                font {
+                    family: "JetBrainsMono Nerd Font"
+                    pixelSize: 10
+                }
                 elide: Text.ElideRight
                 visible: root.artist !== ""
             }
@@ -80,7 +90,11 @@ InfoPopup {
                 width: parent.width
                 text: root.album
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.4)
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 9; italic: true }
+                font {
+                    family: "JetBrainsMono Nerd Font"
+                    pixelSize: 9
+                    italic: true
+                }
                 elide: Text.ElideRight
                 visible: root.album !== ""
             }
@@ -97,54 +111,6 @@ InfoPopup {
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: 10
 
-        component CtrlBtn: Item {
-            id: btn
-            property string icon
-            property bool primary: false
-            signal activated()
-            width: primary ? 36 : 28
-            height: primary ? 36 : 28
-
-            Rectangle {
-                anchors.fill: parent
-                radius: width / 2
-                color: btnMouse.pressed
-                    ? Qt.rgba(1, 1, 1, 0.18)
-                    : btnMouse.containsMouse
-                        ? Qt.rgba(1, 1, 1, 0.10)
-                        : btn.primary ? root.pillBg : "transparent"
-                border.width: 1
-                border.color: btnMouse.containsMouse
-                    ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.5)
-                    : root.pillBorder
-                Behavior on color { ColorAnimation { duration: 160 } }
-                Behavior on border.color { ColorAnimation { duration: 160 } }
-                scale: btnMouse.pressed ? 0.92 : 1.0
-                Behavior on scale { SpringAnimation { spring: 4; damping: 0.55; mass: 0.6 } }
-            }
-
-            Text {
-                anchors.centerIn: parent
-                text: btn.icon
-                color: btnMouse.containsMouse
-                    ? root.themeAccent
-                    : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.85)
-                font {
-                    family: "JetBrainsMono Nerd Font"
-                    pixelSize: btn.primary ? 18 : 14
-                }
-                Behavior on color { ColorAnimation { duration: 160 } }
-            }
-
-            MouseArea {
-                id: btnMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: btn.activated()
-            }
-        }
-
         CtrlBtn {
             icon: "󰒮"
             onActivated: root.exec("playerctl previous")
@@ -157,6 +123,64 @@ InfoPopup {
         CtrlBtn {
             icon: "󰒭"
             onActivated: root.exec("playerctl next")
+        }
+    }
+
+    component CtrlBtn: Item {
+        id: btn
+        property string icon
+        property bool primary: false
+        signal activated
+        width: primary ? 36 : 28
+        height: primary ? 36 : 28
+
+        Rectangle {
+            anchors.fill: parent
+            radius: width / 2
+            color: btnMouse.pressed ? Qt.rgba(1, 1, 1, 0.18) : btnMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : btn.primary ? root.pillBg : "transparent"
+            border.width: 1
+            border.color: btnMouse.containsMouse ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.5) : root.pillBorder
+            Behavior on color {
+                ColorAnimation {
+                    duration: 160
+                }
+            }
+            Behavior on border.color {
+                ColorAnimation {
+                    duration: 160
+                }
+            }
+            scale: btnMouse.pressed ? 0.92 : 1.0
+            Behavior on scale {
+                SpringAnimation {
+                    spring: 4
+                    damping: 0.55
+                    mass: 0.6
+                }
+            }
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: btn.icon
+            color: btnMouse.containsMouse ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.85)
+            font {
+                family: "JetBrainsMono Nerd Font"
+                pixelSize: btn.primary ? 18 : 14
+            }
+            Behavior on color {
+                ColorAnimation {
+                    duration: 160
+                }
+            }
+        }
+
+        MouseArea {
+            id: btnMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: btn.activated()
         }
     }
 }

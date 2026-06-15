@@ -646,5 +646,8 @@ rec {
       border-color=${highBorder}
       text-color=${highText}
       default-timeout=${toString highTimeout}
+
+      [mode=dnd]
+      invisible=1
     '';
 }

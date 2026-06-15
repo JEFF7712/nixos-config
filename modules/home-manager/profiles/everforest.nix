@@ -122,6 +122,7 @@ in
       pillBg = "#00000000";
       pillBorder = "#00000000";
       barHeight = "30";
+      barMarginTop = "7";
       exclusiveZoneOffset = "-3";
     };
 

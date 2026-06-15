@@ -16,7 +16,10 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.label
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
-        font { family: "JetBrainsMono Nerd Font"; pixelSize: 10 }
+        font {
+            family: "JetBrainsMono Nerd Font"
+            pixelSize: 10
+        }
     }
 
     Item {
@@ -42,7 +45,11 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: root.value
             color: root.themeFg
-            font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: Font.Medium }
+            font {
+                family: "JetBrainsMono Nerd Font"
+                pixelSize: 11
+                weight: Font.Medium
+            }
             x: valueClip.overflows ? scrollState.x : valueClip.restX
         }
 
@@ -50,17 +57,27 @@ Item {
             running: valueClip.overflows && root.active
             loops: Animation.Infinite
 
-            PropertyAction { target: scrollState; property: "x"; value: valueClip.restX }
-            PauseAnimation { duration: 1800 }
+            PropertyAction {
+                target: scrollState
+                property: "x"
+                value: valueClip.restX
+            }
+            PauseAnimation {
+                duration: 1800
+            }
             NumberAnimation {
-                target: scrollState; property: "x"
+                target: scrollState
+                property: "x"
                 to: 0
                 duration: valueClip.scrollMs
                 easing.type: Easing.InOutQuad
             }
-            PauseAnimation { duration: 1800 }
+            PauseAnimation {
+                duration: 1800
+            }
             NumberAnimation {
-                target: scrollState; property: "x"
+                target: scrollState
+                property: "x"
                 to: valueClip.restX
                 duration: valueClip.scrollMs
                 easing.type: Easing.InOutQuad

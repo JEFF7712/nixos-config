@@ -13,33 +13,40 @@ PanelWindow {
     property int focusedIndex: -1
 
     function open() {
-        listProc.running = true
-        activeProc.running = true
-        shown = true
+        listProc.running = true;
+        activeProc.running = true;
+        shown = true;
     }
     function close() {
-        shown = false
-        focusedIndex = -1
+        shown = false;
+        focusedIndex = -1;
     }
-    function toggle() { if (shown) close(); else open() }
+    function toggle() {
+        if (shown)
+            close();
+        else
+            open();
+    }
 
     function activate(name) {
         // Detach with setsid -f and redirect all stdio so the child survives
         // switch-profile's pkill-quickshell and can't be killed by SIGPIPE.
-        switchProc.command = [
-            "bash", "-c",
-            "setsid -f switch-profile \"$1\" </dev/null >/dev/null 2>&1",
-            "--", name
-        ]
-        switchProc.running = true
-        close()
+        switchProc.command = ["bash", "-c", "setsid -f switch-profile \"$1\" </dev/null >/dev/null 2>&1", "--", name];
+        switchProc.running = true;
+        close();
     }
 
     IpcHandler {
         target: "profile"
-        function toggle(): void { root.toggle() }
-        function show(): void { root.open() }
-        function hide(): void { root.close() }
+        function toggle(): void {
+            root.toggle();
+        }
+        function show(): void {
+            root.open();
+        }
+        function hide(): void {
+            root.close();
+        }
     }
 
     WlrLayershell.namespace: "quickshell-profile-switcher"
@@ -47,7 +54,12 @@ PanelWindow {
     WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     visible: shown
-    anchors { top: true; bottom: true; left: true; right: true }
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
     exclusiveZone: -1
     color: "transparent"
 
@@ -56,8 +68,8 @@ PanelWindow {
         command: ["sh", "-c", "for d in \"$HOME\"/.config/desktop-profiles/*/; do [ -d \"$d\" ] && basename \"$d\"; done"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const lines = text.split("\n").map(s => s.trim()).filter(s => s.length > 0)
-                root.profiles = lines
+                const lines = text.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+                root.profiles = lines;
             }
         }
     }
@@ -66,7 +78,9 @@ PanelWindow {
         id: activeProc
         command: ["sh", "-c", "cat \"$HOME\"/.config/desktop-profiles/active 2>/dev/null || true"]
         stdout: StdioCollector {
-            onStreamFinished: { root.activeProfile = text.trim() }
+            onStreamFinished: {
+                root.activeProfile = text.trim();
+            }
         }
     }
 
@@ -75,12 +89,31 @@ PanelWindow {
         command: ["true"]
     }
 
-    Shortcut { sequence: "Escape"; onActivated: root.close() }
-    Shortcut { sequence: "Return"; onActivated: if (root.focusedIndex >= 0) root.activate(root.profiles[root.focusedIndex]) }
-    Shortcut { sequence: "Right"; onActivated: root.focusedIndex = Math.min(root.profiles.length - 1, Math.max(0, root.focusedIndex) + 1) }
-    Shortcut { sequence: "Left";  onActivated: root.focusedIndex = Math.max(0, (root.focusedIndex < 0 ? 1 : root.focusedIndex) - 1) }
-    Shortcut { sequence: "Down";  onActivated: root.focusedIndex = Math.min(root.profiles.length - 1, (root.focusedIndex < 0 ? 0 : root.focusedIndex) + grid.columns) }
-    Shortcut { sequence: "Up";    onActivated: root.focusedIndex = Math.max(0, (root.focusedIndex < 0 ? 0 : root.focusedIndex) - grid.columns) }
+    Shortcut {
+        sequence: "Escape"
+        onActivated: root.close()
+    }
+    Shortcut {
+        sequence: "Return"
+        onActivated: if (root.focusedIndex >= 0)
+            root.activate(root.profiles[root.focusedIndex])
+    }
+    Shortcut {
+        sequence: "Right"
+        onActivated: root.focusedIndex = Math.min(root.profiles.length - 1, Math.max(0, root.focusedIndex) + 1)
+    }
+    Shortcut {
+        sequence: "Left"
+        onActivated: root.focusedIndex = Math.max(0, (root.focusedIndex < 0 ? 1 : root.focusedIndex) - 1)
+    }
+    Shortcut {
+        sequence: "Down"
+        onActivated: root.focusedIndex = Math.min(root.profiles.length - 1, (root.focusedIndex < 0 ? 0 : root.focusedIndex) + grid.columns)
+    }
+    Shortcut {
+        sequence: "Up"
+        onActivated: root.focusedIndex = Math.max(0, (root.focusedIndex < 0 ? 0 : root.focusedIndex) - grid.columns)
+    }
 
     MouseArea {
         anchors.fill: parent
@@ -98,10 +131,23 @@ PanelWindow {
         border.color: Qt.rgba(1, 1, 1, 0.14)
         opacity: root.shown ? 1.0 : 0.0
         scale: root.shown ? 1.0 : 0.96
-        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.55; mass: 0.7 } }
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on scale {
+            SpringAnimation {
+                spring: 3.5
+                damping: 0.55
+                mass: 0.7
+            }
+        }
 
-        MouseArea { anchors.fill: parent }
+        MouseArea {
+            anchors.fill: parent
+        }
 
         Grid {
             id: grid
@@ -128,12 +174,12 @@ PanelWindow {
                         radius: 10
                         color: "transparent"
                         border.width: 1
-                        border.color: tile.highlight
-                            ? Qt.rgba(1, 1, 1, 0.85)
-                            : (tile.isActive
-                                ? Qt.rgba(1, 1, 1, 0.45)
-                                : Qt.rgba(1, 1, 1, 0.10))
-                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                        border.color: tile.highlight ? Qt.rgba(1, 1, 1, 0.85) : (tile.isActive ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(1, 1, 1, 0.10))
+                        Behavior on border.color {
+                            ColorAnimation {
+                                duration: 120
+                            }
+                        }
                     }
 
                     Item {
@@ -182,7 +228,11 @@ PanelWindow {
                         font.weight: tile.isActive ? Font.Medium : Font.Normal
                         style: Text.Outline
                         styleColor: Qt.rgba(0, 0, 0, 0.55)
-                        Behavior on opacity { NumberAnimation { duration: 120 } }
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: 120
+                            }
+                        }
                     }
 
                     MouseArea {

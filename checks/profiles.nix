@@ -81,9 +81,37 @@ let
       true;
 
   names = builtins.attrNames byProfile;
+
+  slideProfiles = [
+    "gruvbox"
+    "minimal"
+    "nord"
+  ];
+
+  checkSlideProfile =
+    name:
+    let
+      pf = byProfile.${name};
+      theme = builtins.fromJSON (pf."quickshell-theme.json" or "{}");
+      lightTheme = builtins.fromJSON (pf."quickshell-theme-light.json" or "{}");
+      hasLightTheme = pf ? "quickshell-theme-light.json";
+    in
+    if theme.moduleAnimationStyle or "" != "slide" then
+      builtins.throw "profile '${name}': quickshell-theme.json does not set moduleAnimationStyle=slide"
+    else if hasLightTheme && lightTheme.moduleAnimationStyle or "" != "slide" then
+      builtins.throw "profile '${name}': quickshell-theme-light.json does not set moduleAnimationStyle=slide"
+    else if theme.popupAttachToBar or "" != "true" then
+      builtins.throw "profile '${name}': quickshell-theme.json does not set popupAttachToBar=true"
+    else if hasLightTheme && lightTheme.popupAttachToBar or "" != "true" then
+      builtins.throw "profile '${name}': quickshell-theme-light.json does not set popupAttachToBar=true"
+    else
+      true;
+
   ok = builtins.all (n: checkProfile n byProfile.${n}) names;
+  slideOk = builtins.all checkSlideProfile slideProfiles;
 in
 {
-  inherit ok names;
+  ok = ok && slideOk;
+  inherit names;
   count = builtins.length names;
 }

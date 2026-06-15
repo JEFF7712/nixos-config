@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROFILES_DIR="$HOME/.config/desktop-profiles"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+. "$SCRIPT_DIR/profile-common"
+
 PROFILE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "noctalia")
 VARIANT=$(cat "$PROFILES_DIR/active-variant" 2>/dev/null || echo "dark")
 
 if [ "$PROFILE" = "noctalia" ]; then
+  stop_video_wallpaper
   while IFS= read -r screen; do
     noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
   done < <(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
@@ -21,13 +25,11 @@ fi
 
 [ -d "$WALLPAPER_DIR" ] || exit 0
 
-WALLPAPER=$(find "$WALLPAPER_DIR" -maxdepth 1 \
-  -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) \
-  | shuf -n 1)
+WALLPAPER=$(pick_random_wallpaper "$WALLPAPER_DIR")
 
 [ -n "$WALLPAPER" ] || exit 0
 
-awww img "$WALLPAPER" --transition-type fade --transition-duration 1 2>/dev/null || true
+set_wallpaper "$WALLPAPER"
 
 WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
 if [ -f "$WAYPAPER_CFG" ]; then

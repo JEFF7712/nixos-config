@@ -28,60 +28,72 @@ PanelWindow {
     readonly property int tileHeight: 72
     readonly property int tileSpacing: 6
 
-    readonly property var allEntries: (DesktopEntries.applications.values || [])
-        .filter(e => !e.noDisplay)
-        .sort((a, b) => a.name.localeCompare(b.name))
+    readonly property var allEntries: (DesktopEntries.applications.values || []).filter(e => !e.noDisplay).sort((a, b) => a.name.localeCompare(b.name))
 
     readonly property var entries: {
-        const q = query.toLowerCase().trim()
-        return q.length > 0
-            ? allEntries.filter(e => e.name.toLowerCase().includes(q))
-            : allEntries
+        const q = query.toLowerCase().trim();
+        return q.length > 0 ? allEntries.filter(e => e.name.toLowerCase().includes(q)) : allEntries;
     }
 
     function applyTheme(theme) {
-        root.accent = theme && theme.accent ? theme.accent : "#b1c6ff"
-        root.cardBg = theme && theme.popupBg ? theme.popupBg : Qt.rgba(0.13, 0.13, 0.13, 0.875)
-        root.textColor = theme && theme.fg ? theme.fg : "#ffffff"
-        root.flatMode = !!(theme && theme.flatMode === "true")
-        root.cardBorder = theme && theme.barBorder ? theme.barBorder : "#3dffffff"
-        root.innerHighlight = theme && theme.barInnerHighlight ? theme.barInnerHighlight : "#0fffffff"
-        root.pillBg = theme && theme.pillBg ? theme.pillBg : "#0affffff"
-        root.pillBorder = theme && theme.pillBorder ? theme.pillBorder : "#14ffffff"
+        root.accent = theme && theme.accent ? theme.accent : "#b1c6ff";
+        root.cardBg = theme && theme.popupBg ? theme.popupBg : Qt.rgba(0.13, 0.13, 0.13, 0.875);
+        root.textColor = theme && theme.fg ? theme.fg : "#ffffff";
+        root.flatMode = !!(theme && theme.flatMode === "true");
+        root.cardBorder = theme && theme.barBorder ? theme.barBorder : "#3dffffff";
+        root.innerHighlight = theme && theme.barInnerHighlight ? theme.barInnerHighlight : "#0fffffff";
+        root.pillBg = theme && theme.pillBg ? theme.pillBg : "#0affffff";
+        root.pillBorder = theme && theme.pillBorder ? theme.pillBorder : "#14ffffff";
     }
 
     function open() {
-        themeLoader.running = true
-        query = ""
-        focusedIndex = 0
-        shown = true
+        themeLoader.running = true;
+        query = "";
+        focusedIndex = 0;
+        shown = true;
     }
-    function close() { shown = false }
-    function toggle() { if (shown) close(); else open() }
+    function close() {
+        shown = false;
+    }
+    function toggle() {
+        if (shown)
+            close();
+        else
+            open();
+    }
 
     function launch(entry) {
-        if (entry) entry.execute()
-        close()
+        if (entry)
+            entry.execute();
+        close();
     }
 
     function moveFocus(dx, dy) {
-        const n = entries.length
-        if (n === 0) return
-        const cur = Math.max(0, Math.min(n - 1, focusedIndex))
-        let r = Math.floor(cur / columns)
-        let c = cur % columns
-        c = Math.max(0, Math.min(columns - 1, c + dx))
-        r = Math.max(0, r + dy)
-        let next = r * columns + c
-        if (next >= n) next = n - 1
-        focusedIndex = next
+        const n = entries.length;
+        if (n === 0)
+            return;
+        const cur = Math.max(0, Math.min(n - 1, focusedIndex));
+        let r = Math.floor(cur / columns);
+        let c = cur % columns;
+        c = Math.max(0, Math.min(columns - 1, c + dx));
+        r = Math.max(0, r + dy);
+        let next = r * columns + c;
+        if (next >= n)
+            next = n - 1;
+        focusedIndex = next;
     }
 
     IpcHandler {
         target: "launcher"
-        function toggle(): void { root.toggle() }
-        function show(): void { root.open() }
-        function hide(): void { root.close() }
+        function toggle(): void {
+            root.toggle();
+        }
+        function show(): void {
+            root.open();
+        }
+        function hide(): void {
+            root.close();
+        }
     }
 
     WlrLayershell.namespace: "quickshell-app-launcher"
@@ -103,23 +115,18 @@ PanelWindow {
     Process {
         id: themeLoader
         running: true
-        command: ["sh", "-c",
-            "p=\"$HOME/.config/desktop-profiles\";" +
-            "[ -f \"$p/active\" ] || exit 0;" +
-            "d=\"$p/$(cat $p/active)\";" +
-            "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" +
-            "t=\"$d/quickshell-theme.json\";" +
-            "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" +
-            "cat \"$t\" 2>/dev/null"
-        ]
+        command: ["sh", "-c", "p=\"$HOME/.config/desktop-profiles\";" + "[ -f \"$p/active\" ] || exit 0;" + "d=\"$p/$(cat $p/active)\";" + "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" + "t=\"$d/quickshell-theme.json\";" + "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" + "cat \"$t\" 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const txt = this.text.trim()
-                if (!txt) { root.applyTheme(null); return }
+                const txt = this.text.trim();
+                if (!txt) {
+                    root.applyTheme(null);
+                    return;
+                }
                 try {
-                    root.applyTheme(JSON.parse(txt))
+                    root.applyTheme(JSON.parse(txt));
                 } catch (e) {
-                    console.warn("quickshell-theme.json parse failed:", e)
+                    console.warn("quickshell-theme.json parse failed:", e);
                 }
             }
         }
@@ -134,8 +141,19 @@ PanelWindow {
         border.color: root.cardBorder
         opacity: root.shown ? 1.0 : 0.0
         scale: root.shown ? 1.0 : 0.96
-        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.55; mass: 0.7 } }
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on scale {
+            SpringAnimation {
+                spring: 3.5
+                damping: 0.55
+                mass: 0.7
+            }
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -144,7 +162,9 @@ PanelWindow {
             color: root.innerHighlight
         }
 
-        MouseArea { anchors.fill: parent }
+        MouseArea {
+            anchors.fill: parent
+        }
 
         Column {
             id: contentColumn
@@ -159,10 +179,12 @@ PanelWindow {
                 radius: root.innerRadius
                 color: root.pillBg
                 border.width: 1
-                border.color: queryInput.activeFocus
-                    ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.55)
-                    : root.pillBorder
-                Behavior on border.color { ColorAnimation { duration: 140 } }
+                border.color: queryInput.activeFocus ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.55) : root.pillBorder
+                Behavior on border.color {
+                    ColorAnimation {
+                        duration: 140
+                    }
+                }
 
                 TextInput {
                     id: queryInput
@@ -178,8 +200,8 @@ PanelWindow {
                     text: root.query
                     focus: root.shown
                     onTextChanged: {
-                        root.query = text
-                        root.focusedIndex = 0
+                        root.query = text;
+                        root.focusedIndex = 0;
                     }
                     cursorDelegate: Rectangle {
                         visible: queryInput.cursorVisible
@@ -190,20 +212,20 @@ PanelWindow {
                     Keys.onEscapePressed: root.close()
                     Keys.onReturnPressed: root.launch(root.entries[root.focusedIndex])
                     Keys.onEnterPressed: root.launch(root.entries[root.focusedIndex])
-                    Keys.onLeftPressed: (event) => {
+                    Keys.onLeftPressed: event => {
                         if (text.length === 0 || cursorPosition === 0) {
-                            root.moveFocus(-1, 0)
-                            event.accepted = true
+                            root.moveFocus(-1, 0);
+                            event.accepted = true;
                         } else {
-                            event.accepted = false
+                            event.accepted = false;
                         }
                     }
-                    Keys.onRightPressed: (event) => {
+                    Keys.onRightPressed: event => {
                         if (text.length === 0 || cursorPosition === text.length) {
-                            root.moveFocus(1, 0)
-                            event.accepted = true
+                            root.moveFocus(1, 0);
+                            event.accepted = true;
                         } else {
-                            event.accepted = false
+                            event.accepted = false;
                         }
                     }
                     Keys.onUpPressed: root.moveFocus(0, -1)
@@ -264,7 +286,11 @@ PanelWindow {
                             height: root.tileHeight
                             radius: Math.max(0, root.innerRadius - 2)
                             color: tile.hovered || tile.isFocused ? root.pillBg : "transparent"
-                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 120
+                                }
+                            }
 
                             Image {
                                 anchors.centerIn: parent
@@ -292,7 +318,11 @@ PanelWindow {
                                 horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
-                                Behavior on opacity { NumberAnimation { duration: 120 } }
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: 120
+                                    }
+                                }
                             }
                         }
 

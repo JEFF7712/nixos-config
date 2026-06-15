@@ -78,6 +78,7 @@
         grim
         slurp
         awww
+        mpvpaper
         wl-clipboard
         nwg-look
         kdePackages.qt6ct

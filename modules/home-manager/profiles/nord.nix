@@ -136,6 +136,9 @@ in
       pillBg = "#00000000";
       pillBorder = "#00000000";
       flatMode = "true";
+      moduleAnimationStyle = "slide";
+      popupAttachToBar = "true";
+      showBarDividers = "false";
       dividerColor = r.bg3;
     };
 

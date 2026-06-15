@@ -126,14 +126,6 @@ window-rule {
     open-maximized false
 }
 window-rule {
-    match is-active=true
-    opacity 0.8
-}
-window-rule {
-    match is-active=false
-    opacity 0.6
-}
-window-rule {
     match title="Waypaper"
     open-floating true
     opacity 0.7
@@ -161,6 +153,11 @@ layer-rule {
 layer-rule {
   match namespace="^quickshell-popup$"
   geometry-corner-radius 15
+}
+
+layer-rule {
+  match namespace="^quickshell-notifications$"
+  geometry-corner-radius 14
 }
 
 overview {

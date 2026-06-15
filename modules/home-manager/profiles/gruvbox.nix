@@ -158,6 +158,8 @@ in
       pillBorder = "#00000000";
       flatMode = "true";
       showBarDividers = "false";
+      moduleAnimationStyle = "slide";
+      popupAttachToBar = "true";
       dividerColor = p.bg3;
     };
 

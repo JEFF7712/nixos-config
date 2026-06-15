@@ -1,85 +1,66 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 InfoPopup {
     id: root
     title: "NOTIFICATIONS"
 
-    property var allNotifications: []
-    property var dismissedIds: ({})
     property color themeWarm: "#e6dcc6"
+    property var expandedApps: ({})
 
-    readonly property var filteredNotifications:
-        root.allNotifications.filter(n => !root.dismissedIds[n.id])
+    readonly property var historyList: NotifService.model.values
+    readonly property int unreadCount: root.historyList.length
 
-    readonly property var notifications: root.filteredNotifications.slice(0, 7)
-    readonly property int unreadCount: root.filteredNotifications.length
-    readonly property bool hasOverflow: root.filteredNotifications.length > root.notifications.length
-
-    function displayApp(notification) {
-        return notification.app || "system"
+    readonly property var groups: {
+        const list = NotifService.model.values;
+        const map = {};
+        const order = [];
+        for (var i = list.length - 1; i >= 0; i--) {
+            const n = list[i];
+            const app = NotifService.appLabel(n);
+            if (!map[app]) {
+                map[app] = {
+                    app: app,
+                    icon: NotifService.iconSource(n),
+                    items: []
+                };
+                order.push(app);
+            }
+            map[app].items.push(n);
+        }
+        return order.map(a => map[a]);
     }
 
-    function displaySummary(notification) {
-        return notification.summary || notification.body || "Notification"
+    function urgencyColor(notification) {
+        const u = NotifService.urgencyName(notification);
+        if (u === "critical")
+            return root.themeWarm;
+        if (u === "low")
+            return Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42);
+        return root.themeAccent;
     }
 
-    function displayBody(notification) {
-        return notification.body && notification.body !== notification.summary ? notification.body : ""
+    function toggleApp(app) {
+        const next = Object.assign({}, root.expandedApps);
+        next[app] = !next[app];
+        root.expandedApps = next;
     }
 
-    function urgencyColor(urgency) {
-        if (urgency === "critical") return root.themeWarm
-        if (urgency === "low") return Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
-        return root.themeAccent
-    }
-
-    function hasActions(notification) {
-        return notification.actions && Object.keys(notification.actions).length > 0
+    function clearGroup(group) {
+        for (const n of group.items.slice())
+            NotifService.dismiss(n);
     }
 
     function countLabel() {
-        if (root.unreadCount === 0) return "no notifications"
-        return root.unreadCount + " in history"
+        if (root.unreadCount === 0)
+            return "no notifications";
+        return root.unreadCount + (root.unreadCount === 1 ? " notification" : " notifications");
     }
 
     function countColor() {
-        if (root.unreadCount === 0) return Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.48)
-        return root.themeFg
-    }
-
-    function rowBackgroundColor(pressed, hovered) {
-        if (pressed) return Qt.rgba(1, 1, 1, 0.08)
-        if (hovered) return Qt.rgba(1, 1, 1, 0.05)
-        return "transparent"
-    }
-
-    function footerText() {
-        if (root.notifications.length === 0) return "history is empty"
-        if (root.hasOverflow) return "+" + (root.filteredNotifications.length - root.notifications.length) + " more"
-        return ""
-    }
-
-    function dismiss(id) {
-        const next = Object.assign({}, root.dismissedIds)
-        next[id] = true
-        root.dismissedIds = next
-        Quickshell.execDetached(["sh", "-c", "makoctl dismiss -n " + id + " --no-history 2>/dev/null"])
-    }
-
-    function clearShown() {
-        const next = Object.assign({}, root.dismissedIds)
-        for (const notification of root.filteredNotifications) {
-            next[notification.id] = true
-        }
-        root.dismissedIds = next
-        Quickshell.execDetached(["sh", "-c", "makoctl dismiss -a --no-history 2>/dev/null"])
-    }
-
-    function restoreLatest() {
-        Quickshell.execDetached(["sh", "-c", "makoctl restore 2>/dev/null"])
-        fetchProc.running = true
+        if (root.unreadCount === 0)
+            return Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.48);
+        return root.themeFg;
     }
 
     Item {
@@ -98,26 +79,14 @@ InfoPopup {
             }
         }
 
-        Row {
+        NotificationButton {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
-
-            NotificationButton {
-                label: "restore"
-                visible: root.unreadCount === 0
-                themeFg: root.themeFg
-                themeAccent: root.themeAccent
-                onActivated: root.restoreLatest()
-            }
-
-            NotificationButton {
-                label: "clear"
-                visible: root.unreadCount > 0
-                themeFg: root.themeFg
-                themeAccent: root.themeAccent
-                onActivated: root.clearShown()
-            }
+            label: "clear all"
+            visible: root.unreadCount > 0
+            themeFg: root.themeFg
+            themeAccent: root.themeAccent
+            onActivated: NotifService.dismissAll()
         }
     }
 
@@ -128,127 +97,195 @@ InfoPopup {
     }
 
     Repeater {
-        model: root.notifications
+        model: root.groups
 
-        delegate: Item {
-            id: notifItem
+        delegate: Column {
+            id: groupItem
+            required property var modelData
+
+            readonly property bool expanded: root.expandedApps[modelData.app] === true
+            readonly property var visibleItems: expanded ? modelData.items : modelData.items.slice(0, 1)
+
             width: parent.width
-            height: Math.max(42, textCol.implicitHeight + 12)
+            spacing: 2
 
-            readonly property color accentColor: root.urgencyColor(modelData.urgency)
+            Item {
+                width: parent.width
+                height: 28
 
-            Rectangle {
-                anchors.fill: parent
-                radius: root.flatMode ? 0 : 6
-                color: root.rowBackgroundColor(rowMouse.pressed, rowMouse.containsMouse)
-                Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-            }
+                Image {
+                    id: groupIcon
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 16
+                    height: 16
+                    sourceSize.width: 32
+                    sourceSize.height: 32
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    visible: status === Image.Ready
+                    source: groupItem.modelData.icon
+                }
 
-            Rectangle {
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                width: 2
-                height: parent.height - 14
-                radius: 1
-                color: notifItem.accentColor
-                opacity: modelData.urgency === "normal" ? 0.0 : 0.75
-            }
-
-            Column {
-                id: textCol
-                anchors.left: parent.left
-                anchors.right: closeBtn.left
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
-                spacing: 2
-
-                Row {
-                    width: parent.width
-                    spacing: 6
-
-                    Text {
-                        width: parent.width - metaText.implicitWidth - 6
-                        text: root.displaySummary(modelData)
-                        color: root.themeFg
-                        font {
-                            family: "JetBrainsMono Nerd Font"
-                            pixelSize: 10
-                            weight: Font.Medium
-                        }
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: root.displayBody(modelData) === "" ? 2 : 1
-                        elide: Text.ElideRight
+                Text {
+                    id: groupName
+                    anchors.left: groupIcon.visible ? groupIcon.right : parent.left
+                    anchors.leftMargin: groupIcon.visible ? 7 : 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: groupItem.modelData.app.toUpperCase()
+                    color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.75)
+                    font {
+                        family: "JetBrainsMono Nerd Font"
+                        pixelSize: 9
+                        letterSpacing: 1.2
+                        weight: Font.Medium
                     }
+                }
+
+                Rectangle {
+                    anchors.left: groupName.right
+                    anchors.leftMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: badge.implicitWidth + 10
+                    height: 15
+                    radius: 7
+                    color: root.pillBg
+                    border.width: 1
+                    border.color: root.pillBorder
+                    visible: groupItem.modelData.items.length > 1
 
                     Text {
-                        id: metaText
-                        text: root.displayApp(modelData).toUpperCase()
-                        color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
+                        id: badge
+                        anchors.centerIn: parent
+                        text: groupItem.modelData.items.length
+                        color: root.themeAccent
                         font {
                             family: "JetBrainsMono Nerd Font"
                             pixelSize: 8
                             weight: Font.Medium
                         }
-                        elide: Text.ElideRight
                     }
                 }
 
-                Text {
-                    width: parent.width
-                    text: root.displayBody(modelData)
-                    visible: text !== ""
-                    color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.56)
-                    font {
-                        family: "JetBrainsMono Nerd Font"
-                        pixelSize: 9
-                    }
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 2
-                    elide: Text.ElideRight
-                }
-            }
-
-            Item {
-                id: closeBtn
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: 20
-                height: 20
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "×"
-                    color: closeMouse.containsMouse
-                        ? root.themeFg
-                        : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.45)
-                    font {
-                        family: "JetBrainsMono Nerd Font"
-                        pixelSize: 14
-                        weight: Font.Medium
-                    }
-                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                NotificationButton {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: "clear"
+                    themeFg: root.themeFg
+                    themeAccent: root.themeAccent
+                    onActivated: root.clearGroup(groupItem.modelData)
                 }
 
                 MouseArea {
-                    id: closeMouse
                     anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.dismiss(modelData.id)
+                    anchors.rightMargin: 40
+                    cursorShape: groupItem.modelData.items.length > 1 ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: {
+                        if (groupItem.modelData.items.length > 1)
+                            root.toggleApp(groupItem.modelData.app);
+                    }
                 }
             }
 
-            MouseArea {
-                id: rowMouse
-                anchors.fill: parent
-                anchors.rightMargin: 24
-                hoverEnabled: true
-                cursorShape: root.hasActions(modelData) ? Qt.PointingHandCursor : Qt.ArrowCursor
-                onClicked: {
-                    if (root.hasActions(modelData)) {
-                        Quickshell.execDetached(["sh", "-c", "makoctl invoke -n " + modelData.id + " 2>/dev/null"])
-                        root.dismiss(modelData.id)
+            Repeater {
+                model: groupItem.visibleItems
+
+                delegate: Item {
+                    id: notifItem
+                    required property var modelData
+
+                    width: groupItem.width
+                    height: Math.max(36, textCol.implicitHeight + 10)
+
+                    readonly property color accentColor: root.urgencyColor(modelData)
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 2
+                        height: parent.height - 12
+                        radius: 1
+                        color: notifItem.accentColor
+                        opacity: NotifService.urgencyName(notifItem.modelData) === "normal" ? 0.0 : 0.7
+                    }
+
+                    Column {
+                        id: textCol
+                        anchors.left: parent.left
+                        anchors.right: closeBtn.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 8
+                        spacing: 2
+
+                        Text {
+                            width: parent.width
+                            text: notifItem.modelData.summary || notifItem.modelData.body || "Notification"
+                            color: root.themeFg
+                            font {
+                                family: "JetBrainsMono Nerd Font"
+                                pixelSize: 10
+                                weight: Font.Medium
+                            }
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: notifItem.modelData.body
+                            visible: text !== "" && text !== notifItem.modelData.summary
+                            color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.56)
+                            font {
+                                family: "JetBrainsMono Nerd Font"
+                                pixelSize: 9
+                            }
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 3
+                            elide: Text.ElideRight
+                            textFormat: Text.PlainText
+                        }
+                    }
+
+                    Item {
+                        id: closeBtn
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 20
+                        height: 20
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "×"
+                            color: closeMouse.containsMouse ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.45)
+                            font {
+                                family: "JetBrainsMono Nerd Font"
+                                pixelSize: 14
+                                weight: Font.Medium
+                            }
+                        }
+
+                        MouseArea {
+                            id: closeMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: NotifService.dismiss(notifItem.modelData)
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.rightMargin: 24
+                        cursorShape: notifItem.modelData.actions.length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                            const acts = notifItem.modelData.actions;
+                            if (acts.length > 0) {
+                                acts[0].invoke();
+                                NotifService.dismiss(notifItem.modelData);
+                            }
+                        }
                     }
                 }
             }
@@ -257,49 +294,17 @@ InfoPopup {
 
     Text {
         width: parent.width
-        text: root.footerText()
-        visible: text !== ""
+        text: "history is empty"
+        visible: root.unreadCount === 0
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.36)
         font {
             family: "JetBrainsMono Nerd Font"
             pixelSize: 9
-            italic: root.notifications.length === 0
+            italic: true
         }
         horizontalAlignment: Text.AlignHCenter
-        topPadding: root.notifications.length === 0 ? 8 : 2
-        bottomPadding: root.notifications.length === 0 ? 8 : 0
-    }
-
-    Process {
-        id: fetchProc
-        command: ["sh", "-c", "makoctl history -j 2>/dev/null"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const parsed = JSON.parse(this.text || "[]")
-                    root.allNotifications = parsed.map(n => ({
-                        id: String(n.id),
-                        app: n.app_name || n.desktop_entry || "",
-                        summary: n.summary || "",
-                        body: n.body || "",
-                        urgency: n.urgency || "normal",
-                        actions: n.actions || {}
-                    }))
-                } catch (e) {
-                    root.allNotifications = []
-                }
-            }
-        }
-    }
-
-    onShownChanged: { if (shown) fetchProc.running = true }
-
-    Timer {
-        running: true
-        interval: root.shown ? 5000 : 15000
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: fetchProc.running = true
+        topPadding: 8
+        bottomPadding: 8
     }
 
     component NotificationButton: Item {
@@ -307,7 +312,7 @@ InfoPopup {
         property string label: ""
         property color themeFg: "#ffffff"
         property color themeAccent: "#ffffff"
-        signal activated()
+        signal activated
 
         width: buttonText.implicitWidth + 10
         height: 20
@@ -316,15 +321,18 @@ InfoPopup {
             id: buttonText
             anchors.centerIn: parent
             text: buttonRoot.label
-            color: buttonMouse.containsMouse
-                ? buttonRoot.themeAccent
-                : Qt.rgba(buttonRoot.themeFg.r, buttonRoot.themeFg.g, buttonRoot.themeFg.b, 0.55)
+            color: buttonMouse.containsMouse ? buttonRoot.themeAccent : Qt.rgba(buttonRoot.themeFg.r, buttonRoot.themeFg.g, buttonRoot.themeFg.b, 0.55)
             font {
                 family: "JetBrainsMono Nerd Font"
                 pixelSize: 9
                 weight: Font.Medium
             }
-            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            Behavior on color {
+                ColorAnimation {
+                    duration: 140
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
 
         MouseArea {

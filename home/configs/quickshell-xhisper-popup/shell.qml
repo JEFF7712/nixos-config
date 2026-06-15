@@ -10,7 +10,11 @@ ShellRoot {
         id: root
         color: "transparent"
 
-        anchors { bottom: true; left: true; right: true }
+        anchors {
+            bottom: true
+            left: true
+            right: true
+        }
         margins.bottom: 20
         implicitHeight: 96
 
@@ -30,8 +34,9 @@ ShellRoot {
             running: root.listening
             stdout: SplitParser {
                 onRead: line => {
-                    const v = parseFloat(line)
-                    if (!isNaN(v)) root.level = v
+                    const v = parseFloat(line);
+                    if (!isNaN(v))
+                        root.level = v;
                 }
             }
         }
@@ -50,9 +55,24 @@ ShellRoot {
                 radius: width / 2
                 color: "#ffffff"
                 opacity: root.level * 0.35
-                Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
-                Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
-                Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+                Behavior on width {
+                    NumberAnimation {
+                        duration: 120
+                        easing.type: Easing.OutQuad
+                    }
+                }
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 120
+                        easing.type: Easing.OutQuad
+                    }
+                }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 120
+                        easing.type: Easing.OutQuad
+                    }
+                }
             }
 
             // Core dot — flat, dark, static.

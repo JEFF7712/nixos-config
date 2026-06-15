@@ -9,7 +9,7 @@ Item {
     property bool busy: false
     property color themeFg: "#ffffff"
     property color themeAccent: "#ffffff"
-    signal activated()
+    signal activated
 
     width: parent.width
     height: 26
@@ -18,12 +18,13 @@ Item {
         id: bg
         anchors.fill: parent
         radius: 6
-        color: mouse.pressed
-            ? Qt.rgba(1, 1, 1, 0.10)
-            : mouse.containsMouse
-                ? Qt.rgba(1, 1, 1, 0.06)
-                : "transparent"
-        Behavior on color { ColorAnimation { duration: 160; easing.type: Easing.OutCubic } }
+        color: mouse.pressed ? Qt.rgba(1, 1, 1, 0.10) : mouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+        Behavior on color {
+            ColorAnimation {
+                duration: 160
+                easing.type: Easing.OutCubic
+            }
+        }
     }
 
     Text {
@@ -33,12 +34,17 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.icon
         visible: root.icon !== ""
-        color: root.active
-            ? root.themeAccent
-            : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
-        font { family: "JetBrainsMono Nerd Font"; pixelSize: 12 }
+        color: root.active ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
+        font {
+            family: "JetBrainsMono Nerd Font"
+            pixelSize: 12
+        }
         opacity: root.busy ? 0.4 : 1.0
-        Behavior on opacity { NumberAnimation { duration: 180 } }
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 180
+            }
+        }
     }
 
     Text {
@@ -49,9 +55,7 @@ Item {
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
         text: root.label
-        color: root.active
-            ? root.themeFg
-            : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.85)
+        color: root.active ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.85)
         font {
             family: "JetBrainsMono Nerd Font"
             pixelSize: 11
@@ -66,10 +70,11 @@ Item {
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
         text: root.busy ? "…" : root.hint
-        color: root.active
-            ? root.themeAccent
-            : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
-        font { family: "JetBrainsMono Nerd Font"; pixelSize: 10 }
+        color: root.active ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
+        font {
+            family: "JetBrainsMono Nerd Font"
+            pixelSize: 10
+        }
     }
 
     MouseArea {
@@ -77,6 +82,9 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: root.busy ? Qt.ForbiddenCursor : Qt.PointingHandCursor
-        onClicked: { if (!root.busy) root.activated() }
+        onClicked: {
+            if (!root.busy)
+                root.activated();
+        }
     }
 }

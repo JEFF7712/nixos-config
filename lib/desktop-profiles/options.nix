@@ -110,8 +110,8 @@ in
         default = null;
         description = ''
           Theme tokens for the modular quickshell bar (colors plus style keys
-          like barRadius, barHeight, exclusiveZoneOffset, flatMode — see
-          shell.qml's applyTheme).
+          like barRadius, barHeight, barMarginTop, exclusiveZoneOffset,
+          flatMode — see shell.qml's applyTheme).
           Materialized as
           ~/.config/desktop-profiles/<profile>/quickshell-theme.json and
           loaded at runtime by shell.qml.

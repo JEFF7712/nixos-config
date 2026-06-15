@@ -7,6 +7,9 @@ fmt:
 shell-check:
   shellcheck -S error home/scripts/*
 
+wallpaper-script-check:
+  bash checks/wallpaper-scripts.bash
+
 qml-lint:
   nix shell nixpkgs#qt6.qtdeclarative -c qmllint \
     --import disable \
@@ -35,6 +38,7 @@ check-profiles host="laptop" user="rupan":
 
 check:
   just shell-check
+  just wallpaper-script-check
   just flake-check
   just eval-all
   just check-profiles
