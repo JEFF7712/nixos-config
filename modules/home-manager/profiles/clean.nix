@@ -2,6 +2,7 @@
 
 let
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
+  animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 
   bg0 = "#141414";
   bg1 = "#202020";
@@ -113,6 +114,7 @@ in
     };
 
     niri = {
+      animations = animations.snappy;
       gaps = 8;
       borderOff = true;
       focusRingOff = true;

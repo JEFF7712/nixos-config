@@ -10,6 +10,7 @@
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
+  animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   inherit (static) alpha;
 
   dark = {
@@ -201,6 +202,7 @@ let
     };
 
     niri = {
+      animations = animations.glide;
       gaps = 8;
       borderOff = true;
       focusRingOff = true;

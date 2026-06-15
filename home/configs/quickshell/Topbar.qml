@@ -18,18 +18,17 @@ PanelWindow {
     property int barRadius: 15
     property int barHeight: 44
     property int barMargin: 10
+    property int exclusiveZoneOffset: 0
     property bool showWorkspaces: true
     property bool showClock: true
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
-    property bool showActiveWindow: true
-    property bool showMedia: true
+    property bool showActiveWindow: false
+    property bool showMedia: false
     property bool showVolume: true
-    property bool showBrightness: true
     property bool showNetwork: true
     property bool showBluetooth: true
     property bool showIdleInhibitor: true
-    property bool showPowerProfile: true
     property bool showBattery: true
     property bool showNotifications: true
     property bool showSystem: true
@@ -47,7 +46,6 @@ PanelWindow {
     property string diskUsage: "-"
     property string volumeLevel: "-"
     property bool volumeMuted: false
-    property string brightnessLevel: "-"
     property string networkIcon: "󰖪"
     property string batteryPercent: ""
     property string batteryIcon: "󰁹"
@@ -73,35 +71,27 @@ PanelWindow {
     signal mediaClicked()
 
     readonly property var powerProfileOrder: ["power-saver", "balanced", "performance"]
-    readonly property var powerProfileIcons: ({
-        "power-saver": "󰌪",
-        "balanced": "󰾅",
-        "performance": "󱐋"
-    })
 
     function run(cmd) {
         Quickshell.execDetached(["sh", "-c", cmd])
     }
 
+    function setPowerProfile(name) {
+        topbarWindow.run("powerprofilesctl set " + name)
+        topbarWindow.powerProfile = name
+        statsProc.running = true
+    }
+
     function cyclePowerProfile() {
         const order = topbarWindow.powerProfileOrder
         const idx = order.indexOf(topbarWindow.powerProfile)
-        const next = order[(idx + 1) % order.length]
-        topbarWindow.run("powerprofilesctl set " + next)
-        topbarWindow.powerProfile = next
-        statsProc.running = true
+        topbarWindow.setPowerProfile(order[(idx + 1) % order.length])
     }
 
     function adjustVolume(delta) {
         const step = 2
         const arg = delta > 0 ? (step + "%+") : (step + "%-")
         topbarWindow.run("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ " + arg)
-    }
-
-    function adjustBrightness(delta) {
-        const step = 2
-        const arg = delta > 0 ? (step + "%+") : (step + "%-")
-        topbarWindow.run("brightnessctl set " + arg)
     }
 
     function adjustMedia(delta) {
@@ -115,7 +105,7 @@ PanelWindow {
     anchors { top: true; left: true; right: true }
     margins { top: topbarWindow.barMargin; left: topbarWindow.barMargin; right: topbarWindow.barMargin }
     implicitHeight: topbarWindow.barHeight
-    exclusiveZone: topbarWindow.barHeight + (topbarWindow.barMargin > 0 ? topbarWindow.barMargin : 0)
+    exclusiveZone: topbarWindow.barHeight + (topbarWindow.barMargin > 0 ? topbarWindow.barMargin : 0) + topbarWindow.exclusiveZoneOffset
     color: "transparent"
 
     Process {
@@ -125,34 +115,32 @@ PanelWindow {
             "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" +
             "dsk=$(df -P / 2>/dev/null | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}');" +
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
-            "br=$(brightnessctl -m 2>/dev/null | awk -F, '{print $4}' | tr -d '%');" +
             "net=$(nmcli -t -f STATE general 2>/dev/null);" +
             "bc=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1);" +
             "bs=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1);" +
             "pp=$(powerprofilesctl get 2>/dev/null);" +
-            "echo \"$cpu|$mem|$dsk|$vol|$br|$net|$bc|$bs|$pp\""
+            "echo \"$cpu|$mem|$dsk|$vol|$net|$bc|$bs|$pp\""
         ]
         property string buffer: ""
         stdout: SplitParser { onRead: (data) => statsProc.buffer += data }
         onExited: {
             const p = statsProc.buffer.trim().split("|")
-            if (p.length >= 8) {
+            if (p.length >= 7) {
                 topbarWindow.cpuUsage = p[0] !== "" ? p[0] + "%" : "-"
                 topbarWindow.ramUsage = p[1] !== "" ? p[1] : "-"
                 topbarWindow.diskUsage = p[2] !== "" ? p[2] + "%" : "-"
                 topbarWindow.volumeLevel = p[3] !== "" ? p[3] + "%" : "-"
-                topbarWindow.brightnessLevel = p[4] !== "" ? p[4] + "%" : "-"
-                topbarWindow.networkIcon = p[5] === "connected" ? "󰖩" : "󰖪"
-                const cap = parseInt(p[6])
+                topbarWindow.networkIcon = p[4] === "connected" ? "󰖩" : "󰖪"
+                const cap = parseInt(p[5])
                 if (!isNaN(cap)) {
                     topbarWindow.batteryPercent = cap + "%"
                     topbarWindow.batteryIcon =
-                        p[7] === "Charging" ? "󰂄" :
+                        p[6] === "Charging" ? "󰂄" :
                         cap > 90 ? "󰁹" : cap > 70 ? "󰂀" :
                         cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎"
                 }
-                if (p.length >= 9 && p[8] !== "") {
-                    topbarWindow.powerProfile = p[8]
+                if (p.length >= 8 && p[7] !== "") {
+                    topbarWindow.powerProfile = p[7]
                 }
             }
             statsProc.buffer = ""
@@ -183,35 +171,40 @@ PanelWindow {
         }
     }
 
-    Process {
-        id: brightnessProbe
-        command: ["sh", "-c", "brightnessctl -m 2>/dev/null | awk -F, '{print $4}' | tr -d '%'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const v = this.text.trim()
-                topbarWindow.brightnessLevel = v !== "" ? v + "%" : "-"
-            }
-        }
+    Timer {
+        id: volumeDebounce
+        interval: 50
+        repeat: false
+        onTriggered: volumeProbe.running = true
     }
 
+    // pw-mon (pipewire-native) emits param-change events on every volume/mute
+    // change, regardless of which tool triggered it. setpriv --pdeathsig ensures
+    // it dies with quickshell instead of orphaning on pkill/profile-switch.
     Process {
         id: volumeSubscribeProc
         running: true
-        command: ["pactl", "subscribe"]
+        command: ["setpriv", "--pdeathsig", "TERM", "--", "stdbuf", "-oL", "pw-mon"]
         stdout: SplitParser {
             onRead: (data) => {
-                if (data.indexOf("sink") !== -1) {
-                    volumeProbe.running = true
+                if (data.indexOf("Props:volume") !== -1
+                    || data.indexOf("Props:mute") !== -1
+                    || data.indexOf("Props:channelVolumes") !== -1) {
+                    volumeDebounce.restart()
                 }
             }
         }
     }
 
+    // setpriv --pdeathsig: playerctl --follow does not exit when quickshell's
+    // stdout pipe closes (only on next write, which never comes while idle), so
+    // without this it orphans on every pkill/profile-switch and piles up.
+    // sh exec replaces itself with playerctl, so the pdeathsig applies to it.
     Process {
         id: mediaFollowProc
         running: true
-        command: ["sh", "-c",
-            "playerctl --follow metadata --format '{{status}}@@@{{xesam:title}}@@@{{xesam:artist}}@@@{{xesam:album}}@@@{{mpris:artUrl}}' 2>/dev/null"
+        command: ["setpriv", "--pdeathsig", "TERM", "--", "sh", "-c",
+            "exec playerctl --follow metadata --format '{{status}}@@@{{xesam:title}}@@@{{xesam:artist}}@@@{{xesam:album}}@@@{{mpris:artUrl}}' 2>/dev/null"
         ]
         stdout: SplitParser {
             onRead: (data) => {
@@ -223,19 +216,6 @@ PanelWindow {
                 topbarWindow.mediaAlbum = parts[3] || ""
                 topbarWindow.mediaArtUrl = parts[4] || ""
             }
-        }
-    }
-
-    Process {
-        id: brightnessSubscribeProc
-        running: true
-        command: ["sh", "-c",
-            "f=$(ls /sys/class/backlight/*/brightness 2>/dev/null | head -1);" +
-            "[ -z \"$f\" ] && exit 0;" +
-            "exec inotifywait -m -q -e modify --format '.' \"$f\""
-        ]
-        stdout: SplitParser {
-            onRead: (data) => brightnessProbe.running = true
         }
     }
 
@@ -413,20 +393,16 @@ PanelWindow {
             StatPill {
                 visible: topbarWindow.showVolume
                 icon: topbarWindow.volumeMuted ? "󰖁" : "󰕾"
-                value: topbarWindow.volumeLevel
+                value: (topbarWindow.volumeMuted
+                    || topbarWindow.volumeLevel === "100%"
+                    || topbarWindow.volumeLevel === "0%")
+                    ? "" : topbarWindow.volumeLevel
                 tint: topbarWindow.volumeMuted
                     ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4)
                     : topbarWindow.themeAccent
                 onActivated: topbarWindow.run("pavucontrol")
                 onMiddleClicked: topbarWindow.run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
                 onScrolled: (delta) => topbarWindow.adjustVolume(delta)
-            }
-            StatPill {
-                visible: topbarWindow.showBrightness
-                icon: "󰃞"
-                value: topbarWindow.brightnessLevel
-                tint: topbarWindow.themeWarm
-                onScrolled: (delta) => topbarWindow.adjustBrightness(delta)
             }
             StatPill {
                 visible: topbarWindow.showNetwork
@@ -454,25 +430,21 @@ PanelWindow {
                 onActivated: idleInhibitToggleProc.running = true
             }
             StatPill {
-                visible: topbarWindow.showPowerProfile
-                icon: topbarWindow.powerProfileIcons[topbarWindow.powerProfile] || "󰾅"
-                value: ""
-                tint: topbarWindow.powerProfile === "performance"
-                    ? topbarWindow.themeWarm
-                    : topbarWindow.powerProfile === "power-saver"
-                        ? topbarWindow.themeFresh
-                        : topbarWindow.themeAccent
-                onActivated: topbarWindow.cyclePowerProfile()
-            }
-            StatPill {
                 visible: topbarWindow.showBattery
                 icon: topbarWindow.batteryIcon
-                value: topbarWindow.batteryPercent
+                value: topbarWindow.batteryPercent === "100%" ? "" : topbarWindow.batteryPercent
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.batteryClicked()
+                onRightClicked: topbarWindow.cyclePowerProfile()
+                onScrolled: (delta) => {
+                    const order = topbarWindow.powerProfileOrder
+                    const idx = order.indexOf(topbarWindow.powerProfile)
+                    const next = (idx + (delta > 0 ? 1 : -1) + order.length) % order.length
+                    topbarWindow.setPowerProfile(order[next])
+                }
             }
             StatPill {
-                visible: topbarWindow.showNotifications
+                visible: topbarWindow.showNotifications && topbarWindow.notificationCount > 0
                 icon: "󰂚"
                 value: topbarWindow.notificationCount > 9
                     ? "9+"
@@ -486,7 +458,7 @@ PanelWindow {
             }
             StatPill {
                 visible: topbarWindow.showSystem
-                icon: "󰐥"
+                icon: ""
                 value: ""
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.systemClicked()

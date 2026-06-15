@@ -7,6 +7,17 @@ fmt:
 shell-check:
   shellcheck -S error home/scripts/*
 
+qml-lint:
+  nix shell nixpkgs#qt6.qtdeclarative -c qmllint \
+    --import disable \
+    --unqualified disable \
+    --unresolved-type disable \
+    --missing-property disable \
+    --missing-type disable \
+    --unresolved-alias disable \
+    --max-warnings 0 \
+    $(git ls-files '*.qml')
+
 eval target="laptop":
   nix eval --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.toplevel.drvPath"
 

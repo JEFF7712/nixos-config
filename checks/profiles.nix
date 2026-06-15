@@ -66,9 +66,15 @@ let
       meta = builtins.fromJSON (pf."meta.json" or "null");
       self = meta.selfThemed or false;
       empties = builtins.filter (f: (pf ? ${f}) && (builtins.stringLength pf.${f} == 0)) colorFiles;
+      niriOverrides = pf."niri-overrides.kdl" or "";
+      niriFocus = pf."niri-overrides-focus.kdl" or "";
     in
     if pf ? "meta.json" == false then
       builtins.throw "profile '${name}': no meta.json rendered"
+    else if !(builtins.match ".*animations[[:space:]]*\\{.*" niriOverrides != null) then
+      builtins.throw "profile '${name}': niri-overrides.kdl has no animations block"
+    else if !(builtins.match ".*animations[[:space:]]*\\{[[:space:]]*off.*" niriFocus != null) then
+      builtins.throw "profile '${name}': niri-overrides-focus.kdl does not disable animations"
     else if (!self) && empties != [ ] then
       builtins.throw "profile '${name}': empty color files: ${builtins.concatStringsSep ", " empties}"
     else

@@ -18,18 +18,17 @@ ShellRoot {
     property int barRadius: 15
     property int barHeight: 44
     property int barMargin: 10
+    property int exclusiveZoneOffset: 0
     property bool showWorkspaces: true
     property bool showClock: true
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
-    property bool showActiveWindow: true
-    property bool showMedia: true
+    property bool showActiveWindow: false
+    property bool showMedia: false
     property bool showVolume: true
-    property bool showBrightness: true
     property bool showNetwork: true
     property bool showBluetooth: true
     property bool showIdleInhibitor: true
-    property bool showPowerProfile: true
     property bool showBattery: true
     property bool showNotifications: true
     property bool showSystem: true
@@ -57,6 +56,7 @@ ShellRoot {
         if (theme.barRadius)         root.barRadius          = parseInt(theme.barRadius)
         if (theme.barHeight)         root.barHeight          = parseInt(theme.barHeight)
         if (theme.barMargin)         root.barMargin          = parseInt(theme.barMargin)
+        if (theme.exclusiveZoneOffset !== undefined) root.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset)
         if (theme.showWorkspaces)    root.showWorkspaces     = theme.showWorkspaces === "true"
         if (theme.showClock)         root.showClock          = theme.showClock === "true"
         if (theme.showClockDate)     root.showClockDate      = theme.showClockDate === "true"
@@ -64,11 +64,9 @@ ShellRoot {
         if (theme.showActiveWindow)  root.showActiveWindow   = theme.showActiveWindow === "true"
         if (theme.showMedia)         root.showMedia          = theme.showMedia === "true"
         if (theme.showVolume)        root.showVolume         = theme.showVolume === "true"
-        if (theme.showBrightness)    root.showBrightness     = theme.showBrightness === "true"
         if (theme.showNetwork)       root.showNetwork        = theme.showNetwork === "true"
         if (theme.showBluetooth)     root.showBluetooth      = theme.showBluetooth === "true"
         if (theme.showIdleInhibitor) root.showIdleInhibitor  = theme.showIdleInhibitor === "true"
-        if (theme.showPowerProfile)  root.showPowerProfile   = theme.showPowerProfile === "true"
         if (theme.showBattery)       root.showBattery        = theme.showBattery === "true"
         if (theme.showNotifications) root.showNotifications  = theme.showNotifications === "true"
         if (theme.showSystem)        root.showSystem         = theme.showSystem === "true"
@@ -145,6 +143,7 @@ ShellRoot {
         barRadius: root.barRadius
         barHeight: root.barHeight
         barMargin: root.barMargin
+        exclusiveZoneOffset: root.exclusiveZoneOffset
         showWorkspaces: root.showWorkspaces
         showClock: root.showClock
         showClockDate: root.showClockDate
@@ -152,11 +151,9 @@ ShellRoot {
         showActiveWindow: root.showActiveWindow
         showMedia: root.showMedia
         showVolume: root.showVolume
-        showBrightness: root.showBrightness
         showNetwork: root.showNetwork
         showBluetooth: root.showBluetooth
         showIdleInhibitor: root.showIdleInhibitor
-        showPowerProfile: root.showPowerProfile
         showBattery: root.showBattery
         showNotifications: root.showNotifications
         showSystem: root.showSystem
@@ -223,9 +220,7 @@ ShellRoot {
         flatMode: root.flatMode
         topMargin: root.popupTopMargin
         powerProfile: topbar.powerProfile
-        cpuUsage: topbar.cpuUsage
-        ramUsage: topbar.ramUsage
-        diskUsage: topbar.diskUsage
+        onSelectProfile: (name) => topbar.setPowerProfile(name)
     }
 
     CalendarPopup {
@@ -249,6 +244,7 @@ ShellRoot {
         themeBg: root.popupBg
         themeAccent: root.themeAccent
         themeRawBg: root.themeRawBg
+        themeWarm: root.themeWarm
         themeBorder: root.barBorderColor
         innerHighlight: root.barInnerHighlight
         dividerColor: root.dividerColor
@@ -271,6 +267,9 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         topMargin: root.popupTopMargin
+        cpuUsage: topbar.cpuUsage
+        ramUsage: topbar.ramUsage
+        diskUsage: topbar.diskUsage
     }
 
     MediaPopup {

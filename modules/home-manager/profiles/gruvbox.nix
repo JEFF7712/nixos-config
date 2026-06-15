@@ -5,6 +5,7 @@
 # theme uses, and the quickshell bar deviates from the mono font on purpose.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
+  animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 
   dark = rec {
     title = "Gruvbox Dark";
@@ -97,6 +98,7 @@ in
     };
 
     niri = {
+      animations = animations.snappy;
       gaps = 6;
       borderOff = false;
       borderWidth = 2;

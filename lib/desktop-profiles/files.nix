@@ -4,10 +4,56 @@
 }:
 
 let
-  generateNiriOverrides = profile: ''
+  renderNiriAnimation =
+    name: animation:
+    let
+      body =
+        if animation.spring != null then
+          [
+            "        spring damping-ratio=${toString animation.spring.dampingRatio} stiffness=${toString animation.spring.stiffness} epsilon=${toString animation.spring.epsilon}"
+          ]
+        else
+          [
+            "        duration-ms ${toString animation.durationMs}"
+            "        curve \"${animation.curve}\""
+          ];
+    in
+    lib.concatStringsSep "\n" (
+      [
+        "    ${name} {"
+      ]
+      ++ body
+      ++ [
+        "    }"
+      ]
+    );
+
+  renderNiriAnimations =
+    animations:
+    lib.concatStringsSep "\n" (
+      [
+        "animations {"
+      ]
+      ++ map (name: renderNiriAnimation name animations.${name}) (builtins.attrNames animations)
+      ++ [
+        "}"
+      ]
+    );
+
+  generateNiriOverrides = focus: profile: ''
     cursor {
         xcursor-theme "${profile.cursor.theme}"
         xcursor-size ${toString profile.cursor.size}
+    }
+
+    ${
+      if focus then
+        ''
+          animations {
+              off
+          }''
+      else
+        renderNiriAnimations profile.niri.animations
     }
 
     layout {
@@ -29,7 +75,7 @@ let
         }
 
         shadow {
-            ${if profile.niri.shadowOff then "off" else "on"}
+            ${if (focus || profile.niri.shadowOff) then "off" else "on"}
             softness ${toString profile.niri.shadowSoftness}
             spread ${toString profile.niri.shadowSpread}
             offset x=${toString profile.niri.shadowOffsetX} y=${toString profile.niri.shadowOffsetY}
@@ -56,6 +102,14 @@ let
 
     window-rule {
         opacity ${toString profile.niri.windowOpacity}
+    }
+
+    window-rule {
+        geometry-corner-radius 10
+        clip-to-geometry true
+        background-effect {
+            blur ${if focus then "false" else "true"}
+        }
     }
 
     ${lib.optionalString profile.niri.windowHighlightOff ''
@@ -103,7 +157,9 @@ let
         ".config/desktop-profiles/${name}/tmux-colors.conf".text = orEmpty profile.colors.tmux;
         ".config/desktop-profiles/${name}/hyprlock-colors.conf".text = orEmpty profile.colors.hyprlock;
         ".config/desktop-profiles/${name}/cava-colors".text = orEmpty profile.colors.cava;
-        ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides profile;
+        ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides false profile;
+        ".config/desktop-profiles/${name}/niri-overrides-focus.kdl".text =
+          generateNiriOverrides true profile;
       }
       // lib.optionalAttrs (profile.makoConfig != null) {
         ".config/desktop-profiles/${name}/mako-config".text = profile.makoConfig;

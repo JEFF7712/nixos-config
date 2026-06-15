@@ -1,6 +1,38 @@
 { lib }:
 
 let
+  animationType = lib.types.submodule {
+    options = {
+      spring = lib.mkOption {
+        type = lib.types.nullOr (
+          lib.types.submodule {
+            options = {
+              dampingRatio = lib.mkOption { type = lib.types.float; };
+              stiffness = lib.mkOption { type = lib.types.int; };
+              epsilon = lib.mkOption { type = lib.types.float; };
+            };
+          }
+        );
+        default = null;
+      };
+      durationMs = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = null;
+      };
+      curve = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+      };
+    };
+  };
+
+  animationShapeValid =
+    animation:
+    (animation.spring != null && animation.durationMs == null && animation.curve == null)
+    || (animation.spring == null && animation.durationMs != null && animation.curve != null);
+
+  defaultNiriAnimations = (import ./niri-animations.nix).default;
+
   colorOptions = {
     gtk3 = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
@@ -78,7 +110,8 @@ in
         default = null;
         description = ''
           Theme tokens for the modular quickshell bar (colors plus style keys
-          like barRadius, barHeight, flatMode — see shell.qml's applyTheme).
+          like barRadius, barHeight, exclusiveZoneOffset, flatMode — see
+          shell.qml's applyTheme).
           Materialized as
           ~/.config/desktop-profiles/<profile>/quickshell-theme.json and
           loaded at runtime by shell.qml.
@@ -256,6 +289,12 @@ in
         windowHighlightOff = lib.mkOption {
           type = lib.types.bool;
           default = false;
+        };
+        animations = lib.mkOption {
+          type = lib.types.addCheck (lib.types.attrsOf animationType) (
+            animations: builtins.all animationShapeValid (builtins.attrValues animations)
+          );
+          default = defaultNiriAnimations;
         };
         extraConfig = lib.mkOption {
           type = lib.types.str;

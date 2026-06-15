@@ -3,6 +3,7 @@
 let
   waybar = import ../../../lib/waybar.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
+  animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 
   # Neutral greys only. One role mapping serves dark and light; `rofiText`
   # and `hoverBg` are the two slots that differ beyond the palette itself.
@@ -285,6 +286,7 @@ in
     wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/minimal-light";
 
     niri = {
+      animations = animations.snappy;
       gaps = 6;
       borderOff = true;
       focusRingOff = true;

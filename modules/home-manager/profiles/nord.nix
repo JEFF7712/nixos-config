@@ -5,6 +5,7 @@
 # roles (nord5 bright text, nord10 deep frost, the hyprlock surface/muted).
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
+  animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   inherit (static) alpha;
 
   nord0 = "#2e3440";
@@ -163,6 +164,7 @@ in
     };
 
     niri = {
+      animations = animations.snappy;
       gaps = 6;
       borderOff = false;
       borderWidth = 1;

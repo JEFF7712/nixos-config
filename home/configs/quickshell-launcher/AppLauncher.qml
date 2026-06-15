@@ -24,9 +24,9 @@ PanelWindow {
 
     readonly property int columns: 6
     readonly property int visibleRows: 3
-    readonly property int tileWidth: 140
-    readonly property int tileHeight: 130
-    readonly property int tileSpacing: 8
+    readonly property int tileWidth: 72
+    readonly property int tileHeight: 72
+    readonly property int tileSpacing: 6
 
     readonly property var allEntries: (DesktopEntries.applications.values || [])
         .filter(e => !e.noDisplay)
@@ -90,9 +90,9 @@ PanelWindow {
 
     readonly property int gridWidth: columns * (tileWidth + tileSpacing)
     readonly property int gridHeight: visibleRows * (tileHeight + tileSpacing)
-    readonly property int searchBarHeight: 38
-    readonly property int columnGap: 14
-    readonly property int cardPadding: 36
+    readonly property int searchBarHeight: 34
+    readonly property int columnGap: 10
+    readonly property int cardPadding: 28
 
     visible: shown
     exclusiveZone: -1
@@ -155,7 +155,7 @@ PanelWindow {
             Rectangle {
                 id: searchBar
                 width: parent.width
-                height: 38
+                height: root.searchBarHeight
                 radius: root.innerRadius
                 color: root.pillBg
                 border.width: 1
@@ -262,24 +262,18 @@ PanelWindow {
                             anchors.centerIn: parent
                             width: root.tileWidth
                             height: root.tileHeight
-                            radius: root.innerRadius
-                            color: tile.isFocused ? root.pillBg : "transparent"
-                            border.width: 1
-                            border.color: tile.hovered || tile.isFocused
-                                ? root.accent
-                                : root.pillBorder
-                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            radius: Math.max(0, root.innerRadius - 2)
+                            color: tile.hovered || tile.isFocused ? root.pillBg : "transparent"
                             Behavior on color { ColorAnimation { duration: 120 } }
 
                             Image {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.top: parent.top
-                                anchors.topMargin: 14
-                                width: 56
-                                height: 56
+                                anchors.centerIn: parent
+                                anchors.verticalCenterOffset: -8
+                                width: 44
+                                height: 44
                                 source: Quickshell.iconPath(modelData.icon, "application-x-executable")
-                                sourceSize.width: 112
-                                sourceSize.height: 112
+                                sourceSize.width: 88
+                                sourceSize.height: 88
                                 smooth: true
                                 fillMode: Image.PreserveAspectFit
                                 asynchronous: true
@@ -288,13 +282,13 @@ PanelWindow {
                             Text {
                                 anchors.bottom: parent.bottom
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.bottomMargin: 10
-                                width: parent.width - 12
+                                anchors.bottomMargin: 5
+                                width: parent.width - 8
                                 text: modelData.name
                                 color: root.textColor
-                                opacity: tile.hovered || tile.isFocused ? 1.0 : 0.78
+                                opacity: tile.hovered || tile.isFocused ? 0.95 : 0.72
                                 font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: 10
+                                font.pixelSize: 8
                                 horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
                                 maximumLineCount: 1

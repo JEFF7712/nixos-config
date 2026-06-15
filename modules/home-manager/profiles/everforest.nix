@@ -5,6 +5,7 @@
 # border) are extra palette keys outside the canonical roles.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
+  animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 
   dark = {
     title = "Everforest Dark Hard";
@@ -120,6 +121,8 @@ in
       fresh = r.blue;
       pillBg = "#00000000";
       pillBorder = "#00000000";
+      barHeight = "30";
+      exclusiveZoneOffset = "-3";
     };
 
     cursor = {
@@ -147,6 +150,7 @@ in
     };
 
     niri = {
+      animations = animations.glide;
       gaps = 8;
       borderOff = true;
       focusRingOff = true;

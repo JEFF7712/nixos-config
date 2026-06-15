@@ -93,59 +93,6 @@ hotkey-overlay {
     skip-at-startup
 }
 
-// --- Animations ---
-animations {
-
-    // slowdown 1.5
-
-    workspace-switch {
-        spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
-    }
-
-    window-open {
-        duration-ms 150
-        curve "ease-out-expo"
-    }
-
-    window-close {
-        duration-ms 150
-        curve "ease-out-quad"
-    }
-
-    horizontal-view-movement {
-        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
-    }
-
-    window-movement {
-        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
-    }
-
-    window-resize {
-        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
-    }
-
-    config-notification-open-close {
-        spring damping-ratio=0.6 stiffness=1000 epsilon=0.001
-    }
-
-    exit-confirmation-open-close {
-        spring damping-ratio=0.6 stiffness=500 epsilon=0.01
-    }
-
-    screenshot-ui-open {
-        duration-ms 200
-        curve "ease-out-quad"
-    }
-
-    overview-open-close {
-        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
-    }
-
-    recent-windows-close {
-        spring damping-ratio=1.0 stiffness=800 epsilon=0.001
-    }
-}
-
 include "/home/rupan/.config/desktop-profiles/active-niri-overrides.kdl"
 
 // Profile switcher popup (rendered by quickshell-switcher) — global so it
@@ -179,13 +126,6 @@ window-rule {
     open-maximized false
 }
 window-rule {
-    geometry-corner-radius 10
-    clip-to-geometry true
-    background-effect {
-        blur true
-    }
-}
-window-rule {
     match is-active=true
     opacity 0.8
 }
@@ -209,6 +149,11 @@ layer-rule {
 }
 
 layer-rule {
+  match namespace="^awww-daemon$"
+  place-within-backdrop true
+}
+
+layer-rule {
   match namespace="^quickshell-topbar$"
   geometry-corner-radius 15
 }
@@ -219,6 +164,8 @@ layer-rule {
 }
 
 overview {
+  backdrop-color "transparent"
+
   workspace-shadow {
     off
   }
@@ -242,6 +189,7 @@ binds {
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "toggle-bar"; }
+    Mod+G hotkey-overlay-title="Toggle Focus/Performance Mode" { spawn "toggle-focus"; }
     Mod+Alt+V { spawn "noctalia-shell" "ipc" "--any-display" "call" "launcher" "clipboard"; }
     Mod+R { spawn "random-wallpaper"; }
     Mod+O {spawn "obsidian"; }

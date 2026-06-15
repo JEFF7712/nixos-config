@@ -6,6 +6,7 @@
 # the canonical role mapping lives in `overrides`.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
+  animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   inherit (static) alpha;
 
   dark = {
@@ -178,6 +179,7 @@ in
     };
 
     niri = {
+      animations = animations.soft;
       gaps = 8;
       borderOff = true;
       focusRingOff = true;

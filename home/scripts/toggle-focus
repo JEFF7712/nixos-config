@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Toggle the global focus/performance mode for the active profile.
+# Focus mode swaps niri's active overrides to a variant that disables
+# animations, window shadows and background blur for best performance.
+# Unavailable on noctalia (it owns its own niri visuals).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/profile-common"
+
+notify() { notify-send "Focus Mode" "$1" 2>/dev/null || true; }
+
+ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+if [ -z "$ACTIVE" ]; then
+  echo "No active profile." >&2
+  exit 1
+fi
+
+if [ "$ACTIVE" = "noctalia" ]; then
+  notify "Not available on the noctalia profile."
+  echo "Focus mode is unavailable on noctalia." >&2
+  exit 0
+fi
+
+case "${1:-toggle}" in
+  on) STATE="on" ;;
+  off) STATE="off" ;;
+  toggle | "")
+    if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ]; then
+      STATE="off"
+    else
+      STATE="on"
+    fi
+    ;;
+  *)
+    echo "Usage: toggle-focus [on|off|toggle]" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$STATE" = "on" ]; then
+  TARGET_OVERRIDE="$PROFILES_DIR/$ACTIVE/niri-overrides-focus.kdl"
+else
+  TARGET_OVERRIDE="$PROFILES_DIR/$ACTIVE/niri-overrides.kdl"
+fi
+
+if [ ! -f "$TARGET_OVERRIDE" ]; then
+  echo "Error: override file missing ($TARGET_OVERRIDE). Run a rebuild." >&2
+  exit 1
+fi
+
+# Swap the active-overrides symlink atomically, then persist + reload.
+TMPLINK=$(mktemp -u "$PROFILES_DIR/.active-niri-overrides.XXXXXX")
+ln -s "$TARGET_OVERRIDE" "$TMPLINK"
+mv "$TMPLINK" "$ACTIVE_LINK"
+echo "$STATE" > "$FOCUS_FILE"
+niri msg action load-config-file 2>/dev/null || true
+
+if [ "$STATE" = "on" ]; then
+  notify "On — animations, shadows and blur disabled."
+  echo "Focus mode ON for '$ACTIVE'."
+else
+  notify "Off — effects restored."
+  echo "Focus mode OFF for '$ACTIVE'."
+fi

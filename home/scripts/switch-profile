@@ -245,14 +245,19 @@ elif [ $STARTUP_MODE -eq 0 ]; then
   restore_cava_noctalia_theme
 fi
 
-# 3. Update niri overrides symlink atomically (tmp + mv avoids missing-file window)
+# 3. Update niri overrides symlink atomically (tmp + mv avoids missing-file window).
+# Focus/performance mode persists across profile switches (never on noctalia).
 echo "  Updating niri overrides..."
+NIRI_OVERRIDE="$TARGET_DIR/niri-overrides.kdl"
+if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$TARGET" != "noctalia" ]; then
+  NIRI_OVERRIDE="$TARGET_DIR/niri-overrides-focus.kdl"
+fi
 TMPLINK=$(mktemp -u "$PROFILES_DIR/.active-niri-overrides.XXXXXX")
-ln -s "$TARGET_DIR/niri-overrides.kdl" "$TMPLINK"
+ln -s "$NIRI_OVERRIDE" "$TMPLINK"
 mv "$TMPLINK" "$ACTIVE_LINK"
 
 # 4. Reload niri (picks up new cursor, borders, shadow, tab-indicator, opacity)
-niri msg action reload-config 2>/dev/null || true
+niri msg action load-config-file 2>/dev/null || true
 
 # 5. Apply cursor to GTK/XDG layer
 echo "  Applying cursor..."

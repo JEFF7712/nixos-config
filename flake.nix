@@ -84,6 +84,7 @@
           programs.nixfmt.enable = true;
           programs.statix.enable = true;
           programs.deadnix.enable = true;
+          programs.qmlformat.enable = true;
           settings.formatter.statix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
           settings.formatter.deadnix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
         };

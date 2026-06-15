@@ -3,11 +3,8 @@ import Quickshell.Io
 
 InfoPopup {
     id: root
-    title: "SYSTEM"
+    title: "BATTERY"
 
-    property string cpuUsage: "—"
-    property string ramUsage: "—"
-    property string diskUsage: "—"
     property string powerProfile: ""
     property string charge: "—"
     property string status_: "—"
@@ -17,9 +14,19 @@ InfoPopup {
     property int chargeLimit: 100
     property bool thresholdWritable: false
 
-    InfoRow { label: "cpu";  value: root.cpuUsage;  themeFg: root.themeFg; active: root.shown }
-    InfoRow { label: "ram";  value: root.ramUsage;  themeFg: root.themeFg; active: root.shown }
-    InfoRow { label: "disk"; value: root.diskUsage; themeFg: root.themeFg; active: root.shown }
+    signal selectProfile(string name)
+
+    readonly property var profileOptions: [
+        { id: "power-saver", icon: "󰌪", label: "save" },
+        { id: "balanced", icon: "󰾅", label: "balanced" },
+        { id: "performance", icon: "󱐋", label: "perf" }
+    ]
+
+    InfoRow { label: "charge"; value: root.charge;       themeFg: root.themeFg; active: root.shown }
+    InfoRow { label: "status"; value: root.status_;      themeFg: root.themeFg; active: root.shown }
+    InfoRow { label: "time";   value: root.timeLeft;     themeFg: root.themeFg; active: root.shown; visible: root.timeLeft !== "" }
+    InfoRow { label: "draw";   value: root.draw;         themeFg: root.themeFg; active: root.shown }
+    InfoRow { label: "health"; value: root.health;       themeFg: root.themeFg; active: root.shown }
 
     Rectangle {
         width: parent.width
@@ -27,12 +34,69 @@ InfoPopup {
         color: root.dividerColor
     }
 
-    InfoRow { label: "charge"; value: root.charge;       themeFg: root.themeFg; active: root.shown }
-    InfoRow { label: "status"; value: root.status_;      themeFg: root.themeFg; active: root.shown }
-    InfoRow { label: "time";   value: root.timeLeft;     themeFg: root.themeFg; active: root.shown; visible: root.timeLeft !== "" }
-    InfoRow { label: "draw";   value: root.draw;         themeFg: root.themeFg; active: root.shown }
-    InfoRow { label: "health"; value: root.health;       themeFg: root.themeFg; active: root.shown }
-    InfoRow { label: "profile"; value: root.powerProfile; themeFg: root.themeFg; active: root.shown; visible: root.powerProfile !== "" }
+    Text {
+        text: "PROFILE"
+        color: root.themeAccent
+        opacity: 0.55
+        font { family: "JetBrainsMono Nerd Font"; pixelSize: 8; letterSpacing: 1.4; weight: Font.Medium }
+        topPadding: 2
+    }
+
+    Row {
+        width: parent.width
+        spacing: 4
+
+        Repeater {
+            model: root.profileOptions
+
+            delegate: Rectangle {
+                id: seg
+                required property var modelData
+                readonly property bool selected: root.powerProfile === modelData.id
+                width: (parent.width - 8) / 3
+                height: 30
+                radius: 6
+                color: selected
+                    ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.85)
+                    : segMouse.containsMouse
+                        ? Qt.rgba(1, 1, 1, 0.08)
+                        : root.pillBg
+                border.width: 1
+                border.color: selected
+                    ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.4)
+                    : root.pillBorder
+                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 1
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: seg.modelData.icon
+                        color: seg.selected ? root.themeRawBg : root.themeFg
+                        opacity: seg.selected ? 1.0 : 0.75
+                        font { family: "JetBrainsMono Nerd Font"; pixelSize: 13 }
+                    }
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: seg.modelData.label
+                        color: seg.selected ? root.themeRawBg : root.themeFg
+                        opacity: seg.selected ? 0.9 : 0.55
+                        font { family: "JetBrainsMono Nerd Font"; pixelSize: 8; weight: Font.Medium }
+                    }
+                }
+
+                MouseArea {
+                    id: segMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.selectProfile(modelData.id)
+                }
+            }
+        }
+    }
 
     Rectangle {
         width: parent.width

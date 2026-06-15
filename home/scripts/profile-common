@@ -12,6 +12,7 @@ PROFILES_DIR="$HOME/.config/desktop-profiles"
 ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
+FOCUS_FILE="$PROFILES_DIR/focus"
 CONFIG_HOME="$HOME/.config"
 OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
 
