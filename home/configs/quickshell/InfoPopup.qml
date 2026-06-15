@@ -34,7 +34,8 @@ PanelWindow {
     readonly property bool mapped: active || warming
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int contentHeight: outerColumn.implicitHeight + 28
-    readonly property int hiddenY: attachedSlide ? -card.height : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
+    readonly property int hiddenX: attachedSlide ? (popupPosition === "left" ? -card.width : card.width) : 0
+    readonly property int hiddenY: attachedSlide ? 0 : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
     readonly property real hiddenOpacity: attachedSlide ? 1.0 : floatSlide ? 0.72 : quickFade ? 0.0 : 0.0
     readonly property real hiddenScale: attachedSlide ? 1.0 : quickFade ? 0.985 : unfold ? 0.98 : 0.96
     readonly property int motionDuration: quickFade ? 190 : unfold ? 220 : 180
@@ -161,10 +162,18 @@ PanelWindow {
             color: root.themeBg
             border.width: 1
             border.color: root.themeBorder
+            x: root.shown ? 0 : root.hiddenX
             y: root.shown ? 0 : root.hiddenY
             opacity: root.shown ? 1.0 : root.hiddenOpacity
             scale: root.shown ? 1.0 : root.hiddenScale
             transformOrigin: root.popupPosition === "left" ? Item.TopLeft : Item.TopRight
+            Behavior on x {
+                enabled: true
+                NumberAnimation {
+                    duration: root.motionDuration
+                    easing.type: Easing.OutCubic
+                }
+            }
             Behavior on y {
                 enabled: true
                 NumberAnimation {

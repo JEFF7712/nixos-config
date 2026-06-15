@@ -8,6 +8,7 @@
 /docs
 /.venv
 /.claude
+/.codex
 /.worktrees
 CLAUDE.md
 AGENTS.md
