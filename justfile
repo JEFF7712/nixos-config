@@ -4,6 +4,9 @@ default:
 fmt:
   nix fmt
 
+fmt-check:
+  nix fmt -- --fail-on-change --no-cache
+
 shell-check:
   shellcheck -S error home/scripts/*
 
@@ -37,6 +40,7 @@ check-profiles host="laptop" user="rupan":
     --apply 'import ./checks/profiles.nix'
 
 check:
+  just fmt-check
   just shell-check
   just wallpaper-script-check
   just flake-check
@@ -44,8 +48,15 @@ check:
   just check-profiles
   git diff --check
 
+quick:
+  just eval laptop
+  git diff --check
+
 update:
   nix flake update
+
+build target="laptop":
+  nix build --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.toplevel"
 
 build-iso:
   nix build .#nixosConfigurations.iso.config.system.build.isoImage

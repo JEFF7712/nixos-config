@@ -214,7 +214,7 @@ let
 
   mkQuickshell = p: {
     fg = p.fg0;
-    bg = "#00000000";
+    bg = "#66141414";
     popupBg = alpha "cc" p.bg0;
     rawBg = p.bg0;
     inherit (p) accent;
@@ -226,7 +226,8 @@ let
     barMargin = "2";
     flatMode = "true";
     showClockDate = "false";
-    showWorkspaceNumbers = "false";
+    showWorkspaceNumbers = "true";
+    showBarDividers = "false";
     barFont = "JetBrainsMono Nerd Font";
     barBorder = "#00000000";
     barInnerHighlight = "#00000000";
