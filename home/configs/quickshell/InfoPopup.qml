@@ -34,10 +34,10 @@ PanelWindow {
     readonly property bool mapped: active || warming
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int contentHeight: outerColumn.implicitHeight + 28
-    readonly property int hiddenY: attachedSlide ? -card.height : floatSlide ? -10 : unfold ? -24 : quickFade ? 0 : -4
-    readonly property real hiddenOpacity: attachedSlide ? 1.0 : floatSlide ? 0.72 : 0.0
-    readonly property real hiddenScale: attachedSlide || quickFade ? 1.0 : unfold ? 0.98 : 0.96
-    readonly property int motionDuration: quickFade ? 130 : unfold ? 220 : 180
+    readonly property int hiddenY: attachedSlide ? -card.height : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
+    readonly property real hiddenOpacity: attachedSlide ? 1.0 : floatSlide ? 0.72 : quickFade ? 0.0 : 0.0
+    readonly property real hiddenScale: attachedSlide ? 1.0 : quickFade ? 0.985 : unfold ? 0.98 : 0.96
+    readonly property int motionDuration: quickFade ? 190 : unfold ? 220 : 180
     default property alias body: contentColumn.data
 
     function prewarm() {
@@ -166,7 +166,7 @@ PanelWindow {
             scale: root.shown ? 1.0 : root.hiddenScale
             transformOrigin: root.popupPosition === "left" ? Item.TopLeft : Item.TopRight
             Behavior on y {
-                enabled: root.effectiveAnimationStyle !== "quickFade"
+                enabled: true
                 NumberAnimation {
                     duration: root.motionDuration
                     easing.type: Easing.InOutCubic
