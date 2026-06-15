@@ -138,6 +138,7 @@ in
       flatMode = "true";
       moduleAnimationStyle = "slide";
       popupAttachToBar = "true";
+      popupAnimationStyle = "attachedSlide";
       showBarDividers = "false";
       dividerColor = r.bg3;
     };

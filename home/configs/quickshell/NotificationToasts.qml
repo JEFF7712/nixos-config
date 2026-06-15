@@ -48,6 +48,9 @@ PanelWindow {
             notif: notification,
             expireAt: ms > 0 ? Date.now() + ms : 0
         };
+        // Drop the toast the instant the notification is closed/destroyed so no
+        // binding ever dereferences a dangling object.
+        notification.closed.connect(() => root.hideToast(notification));
         const next = [entry].concat(root.toasts);
         root.toasts = next.slice(0, root.maxVisible);
     }
@@ -61,7 +64,7 @@ PanelWindow {
         const t = Date.now();
         root.now = t;
         root.toasts = root.toasts.filter(entry => {
-            if (live.indexOf(entry.notif) === -1)
+            if (!entry.notif || live.indexOf(entry.notif) === -1)
                 return false;
             if (entry.expireAt > 0 && t >= entry.expireAt)
                 return false;
@@ -113,9 +116,18 @@ PanelWindow {
                 id: toast
                 required property var modelData
 
-                readonly property var notif: modelData.notif
-                readonly property color accent: root.urgencyAccent(notif)
+                readonly property var notif: modelData ? modelData.notif : null
+                readonly property bool valid: notif !== null
+                readonly property color accent: valid ? root.urgencyAccent(notif) : root.themeAccent
+                readonly property string summaryRaw: valid ? notif.summary : ""
+                readonly property string summaryText: valid ? (notif.summary || notif.body || "Notification") : ""
+                readonly property string bodyText: valid ? notif.body : ""
+                readonly property string appText: valid ? NotifService.appLabel(notif).toUpperCase() : ""
+                readonly property string iconSrc: valid ? NotifService.iconSource(notif) : ""
+                readonly property var acts: valid ? notif.actions : []
+                readonly property bool accented: valid && NotifService.urgencyName(notif) !== "normal"
 
+                visible: valid
                 width: stack.width
                 height: layout.implicitHeight + 20
                 radius: root.cardRadius
@@ -156,7 +168,7 @@ PanelWindow {
                     height: parent.height - 16
                     radius: 1.5
                     color: toast.accent
-                    opacity: NotifService.urgencyName(toast.notif) === "normal" ? 0.0 : 0.85
+                    opacity: toast.accented ? 0.85 : 0.0
                 }
 
                 MouseArea {
@@ -165,6 +177,8 @@ PanelWindow {
                     hoverEnabled: true
                     acceptedButtons: Qt.NoButton
                     onContainsMouseChanged: {
+                        if (!toast.valid)
+                            return;
                         if (containsMouse && modelData.expireAt > 0)
                             modelData.expireAt = 0;
                         else if (!containsMouse && modelData.expireAt === 0 && root.timeoutFor(toast.notif) > 0)
@@ -193,7 +207,7 @@ PanelWindow {
                         asynchronous: true
                         cache: true
                         visible: status === Image.Ready
-                        source: NotifService.iconSource(toast.notif)
+                        source: toast.iconSrc
                     }
 
                     Column {
@@ -206,7 +220,7 @@ PanelWindow {
 
                             Text {
                                 width: parent.width - metaText.implicitWidth - 6
-                                text: toast.notif.summary || toast.notif.body || "Notification"
+                                text: toast.summaryText
                                 color: root.themeFg
                                 font {
                                     family: root.barFont
@@ -222,7 +236,7 @@ PanelWindow {
                                 id: metaText
                                 anchors.top: parent.top
                                 anchors.topMargin: 1
-                                text: NotifService.appLabel(toast.notif).toUpperCase()
+                                text: toast.appText
                                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
                                 font {
                                     family: root.barFont
@@ -235,8 +249,8 @@ PanelWindow {
 
                         Text {
                             width: parent.width
-                            text: toast.notif.body
-                            visible: text !== "" && text !== toast.notif.summary
+                            text: toast.bodyText
+                            visible: text !== "" && text !== toast.summaryRaw
                             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
                             font {
                                 family: root.barFont
@@ -250,11 +264,11 @@ PanelWindow {
 
                         Row {
                             spacing: 6
-                            visible: toast.notif.actions.length > 0
+                            visible: toast.acts.length > 0
                             topPadding: 2
 
                             Repeater {
-                                model: toast.notif.actions
+                                model: toast.acts
 
                                 delegate: Rectangle {
                                     required property var modelData

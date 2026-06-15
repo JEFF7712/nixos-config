@@ -3,7 +3,7 @@ import QtQuick
 InfoPopup {
     id: root
     title: "CALENDAR"
-    popupPosition: "center"
+    popupPosition: "left"
 
     property date today: new Date()
     property int viewYear: today.getFullYear()

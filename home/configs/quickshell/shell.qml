@@ -25,7 +25,7 @@ ShellRoot {
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
     property bool showActiveWindow: false
-    property bool showMedia: false
+    property bool showMedia: true
     property bool showVolume: true
     property bool showNetwork: true
     property bool showBluetooth: true
@@ -37,6 +37,7 @@ ShellRoot {
     property bool showBarDividers: true
     property string moduleAnimationStyle: "fade"
     property bool popupAttachToBar: false
+    property string popupAnimationStyle: "softPop"
     property color dividerColor: "#1affffff"
     property color barBorderColor: "#3dffffff"
     property color barInnerHighlight: "#0fffffff"
@@ -108,6 +109,8 @@ ShellRoot {
             root.moduleAnimationStyle = theme.moduleAnimationStyle;
         if (theme.popupAttachToBar)
             root.popupAttachToBar = theme.popupAttachToBar === "true";
+        if (theme.popupAnimationStyle)
+            root.popupAnimationStyle = theme.popupAnimationStyle;
         if (theme.dividerColor)
             root.dividerColor = theme.dividerColor;
         if (theme.barBorder)
@@ -138,7 +141,7 @@ ShellRoot {
         }
     }
 
-    readonly property bool anyPopupShown: volumePopup.shown || wifiPopup.shown || bluetoothPopup.shown || batteryPopup.shown || calendarPopup.shown || notificationsPopup.shown || systemPopup.shown || mediaPopup.shown
+    readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active
 
     function showOnly(target) {
         const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
@@ -220,6 +223,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
         volumeLevel: topbar.volumeLevel
         muted: topbar.volumeMuted
@@ -241,6 +245,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
     }
 
@@ -257,6 +262,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
     }
 
@@ -273,6 +279,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
         powerProfile: topbar.powerProfile
         onSelectProfile: name => topbar.setPowerProfile(name)
@@ -291,6 +298,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
     }
 
@@ -308,6 +316,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
     }
 
@@ -325,6 +334,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
         cpuUsage: topbar.cpuUsage
         ramUsage: topbar.ramUsage
@@ -344,6 +354,7 @@ ShellRoot {
         pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
         status: topbar.mediaStatus
         track: topbar.mediaTitle

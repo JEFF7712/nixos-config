@@ -175,6 +175,7 @@ let
       barFont = "FiraCode Nerd Font";
       pillBg = "#00000000";
       pillBorder = "#00000000";
+      popupAnimationStyle = "softPop";
     };
 
     cursor = {

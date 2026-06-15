@@ -20,30 +20,72 @@ PanelWindow {
     property color pillBorder: Qt.rgba(1, 1, 1, 0.1)
     property bool flatMode: false
     property bool popupAttachToBar: false
+    property string popupAnimationStyle: "softPop"
+    property bool warming: false
+    property bool opening: false
     property bool closing: false
     property int frozenHeight: 0
+    readonly property string effectiveAnimationStyle: popupAttachToBar ? "attachedSlide" : popupAnimationStyle
+    readonly property bool attachedSlide: effectiveAnimationStyle === "attachedSlide"
+    readonly property bool quickFade: effectiveAnimationStyle === "quickFade"
+    readonly property bool floatSlide: effectiveAnimationStyle === "floatSlide"
+    readonly property bool unfold: effectiveAnimationStyle === "unfold"
+    readonly property bool active: shown || opening || closing
+    readonly property bool mapped: active || warming
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int contentHeight: outerColumn.implicitHeight + 28
+    readonly property int hiddenY: attachedSlide ? -card.height : floatSlide ? -10 : unfold ? -24 : quickFade ? 0 : -4
+    readonly property real hiddenOpacity: attachedSlide ? 1.0 : floatSlide ? 0.72 : 0.0
+    readonly property real hiddenScale: attachedSlide || quickFade ? 1.0 : unfold ? 0.98 : 0.96
+    readonly property int motionDuration: quickFade ? 130 : unfold ? 220 : 180
     default property alias body: contentColumn.data
+
+    function prewarm() {
+        if (!root.attachedSlide || root.active)
+            return;
+        root.frozenHeight = Math.max(1, root.contentHeight);
+        root.warming = true;
+        warmTimer.restart();
+    }
 
     function open() {
         closeTimer.stop();
+        openTimer.stop();
+        warmTimer.stop();
+        root.warming = false;
+        if (root.attachedSlide) {
+            root.frozenHeight = Math.max(1, root.contentHeight);
+            root.opening = true;
+            root.closing = false;
+            root.shown = false;
+            openTimer.restart();
+            return;
+        }
         root.closing = false;
-        root.frozenHeight = 0;
+        root.opening = false;
         root.shown = true;
+        root.frozenHeight = 0;
     }
     function close() {
-        if (root.popupAttachToBar && root.shown) {
+        openTimer.stop();
+        warmTimer.stop();
+        root.warming = false;
+        if (root.shown || root.opening) {
             root.frozenHeight = Math.max(1, root.implicitHeight);
-            root.shown = false;
             root.closing = true;
+            root.opening = false;
+            root.shown = false;
             closeTimer.restart();
         } else {
             root.shown = false;
+            root.opening = false;
             root.closing = false;
             root.frozenHeight = 0;
         }
     }
+
+    onPopupAttachToBarChanged: root.prewarm()
+    onPopupAnimationStyleChanged: root.prewarm()
     function toggle() {
         if (root.shown)
             root.close();
@@ -55,7 +97,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
-    visible: shown || closing
+    visible: mapped
     anchors {
         top: true
         right: root.popupPosition === "right"
@@ -67,16 +109,37 @@ PanelWindow {
         left: root.popupPosition === "left" ? 10 : 0
     }
     implicitWidth: 300
-    implicitHeight: root.closing ? root.frozenHeight : root.contentHeight
+    implicitHeight: (root.warming || root.opening || root.closing) ? root.frozenHeight : root.contentHeight
     exclusiveZone: -1
     color: "transparent"
 
     Timer {
         id: closeTimer
-        interval: 260
+        interval: root.motionDuration + 50
         repeat: false
         onTriggered: {
             root.closing = false;
+            root.frozenHeight = 0;
+        }
+    }
+
+    Timer {
+        id: warmTimer
+        interval: 120
+        repeat: false
+        onTriggered: {
+            root.warming = false;
+            root.frozenHeight = 0;
+        }
+    }
+
+    Timer {
+        id: openTimer
+        interval: 16
+        repeat: false
+        onTriggered: {
+            root.shown = true;
+            root.opening = false;
             root.frozenHeight = 0;
         }
     }
@@ -88,7 +151,7 @@ PanelWindow {
 
     Item {
         anchors.fill: parent
-        clip: root.popupAttachToBar
+        clip: root.attachedSlide || root.unfold
 
         Rectangle {
             id: card
@@ -98,30 +161,28 @@ PanelWindow {
             color: root.themeBg
             border.width: 1
             border.color: root.themeBorder
-            y: root.popupAttachToBar && !root.shown ? -height : 0
-            opacity: root.popupAttachToBar ? 1.0 : (root.shown ? 1.0 : 0.0)
-            scale: root.popupAttachToBar ? 1.0 : (root.shown ? 1.0 : 0.96)
-            transformOrigin: Item.TopRight
+            y: root.shown ? 0 : root.hiddenY
+            opacity: root.shown ? 1.0 : root.hiddenOpacity
+            scale: root.shown ? 1.0 : root.hiddenScale
+            transformOrigin: root.popupPosition === "left" ? Item.TopLeft : Item.TopRight
             Behavior on y {
-                enabled: root.popupAttachToBar
+                enabled: root.effectiveAnimationStyle !== "quickFade"
                 NumberAnimation {
-                    duration: 210
+                    duration: root.motionDuration
                     easing.type: Easing.InOutCubic
                 }
             }
             Behavior on opacity {
-                enabled: !root.popupAttachToBar
                 NumberAnimation {
-                    duration: 180
-                    easing.type: Easing.OutCubic
+                    duration: root.motionDuration
+                    easing.type: root.quickFade ? Easing.OutCubic : Easing.InOutCubic
                 }
             }
             Behavior on scale {
-                enabled: !root.popupAttachToBar
-                SpringAnimation {
-                    spring: 3.5
-                    damping: 0.55
-                    mass: 0.7
+                enabled: !root.attachedSlide
+                NumberAnimation {
+                    duration: root.motionDuration
+                    easing.type: Easing.InOutCubic
                 }
             }
 

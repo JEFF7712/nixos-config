@@ -124,6 +124,7 @@ in
       barHeight = "30";
       barMarginTop = "7";
       exclusiveZoneOffset = "-3";
+      popupAnimationStyle = "floatSlide";
     };
 
     cursor = {

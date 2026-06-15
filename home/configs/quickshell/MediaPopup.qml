@@ -4,6 +4,7 @@ import Quickshell
 InfoPopup {
     id: root
     title: "MEDIA"
+    popupPosition: "center"
 
     property string status: ""
     property string track: ""

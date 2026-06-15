@@ -33,5 +33,6 @@ set_wallpaper "$WALLPAPER"
 
 WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
 if [ -f "$WAYPAPER_CFG" ]; then
+  ensure_waypaper_post_command "$WAYPAPER_CFG"
   sed -i "s|^wallpaper = .*|wallpaper = ${WALLPAPER/#$HOME/\~}|" "$WAYPAPER_CFG"
 fi

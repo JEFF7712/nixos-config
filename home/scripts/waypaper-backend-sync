@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+WAYPAPER_CFG="$CONFIG_HOME/waypaper/config.ini"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+. "$SCRIPT_DIR/profile-common"
+
+backend=$(awk -F' = ' '$1 == "backend" { print $2; exit }' "$WAYPAPER_CFG" 2>/dev/null || true)
+
+case "$backend" in
+  awww)
+    stop_video_wallpaper
+    systemctl --user start awww 2>/dev/null || true
+    ;;
+  mpvpaper)
+    systemctl --user stop awww 2>/dev/null || true
+    ;;
+esac

@@ -50,6 +50,9 @@ if [ "$BAR" = "noctalia" ]; then
   # shellcheck disable=SC2086
   noctalia-shell ipc --any-display call ${NOCTALIA[$ACTION]}
 else
+  if [ "$ACTION" = "wallpaper" ]; then
+    ensure_waypaper_post_command
+  fi
   # shellcheck disable=SC2086
   ${GENERIC[$ACTION]}
 fi

@@ -15,6 +15,7 @@ ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
 FOCUS_FILE="$PROFILES_DIR/focus"
 CONFIG_HOME="$HOME/.config"
 OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
+WAYPAPER_POST_COMMAND='$HOME/.local/bin/waypaper-backend-sync $wallpaper'
 
 firefox_chrome_dir() {
   local d
@@ -66,7 +67,7 @@ wait_for_awww() {
 }
 
 stop_video_wallpaper() {
-  pkill -x mpvpaper 2>/dev/null || true
+  pkill -f '/[m]pvpaper( |$)' 2>/dev/null || true
 }
 
 set_wallpaper() {
@@ -85,6 +86,18 @@ set_wallpaper() {
       mpvpaper -f -p -o "no-audio loop" '*' "$wallpaper" >/dev/null 2>&1 || true
       ;;
   esac
+}
+
+ensure_waypaper_post_command() {
+  local config_file="${1:-$HOME/.config/waypaper/config.ini}"
+
+  [ -f "$config_file" ] || return 0
+
+  if grep -q '^post_command = ' "$config_file"; then
+    sed -i "s|^post_command = .*|post_command = $WAYPAPER_POST_COMMAND|" "$config_file"
+  else
+    sed -i "/^\\[Settings\\]/a post_command = $WAYPAPER_POST_COMMAND" "$config_file"
+  fi
 }
 
 # profile_bar <profile>

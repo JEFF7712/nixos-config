@@ -233,6 +233,7 @@ let
     pillBorder = "#00000000";
     moduleAnimationStyle = "slide";
     popupAttachToBar = "true";
+    popupAnimationStyle = "attachedSlide";
   };
 
   mkWaybarStyle =

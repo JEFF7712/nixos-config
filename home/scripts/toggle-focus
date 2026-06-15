@@ -59,14 +59,13 @@ niri msg action load-config-file 2>/dev/null || true
 if [ "$STATE" = "on" ]; then
   # Mute notifications (the dnd mode is defined invisible=1 in the mako config).
   makoctl mode -a dnd 2>/dev/null || true
-  # Pause heavy background units (polkit-allowed; see modules/nixos/focus-mode.nix).
-  systemctl stop ollama.service 2>/dev/null || true
+  # Pause the auto-update timer (polkit-allowed; see modules/nixos/focus-mode.nix)
+  # so a background rebuild can't tank the session mid-focus.
   systemctl stop nixos-auto-update.timer 2>/dev/null || true
   notify-send "Focus Mode On" "Notifications muted; animations, shadows & blur disabled" 2>/dev/null || true
   echo "Focus mode ON for '$ACTIVE'."
 else
   makoctl mode -r dnd 2>/dev/null || true
-  systemctl start ollama.service 2>/dev/null || true
   systemctl start nixos-auto-update.timer 2>/dev/null || true
   notify-send "Focus Mode Off" "Effects restored" 2>/dev/null || true
   echo "Focus mode OFF for '$ACTIVE'."

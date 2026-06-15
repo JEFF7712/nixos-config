@@ -25,7 +25,7 @@ PanelWindow {
     property bool showClockDate: true
     property bool showWorkspaceNumbers: true
     property bool showActiveWindow: false
-    property bool showMedia: false
+    property bool showMedia: true
     property bool showVolume: true
     property bool showNetwork: true
     property bool showBluetooth: true
@@ -58,6 +58,7 @@ PanelWindow {
     property string mediaArtist: ""
     property string mediaAlbum: ""
     property string mediaArtUrl: ""
+    property var cavaValues: []
     property int activeWorkspace: 1
     property var occupiedWorkspaces: ({})
     property var workspaceList: []
@@ -218,6 +219,37 @@ PanelWindow {
         }
     }
 
+    // cava raw-output visualizer feeding the centered media module. Only runs
+    // while media is actually playing to avoid idle CPU. setpriv --pdeathsig so
+    // it dies with quickshell rather than orphaning on pkill/profile-switch.
+    readonly property string cavaConfigPath: Qt.resolvedUrl("cava-bar.conf").toString().replace("file://", "")
+    Process {
+        id: cavaProc
+        running: topbarWindow.showMedia && topbarWindow.mediaStatus === "Playing"
+        command: ["setpriv", "--pdeathsig", "TERM", "--", "cava", "-p", topbarWindow.cavaConfigPath]
+        stdout: SplitParser {
+            onRead: data => {
+                if (!data)
+                    return;
+                const parts = data.split(";");
+                const vals = [];
+                for (let i = 0; i < parts.length; i++) {
+                    if (parts[i] === "")
+                        continue;
+                    const n = parseInt(parts[i]);
+                    if (!isNaN(n))
+                        vals.push(n);
+                }
+                if (vals.length > 0)
+                    topbarWindow.cavaValues = vals;
+            }
+        }
+        onRunningChanged: {
+            if (!running)
+                topbarWindow.cavaValues = [];
+        }
+    }
+
     Process {
         id: workspacesProc
         command: ["sh", "-c", "niri msg -j workspaces 2>/dev/null || true"]
@@ -318,7 +350,7 @@ PanelWindow {
         Item {
             id: workspacesArea
             visible: topbarWindow.showWorkspaces
-            anchors.left: parent.left
+            anchors.left: clockArea.right
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: topbarWindow.flatMode ? 0 : 14
             width: visible ? wsRow.implicitWidth : 0
@@ -364,15 +396,6 @@ PanelWindow {
             anchors.rightMargin: topbarWindow.flatMode ? 0 : 12
             spacing: topbarWindow.flatMode ? 0 : 6
 
-            StatPill {
-                visible: topbarWindow.showMedia && topbarWindow.mediaStatus !== "" && topbarWindow.mediaStatus !== "Stopped"
-                icon: topbarWindow.mediaStatus === "Playing" ? "󰏤" : "󰐊"
-                value: topbarWindow.mediaTitle.length > 22 ? topbarWindow.mediaTitle.substring(0, 21) + "…" : topbarWindow.mediaTitle
-                tint: topbarWindow.mediaStatus === "Playing" ? topbarWindow.themeAccent : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.55)
-                onActivated: topbarWindow.run("playerctl play-pause")
-                onRightClicked: topbarWindow.mediaClicked()
-                onScrolled: delta => topbarWindow.adjustMedia(delta)
-            }
             StatPill {
                 visible: topbarWindow.showVolume
                 icon: topbarWindow.volumeMuted ? "󰖁" : "󰕾"
@@ -434,8 +457,9 @@ PanelWindow {
         Item {
             id: clockArea
             visible: topbarWindow.showClock
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: topbarWindow.flatMode ? 0 : 14
             width: visible ? clockColumn.implicitWidth + 16 : 0
             height: visible ? clockColumn.implicitHeight + 8 : 0
 
@@ -491,10 +515,152 @@ PanelWindow {
             }
         }
 
+        Item {
+            id: mediaModule
+            visible: topbarWindow.showMedia && topbarWindow.mediaStatus !== "" && topbarWindow.mediaStatus !== "Stopped"
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+
+            readonly property bool flat: topbarWindow.flatMode
+            readonly property bool playing: topbarWindow.mediaStatus === "Playing"
+            readonly property color tint: playing ? topbarWindow.themeAccent : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.55)
+
+            width: mediaContent.implicitWidth + (flat ? 16 : 22)
+            height: flat ? topbarWindow.barHeight : 26
+            clip: true
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: mediaModule.flat ? 0 : 10
+                color: mediaMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : mediaMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : topbarWindow.pillBg
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                border.width: mediaModule.flat ? 0 : 1
+                border.color: mediaMouse.containsMouse ? Qt.rgba(mediaModule.tint.r, mediaModule.tint.g, mediaModule.tint.b, 0.55) : topbarWindow.pillBorder
+                Behavior on border.color {
+                    ColorAnimation {
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                scale: mediaModule.flat ? 1.0 : (mediaMouse.pressed ? 0.94 : 1.0)
+                Behavior on scale {
+                    SpringAnimation {
+                        spring: 3
+                        damping: 0.55
+                        mass: 0.8
+                    }
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: parent.radius
+                    color: mediaModule.tint
+                    opacity: mediaMouse.containsMouse ? 0.18 : 0.0
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 280
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
+
+                RowLayout {
+                    id: mediaContent
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    Text {
+                        text: mediaModule.playing ? "󰏤" : "󰐊"
+                        color: mediaMouse.containsMouse ? mediaModule.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
+                        font {
+                            family: topbarWindow.barFont
+                            pixelSize: 12
+                        }
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 260
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: topbarWindow.mediaTitle.length > 26 ? topbarWindow.mediaTitle.substring(0, 25) + "…" : topbarWindow.mediaTitle
+                        color: topbarWindow.themeFg
+                        opacity: 0.85
+                        font {
+                            family: topbarWindow.barFont
+                            pixelSize: 10
+                            weight: Font.Medium
+                        }
+                    }
+
+                    Row {
+                        id: cavaRow
+                        Layout.preferredWidth: implicitWidth
+                        Layout.preferredHeight: 14
+                        Layout.alignment: Qt.AlignVCenter
+                        height: 14
+                        spacing: 2
+                        visible: mediaModule.playing && topbarWindow.cavaValues.length > 0
+
+                        Repeater {
+                            model: topbarWindow.cavaValues
+                            delegate: Rectangle {
+                                width: 2
+                                radius: 1
+                                anchors.bottom: parent.bottom
+                                height: Math.max(2, Math.min(14, (modelData / 100) * 14))
+                                color: mediaModule.tint
+                                Behavior on height {
+                                    NumberAnimation {
+                                        duration: 80
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            MouseArea {
+                id: mediaMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: mouse => {
+                    if (mouse.button === Qt.RightButton)
+                        topbarWindow.mediaClicked();
+                    else
+                        topbarWindow.run("playerctl play-pause");
+                }
+                onWheel: event => {
+                    topbarWindow.adjustMedia(event.angleDelta.y);
+                    event.accepted = true;
+                }
+            }
+        }
+
         RowLayout {
             visible: topbarWindow.showActiveWindow
             anchors.left: workspacesArea.right
-            anchors.right: clockArea.left
+            anchors.right: rightGroup.left
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: 14
             anchors.rightMargin: 14
@@ -701,7 +867,7 @@ PanelWindow {
                 }
             }
 
-            scale: statRoot.flat ? 1.0 : (statMouse.pressed ? 0.94 : (statMouse.containsMouse ? 1.06 : 1.0))
+            scale: statRoot.flat ? 1.0 : (statMouse.pressed ? 0.94 : 1.0)
             Behavior on scale {
                 SpringAnimation {
                     spring: 3
@@ -752,12 +918,14 @@ PanelWindow {
                 }
 
                 Item {
-                    width: statRoot.hasValue ? valueText.implicitWidth : 0
-                    height: valueText.implicitHeight
+                    implicitWidth: statRoot.hasValue ? valueText.implicitWidth : 0
+                    implicitHeight: valueText.implicitHeight
+                    Layout.preferredWidth: implicitWidth
+                    Layout.preferredHeight: implicitHeight
                     visible: statRoot.slideValue || statRoot.hasValue
                     clip: statRoot.slideValue
 
-                    Behavior on width {
+                    Behavior on Layout.preferredWidth {
                         enabled: statRoot.slideValue
                         NumberAnimation {
                             duration: 180

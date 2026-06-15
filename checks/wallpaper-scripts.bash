@@ -28,3 +28,39 @@ assert_eq "image" "$(wallpaper_backend "$tmpdir/still.png")" "png uses image bac
 rm "$tmpdir/still.png"
 touch "$tmpdir/notes.txt"
 assert_eq "" "$(pick_random_wallpaper "$tmpdir")" "unsupported files are ignored"
+
+cat > "$tmpdir/waypaper.ini" <<'EOF'
+[Settings]
+post_command =
+EOF
+ensure_waypaper_post_command "$tmpdir/waypaper.ini"
+assert_eq 'post_command = $HOME/.local/bin/waypaper-backend-sync $wallpaper' \
+  "$(awk -F' = ' '$1 == "post_command" { print }' "$tmpdir/waypaper.ini")" \
+  "waypaper post command uses an absolute home-relative script path"
+
+bin_dir="$tmpdir/bin"
+config_dir="$tmpdir/config"
+log_file="$tmpdir/commands.log"
+mkdir -p "$bin_dir" "$config_dir/waypaper"
+
+cat > "$bin_dir/pkill" <<'EOF'
+#!/usr/bin/env bash
+printf 'pkill %s\n' "$*" >> "$COMMAND_LOG"
+EOF
+cat > "$bin_dir/systemctl" <<'EOF'
+#!/usr/bin/env bash
+printf 'systemctl %s\n' "$*" >> "$COMMAND_LOG"
+EOF
+chmod +x "$bin_dir/pkill" "$bin_dir/systemctl"
+
+cat > "$config_dir/waypaper/config.ini" <<'EOF'
+[Settings]
+backend = awww
+EOF
+
+COMMAND_LOG="$log_file" XDG_CONFIG_HOME="$config_dir" PATH="$bin_dir:$PATH" \
+  "$REPO_ROOT/home/scripts/waypaper-backend-sync" "$tmpdir/still.png"
+
+assert_eq $'pkill -f /[m]pvpaper( |$)\nsystemctl --user start awww' \
+  "$(cat "$log_file")" \
+  "waypaper awww backend stops mpvpaper and starts awww"

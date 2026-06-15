@@ -66,7 +66,13 @@ profile_status() {
     quickshell)
       pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 \
         && mark ok "quickshell topbar" || mark fail "quickshell topbar"
-      mako_running && mark ok "mako" || mark fail "mako"
+      # Quickshell owns notifications natively; mako must NOT be running (it would
+      # steal the org.freedesktop.Notifications bus name).
+      if busctl --user status org.freedesktop.Notifications 2>/dev/null | grep -qi quickshell; then
+        mark ok "notification server"
+      else
+        mark fail "notification server (bus not owned by quickshell)"
+      fi
       ;;
   esac
 
@@ -76,9 +82,13 @@ profile_status() {
     && mark ok "app launcher" || mark fail "app launcher"
 
   link_target=$(readlink "$ACTIVE_LINK" 2>/dev/null || echo "")
-  expected_target="$PROFILES_DIR/$active/niri-overrides.kdl"
+  if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$active" != "noctalia" ]; then
+    expected_target="$PROFILES_DIR/$active/niri-overrides-focus.kdl"
+  else
+    expected_target="$PROFILES_DIR/$active/niri-overrides.kdl"
+  fi
   if [ "$link_target" = "$expected_target" ]; then
-    mark ok "niri overrides symlink"
+    mark ok "niri overrides symlink$([ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && echo ' [focus]')"
   else
     mark fail "niri overrides symlink (-> ${link_target:-none})"
   fi
@@ -306,19 +316,15 @@ elif [ "$TARGET_BAR" = "waybar" ]; then
 elif [ "$TARGET_BAR" = "quickshell" ]; then
   echo "  Starting quickshell topbar..."
   systemctl --user start awww 2>/dev/null || true
+  # Quickshell renders notifications natively (NotificationServer); make sure
+  # mako isn't holding the org.freedesktop.Notifications bus name.
+  stop_mako
   pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
   quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 2>/dev/null &
   disown
 
-  if [ -f "$TARGET_DIR/mako-config" ]; then
-    MAKO_CONFIG=$(pick_variant_file "$TARGET_VARIANT" "$TARGET_DIR/mako-config" "$TARGET_DIR/mako-config-light")
-    mkdir -p "$HOME/.config/mako"
-    install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
-  fi
   apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
   apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
-
-  start_mako
 fi
 
 # 6c. Profile switcher popup — runs as a standalone Quickshell instance on
@@ -338,9 +344,11 @@ if ! pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1; then
   disown
 fi
 
-# 6e. Re-arm focus-mode notification muting — mako restarts with each profile
-# switch and resets to its default mode, so re-apply dnd if focus is active.
-if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$TARGET" != "noctalia" ]; then
+# 6e. Re-arm focus-mode notification muting — mako restarts with each waybar
+# profile switch and resets to its default mode, so re-apply dnd if focus is
+# active. Quickshell reads the focus file directly (NotifService), so it needs
+# no re-arm.
+if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$TARGET_BAR" = "waybar" ]; then
   (
     for _ in $(seq 1 15); do
       makoctl mode -a dnd 2>/dev/null && break
@@ -395,6 +403,7 @@ elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
   # Update waypaper config so its folder picker opens the right directory
   WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
   if [ -f "$WAYPAPER_CFG" ] && [ -n "$TARGET_WALLPAPER_DIR" ]; then
+    ensure_waypaper_post_command "$WAYPAPER_CFG"
     WAYPAPER_FOLDER="${TARGET_WALLPAPER_DIR/#$HOME/\~}"
     sed -i "s|^folder = .*|folder = $WAYPAPER_FOLDER|" "$WAYPAPER_CFG"
     [ -n "$WALLPAPER" ] && sed -i "s|^wallpaper = .*|wallpaper = ${WALLPAPER/#$HOME/\~}|" "$WAYPAPER_CFG"

@@ -160,6 +160,7 @@ in
       showBarDividers = "false";
       moduleAnimationStyle = "slide";
       popupAttachToBar = "true";
+      popupAnimationStyle = "attachedSlide";
       dividerColor = p.bg3;
     };
 
