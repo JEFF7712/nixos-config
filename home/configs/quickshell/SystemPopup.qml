@@ -5,6 +5,7 @@ import Quickshell.Io
 InfoPopup {
     id: root
     title: "SYSTEM"
+    edgeSlide: true
 
     property string cpuUsage: "-"
     property string ramUsage: "-"

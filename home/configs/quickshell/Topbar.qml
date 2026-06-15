@@ -59,6 +59,7 @@ PanelWindow {
     property string mediaAlbum: ""
     property string mediaArtUrl: ""
     property var cavaValues: []
+    property bool cavaRequested: false
     property int activeWorkspace: 1
     property var occupiedWorkspaces: ({})
     property var workspaceList: []
@@ -225,7 +226,7 @@ PanelWindow {
     readonly property string cavaConfigPath: Qt.resolvedUrl("cava-bar.conf").toString().replace("file://", "")
     Process {
         id: cavaProc
-        running: topbarWindow.showMedia && topbarWindow.mediaStatus === "Playing"
+        running: topbarWindow.mediaStatus === "Playing" && (topbarWindow.showMedia || topbarWindow.cavaRequested)
         command: ["setpriv", "--pdeathsig", "TERM", "--", "cava", "-p", topbarWindow.cavaConfigPath]
         stdout: SplitParser {
             onRead: data => {
@@ -643,12 +644,12 @@ PanelWindow {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 onClicked: mouse => {
-                    if (mouse.button === Qt.RightButton)
-                        topbarWindow.mediaClicked();
-                    else
+                    if (mouse.button === Qt.MiddleButton)
                         topbarWindow.run("playerctl play-pause");
+                    else
+                        topbarWindow.mediaClicked();
                 }
                 onWheel: event => {
                     topbarWindow.adjustMedia(event.angleDelta.y);

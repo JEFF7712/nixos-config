@@ -8,7 +8,7 @@ let
   # Neutral greys only. One role mapping serves dark and light; `rofiText`
   # and `hoverBg` are the two slots that differ beyond the palette itself.
   dark = rec {
-    title = "Minimal dark";
+    title = "Sharp dark";
     bg0 = "#141414";
     bg1 = "#1c1c1c";
     bg2 = "#262626";
@@ -23,7 +23,7 @@ let
   };
 
   light = rec {
-    title = "Minimal light";
+    title = "Sharp light";
     bg0 = "#fafafa";
     bg1 = "#f0f0f0";
     bg2 = "#e2e2e2";
@@ -224,9 +224,10 @@ let
     barRadius = "0";
     barHeight = "26";
     barMargin = "2";
+    flatMode = "true";
     showClockDate = "false";
     showWorkspaceNumbers = "false";
-    barFont = "Iosevka Nerd Font";
+    barFont = "JetBrainsMono Nerd Font";
     barBorder = "#00000000";
     barInnerHighlight = "#00000000";
     pillBg = "#00000000";
@@ -252,7 +253,7 @@ let
     };
 in
 {
-  desktopProfiles.profiles.minimal = {
+  desktopProfiles.profiles.sharp = {
     bar = "quickshell";
 
     quickshellTheme = mkQuickshell dark;
@@ -273,7 +274,7 @@ in
         size = 11;
       };
       mono = {
-        family = "Iosevka Nerd Font";
+        family = "JetBrainsMono Nerd Font";
         size = 14;
       };
     };
@@ -285,8 +286,8 @@ in
       iconThemeLight = "Colloid-Light";
     };
 
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/minimal";
-    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/minimal-light";
+    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/sharp";
+    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/sharp-light";
 
     niri = {
       animations = animations.snappy;

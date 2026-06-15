@@ -84,8 +84,8 @@ let
 
   slideProfiles = [
     "gruvbox"
-    "minimal"
     "nord"
+    "sharp"
   ];
 
   checkSlideProfile =

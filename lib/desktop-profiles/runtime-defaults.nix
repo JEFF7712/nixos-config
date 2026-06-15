@@ -158,7 +158,7 @@ in
     spicetify.light = spice "Comfy" "Hikari" 0;
   };
 
-  minimal = {
+  sharp = {
     firefox.dark = {
       main = "20, 20, 20";
       secondary = "28, 28, 28";
@@ -182,7 +182,7 @@ in
       theme = "One Light";
       icon = "Zed (Default)";
     };
-    vesktop.dark = "minimal.theme.css";
+    vesktop.dark = "sharp.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
     obsidian.light = "minimal-flexoki-light";
     spicetify.dark = spice "Sleek" "VantaBlack" 0;
@@ -202,7 +202,7 @@ in
       theme = "Transparent Prism";
       icon = "Zed (Default)";
     };
-    vesktop.dark = "minimal.theme.css";
+    vesktop.dark = "sharp.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
     spicetify.dark = spice "Comfy" "Mono" 0;
   };

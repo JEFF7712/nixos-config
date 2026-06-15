@@ -4,6 +4,7 @@ InfoPopup {
     id: root
     title: "CALENDAR"
     popupPosition: "left"
+    edgeSlide: true
 
     property date today: new Date()
     property int viewYear: today.getFullYear()

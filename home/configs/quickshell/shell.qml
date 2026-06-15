@@ -199,6 +199,7 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         notificationCount: notificationsPopup.unreadCount
+        cavaRequested: mediaPopup.active
 
         onVolumeClicked: root.showOnly(volumePopup)
         onWifiClicked: root.showOnly(wifiPopup)
@@ -361,6 +362,7 @@ ShellRoot {
         artist: topbar.mediaArtist
         album: topbar.mediaAlbum
         artUrl: topbar.mediaArtUrl
+        cavaValues: topbar.cavaValues
     }
 
     NotificationToasts {

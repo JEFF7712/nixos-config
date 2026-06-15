@@ -20,6 +20,7 @@ PanelWindow {
     property color pillBorder: Qt.rgba(1, 1, 1, 0.1)
     property bool flatMode: false
     property bool popupAttachToBar: false
+    property bool edgeSlide: false
     property string popupAnimationStyle: "softPop"
     property bool warming: false
     property bool opening: false
@@ -30,16 +31,18 @@ PanelWindow {
     readonly property bool quickFade: effectiveAnimationStyle === "quickFade"
     readonly property bool floatSlide: effectiveAnimationStyle === "floatSlide"
     readonly property bool unfold: effectiveAnimationStyle === "unfold"
+    readonly property bool sideSlide: attachedSlide && edgeSlide
     readonly property bool active: shown || opening || closing
     readonly property bool mapped: active || warming
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int contentHeight: outerColumn.implicitHeight + 28
-    readonly property int hiddenX: attachedSlide ? (popupPosition === "left" ? -card.width : card.width) : 0
-    readonly property int hiddenY: attachedSlide ? 0 : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
+    readonly property int hiddenX: sideSlide ? (popupPosition === "left" ? -card.width : card.width) : 0
+    readonly property int hiddenY: sideSlide ? 0 : attachedSlide ? -card.height : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
     readonly property real hiddenOpacity: attachedSlide ? 1.0 : floatSlide ? 0.72 : quickFade ? 0.0 : 0.0
     readonly property real hiddenScale: attachedSlide ? 1.0 : quickFade ? 0.985 : unfold ? 0.98 : 0.96
     readonly property int motionDuration: quickFade ? 190 : unfold ? 220 : 180
     default property alias body: contentColumn.data
+    property alias background: bgContainer.data
 
     function prewarm() {
         if (!root.attachedSlide || root.active)
@@ -106,8 +109,8 @@ PanelWindow {
     }
     margins {
         top: root.topMargin
-        right: root.popupPosition === "right" ? 10 : 0
-        left: root.popupPosition === "left" ? 10 : 0
+        right: root.sideSlide ? 0 : (root.popupPosition === "right" ? 10 : 0)
+        left: root.sideSlide ? 0 : (root.popupPosition === "left" ? 10 : 0)
     }
     implicitWidth: 300
     implicitHeight: (root.warming || root.opening || root.closing) ? root.frozenHeight : root.contentHeight
@@ -193,6 +196,12 @@ PanelWindow {
                     duration: root.motionDuration
                     easing.type: Easing.InOutCubic
                 }
+            }
+
+            Item {
+                id: bgContainer
+                anchors.fill: parent
+                anchors.margins: 1
             }
 
             Rectangle {
