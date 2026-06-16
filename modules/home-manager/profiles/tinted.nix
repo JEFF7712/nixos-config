@@ -275,12 +275,12 @@ in
       windowOpacity = 1.0;
       focusOpacity = false;
       blur = false;
-      shadowSoftness = 28;
-      shadowSpread = 4;
+      shadowSoftness = 40;
+      shadowSpread = 8;
       shadowOffsetX = 0;
-      shadowOffsetY = 6;
-      shadowColor = "#00000040";
-      shadowInactiveColor = "#0000002a";
+      shadowOffsetY = 9;
+      shadowColor = "#00000073";
+      shadowInactiveColor = "#00000047";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = true;
       tabIndicatorActiveColor = dark.accent;
