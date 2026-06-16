@@ -104,7 +104,7 @@ let
         opacity ${toString profile.niri.windowOpacity}
     }
 
-    ${lib.optionalString (!focus) ''
+    ${lib.optionalString (!focus && profile.niri.focusOpacity) ''
       window-rule {
           match is-active=true
           opacity 0.8
@@ -119,7 +119,7 @@ let
         geometry-corner-radius 10
         clip-to-geometry true
         background-effect {
-            blur ${if focus then "false" else "true"}
+            blur ${if (focus || !profile.niri.blur) then "false" else "true"}
         }
     }
 
@@ -146,7 +146,14 @@ let
     let
       base = {
         ".config/desktop-profiles/${name}/meta.json".text = builtins.toJSON {
-          inherit (profile) bar selfThemed;
+          inherit (profile)
+            bar
+            selfThemed
+            wallpaperTheming
+            colorEngine
+            matugenScheme
+            wallpaperAccentVivid
+            ;
           cursor = profile.cursor.theme;
           cursorSize = profile.cursor.size;
           inherit (profile) fonts;

@@ -1,0 +1,65 @@
+# matugen config for the wallpaper-driven `sharp` profile (transparent,
+# monochrome surfaces + wallpaper-primary accent). Selected by
+# apply_wallpaper_theme (home/scripts/profile-common) when the active profile is
+# `sharp`, in preference to config.toml (which serves the opaque `tinted`).
+# Inputs come from templates-sharp/ so sharp is decoupled from tinted's set.
+# Outputs land in the same live runtime locations the profile scripts and the
+# quickshell topbar read.
+
+[config]
+
+[templates.quickshell]
+input_path = "~/.config/matugen/templates-sharp/quickshell-theme.json"
+output_path = "~/.config/desktop-profiles/runtime-quickshell-theme.json"
+
+[templates.gtk3]
+input_path = "~/.config/matugen/templates-sharp/gtk.css"
+output_path = "~/.config/gtk-3.0/noctalia.css"
+
+[templates.gtk4]
+input_path = "~/.config/matugen/templates-sharp/gtk.css"
+output_path = "~/.config/gtk-4.0/noctalia.css"
+
+[templates.kitty]
+input_path = "~/.config/matugen/templates-sharp/kitty-colors.conf"
+output_path = "~/.config/kitty/colors.conf"
+
+[templates.qt6]
+input_path = "~/.config/matugen/templates-sharp/qtct-colors.conf"
+output_path = "~/.config/qt6ct/colors/noctalia.conf"
+
+[templates.qt5]
+input_path = "~/.config/matugen/templates-sharp/qtct-colors.conf"
+output_path = "~/.config/qt5ct/colors/noctalia.conf"
+
+[templates.fish]
+input_path = "~/.config/matugen/templates-sharp/fish-theme.fish"
+output_path = "~/.config/fish/conf.d/matugen_theme.fish"
+
+[templates.starship]
+input_path = "~/.config/matugen/templates-sharp/starship.toml"
+output_path = "~/.config/starship_matugen.toml"
+
+[templates.rofi]
+input_path = "~/.config/matugen/templates-sharp/rofi-theme.rasi"
+output_path = "~/.config/rofi/profile-switcher.rasi"
+
+[templates.cava]
+input_path = "~/.config/matugen/templates-sharp/cava-colors"
+output_path = "~/.config/desktop-profiles/runtime-cava-colors"
+
+[templates.btop]
+input_path = "~/.config/matugen/templates-sharp/btop.theme"
+output_path = "~/.config/btop/themes/profile.theme"
+
+[templates.hyprlock]
+input_path = "~/.config/matugen/templates-sharp/hyprlock-colors.conf"
+output_path = "~/.config/hypr/profile-colors.conf"
+
+[templates.tmux]
+input_path = "~/.config/matugen/templates-sharp/tmux-colors.conf"
+output_path = "~/.config/tmux/profile-colors.conf"
+
+[templates.niri]
+input_path = "~/.config/matugen/templates-sharp/niri-accent.kdl"
+output_path = "~/.config/desktop-profiles/runtime-niri-sharp.kdl"

@@ -18,3 +18,7 @@ case "$backend" in
     systemctl --user stop awww 2>/dev/null || true
     ;;
 esac
+
+# waypaper passes the chosen wallpaper as $1 via its post_command; re-tint
+# wallpaper-themed profiles from it (no-op for the rest).
+apply_wallpaper_theme "${1:-}"

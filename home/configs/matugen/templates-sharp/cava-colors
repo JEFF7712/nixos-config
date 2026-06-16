@@ -1,0 +1,6 @@
+[color]
+foreground = '{{colors.source_color.default.hex}}'
+gradient = 1
+gradient_color_1 = '{{colors.secondary.default.hex}}'
+gradient_color_2 = '{{colors.source_color.default.hex}}'
+gradient_color_3 = '{{colors.tertiary.default.hex}}'

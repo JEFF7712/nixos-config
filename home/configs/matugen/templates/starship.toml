@@ -1,0 +1,14 @@
+format = "$all"
+
+[character]
+success_symbol = "[❯]({{colors.primary.default.hex}})"
+error_symbol = "[❯]({{colors.error.default.hex}})"
+
+[directory]
+style = "bold {{colors.primary.default.hex}}"
+
+[git_branch]
+style = "bold {{colors.inverse_primary.default.hex}}"
+
+[cmd_duration]
+style = "bold {{colors.on_surface_variant.default.hex}}"

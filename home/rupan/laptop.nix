@@ -54,6 +54,7 @@
     hyprlock
     tela-icon-theme
     whitesur-icon-theme
+    maple-mono-nf
   ];
 
   niri.enable = true;
@@ -85,6 +86,12 @@
 
   xdg.configFile."hypr/hyprlock.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/hypr/hyprlock.conf";
+
+  # matugen templates + config for the wallpaper-driven `tinted` profile.
+  # Out-of-store so template edits re-theme on the next wallpaper change with
+  # no rebuild. apply_wallpaper_theme invokes matugen against this config.
+  xdg.configFile."matugen".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/matugen";
 
   home.sessionPath = [ "$HOME/.local/bin" ];
 

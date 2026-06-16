@@ -214,7 +214,7 @@ let
 
   mkQuickshell = p: {
     fg = p.fg0;
-    bg = "#66141414";
+    bg = alpha "cc" p.bg0;
     popupBg = alpha "cc" p.bg0;
     rawBg = p.bg0;
     inherit (p) accent;
@@ -223,7 +223,8 @@ let
     fresh = p.fg1;
     barRadius = "0";
     barHeight = "26";
-    barMargin = "2";
+    barMargin = "0";
+    barMarginTop = "0";
     flatMode = "true";
     showClockDate = "false";
     showWorkspaceNumbers = "true";
@@ -256,6 +257,17 @@ in
 {
   desktopProfiles.profiles.sharp = {
     bar = "quickshell";
+
+    # Transparent, monochrome counterpart to `tinted`: surfaces stay near-grey
+    # (subtly tinted toward the wallpaper) while the wallpaper's primary becomes
+    # the accent. apply_wallpaper_theme picks config-sharp.toml at runtime; the
+    # baked greys below are the pre-first-tint fallback. tonal-spot keeps surface
+    # chroma low (subtle tint) while the accent still follows the wallpaper hue.
+    wallpaperTheming = true;
+    matugenScheme = "scheme-tonal-spot";
+    # Accent = the wallpaper's most vivid+bright color (not the dominant mood
+    # hue), surfaced raw via {{colors.source_color}} in the sharp templates.
+    wallpaperAccentVivid = true;
 
     quickshellTheme = mkQuickshell dark;
     quickshellThemeLight = mkQuickshell light;
@@ -293,8 +305,14 @@ in
     niri = {
       animations = animations.snappy;
       gaps = 6;
+      # No border; the focused window is marked by a thin accent focus ring
+      # (active-color overridden at runtime by the matugen-rendered include
+      # below to the wallpaper accent). Windows stay transparent (per-focus
+      # 0.8/0.6 + blur, the niri defaults).
       borderOff = true;
-      focusRingOff = true;
+      focusRingOff = false;
+      focusRingActiveColor = dark.accent;
+      focusRingInactiveColor = "#00000000";
       shadowOff = true;
       shadowSoftness = 0;
       shadowSpread = 0;
@@ -309,6 +327,14 @@ in
       windowOpacity = 1.0;
       windowHighlightOff = true;
       extraConfig = ''
+        // Draw the focus ring as an outline, NOT a solid filled rectangle behind
+        // the window. Without this, niri fills the ring's background for windows
+        // that omit client-side decorations, which bleeds the accent through
+        // transparent windows and reads as a whole-window tint.
+        window-rule {
+            draw-border-with-background false
+        }
+
         window-rule {
             geometry-corner-radius 0
             clip-to-geometry true
@@ -334,6 +360,11 @@ in
             match namespace="^mako$"
             geometry-corner-radius 0
         }
+
+        // Wallpaper-driven accent focus ring (matugen renders this file on every
+        // wallpaper change; the activation default below seeds it). Last include
+        // wins, so it overrides the focus-ring block above.
+        include "${config.home.homeDirectory}/.config/desktop-profiles/runtime-niri-sharp.kdl"
       '';
     };
 
@@ -346,4 +377,24 @@ in
     };
     waybarLight.style = mkWaybarStyle light;
   };
+
+  # niri errors on a missing include, so seed runtime-niri-sharp.kdl with the
+  # baked accent focus ring before matugen ever runs. Only when absent — never
+  # clobber a wallpaper-rendered version on rebuild.
+  home.activation.sharpNiriAccentDefault = config.lib.dag.entryAfter [ "writeBoundary" ] ''
+    f="${config.home.homeDirectory}/.config/desktop-profiles/runtime-niri-sharp.kdl"
+    if [ ! -e "$f" ]; then
+      $DRY_RUN_CMD mkdir -p "$(dirname "$f")"
+      $DRY_RUN_CMD install -m 644 ${pkgs.writeText "runtime-niri-sharp-default.kdl" ''
+        layout {
+            focus-ring {
+                on
+                width 0.5
+                active-color "${dark.accent}"
+                inactive-color "#00000000"
+            }
+        }
+      ''} "$f"
+    fi
+  '';
 }

@@ -71,6 +71,8 @@ in
       second = "#e8e8e8";
       warm = "#e6dcc6";
       fresh = "#d6eadc";
+      barHeight = "38";
+      showClockDate = "false";
       popupAnimationStyle = "quickFade";
     };
 

@@ -86,6 +86,173 @@ set_wallpaper() {
       mpvpaper -f -p -o "no-audio loop" '*' "$wallpaper" >/dev/null 2>&1 || true
       ;;
   esac
+
+  # Wallpaper-tinted profiles re-derive their palette from the new wallpaper.
+  # No-op for every other profile (gated inside).
+  apply_wallpaper_theme "$wallpaper"
+}
+
+# profile_wallpaper_theming <profile>
+# True when the profile opts into runtime matugen re-theming.
+profile_wallpaper_theming() {
+  [ "$(jq -r '.wallpaperTheming // false' "$PROFILES_DIR/$1/meta.json" 2>/dev/null)" = "true" ]
+}
+
+# matugen_source_color <image>
+# Dominant, reasonably saturated color (#rrggbb) to seed matugen. Filters out
+# near-black/near-white/near-grey palette entries; falls back to the average
+# color, then a neutral, so matugen always gets a usable seed.
+matugen_source_color() {
+  local img="$1" c
+  c=$(magick "$img" -resize 200x200 -depth 8 -colors 16 -format "%c" histogram:info:- 2>/dev/null \
+    | sort -rn \
+    | awk '{
+        for (i = 1; i <= NF; i++)
+          if ($i ~ /^#[0-9A-Fa-f]{6}/) {
+            h = substr($i, 1, 7)
+            r = strtonum("0x" substr(h, 2, 2)); g = strtonum("0x" substr(h, 4, 2)); b = strtonum("0x" substr(h, 6, 2))
+            mx = (r > g ? r : g); mx = (mx > b ? mx : b)
+            mn = (r < g ? r : g); mn = (mn < b ? mn : b)
+            lum = (mx + mn) / 2
+            if (lum > 30 && lum < 235 && mx - mn > 12) { print h; exit }
+          }
+      }')
+  [ -n "$c" ] || c=$(magick "$img" -resize 1x1 -depth 8 -format "#%02X%02X%02X" txt:- 2>/dev/null \
+    | grep -oiE '#[0-9a-f]{6}' | head -1)
+  [ -n "$c" ] || c="#6c7a89"
+  printf '%s\n' "$c"
+}
+
+# matugen_vivid_color <image>
+# The image's most vivid color (saturation^2 * value), normalized up to a bright
+# value so even a dark-but-saturated pop becomes a usable accent. For a
+# (near-)grayscale image nothing scores, so we fall back to the dominant color.
+# Used for monochrome profiles that want one punchy wallpaper accent (sharp).
+matugen_vivid_color() {
+  local img="$1" c
+  c=$(magick "$img" -resize 200x200 -depth 8 -colors 64 -format "%c" histogram:info:- 2>/dev/null \
+    | awk '{
+        for (i = 1; i <= NF; i++)
+          if ($i ~ /^#[0-9A-Fa-f]{6}/) {
+            h = substr($i, 1, 7)
+            r = strtonum("0x" substr(h, 2, 2)); g = strtonum("0x" substr(h, 4, 2)); b = strtonum("0x" substr(h, 6, 2))
+            mx = (r > g ? r : g); mx = (mx > b ? mx : b)
+            mn = (r < g ? r : g); mn = (mn < b ? mn : b)
+            sat = (mx == 0 ? 0 : (mx - mn) / mx)
+            score = sat * sat * mx
+            if (score > best) { best = score; br = r; bg = g; bb = b; bmx = mx }
+          }
+      } END {
+        if (best < 8 || bmx < 1) exit
+        f = 235.0 / bmx; if (f < 1) f = 1
+        r = br * f; g = bg * f; b = bb * f
+        if (r > 255) r = 255; if (g > 255) g = 255; if (b > 255) b = 255
+        printf "#%02X%02X%02X\n", r, g, b
+      }')
+  [ -n "$c" ] || c=$(matugen_source_color "$img")
+  printf '%s\n' "$c"
+}
+
+# matugen_frame <wallpaper>
+# A still image to sample: the wallpaper itself for images, an extracted frame
+# for videos. Empty if no still is obtainable.
+matugen_frame() {
+  local wp="$1" out
+  case "$(wallpaper_backend "$wp")" in
+    image) printf '%s\n' "$wp" ;;
+    video)
+      command -v ffmpeg >/dev/null 2>&1 || return 0
+      out="$HOME/.cache/tinted-frame.png"
+      mkdir -p "$HOME/.cache"
+      ffmpeg -y -loglevel quiet -ss 1 -i "$wp" -frames:v 1 "$out" </dev/null >/dev/null 2>&1 \
+        || ffmpeg -y -loglevel quiet -i "$wp" -frames:v 1 "$out" </dev/null >/dev/null 2>&1 || return 0
+      [ -s "$out" ] && printf '%s\n' "$out"
+      ;;
+  esac
+}
+
+# apply_wallpaper_theme <wallpaper>
+# Regenerate the active profile's colors from the wallpaper into the live runtime
+# locations, then reload the consumers that don't poll. Engine is per-profile
+# (matugen or iris). No-op unless the active profile opted in (wallpaperTheming).
+apply_wallpaper_theme() {
+  local wp="$1" profile variant frame mode engine
+  [ -n "$wp" ] || return 0
+
+  profile=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+  [ -n "$profile" ] || return 0
+  profile_wallpaper_theming "$profile" || return 0
+
+  frame=$(matugen_frame "$wp")
+  [ -n "$frame" ] || return 0
+
+  variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+  mode="dark"
+  [ "$variant" = "light" ] && mode="light"
+
+  engine=$(jq -r '.colorEngine // "matugen"' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)
+  [ -n "$engine" ] && [ "$engine" != "null" ] || engine="matugen"
+
+  # The engines overwrite whole files; make sure the destinations exist.
+  mkdir -p "$CONFIG_HOME/gtk-3.0" "$CONFIG_HOME/gtk-4.0" "$CONFIG_HOME/qt5ct/colors" \
+    "$CONFIG_HOME/qt6ct/colors" "$CONFIG_HOME/kitty" "$CONFIG_HOME/fish/conf.d" \
+    "$CONFIG_HOME/rofi" "$CONFIG_HOME/btop/themes" "$CONFIG_HOME/hypr" "$CONFIG_HOME/tmux"
+
+  if [ "$engine" = "iris" ]; then
+    command -v iris-python >/dev/null 2>&1 || return 0
+    local dark theme_json
+    dark=1
+    [ "$mode" = "light" ] && dark=0
+    theme_json=$(iris-python "$REPO_HOME/scripts/iris.py" \
+      --wallpaper "$frame" --dark "$dark" --glass 0 2>/dev/null)
+    [ -n "$theme_json" ] || return 0
+    printf '%s' "$theme_json" | iris-python "$REPO_HOME/scripts/iris-render.py" \
+      --config-home "$CONFIG_HOME" --profiles-dir "$PROFILES_DIR" \
+      --profile-dir "$PROFILES_DIR/$profile" 2>/dev/null || return 0
+  else
+    command -v matugen >/dev/null 2>&1 || return 0
+    command -v magick >/dev/null 2>&1 || return 0
+    local cfg color scheme
+    # Per-profile matugen config wins (e.g. config-sharp.toml); else the default.
+    cfg="$CONFIG_HOME/matugen/config-$profile.toml"
+    [ -f "$cfg" ] || cfg="$CONFIG_HOME/matugen/config.toml"
+    [ -f "$cfg" ] || return 0
+    if [ "$(jq -r '.wallpaperAccentVivid // false' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)" = "true" ]; then
+      color=$(matugen_vivid_color "$frame")
+    else
+      color=$(matugen_source_color "$frame")
+    fi
+    scheme=$(jq -r '.matugenScheme // "scheme-tonal-spot"' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)
+    [ -n "$scheme" ] && [ "$scheme" != "null" ] || scheme="scheme-tonal-spot"
+    matugen color hex "$color" --mode "$mode" --type "$scheme" -c "$cfg" >/dev/null 2>&1 || return 0
+  fi
+
+  # Tag the runtime quickshell override so the topbar only adopts it while this
+  # profile is active (a stale override is ignored under other profiles).
+  printf '%s\n' "$profile" > "$PROFILES_DIR/runtime-theme-profile"
+
+  # Swap matugen's cava [color] block into the live cava config.
+  [ -s "$PROFILES_DIR/runtime-cava-colors" ] \
+    && replace_cava_color_section "$PROFILES_DIR/runtime-cava-colors"
+
+  # Reload consumers that don't watch their color files.
+  pkill -USR1 -x kitty 2>/dev/null || true
+  tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
+  if [ -f "$CONFIG_HOME/btop/btop.conf" ] && grep -q '^color_theme = ' "$CONFIG_HOME/btop/btop.conf"; then
+    sed -i 's|^color_theme = .*|color_theme = "profile"|' "$CONFIG_HOME/btop/btop.conf"
+  fi
+  nudge_gtk_reload
+
+  # The topbar reads its theme JSON only at startup; restart it to repaint.
+  if [ "$(profile_bar "$profile")" = "quickshell" ]; then
+    pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
+    quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
+    disown
+  fi
+
+  # Wallpaper-driven niri colors (e.g. sharp's accent window border) come from a
+  # matugen-rendered include in the profile's niri override; reload to apply.
+  niri msg action load-config-file >/dev/null 2>&1 || true
 }
 
 ensure_waypaper_post_command() {

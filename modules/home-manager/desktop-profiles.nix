@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   config,
   ...
 }:
@@ -110,11 +111,20 @@ in
       Install.WantedBy = [ "timers.target" ];
     };
 
-    home.packages = lib.flatten (
-      lib.mapAttrsToList (
-        _name: profile: lib.optional (profile.cursor.package != null) profile.cursor.package
-      ) config.desktopProfiles.profiles
-    );
+    # matugen + imagemagick drive the wallpaper-tinted profiles: imagemagick
+    # extracts a dominant source color (matugen's own image extractor is broken
+    # in 4.0), matugen renders the theme templates from it.
+    home.packages =
+      (with pkgs; [
+        matugen
+        imagemagick
+        iris-python # numpy+pillow python for the iris color engine (tinted)
+      ])
+      ++ lib.flatten (
+        lib.mapAttrsToList (
+          _name: profile: lib.optional (profile.cursor.package != null) profile.cursor.package
+        ) config.desktopProfiles.profiles
+      );
 
     home.file = lib.mkMerge (
       lib.mapAttrsToList profileFiles.generateProfileFiles config.desktopProfiles.profiles

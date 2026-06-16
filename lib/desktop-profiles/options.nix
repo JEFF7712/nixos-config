@@ -105,6 +105,70 @@ in
         '';
       };
 
+      wallpaperTheming = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Re-theme from each wallpaper at runtime via matugen: on every
+          wallpaper change (and variant toggle) apply_wallpaper_theme extracts
+          a dominant color and regenerates the quickshell theme, GTK/Qt/kitty/
+          cava/etc. The profile's baked colors act as the pre-first-run
+          fallback. Unlike selfThemed (noctalia owns everything), the profile
+          still uses the project's own bar and color-file plumbing.
+        '';
+      };
+
+      colorEngine = lib.mkOption {
+        type = lib.types.enum [
+          "matugen"
+          "iris"
+        ];
+        default = "matugen";
+        description = ''
+          Which engine apply_wallpaper_theme uses for a wallpaperTheming
+          profile. "matugen" runs the matugen templates (config[-<profile>].toml);
+          "iris" runs the vendored iris.py extractor (k-means CIELAB palette with
+          WCAG contrast nudging) + iris-render. Ignored when wallpaperTheming is
+          false.
+        '';
+      };
+
+      matugenScheme = lib.mkOption {
+        type = lib.types.enum [
+          "scheme-content"
+          "scheme-expressive"
+          "scheme-fidelity"
+          "scheme-fruit-salad"
+          "scheme-monochrome"
+          "scheme-neutral"
+          "scheme-rainbow"
+          "scheme-tonal-spot"
+          "scheme-vibrant"
+        ];
+        default = "scheme-tonal-spot";
+        description = ''
+          matugen scheme type for wallpaperTheming profiles (passed as --type).
+          scheme-neutral collapses every role into the source hue for a
+          monochrome look; scheme-tonal-spot gives the standard multi-hue M3.
+          Ignored when wallpaperTheming is false.
+        '';
+      };
+
+      wallpaperAccentVivid = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          For wallpaperTheming profiles: pick the wallpaper's most vivid+bright
+          color (saturation-weighted, normalized up to a bright value) as the
+          matugen source color, instead of the most frequent colorful one. Use
+          for a monochrome profile that wants one punchy accent (sharp); leave
+          false for a profile whose whole surface adopts the dominant mood hue
+          (tinted). Templates should read {{colors.source_color...}} for the
+          accent to get the literal extracted color. Ignored when
+          wallpaperTheming is false.
+        '';
+      };
+
       quickshellTheme = lib.mkOption {
         type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
         default = null;
@@ -211,7 +275,7 @@ in
           default = true;
         };
         borderWidth = lib.mkOption {
-          type = lib.types.int;
+          type = lib.types.either lib.types.int lib.types.float;
           default = 1;
         };
         borderActiveColor = lib.mkOption {
@@ -285,6 +349,20 @@ in
         windowOpacity = lib.mkOption {
           type = lib.types.float;
           default = 1.0;
+        };
+        focusOpacity = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = ''
+            Emit the per-focus opacity rules (active 0.8 / inactive 0.6). Set
+            false for a fully opaque profile so windows stay at windowOpacity
+            regardless of focus.
+          '';
+        };
+        blur = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable niri's window background-effect blur. Off for opaque profiles.";
         };
         windowHighlightOff = lib.mkOption {
           type = lib.types.bool;

@@ -1,0 +1,15 @@
+# sharp — monotone: neutral grays + accent hues only.
+format = "$all"
+
+[character]
+success_symbol = "[❯]({{colors.source_color.default.hex}})"
+error_symbol = "[❯]({{colors.primary.default.hex}})"
+
+[directory]
+style = "bold {{colors.on_surface.default.hex}}"
+
+[git_branch]
+style = "bold {{colors.on_surface_variant.default.hex}}"
+
+[cmd_duration]
+style = "bold {{colors.on_surface_variant.default.hex}}"

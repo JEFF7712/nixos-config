@@ -476,7 +476,7 @@ PanelWindow {
                     color: topbarWindow.themeAccent
                     font {
                         family: topbarWindow.barFont
-                        pixelSize: 17
+                        pixelSize: 12
                         weight: Font.Light
                         letterSpacing: 1.2
                     }
@@ -733,7 +733,7 @@ PanelWindow {
             anchors.fill: parent
             radius: wsRoot.flat ? 0 : (wsRoot.noNumbers ? 4 : 9)
 
-            color: wsRoot.noNumbers ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, wsRoot.isActive ? 1.0 : wsMouse.containsMouse ? 0.7 : wsRoot.isOccupied ? 0.55 : 0.25) : (wsMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : wsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025))
+            color: (wsRoot.flat && topbarWindow.showWorkspaceNumbers) ? "transparent" : wsRoot.noNumbers ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, wsRoot.isActive ? 1.0 : wsMouse.containsMouse ? 0.7 : wsRoot.isOccupied ? 0.55 : 0.25) : (wsMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : wsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025))
             Behavior on color {
                 ColorAnimation {
                     duration: 240

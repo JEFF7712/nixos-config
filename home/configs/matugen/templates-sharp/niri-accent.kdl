@@ -1,0 +1,13 @@
+// sharp — wallpaper-driven niri accent. Rendered by matugen (config-sharp.toml)
+// to ~/.config/desktop-profiles/runtime-niri-sharp.kdl, which sharp's niri
+// override includes at the end so this wins. Full focus-ring block (not just the
+// colour) to avoid include-merge ambiguity. source_color = the literal extracted
+// wallpaper accent; the focused window gets a thin accent ring.
+layout {
+    focus-ring {
+        on
+        width 0.5
+        active-color "{{colors.source_color.default.hex}}"
+        inactive-color "#00000000"
+    }
+}

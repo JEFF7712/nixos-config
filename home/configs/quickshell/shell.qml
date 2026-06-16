@@ -126,7 +126,7 @@ ShellRoot {
     Process {
         id: themeLoader
         running: true
-        command: ["sh", "-c", "p=\"$HOME/.config/desktop-profiles\";" + "[ -f \"$p/active\" ] || exit 0;" + "d=\"$p/$(cat $p/active)\";" + "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" + "t=\"$d/quickshell-theme.json\";" + "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" + "cat \"$t\" 2>/dev/null"]
+        command: ["sh", "-c", "p=\"$HOME/.config/desktop-profiles\";" + "[ -f \"$p/active\" ] || exit 0;" + "a=$(cat \"$p/active\");" + "d=\"$p/$a\";" + "v=$(cat \"$p/active-variant\" 2>/dev/null || echo dark);" + "r=\"$p/runtime-quickshell-theme.json\";" + "if [ -s \"$r\" ] && [ \"$(cat \"$p/runtime-theme-profile\" 2>/dev/null)\" = \"$a\" ]; then cat \"$r\"; exit 0; fi;" + "t=\"$d/quickshell-theme.json\";" + "if [ \"$v\" = light ] && [ -s \"$d/quickshell-theme-light.json\" ]; then t=\"$d/quickshell-theme-light.json\"; fi;" + "cat \"$t\" 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const txt = this.text.trim();

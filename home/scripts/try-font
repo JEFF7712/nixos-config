@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Live-preview a font on the ACTIVE profile without a rebuild — for comparing
+# fonts before committing one to a profile's `fonts` block.
+#
+#   try-font <mono-family> [ui-family] [mono-size] [ui-size]
+#   ui-family defaults to mono-family; sizes default to 14 (mono) / 11 (ui).
+#
+# Applies to kitty, GTK (3/4 + gsettings), the rofi profile switcher and the
+# quickshell bar. This is transient: switching/​reapplying a profile or (for
+# wallpaperTheming profiles) the next wallpaper change restores the profile's
+# real fonts. Make a choice permanent in modules/home-manager/profiles/<p>.nix.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/profile-common"
+
+MONO="${1:?usage: try-font <mono-family> [ui-family] [mono-size] [ui-size]}"
+UI="${2:-$MONO}"
+MONO_SIZE="${3:-14}"
+UI_SIZE="${4:-11}"
+
+# GTK / desktop fonts
+gsettings set org.gnome.desktop.interface font-name "$UI $UI_SIZE" 2>/dev/null || true
+gsettings set org.gnome.desktop.interface document-font-name "$UI $UI_SIZE" 2>/dev/null || true
+gsettings set org.gnome.desktop.interface monospace-font-name "$MONO $MONO_SIZE" 2>/dev/null || true
+set_gtk_setting "$CONFIG_HOME/gtk-3.0/settings.ini" gtk-font-name "$UI $UI_SIZE"
+set_gtk_setting "$CONFIG_HOME/gtk-4.0/settings.ini" gtk-font-name "$UI $UI_SIZE"
+
+# kitty
+if [ -f "$CONFIG_HOME/kitty/kitty.conf" ]; then
+  sed -i \
+    -e "s|^font_family .*|font_family      family=\"$MONO\"|" \
+    -e "s|^font_size .*|font_size $MONO_SIZE|" \
+    "$CONFIG_HOME/kitty/kitty.conf"
+  pkill -USR1 -x kitty 2>/dev/null || true
+fi
+
+# rofi profile switcher
+if [ -f "$CONFIG_HOME/rofi/profile-switcher.rasi" ]; then
+  sed -i -E "s|font:[[:space:]]*\"[^\"]+ [0-9]+\";|font:                        \"$UI $UI_SIZE\";|g" \
+    "$CONFIG_HOME/rofi/profile-switcher.rasi"
+fi
+
+# quickshell bar: write barFont into the live runtime override (seeded from the
+# current theme — existing override if matugen has run, else the baked theme so
+# colors are preserved), then restart the bar to repaint.
+PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+if [ "$(profile_bar "$PROFILE")" = "quickshell" ]; then
+  VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+  OVERRIDE="$PROFILES_DIR/runtime-quickshell-theme.json"
+  if [ -s "$OVERRIDE" ] && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null)" = "$PROFILE" ]; then
+    SRC="$OVERRIDE"
+  else
+    SRC=$(pick_variant_file "$VARIANT" \
+      "$PROFILES_DIR/$PROFILE/quickshell-theme.json" \
+      "$PROFILES_DIR/$PROFILE/quickshell-theme-light.json")
+  fi
+  if [ -s "$SRC" ]; then
+    tmp=$(mktemp)
+    if jq --arg f "$MONO" '.barFont=$f' "$SRC" > "$tmp" 2>/dev/null; then
+      mv "$tmp" "$OVERRIDE"
+      printf '%s\n' "$PROFILE" > "$PROFILES_DIR/runtime-theme-profile"
+    else
+      rm -f "$tmp"
+    fi
+  fi
+  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
+  quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
+  disown
+fi
+
+nudge_gtk_reload
+echo "Trying font — ui: '$UI' ${UI_SIZE}, mono/bar: '$MONO' ${MONO_SIZE}"
+echo "(transient; edit the profile's fonts block to keep it)"
