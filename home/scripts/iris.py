@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # iris — wallpaper -> semantic palette extractor (k-means in CIELAB with WCAG
 # contrast nudging). Vendored from Harman1307/Alphonso for the `tinted` profile.
 # Run via the `iris-python` wrapper (provides numpy + pillow). Outputs JSON

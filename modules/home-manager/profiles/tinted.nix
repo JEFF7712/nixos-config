@@ -260,8 +260,8 @@ in
     appearance = {
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
-      iconTheme = "WhiteSur-dark";
-      iconThemeLight = "WhiteSur-light";
+      iconTheme = "Papirus-Dark";
+      iconThemeLight = "Papirus-Dark";
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/tinted";

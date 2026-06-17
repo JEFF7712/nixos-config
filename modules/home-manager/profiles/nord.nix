@@ -163,8 +163,8 @@ in
     appearance = {
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = null;
-      iconTheme = "Tela-nord-dark";
-      iconThemeLight = null;
+      iconTheme = "Papirus-Dark";
+      iconThemeLight = "Papirus-Dark";
     };
 
     niri = {

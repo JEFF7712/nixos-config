@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # iris-render — map an iris JSON palette onto every consumer the desktop-profile
 # system themes. Reads the JSON on stdin, writes the live runtime files (the
 # same locations the matugen pipeline targets) so the rest of apply_wallpaper_theme
@@ -16,6 +17,33 @@ def w(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as fh:
         fh.write(text)
+
+
+def update_ini_section(path, section, body):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    header = f"[{section}]"
+    lines = []
+    if os.path.exists(path):
+        with open(path) as fh:
+            lines = fh.read().splitlines()
+
+    out = []
+    in_section = False
+    for line in lines:
+        if line.startswith("[") and line.endswith("]"):
+            in_section = line == header
+            if in_section:
+                continue
+        if not in_section:
+            out.append(line)
+
+    while out and out[-1] == "":
+        out.pop()
+
+    if out:
+        out.append("")
+    out.extend([header, *body.rstrip().splitlines()])
+    w(path, "\n".join(out) + "\n")
 
 
 def quickshell(p, profile_dir, out):
@@ -244,6 +272,37 @@ element-text {{ horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit;
 """)
 
 
+def spicetify_comfy(p, out):
+    body = f"""text               = {hx(p['fg'])}
+subtext            = {hx(p['dim'])}
+main               = {hx(p['bg'])}
+main-elevated      = {hx(p['surface'])}
+main-transition    = {hx(p['bg'])}
+highlight          = {hx(p['surface'])}
+highlight-elevated = {hx(p['surface'])}
+sidebar            = {hx(p['bg'])}
+player             = {hx(p['bg'])}
+card               = {hx(p['surface'])}
+shadow             = {hx(p['bg'])}
+selected-row       = {hx(p['fg'])}
+button             = {hx(p['accent'])}
+button-active      = {hx(p['accent'])}
+button-disabled    = {hx(p['dim'])}
+tab-active         = {hx(p['surface'])}
+notification       = {hx(p['accent'])}
+notification-error = {hx(p['red'])}
+misc               = 000000
+play-button        = {hx(p['accent'])}
+play-button-active = {hx(p['accent'])}
+progress-fg        = {hx(p['accent'])}
+progress-bg        = {hx(p['dim'])}
+heart              = {hx(p['red'])}
+pagelink-active    = {hx(p['surface'])}
+radio-btn-active   = {hx(p['accent'])}
+"""
+    update_ini_section(out, "tinted", body)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config-home", required=True)
@@ -265,6 +324,7 @@ def main():
     fish(p, os.path.join(c, "fish/conf.d/matugen_theme.fish"))
     starship(p, os.path.join(c, "starship_matugen.toml"))
     rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))
+    spicetify_comfy(p, os.path.join(c, "spicetify/Themes/Comfy/color.ini"))
 
 
 main()

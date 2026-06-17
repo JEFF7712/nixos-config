@@ -96,8 +96,8 @@ in
     appearance = {
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = null;
-      iconTheme = "Colloid-Dark";
-      iconThemeLight = null;
+      iconTheme = "Papirus-Dark";
+      iconThemeLight = "Papirus-Dark";
       kittyOpacity = 0.48;
     };
 

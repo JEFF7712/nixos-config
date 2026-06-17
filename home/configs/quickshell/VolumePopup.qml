@@ -16,6 +16,17 @@ InfoPopup {
         return isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
     }
 
+    function volumeIcon() {
+        const percent = root.volumePercent();
+        if (root.muted || percent <= 0)
+            return "󰖁";
+        if (percent < 34)
+            return "󰕿";
+        if (percent < 67)
+            return "󰖀";
+        return "󰕾";
+    }
+
     function statusLabel() {
         if (root.muted)
             return "muted";
@@ -185,7 +196,7 @@ InfoPopup {
 
         AudioButton {
             width: 106
-            icon: root.muted ? "󰖁" : "󰕾"
+            icon: root.volumeIcon()
             label: root.muted ? "muted" : "mute"
             active: root.muted
             themeFg: root.themeFg

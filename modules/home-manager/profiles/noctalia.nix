@@ -27,8 +27,8 @@
     appearance = {
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = null;
-      iconTheme = "WhiteSur-dark";
-      iconThemeLight = null;
+      iconTheme = "Papirus-Dark";
+      iconThemeLight = "Papirus-Dark";
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/noctalia";

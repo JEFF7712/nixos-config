@@ -176,7 +176,7 @@ matugen_frame() {
 # locations, then reload the consumers that don't poll. Engine is per-profile
 # (matugen or iris). No-op unless the active profile opted in (wallpaperTheming).
 apply_wallpaper_theme() {
-  local wp="$1" profile variant frame mode engine
+  local wp="$1" profile variant frame mode engine accent=""
   [ -n "$wp" ] || return 0
 
   profile=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
@@ -225,6 +225,9 @@ apply_wallpaper_theme() {
     scheme=$(jq -r '.matugenScheme // "scheme-tonal-spot"' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)
     [ -n "$scheme" ] && [ "$scheme" != "null" ] || scheme="scheme-tonal-spot"
     matugen color hex "$color" --mode "$mode" --type "$scheme" -c "$cfg" >/dev/null 2>&1 || return 0
+    # The matugen templates surface the seed verbatim as {{colors.source_color}},
+    # so the seed IS the accent — reuse it for the niri focus-ring below.
+    accent="$color"
   fi
 
   # Tag the runtime quickshell override so the topbar only adopts it while this
@@ -243,6 +246,8 @@ apply_wallpaper_theme() {
   fi
   nudge_gtk_reload
 
+  apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant"
+
   # The topbar reads its theme JSON only at startup; restart it to repaint.
   if [ "$(profile_bar "$profile")" = "quickshell" ]; then
     pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
@@ -250,8 +255,32 @@ apply_wallpaper_theme() {
     disown
   fi
 
-  # Wallpaper-driven niri colors (e.g. sharp's accent window border) come from a
-  # matugen-rendered include in the profile's niri override; reload to apply.
+  # Wallpaper-driven niri focus-ring colour. niri reliably re-reads the
+  # single-level override (config.kdl includes active-niri-overrides.kdl) on
+  # load-config-file, but NOT a nested include — so rather than a nested include
+  # we regenerate the active override from the profile's store base with the
+  # focus-ring active-color rewritten to the accent, then point the active link
+  # at it and reload. No-op for engines that didn't yield an accent.
+  if [ -n "$accent" ]; then
+    local nbase nout
+    if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ]; then
+      nbase="$PROFILES_DIR/$profile/niri-overrides-focus.kdl"
+    else
+      nbase="$PROFILES_DIR/$profile/niri-overrides.kdl"
+    fi
+    if [ -f "$nbase" ]; then
+      nout="$PROFILES_DIR/runtime-niri-active.kdl"
+      awk -v a="$accent" '
+        /focus-ring[ \t]*\{/ { infr = 1 }
+        infr && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" a "\""); infr = 0 }
+        { print }
+      ' "$nbase" > "$nout"
+      local nlink
+      nlink=$(mktemp -u "$PROFILES_DIR/.active-niri-overrides.XXXXXX")
+      ln -s "$nout" "$nlink"
+      mv "$nlink" "$ACTIVE_LINK"
+    fi
+  fi
   niri msg action load-config-file >/dev/null 2>&1 || true
 }
 
@@ -750,17 +779,29 @@ apply_obsidian_scheme() {
   fi
 }
 
+focused_window_id() {
+  command -v niri >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  niri msg -j focused-window 2>/dev/null | jq -r '.id // empty' 2>/dev/null
+}
+
+restore_window_focus() {
+  local id="$1"
+  [ -n "$id" ] || return 0
+  command -v niri >/dev/null 2>&1 || return 0
+  niri msg action focus-window --id "$id" >/dev/null 2>&1 || true
+}
+
 # apply_spicetify_theme <runtime-file> <variant>
 # Sets the profile's variant-resolved spicetify theme, color scheme, and
-# inject_theme_js, then re-applies. The runtime `spicetify` entry is an object
-# { theme, scheme, js } (js gates the theme's own script: 1 for themes like
-# Dribbblish that need it, 0 for Comfy whose script fights scheme control). A
-# running Spotify is restarted by `spicetify apply` (live switch); when closed
-# we patch xpui with --no-restart so the next launch shows it without
-# launching now.
+# inject_theme_js, then reloads Spotify styling. The runtime `spicetify` entry
+# is an object { theme, scheme, js } (js gates the theme's own script: 1 for
+# themes like Dribbblish, 0 for Comfy whose script fights scheme control).
+# Running Spotify gets a live `refresh`; closed Spotify is patched with
+# --no-restart so the next launch shows the profile without launching now.
 apply_spicetify_theme() {
   local runtime_file="$1" variant="$2"
-  local theme scheme js
+  local theme scheme js focus_id
   command -v spicetify >/dev/null 2>&1 || return 0
   theme=$(profile_runtime_value "$runtime_file" "$variant" spicetify theme)
   scheme=$(profile_runtime_value "$runtime_file" "$variant" spicetify scheme)
@@ -771,7 +812,9 @@ apply_spicetify_theme() {
   spicetify config current_theme "$theme" color_scheme "$scheme" inject_theme_js "$js" \
     >/dev/null 2>&1 || return 0
   if pgrep -f spotify-spiced >/dev/null 2>&1; then
-    spicetify apply >/dev/null 2>&1 || true
+    focus_id=$(focused_window_id)
+    spicetify refresh >/dev/null 2>&1 || true
+    restore_window_focus "$focus_id"
   else
     spicetify -n apply >/dev/null 2>&1 || true
   fi

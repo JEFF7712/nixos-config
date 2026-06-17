@@ -103,6 +103,22 @@ PanelWindow {
         topbarWindow.run("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ " + clamped + "%");
     }
 
+    function volumePercent() {
+        const parsed = parseInt(String(topbarWindow.volumeLevel).replace("%", ""));
+        return isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
+    }
+
+    function volumeIcon() {
+        const percent = topbarWindow.volumePercent();
+        if (topbarWindow.volumeMuted || percent <= 0)
+            return "󰖁";
+        if (percent < 34)
+            return "󰕿";
+        if (percent < 67)
+            return "󰖀";
+        return "󰕾";
+    }
+
     function adjustMedia(delta) {
         topbarWindow.run("playerctl " + (delta > 0 ? "next" : "previous"));
     }
@@ -399,7 +415,7 @@ PanelWindow {
 
             StatPill {
                 visible: topbarWindow.showVolume
-                icon: topbarWindow.volumeMuted ? "󰖁" : "󰕾"
+                icon: topbarWindow.volumeIcon()
                 value: (topbarWindow.volumeMuted || topbarWindow.volumeLevel === "100%" || topbarWindow.volumeLevel === "0%") ? "" : topbarWindow.volumeLevel
                 tint: topbarWindow.volumeMuted ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4) : topbarWindow.themeAccent
                 onActivated: topbarWindow.volumeClicked()
@@ -462,7 +478,28 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: topbarWindow.flatMode ? 0 : 14
             width: visible ? clockColumn.implicitWidth + 16 : 0
-            height: visible ? clockColumn.implicitHeight + 8 : 0
+            height: visible ? (topbarWindow.flatMode ? topbarWindow.barHeight : clockColumn.implicitHeight + 8) : 0
+
+            Rectangle {
+                anchors.fill: parent
+                radius: topbarWindow.flatMode ? 0 : 10
+                color: clockMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : clockMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : topbarWindow.pillBg
+                border.width: topbarWindow.flatMode ? 0 : 1
+                border.color: clockMouse.containsMouse ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, 0.55) : topbarWindow.pillBorder
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+                }
+                Behavior on border.color {
+                    ColorAnimation {
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
 
             ColumnLayout {
                 id: clockColumn
@@ -509,6 +546,7 @@ PanelWindow {
             }
 
             MouseArea {
+                id: clockMouse
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
@@ -895,25 +933,34 @@ PanelWindow {
                 anchors.centerIn: parent
                 spacing: 6
 
-                Text {
-                    text: statRoot.icon
-                    color: (statRoot.tintIcon || statMouse.containsMouse) ? statRoot.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
-                    font {
-                        family: topbarWindow.barFont
-                        pixelSize: 12
-                    }
-                    scale: statMouse.pressed ? 0.9 : (statMouse.containsMouse ? 1.08 : 1.0)
-                    Behavior on scale {
-                        SpringAnimation {
-                            spring: 4
-                            damping: 0.5
-                            mass: 0.7
+                Item {
+                    Layout.preferredWidth: 16
+                    Layout.preferredHeight: 16
+
+                    Text {
+                        id: statIcon
+                        anchors.centerIn: parent
+                        width: parent.width
+                        text: statRoot.icon
+                        horizontalAlignment: Text.AlignHCenter
+                        color: (statRoot.tintIcon || statMouse.containsMouse) ? statRoot.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
+                        font {
+                            family: topbarWindow.barFont
+                            pixelSize: 12
                         }
-                    }
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 260
-                            easing.type: Easing.OutCubic
+                        scale: statMouse.pressed ? 0.9 : (statMouse.containsMouse ? 1.08 : 1.0)
+                        Behavior on scale {
+                            SpringAnimation {
+                                spring: 4
+                                damping: 0.5
+                                mass: 0.7
+                            }
+                        }
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 260
+                                easing.type: Easing.OutCubic
+                            }
                         }
                     }
                 }

@@ -61,6 +61,7 @@ let
 
         focus-ring {
             ${if profile.niri.focusRingOff then "off" else ""}
+            width ${toString profile.niri.focusRingWidth}
             active-color "${profile.niri.focusRingActiveColor}"
             inactive-color "${profile.niri.focusRingInactiveColor}"
             urgent-color "${profile.niri.urgentColor}"

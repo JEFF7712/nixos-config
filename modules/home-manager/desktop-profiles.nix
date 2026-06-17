@@ -11,6 +11,8 @@ let
   profileFiles = import ../../lib/desktop-profiles/files.nix {
     inherit lib runtimeDefaults;
   };
+  profileNames = lib.attrNames config.desktopProfiles.profiles;
+  profileNameArgs = lib.escapeShellArgs profileNames;
 in
 {
   options.desktopProfiles = {
@@ -136,9 +138,33 @@ in
       ACTIVE_FILE="$PROFILES_DIR/active"
       VARIANT_FILE="$PROFILES_DIR/active-variant"
       DEFAULT="${config.desktopProfiles.defaultProfile}"
+      VALID_PROFILES=(${profileNameArgs})
 
+      is_valid_profile() {
+        local name="$1" p
+        for p in "''${VALID_PROFILES[@]}"; do
+          [ "$p" = "$name" ] && return 0
+        done
+        return 1
+      }
+
+      for dir in "$PROFILES_DIR"/*/; do
+        [ -d "$dir" ] || continue
+        name="$(basename "$dir")"
+        if ! is_valid_profile "$name"; then
+          $DRY_RUN_CMD rm -rf "$dir"
+        fi
+      done
+
+      if [ -e "$ACTIVE_FILE" ]; then
+        ACTIVE="$(cat "$ACTIVE_FILE")"
+        if ! is_valid_profile "$ACTIVE"; then
+          echo "$DEFAULT" | $DRY_RUN_CMD tee "$ACTIVE_FILE" > /dev/null
+          $DRY_RUN_CMD ln -sfn "$PROFILES_DIR/$DEFAULT/niri-overrides.kdl" "$ACTIVE_LINK"
+        fi
+      fi
       if [ ! -e "$ACTIVE_LINK" ]; then
-        $DRY_RUN_CMD ln -s "$PROFILES_DIR/$DEFAULT/niri-overrides.kdl" "$ACTIVE_LINK"
+        $DRY_RUN_CMD ln -sfn "$PROFILES_DIR/$DEFAULT/niri-overrides.kdl" "$ACTIVE_LINK"
       fi
       if [ ! -e "$ACTIVE_FILE" ]; then
         echo "$DEFAULT" | $DRY_RUN_CMD tee "$ACTIVE_FILE" > /dev/null

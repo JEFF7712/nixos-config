@@ -50,6 +50,7 @@
     nerd-fonts.iosevka
     nerd-fonts.jetbrains-mono
     nerd-fonts.symbols-only
+    papirus-icon-theme
     colloid-icon-theme
     hyprlock
     tela-icon-theme

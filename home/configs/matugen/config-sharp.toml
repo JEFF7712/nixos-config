@@ -59,7 +59,3 @@ output_path = "~/.config/hypr/profile-colors.conf"
 [templates.tmux]
 input_path = "~/.config/matugen/templates-sharp/tmux-colors.conf"
 output_path = "~/.config/tmux/profile-colors.conf"
-
-[templates.niri]
-input_path = "~/.config/matugen/templates-sharp/niri-accent.kdl"
-output_path = "~/.config/desktop-profiles/runtime-niri-sharp.kdl"

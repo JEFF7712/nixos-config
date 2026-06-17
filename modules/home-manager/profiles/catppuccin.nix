@@ -198,8 +198,8 @@ let
     appearance = {
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
-      iconTheme = "Tela-purple-dark";
-      iconThemeLight = "Tela-purple-light";
+      iconTheme = "Papirus-Dark";
+      iconThemeLight = "Papirus-Dark";
     };
 
     niri = {

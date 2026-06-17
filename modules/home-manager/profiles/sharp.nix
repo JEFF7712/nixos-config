@@ -295,8 +295,8 @@ in
     appearance = {
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
-      iconTheme = "Colloid-Dark";
-      iconThemeLight = "Colloid-Light";
+      iconTheme = "Papirus-Dark";
+      iconThemeLight = "Papirus-Dark";
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/sharp";
@@ -305,12 +305,14 @@ in
     niri = {
       animations = animations.snappy;
       gaps = 6;
-      # No border; the focused window is marked by a thin accent focus ring
-      # (active-color overridden at runtime by the matugen-rendered include
-      # below to the wallpaper accent). Windows stay transparent (per-focus
-      # 0.8/0.6 + blur, the niri defaults).
+      # No border; the focused window is marked by a thin accent focus ring.
+      # active-color is rewritten to the wallpaper accent at runtime by
+      # apply_wallpaper_theme (which regenerates this override and reloads niri);
+      # dark.accent here is the pre-first-render fallback. Windows stay
+      # transparent (per-focus 0.8/0.6 + blur, the niri defaults).
       borderOff = true;
       focusRingOff = false;
+      focusRingWidth = 0.5;
       focusRingActiveColor = dark.accent;
       focusRingInactiveColor = "#00000000";
       shadowOff = true;
@@ -360,11 +362,6 @@ in
             match namespace="^mako$"
             geometry-corner-radius 0
         }
-
-        // Wallpaper-driven accent focus ring (matugen renders this file on every
-        // wallpaper change; the activation default below seeds it). Last include
-        // wins, so it overrides the focus-ring block above.
-        include "${config.home.homeDirectory}/.config/desktop-profiles/runtime-niri-sharp.kdl"
       '';
     };
 
@@ -377,24 +374,4 @@ in
     };
     waybarLight.style = mkWaybarStyle light;
   };
-
-  # niri errors on a missing include, so seed runtime-niri-sharp.kdl with the
-  # baked accent focus ring before matugen ever runs. Only when absent — never
-  # clobber a wallpaper-rendered version on rebuild.
-  home.activation.sharpNiriAccentDefault = config.lib.dag.entryAfter [ "writeBoundary" ] ''
-    f="${config.home.homeDirectory}/.config/desktop-profiles/runtime-niri-sharp.kdl"
-    if [ ! -e "$f" ]; then
-      $DRY_RUN_CMD mkdir -p "$(dirname "$f")"
-      $DRY_RUN_CMD install -m 644 ${pkgs.writeText "runtime-niri-sharp-default.kdl" ''
-        layout {
-            focus-ring {
-                on
-                width 0.5
-                active-color "${dark.accent}"
-                inactive-color "#00000000"
-            }
-        }
-      ''} "$f"
-    fi
-  '';
 }

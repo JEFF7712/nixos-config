@@ -8,10 +8,12 @@ fmt-check:
   nix fmt -- --fail-on-change --no-cache
 
 shell-check:
-  shellcheck -S error home/scripts/*
+  git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b' -- home/scripts | xargs -r shellcheck -S error
 
 wallpaper-script-check:
   bash checks/wallpaper-scripts.bash
+  bash checks/iris-render.bash
+  bash checks/spicetify-theme.bash
 
 qml-lint:
   nix shell nixpkgs#qt6.qtdeclarative -c qmllint \

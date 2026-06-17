@@ -206,4 +206,9 @@ in
     obsidian.dark = "minimal-flexoki-dark";
     spicetify.dark = spice "Comfy" "Mono" 0;
   };
+
+  tinted = {
+    spicetify.dark = spice "Comfy" "tinted" 0;
+    spicetify.light = spice "Comfy" "tinted" 0;
+  };
 }

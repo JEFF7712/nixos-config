@@ -294,6 +294,10 @@ in
           type = lib.types.bool;
           default = false;
         };
+        focusRingWidth = lib.mkOption {
+          type = lib.types.either lib.types.int lib.types.float;
+          default = 4;
+        };
         focusRingActiveColor = lib.mkOption {
           type = lib.types.str;
           default = "#b1c6ff";
