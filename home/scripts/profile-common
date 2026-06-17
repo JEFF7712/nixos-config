@@ -208,7 +208,8 @@ apply_wallpaper_theme() {
     [ -n "$theme_json" ] || return 0
     printf '%s' "$theme_json" | iris-python "$REPO_HOME/scripts/iris-render.py" \
       --config-home "$CONFIG_HOME" --profiles-dir "$PROFILES_DIR" \
-      --profile-dir "$PROFILES_DIR/$profile" 2>/dev/null || return 0
+      --profile-dir "$PROFILES_DIR/$profile" \
+      --obsidian-vault "${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}" 2>/dev/null || return 0
   else
     command -v matugen >/dev/null 2>&1 || return 0
     command -v magick >/dev/null 2>&1 || return 0

@@ -21,6 +21,7 @@
           codex
           mcp-nixos
           sox
+          rtk
         ])
         ++ [
           inputs.claude-code-nix.packages.${system}.claude-code

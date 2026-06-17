@@ -121,12 +121,12 @@ in
       gaps = 8;
       borderOff = true;
       focusRingOff = true;
-      shadowSoftness = 30;
-      shadowSpread = 4;
+      shadowSoftness = 34;
+      shadowSpread = 2;
       shadowOffsetX = 0;
-      shadowOffsetY = 8;
-      shadowColor = "#ffffff20";
-      shadowInactiveColor = "#00000030";
+      shadowOffsetY = 6;
+      shadowColor = "#00000022";
+      shadowInactiveColor = "#00000016";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = true;
       windowOpacity = 0.72;

@@ -303,11 +303,114 @@ radio-btn-active   = {hx(p['accent'])}
     update_ini_section(out, "tinted", body)
 
 
+def hex_to_hsl(hexc):
+    hexc = hexc.lstrip("#")
+    r, g, b = (int(hexc[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    mx, mn = max(r, g, b), min(r, g, b)
+    l = (mx + mn) / 2.0
+    if mx == mn:
+        return 0, 0, round(l * 100)
+    d = mx - mn
+    s = d / (2.0 - mx - mn) if l > 0.5 else d / (mx + mn)
+    if mx == r:
+        h = ((g - b) / d + (6.0 if g < b else 0.0)) / 6.0
+    elif mx == g:
+        h = ((b - r) / d + 2.0) / 6.0
+    else:
+        h = ((r - g) / d + 4.0) / 6.0
+    return round(h * 360), round(s * 100), round(l * 100)
+
+
+def obsidian(p, vault):
+    # Recolor Obsidian (Minimal theme) via a CSS snippet that overrides the
+    # standard Obsidian variables, and sync the native accent + light/dark mode.
+    if not vault or not os.path.isdir(vault):
+        return
+    h, s, ll = hex_to_hsl(p["accent"])
+    css = f""".theme-dark, .theme-light {{
+  --background-primary: {p['bg']};
+  --background-primary-alt: {p['surface']};
+  --background-secondary: {p['surface']};
+  --background-secondary-alt: {p['bg']};
+  --background-modifier-border: {p['surface']};
+  --background-modifier-border-hover: {p['dim']};
+  --background-modifier-border-focus: {p['accent']};
+  --text-normal: {p['fg']};
+  --text-muted: {p['dim']};
+  --text-faint: {p['dim']};
+  --text-accent: {p['accent']};
+  --text-accent-hover: {p['accent']};
+  --text-on-accent: {p['bg']};
+  --interactive-accent: {p['accent']};
+  --interactive-accent-hover: {p['accent']};
+  --interactive-normal: {p['surface']};
+  --interactive-hover: {p['surface']};
+  --titlebar-background: {p['surface']};
+  --titlebar-background-focused: {p['surface']};
+  --titlebar-text-color: {p['dim']};
+  --titlebar-text-color-focused: {p['fg']};
+  --titlebar-text-color-highlighted: {p['fg']};
+  --tab-container-background: {p['surface']};
+  --tab-background-active: {p['bg']};
+  --tab-text-color: {p['dim']};
+  --tab-text-color-active: {p['fg']};
+  --tab-text-color-focused-active: {p['fg']};
+  --tab-text-color-focused-active-current: {p['fg']};
+  --tab-outline-color: {p['surface']};
+  --ribbon-background: {p['surface']};
+  --ribbon-background-collapsed: {p['surface']};
+  --background-translucent: {p['surface']};
+  --divider-color: {p['surface']};
+  --accent-h: {h};
+  --accent-s: {s}%;
+  --accent-l: {ll}%;
+  --color-red: {p['red']};
+  --color-green: {p['green']};
+  --color-yellow: {p['yellow']};
+}}
+/* Only the window-frame strip (`.titlebar`, a <body> child outside
+   .app-container) needs forcing — it defaults to black. The workspace tabs are
+   left to Minimal so its own tab rendering/settings keep working. */
+.titlebar,
+.titlebar-inner {{
+  background-color: {p['surface']} !important;
+}}
+.titlebar-text {{
+  color: {p['dim']} !important;
+}}
+.titlebar .titlebar-button {{
+  color: {p['fg']} !important;
+}}
+"""
+    snippets = os.path.join(vault, "snippets")
+    os.makedirs(snippets, exist_ok=True)
+    with open(os.path.join(snippets, "tinted.css"), "w") as fh:
+        fh.write(css)
+
+    app = os.path.join(vault, "appearance.json")
+    try:
+        with open(app) as fh:
+            a = json.load(fh)
+    except Exception:
+        a = {}
+    snaps = a.get("enabledCssSnippets", [])
+    if "tinted" not in snaps:
+        snaps.append("tinted")
+    a["enabledCssSnippets"] = snaps
+    a["accentColor"] = p["accent"]
+    a["theme"] = "obsidian" if p.get("dark", True) else "moonstone"
+    tmp = app + ".tmp"
+    with open(tmp, "w") as fh:
+        json.dump(a, fh, indent=2)
+    os.replace(tmp, app)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config-home", required=True)
     ap.add_argument("--profiles-dir", required=True)
     ap.add_argument("--profile-dir", required=True)
+    ap.add_argument("--obsidian-vault", default=None)
     args = ap.parse_args()
 
     p = json.load(sys.stdin)
@@ -325,6 +428,7 @@ def main():
     starship(p, os.path.join(c, "starship_matugen.toml"))
     rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))
     spicetify_comfy(p, os.path.join(c, "spicetify/Themes/Comfy/color.ini"))
+    obsidian(p, args.obsidian_vault)
 
 
 main()

@@ -95,6 +95,12 @@ hotkey-overlay {
     skip-at-startup
 }
 
+// noctalia's static niri colors. Included BEFORE the active profile override so
+// the per-profile override (focus-ring/border accent etc.) wins — otherwise this
+// last-include clobbers every profile's niri colors with noctalia's cyan.
+// noctalia itself runs with focus-ring/border off, so it is unaffected.
+include "./noctalia.kdl"
+
 include "/home/rupan/.config/desktop-profiles/active-niri-overrides.kdl"
 
 // Profile switcher popup (rendered by quickshell-switcher) — global so it
@@ -338,4 +344,3 @@ binds {
     Mod+Shift+P { power-off-monitors; }
 
 }
-include "./noctalia.kdl"
