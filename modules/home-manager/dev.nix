@@ -39,6 +39,7 @@
       pnpm
       ags
       uv
+      ruff
       awscli
     ];
   };
