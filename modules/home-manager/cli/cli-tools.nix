@@ -29,12 +29,14 @@
         just
         ripgrep
         fd
+        ast-grep
         dust
         hyperfine
         difftastic
         watchexec
         nvd
         nix-output-monitor
+        nixfmt
         shellcheck
       ]
       ++ [
