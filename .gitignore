@@ -14,6 +14,7 @@ CLAUDE.md
 AGENTS.md
 .mcp.json
 /.superpowers
+/.serena
 __pycache__/
 *.pyc
 *.pyo
