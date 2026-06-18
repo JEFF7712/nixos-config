@@ -31,8 +31,8 @@ declare -A GENERIC=(
   [volume-up]="swayosd-client --output-volume raise"
   [volume-down]="swayosd-client --output-volume lower"
   [volume-mute]="swayosd-client --output-volume mute-toggle"
-  [brightness-up]="swayosd-client --brightness raise"
-  [brightness-down]="swayosd-client --brightness lower"
+  [brightness-up]="swayosd-client --brightness raise --device intel_backlight"
+  [brightness-down]="swayosd-client --brightness lower --device intel_backlight"
 )
 
 ACTION="${1:-}"
