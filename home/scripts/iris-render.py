@@ -380,6 +380,12 @@ def obsidian(p, vault):
     # standard Obsidian variables, and sync the native accent + light/dark mode.
     if not vault or not os.path.isdir(vault):
         return
+    # Monotone chrome: collapse the lighter surface tone onto the body bg so the
+    # tab strip / sidebars / borders all read as a single flat olive.
+    p = {**p, "surface": p["bg"]}
+    # Soft hairline for pane/tab dividers: dim blended most of the way toward the
+    # bg so the separators read as a faint hairline rather than a hard line.
+    soft = f"color-mix(in srgb, {p['dim']} 32%, {p['bg']})"
     h, s, ll = hex_to_hsl(p["accent"])
     css = f""".theme-dark, .theme-light {{
   --background-primary: {p["bg"]};
@@ -413,11 +419,16 @@ def obsidian(p, vault):
   --titlebar-text-color-highlighted: {p["fg"]};
   --tab-container-background: {p["surface"]};
   --tab-background-active: {p["bg"]};
-  --tab-text-color: color-mix(in srgb, {p["fg"]} 55%, {p["bg"]});
+  --tab-text-color: color-mix(in srgb, {p["fg"]} 70%, {p["bg"]});
+  /* Minimal resolves tab/icon text from its own tokens at a more specific
+     scope (.workspace-tabs), so the Obsidian-core vars above never reach the
+     tab labels. Override Minimal's tokens too. */
+  --minimal-tab-text-color: color-mix(in srgb, {p["fg"]} 70%, {p["bg"]});
+  --minimal-tab-text-color-active: {p["fg"]};
   --tab-text-color-active: {p["fg"]};
   --tab-text-color-focused-active: {p["fg"]};
   --tab-text-color-focused-active-current: {p["fg"]};
-  --tab-outline-color: {p["surface"]};
+  --tab-outline-color: {soft};
   --ribbon-background: {p["surface"]};
   --ribbon-background-collapsed: {p["surface"]};
   --background-translucent: {p["surface"]};
@@ -430,17 +441,74 @@ def obsidian(p, vault):
   --color-yellow: {p["yellow"]};
 }}
 /* Only the window-frame strip (`.titlebar`, a <body> child outside
-   .app-container) needs forcing — it defaults to black. The workspace tabs are
-   left to Minimal so its own tab rendering/settings keep working. */
+   .app-container). It is a fixed, full-width overlay (z-index 30) that sits ON
+   TOP of the workspace tab bar, so giving it an opaque background hides the
+   tabs underneath. Keep it transparent — the tab-header container behind it is
+   already `surface` (via --tab-container-background), so the strip still reads
+   as surface while the tabs show through. */
 .titlebar,
 .titlebar-inner {{
+  background-color: transparent !important;
+}}
+/* Minimal leaves the tab-header container transparent and lets the titlebar
+   show through as the strip colour. Now that the titlebar is transparent, the
+   strip needs its own surface fill (otherwise the area beside the tabs and
+   behind the window controls falls through to black). */
+.workspace-tab-header-container,
+.workspace-split.mod-root > .workspace-tabs.mod-top > .workspace-tab-header-container {{
   background-color: {p["surface"]} !important;
+}}
+/* Monotone collapses the sidebars into the body; add a divider so they read as
+   separate panes (matches the clean profile). */
+.workspace-split.mod-left-split {{
+  border-right: 0.5px solid {soft} !important;
+}}
+.workspace-split.mod-right-split {{
+  border-left: 0.5px solid {soft} !important;
 }}
 .titlebar-text {{
   color: {p["dim"]} !important;
 }}
 .titlebar .titlebar-button {{
   color: {p["fg"]} !important;
+}}
+/* Minimal fades the header chrome (tab-bar nav arrows, sidebar toggles, the
+   per-view action icons top-right) toward the background and only reveals them
+   on hover. On the tinted dark palette that leaves them invisible, so force a
+   legible color + opacity for the whole top strip. */
+.workspace-tab-header-container .clickable-icon,
+.workspace-tab-header-spacer ~ .clickable-icon,
+.clickable-icon.sidebar-toggle-button,
+.sidebar-toggle-button,
+.view-header .clickable-icon,
+.view-actions .clickable-icon,
+.titlebar .clickable-icon {{
+  color: {p["fg"]} !important;
+  opacity: 0.85 !important;
+}}
+.workspace-tab-header-container .clickable-icon:hover,
+.clickable-icon.sidebar-toggle-button:hover,
+.sidebar-toggle-button:hover,
+.view-header .clickable-icon:hover,
+.view-actions .clickable-icon:hover,
+.titlebar .clickable-icon:hover {{
+  color: {p["accent"]} !important;
+  opacity: 1 !important;
+}}
+/* Tab labels: Minimal mutes inactive tabs to near-background and only reveals
+   text on hover. Force both the title visible and a legible outline so the tab
+   shape reads against the bar. */
+.workspace-tab-header .workspace-tab-header-inner-title {{
+  color: color-mix(in srgb, {p["fg"]} 70%, {p["bg"]}) !important;
+}}
+.workspace-tab-header.is-active .workspace-tab-header-inner-title,
+.workspace-tab-header.mod-active .workspace-tab-header-inner-title {{
+  color: {p["fg"]} !important;
+}}
+.workspace-tab-header.is-active,
+.workspace-tab-header.mod-active {{
+  outline: 0.5px solid {soft} !important;
+  border-radius: 6px;
 }}
 """
     snippets = os.path.join(vault, "snippets")
