@@ -28,6 +28,16 @@
           inputs.nix-agent.packages.${system}.default
           inputs.terax.packages.${system}.default
         ];
+
+      xdg.configFile."rtk/config.toml".text = ''
+        # RTK config. Partial - unspecified sections use built-in defaults.
+
+        [hooks]
+        exclude_commands = ["git diff", "git status", "rg"]
+
+        [telemetry]
+        enabled = false
+      '';
     })
 
     (lib.mkIf config.agentConfig.enable (

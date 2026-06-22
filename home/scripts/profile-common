@@ -766,9 +766,29 @@ apply_vesktop_theme() {
 # Obsidian's base theme.
 apply_obsidian_scheme() {
   local runtime_file="$1" variant="$2"
-  local scheme tmp
+  local scheme accent tmp appearance
 
   [ -f "$OBSIDIAN_MINIMAL_SETTINGS" ] || return 0
+
+  # Tear down any wallpaper-theming residue (iris-render leaves the `tinted`
+  # CSS snippet enabled + a native accentColor; both override Minimal's color
+  # scheme and would otherwise persist into non-tinted profiles). A profile may
+  # opt into a fixed native accent (obsidianAccent); otherwise clear it so the
+  # Minimal scheme drives the accent.
+  appearance="${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}/appearance.json"
+  accent=$(profile_runtime_string "$runtime_file" "$variant" obsidianAccent)
+  if [ -f "$appearance" ]; then
+    tmp=$(mktemp)
+    if jq --indent 2 --arg accent "$accent" \
+      '(.enabledCssSnippets // []) |= map(select(. != "tinted"))
+       | if $accent == "" then del(.accentColor) else .accentColor = $accent end' \
+      "$appearance" > "$tmp" 2>/dev/null; then
+      mv "$tmp" "$appearance"
+    else
+      rm -f "$tmp"
+    fi
+  fi
+
   scheme=$(profile_runtime_string "$runtime_file" "$variant" obsidian)
   [ -n "$scheme" ] || return 0
 

@@ -204,6 +204,7 @@ in
     };
     vesktop.dark = "sharp.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
+    obsidianAccent.dark = "#ffffff";
     spicetify.dark = spice "Comfy" "Mono" 0;
   };
 
