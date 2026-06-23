@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: agent-self-improve --check
+
+Print the repo self-improvement checklist for coding-agent closeout.
+EOF
+}
+
+if [ "${1:-}" != "--check" ]; then
+  usage >&2
+  exit 1
+fi
+
+cat <<'EOF'
+Self-improvement check
+
+Session trigger:
+  Use this at closeout for coding-agent sessions that changed files,
+  investigated behavior, or made a recommendation in this repo.
+
+Hurdle trigger:
+  Also use it after failed assumptions, unclear ownership, missing validation,
+  brittle commands, or wasted convention-search time.
+
+Update target:
+  If durable friction appeared, make the smallest useful change to AGENT_MAP.md,
+  docs/, checks/agent-*.bash, home/scripts/, or justfile.
+
+Closeout:
+  Validate any improvement. If no useful change exists, say so directly.
+EOF

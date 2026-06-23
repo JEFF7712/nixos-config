@@ -5,13 +5,11 @@
 /tmp
 *.cache
 /result
-/docs
+/docs/superpowers/
 /.venv
 /.claude
 /.codex
 /.worktrees
-CLAUDE.md
-AGENTS.md
 .mcp.json
 /.superpowers
 /.serena

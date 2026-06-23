@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+require_executable() {
+  local path=$1
+
+  if [ ! -x "$path" ]; then
+    echo "missing executable: $path" >&2
+    exit 1
+  fi
+}
+
+require_match() {
+  local pattern=$1
+  local path=$2
+
+  if ! rg -q "$pattern" "$path"; then
+    echo "missing pattern in $path: $pattern" >&2
+    exit 1
+  fi
+}
+
+require_executable checks/agent-invariants.bash
+require_executable home/scripts/new-nixos-module
+require_executable home/scripts/new-home-module
+require_executable home/scripts/agent-self-improve
+
+bash checks/agent-invariants.bash
+
+self_improve_output=$(home/scripts/agent-self-improve --check)
+for expected in \
+  'Self-improvement check' \
+  'Session trigger' \
+  'Hurdle trigger' \
+  'Update target'; do
+  if ! grep -Fq "$expected" <<<"$self_improve_output"; then
+    echo "agent-self-improve --check missing: $expected" >&2
+    exit 1
+  fi
+done
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+mkdir -p "$tmpdir/modules/nixos" "$tmpdir/modules/home-manager"
+
+NIXOS_REPO_ROOT="$tmpdir" home/scripts/new-nixos-module test-service >/dev/null
+NIXOS_REPO_ROOT="$tmpdir" home/scripts/new-home-module test-tool >/dev/null
+
+nixos_module="$tmpdir/modules/nixos/test-service.nix"
+home_module="$tmpdir/modules/home-manager/test-tool.nix"
+
+require_match 'options\.test-service\.enable = lib\.mkEnableOption "test-service";' "$nixos_module"
+require_match 'config = lib\.mkIf config\.test-service\.enable' "$nixos_module"
+require_match 'environment\.systemPackages' "$nixos_module"
+
+require_match 'options\.test-tool\.enable = lib\.mkEnableOption "test-tool";' "$home_module"
+require_match 'config = lib\.mkIf config\.test-tool\.enable' "$home_module"
+require_match 'home\.packages' "$home_module"
+
+if NIXOS_REPO_ROOT="$tmpdir" home/scripts/new-nixos-module test-service >/dev/null 2>&1; then
+  echo "new-nixos-module overwrote an existing module" >&2
+  exit 1
+fi
+
+if NIXOS_REPO_ROOT="$tmpdir" home/scripts/new-home-module test-tool >/dev/null 2>&1; then
+  echo "new-home-module overwrote an existing module" >&2
+  exit 1
+fi

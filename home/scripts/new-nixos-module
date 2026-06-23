@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NAME="${1:-}"
+if [ -z "$NAME" ]; then
+  echo "Usage: new-nixos-module <name>" >&2
+  exit 1
+fi
+
+if ! printf '%s' "$NAME" | grep -Eq '^[a-z][a-z0-9-]*$'; then
+  echo "Error: name must match ^[a-z][a-z0-9-]*$" >&2
+  exit 1
+fi
+
+REPO_ROOT="${NIXOS_REPO_ROOT:-$(git rev-parse --show-toplevel)}"
+MODULE="$REPO_ROOT/modules/nixos/$NAME.nix"
+
+if [ -e "$MODULE" ]; then
+  echo "Error: $MODULE already exists." >&2
+  exit 1
+fi
+
+mkdir -p "$(dirname "$MODULE")"
+cat > "$MODULE" << EOF
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
+
+{
+  options.$NAME.enable = lib.mkEnableOption "$NAME";
+
+  config = lib.mkIf config.$NAME.enable {
+    environment.systemPackages = with pkgs; [
+    ];
+  };
+}
+EOF
+
+git -C "$REPO_ROOT" add -N "$MODULE" 2>/dev/null || true
+
+echo "Created $MODULE"
+echo "Enable with: $NAME.enable = true;"
+echo "Validate with: just fmt-check && just eval laptop"

@@ -8,12 +8,18 @@ fmt-check:
   nix fmt -- --fail-on-change --no-cache
 
 shell-check:
-  git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b' -- home/scripts | xargs -r shellcheck -S error
+  git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b' -- home/scripts checks | xargs -r shellcheck -S error
 
 wallpaper-script-check:
   bash checks/wallpaper-scripts.bash
   bash checks/iris-render.bash
   bash checks/spicetify-theme.bash
+
+check-agent-docs:
+  bash checks/agent-docs.bash
+
+check-agent-workflows:
+  bash checks/agent-workflows.bash
 
 qml-lint:
   nix shell nixpkgs#qt6.qtdeclarative -c qmllint \
@@ -42,6 +48,8 @@ check-profiles host="laptop" user="rupan":
     --apply 'import ./checks/profiles.nix'
 
 check:
+  just check-agent-docs
+  just check-agent-workflows
   just fmt-check
   just shell-check
   just wallpaper-script-check
@@ -53,6 +61,58 @@ check:
 quick:
   just eval laptop
   git diff --check
+
+agent-context:
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  repo=$(pwd)
+  active_profile="unknown"
+  active_variant="unknown"
+  profile_dir="${HOME}/.config/desktop-profiles"
+
+  if [ -r "${profile_dir}/active" ]; then
+    active_profile=$(cat "${profile_dir}/active")
+  fi
+
+  if [ -r "${profile_dir}/active-variant" ]; then
+    active_variant=$(cat "${profile_dir}/active-variant")
+  fi
+
+  printf 'Repo\n'
+  printf '  path: %s\n' "$repo"
+  printf '  branch: %s\n' "$(git branch --show-current 2>/dev/null || printf 'unknown')"
+  printf '\n'
+
+  printf 'Git\n'
+  if git diff --quiet -- . && git diff --cached --quiet -- .; then
+    printf '  working tree: clean\n'
+  else
+    git status --short | sed 's/^/  /'
+  fi
+  printf '\n'
+
+  printf 'Hosts\n'
+  find hosts -mindepth 1 -maxdepth 1 -type d -printf '  %f\n' | sort
+  printf '\n'
+
+  printf 'Active desktop profile\n'
+  printf '  profile: %s\n' "$active_profile"
+  printf '  variant: %s\n' "$active_variant"
+  printf '\n'
+
+  printf 'Suggested validation\n'
+  printf '  low-risk Nix edit: just quick\n'
+  printf '  profile/theme edit: just check-profiles && just fmt-check\n'
+  printf '  shell script edit: just shell-check\n'
+  printf '  Quickshell edit: just qml-lint && just eval laptop\n'
+  printf '  package/overlay edit: just build laptop\n'
+  printf '  pre-handoff: just check\n'
+  printf '\n'
+
+  printf 'Self-improvement\n'
+  printf '  closeout: agent-self-improve --check\n'
+  printf '  edit tooling only when durable friction appears\n'
 
 update:
   nix flake update
