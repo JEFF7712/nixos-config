@@ -20,6 +20,8 @@
           opencode
           codex
           mcp-nixos
+          poppler-utils
+          file
           sox
           rtk
         ])

@@ -30,7 +30,7 @@ nix develop ./shells[#python|#cbe|#ml|#homelab]   # dev shells (ml default; sepa
 
 Before broad repo search, read `AGENT_MAP.md` and run `just agent-context`.
 
-At closeout for coding-agent sessions that changed files, investigated behavior, or made a recommendation in this repo, run `agent-self-improve --check`. If durable friction appeared, update the smallest relevant agent-facing doc, check, script, or `just` recipe; otherwise say the self-improvement check found nothing worth changing.
+At closeout for coding-agent sessions that changed files, investigated behavior, or made a recommendation in this repo, run `agent-self-improve --check` (`home/scripts/agent-self-improve --check` if `~/.local/bin` is not on PATH). If durable friction appeared, update the smallest relevant agent-facing doc, check, script, or `just` recipe; otherwise say the self-improvement check found nothing worth changing.
 
 ## Architecture
 
@@ -57,4 +57,5 @@ The `repoPath` option (default `$HOME/nixos`) drives these paths — keep it con
 - GPU: Intel iGPU + NVIDIA Prime offload, with a `performance` specialisation for sync mode (`modules/nixos/nvidia.nix`).
 - CI: `build-iso.yml` on `v*` tags; `check.yml` on push/PR runs `nix flake check` + `nix fmt --fail-on-change`.
 - For NixOS/nixpkgs questions use the `mcp-nixos` MCP tools — training data lags nixpkgs.
+- Agent PDF reads need `pdftoppm` from `poppler-utils`; without it, fetched PDFs may have valid bytes but Read/render tools cannot inspect them in-session. `file` is also expected for MIME/type checks. Ad-hoc: `nix-shell -p poppler-utils file`; permanent: `ai-tools.enable` includes both.
 - `.gitignore` excludes `.mcp.json` and local tool state.

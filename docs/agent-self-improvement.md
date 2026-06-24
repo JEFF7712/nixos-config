@@ -4,7 +4,7 @@ This repo is maintained mostly by coding agents. Treat repeated friction as a bu
 
 ## Triggers
 
-- Run `agent-self-improve --check` at the end of every coding-agent session in this repo that changed files, investigated behavior, or made a recommendation.
+- Run `agent-self-improve --check` at the end of every coding-agent session in this repo that changed files, investigated behavior, or made a recommendation. Use `home/scripts/agent-self-improve --check` when the agent shell lacks `~/.local/bin`.
 - Run it immediately after any meaningful hurdle: failed assumptions, unclear ownership, missing validation, surprising formatter behavior, brittle commands, or time spent searching for repo conventions.
 - If the hurdle is caused by missing or weak repo guidance, make the smallest useful improvement before the final response.
 
@@ -30,7 +30,7 @@ Prefer durable changes that make the next agent faster or less error-prone:
 ## Closeout Flow
 
 1. Run the relevant validation for the task.
-2. Run `agent-self-improve --check`.
+2. Run `agent-self-improve --check`, or `home/scripts/agent-self-improve --check` if needed.
 3. If durable friction appeared, edit the smallest relevant doc, check, script, or `just` recipe.
 4. Re-run the validation that covers that improvement.
 5. Mention only whether a self-improvement change was made.

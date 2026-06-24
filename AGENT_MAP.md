@@ -37,7 +37,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 
 ## Session Closeout
 
-- Run `agent-self-improve --check` at the end of coding-agent sessions that changed files, investigated behavior, or made a recommendation in this repo.
+- Run `agent-self-improve --check` at the end of coding-agent sessions that changed files, investigated behavior, or made a recommendation in this repo. If `~/.local/bin` is not on PATH, run `home/scripts/agent-self-improve --check`.
 - Also run it when a hurdle exposes missing docs, weak checks, brittle scripts, or unclear validation.
 - If the session revealed durable friction, update the smallest relevant agent-facing doc, check, script, or `just` recipe before the final response.
 - If no useful improvement exists, state that the self-improvement check found nothing worth changing.
