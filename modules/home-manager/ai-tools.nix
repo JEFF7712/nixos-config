@@ -21,6 +21,7 @@
           codex
           mcp-nixos
           poppler-utils
+          pandoc
           file
           sox
           rtk
