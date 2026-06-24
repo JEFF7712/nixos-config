@@ -144,6 +144,7 @@
       commands =
         let
           rebuild = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
+          nh = "${pkgs.nh}/bin/nh";
           flakeRefs = [
             "path\\:/home/rupan/nixos\\#laptop"
             "/home/rupan/nixos\\#laptop"
@@ -153,6 +154,10 @@
         [
           {
             command = "${rebuild} dry-activate --flake *";
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "${nh} os switch -R . -H laptop";
             options = [ "NOPASSWD" ];
           }
         ]

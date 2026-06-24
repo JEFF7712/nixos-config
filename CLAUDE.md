@@ -11,8 +11,8 @@ NixOS flake-based system config for multiple hosts (`laptop`, `iso`) with home-m
 Recipes live in the `justfile` (`just` to list). Prefer them:
 
 ```bash
-just switch        # build + switch (nh os switch . -H laptop)
-just dry           # dry-activate laptop config (sudo nixos-rebuild)
+just switch        # build + switch through nh (resolved store path, root bypass)
+just dry           # dry-activate laptop config (resolved nixos-rebuild)
 just check         # full validation: fmt-check + shell-check + wallpaper-scripts + flake check + eval laptop&iso + check-profiles + git diff --check
 just fmt-check     # nix fmt --fail-on-change (mirrors CI; fails if anything is unformatted)
 just quick         # fast pre-commit: eval laptop + git diff --check
@@ -48,7 +48,7 @@ The `repoPath` option (default `$HOME/nixos`) drives these paths — keep it con
 
 ## Gotchas
 
-- **Rebuilds run through `nh`** (`nh os switch`); `just switch` runs `nh os switch . -H laptop`. Passwordless sudo is **pinned to exact flake refs** — `switch`/`test` only work for `.#laptop`, `/home/rupan/nixos#laptop`, or `path:/home/rupan/nixos#laptop` (from the repo root); any other ref prompts for a password. `dry-activate` is globbed (for nix-agent headless runs).
+- `just switch` runs `nh os switch -R . -H laptop` through the resolved `nh` store path so the nice `nh` UI is preserved while sudoers stays pinned to an exact command. Passwordless `nixos-rebuild switch`/`test` is pinned to exact flake refs — `.#laptop`, `/home/rupan/nixos#laptop`, or `path:/home/rupan/nixos#laptop` (from the repo root); any other ref prompts for a password. `dry-activate` is globbed for headless dry runs.
 - GC and upgrades are automatic: `nh clean` daily (`--keep-since 7d --keep 3`) and the custom `auto-update` module — no `nix.gc`/`system.autoUpgrade`.
 - home-manager uses `backupFileExtension = "backup"` — activation renames conflicting existing files to `*.backup` instead of failing.
 - Some packages pull from `nixpkgs-stable` (25.11) — grep `pkgs-stable` before adding similar ones.

@@ -124,7 +124,7 @@ build-iso:
   nix build .#nixosConfigurations.iso.config.system.build.isoImage
 
 dry:
-  sudo nixos-rebuild dry-activate --flake .#laptop
+  sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake .#laptop
 
 switch:
-  nh os switch . -H laptop
+  sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop
