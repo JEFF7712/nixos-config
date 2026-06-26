@@ -32,6 +32,8 @@ Before broad repo search, read `AGENT_MAP.md` and run `just agent-context`.
 
 At closeout for coding-agent sessions that changed files, investigated behavior, or made a recommendation in this repo, run `agent-self-improve --check` (`home/scripts/agent-self-improve --check` if `~/.local/bin` is not on PATH). If durable friction appeared, update the smallest relevant agent-facing doc, check, script, or `just` recipe; otherwise say the self-improvement check found nothing worth changing.
 
+Commit history here is disposable — when asked to commit, commit freely (batching unrelated changes is fine); don't fuss over one-logical-change discipline. Relaxes the global commit rules for this repo only.
+
 ## Architecture
 
 `flake.nix` defines `laptop` (full: NVIDIA, gaming, heavy apps, VPN, stasis) and `iso` (lighter live image, auto-clones repo on boot) via a `mkSystem` helper, using `flake-parts`. Each host = `hosts/<name>/{configuration,hardware-configuration}.nix` + home config `home/rupan/<name>.nix` (base: `home/rupan/home.nix`).

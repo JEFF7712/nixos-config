@@ -50,6 +50,7 @@
           runtimeInputs = with pkgs; [
             coreutils
             findutils
+            jq
           ];
           text = ''
             set -eu
@@ -57,29 +58,65 @@
             claude_dir="${config.home.homeDirectory}/.claude"
             claude_skills="$claude_dir/skills"
             claude_instructions="$claude_dir/CLAUDE.md"
+            claude_settings="$claude_dir/settings.json"
+            claude_installed_plugins="$claude_dir/plugins/installed_plugins.json"
             codex_dir="${config.home.homeDirectory}/.codex"
             codex_skills="$codex_dir/skills"
             codex_instructions="$codex_dir/AGENTS.md"
 
             mkdir -p "$codex_dir" "$codex_skills"
 
+            link_codex_skill() {
+              source_path="$1"
+              name="$2"
+
+              case "$name" in
+                .*|"")
+                  return 0
+                  ;;
+              esac
+
+              target="$codex_skills/$name"
+              if [ -e "$target" ] && [ ! -L "$target" ]; then
+                echo "Skipping $target because it is not a symlink" >&2
+              else
+                ln -sfn "$source_path" "$target"
+              fi
+            }
+
             if [ -d "$claude_skills" ]; then
               find "$claude_skills" -mindepth 1 -maxdepth 1 -print | while IFS= read -r skill; do
-                name="$(basename "$skill")"
-
-                case "$name" in
-                  .*|"")
-                    continue
-                    ;;
-                esac
-
-                target="$codex_skills/$name"
-                if [ -e "$target" ] && [ ! -L "$target" ]; then
-                  echo "Skipping $target because it is not a symlink" >&2
-                else
-                  ln -sfn "$skill" "$target"
-                fi
+                link_codex_skill "$skill" "$(basename "$skill")"
               done
+            fi
+
+            if [ -f "$claude_settings" ] && [ -f "$claude_installed_plugins" ]; then
+              jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$claude_settings" |
+                while IFS= read -r plugin_key; do
+                  plugin_name="''${plugin_key%@*}"
+                  install_path="$(
+                    jq -r --arg key "$plugin_key" '.plugins[$key][0].installPath // empty' "$claude_installed_plugins"
+                  )"
+
+                  if [ -z "$install_path" ] || [ ! -d "$install_path" ]; then
+                    continue
+                  fi
+
+                  if [ -f "$install_path/SKILL.md" ]; then
+                    link_codex_skill "$install_path" "$plugin_name"
+                  fi
+
+                  for skills_dir in "$install_path/skills" "$install_path/.claude/skills"; do
+                    if [ -d "$skills_dir" ]; then
+                      find "$skills_dir" -mindepth 1 -maxdepth 1 -type d -print |
+                        while IFS= read -r skill; do
+                          if [ -f "$skill/SKILL.md" ]; then
+                            link_codex_skill "$skill" "$(basename "$skill")"
+                          fi
+                        done
+                    fi
+                  done
+                done
             fi
 
             if [ -f "$claude_instructions" ]; then

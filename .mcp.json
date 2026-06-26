@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "nix-agent": {
+      "command": "nix-agent",
+      "args": [],
+      "env": {
+        "NIX_AGENT_FLAKE": "/home/rupan/nixos"
+      }
+    },
+    "mcp-nixos": {
+      "command": "uvx",
+      "args": ["mcp-nixos"]
+    }
+  }
+}
