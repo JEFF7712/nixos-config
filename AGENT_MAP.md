@@ -47,7 +47,7 @@ Run the smallest command that proves the touched surface; the "Validate" column 
 
 ## Session Closeout
 
-Run `agent-self-improve --check` at the end of sessions that changed files, investigated behavior, or made a recommendation (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH). If durable friction appeared, fix the smallest relevant doc, check, script, or `just` recipe; otherwise say nothing needed changing. Full protocol: `docs/agent-self-improvement.md`.
+Run `agent-self-improve --check` when a session hits durable friction (unexplained validation failures, unclear ownership, missing or weak docs/checks, time hunting conventions), not as a per-session ritual (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH). In Claude Code a `Stop` hook surfaces failed `just`/`nix` runs as a nudge. If friction appeared, fix the smallest relevant doc, check, script, or `just` recipe; a clean session needs no note. Full protocol: `docs/agent-self-improvement.md`.
 
 ## Search Shortcuts
 

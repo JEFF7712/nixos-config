@@ -4,8 +4,9 @@ This repo is maintained mostly by coding agents. Treat repeated friction as a bu
 
 ## Triggers
 
-- Run `agent-self-improve --check` at the end of every coding-agent session in this repo that changed files, investigated behavior, or made a recommendation. Use `home/scripts/agent-self-improve --check` when the agent shell lacks `~/.local/bin`.
-- Run it immediately after any meaningful hurdle: failed assumptions, unclear ownership, missing validation, surprising formatter behavior, brittle commands, or time spent searching for repo conventions.
+- Run `agent-self-improve --check` when a session hits a meaningful hurdle: failed assumptions, unclear ownership, missing validation, surprising formatter behavior, brittle commands, or time spent searching for repo conventions. This is friction-triggered, not a per-session ritual.
+- In Claude Code a `Stop` hook (`~/.claude/hooks/friction-stop.sh`, fed by `friction-log.sh`) surfaces failed `just`/`nix` validation automatically; treat that nudge as a trigger. Other agents (Codex) self-assess against the hurdle list above.
+- Use `home/scripts/agent-self-improve --check` when the shell lacks `~/.local/bin`.
 - If the hurdle is caused by missing or weak repo guidance, make the smallest useful improvement before the final response.
 
 ## Improvement Targets
