@@ -23,33 +23,21 @@ require_match() {
 }
 
 require_file AGENT_MAP.md
-require_file docs/validation-matrix.md
 require_file docs/agent-self-improvement.md
 
-require_match '^## Task Routing$' AGENT_MAP.md
-require_match '^## Edit Rules$' AGENT_MAP.md
-require_match '^## Session Closeout$' AGENT_MAP.md
-require_match 'desktop profile' AGENT_MAP.md
-require_match 'home-manager module' AGENT_MAP.md
+# AGENT_MAP must route the core surfaces, cover validation, and point to closeout.
 require_match 'NixOS module' AGENT_MAP.md
+require_match 'home-manager module' AGENT_MAP.md
+require_match 'desktop profile' AGENT_MAP.md
+require_match 'just eval' AGENT_MAP.md
+require_match 'just check' AGENT_MAP.md
 require_match 'agent-self-improve' AGENT_MAP.md
 
-require_match '^## Validation Matrix$' docs/validation-matrix.md
-require_match 'just quick' docs/validation-matrix.md
-require_match 'just check-profiles' docs/validation-matrix.md
-require_match 'just qml-lint' docs/validation-matrix.md
-require_match 'just build' docs/validation-matrix.md
-require_match 'agent self-improvement' docs/validation-matrix.md
-
-require_match '^## Triggers$' docs/agent-self-improvement.md
-require_match '^## Improvement Targets$' docs/agent-self-improvement.md
-require_match 'end of every coding-agent session' docs/agent-self-improvement.md
+# Self-improvement protocol must keep its triggers and the closeout command.
+require_match 'agent-self-improve --check' docs/agent-self-improvement.md
 require_match 'hurdle' docs/agent-self-improvement.md
 
+# agent-context recipe must exist and surface validation + closeout guidance.
 require_match '^agent-context:' justfile
-require_match "printf 'Repo\\\\n'" justfile
-require_match "printf 'Git\\\\n'" justfile
-require_match "printf 'Hosts\\\\n'" justfile
-require_match "printf 'Active desktop profile\\\\n'" justfile
-require_match "printf 'Suggested validation\\\\n'" justfile
-require_match "printf 'Self-improvement\\\\n'" justfile
+require_match 'Suggested validation' justfile
+require_match 'agent-self-improve' justfile

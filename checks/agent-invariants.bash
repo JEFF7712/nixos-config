@@ -39,7 +39,6 @@ check_hardcoded_repo_paths() {
       --glob '!CLAUDE.md' \
       --glob '!AGENTS.md' \
       --glob '!AGENT_MAP.md' \
-      --glob '!docs/validation-matrix.md' \
       --glob '!checks/agent-invariants.bash' \
       . || true
   )

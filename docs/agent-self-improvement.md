@@ -12,8 +12,7 @@ This repo is maintained mostly by coding agents. Treat repeated friction as a bu
 
 Prefer durable changes that make the next agent faster or less error-prone:
 
-- `AGENT_MAP.md` for routing, ownership, edit rules, and search shortcuts.
-- `docs/validation-matrix.md` for command selection.
+- `AGENT_MAP.md` for routing, ownership, edit rules, validation, and search shortcuts.
 - `docs/agent-self-improvement.md` for this protocol.
 - `checks/agent-*.bash` for machine-checkable repo conventions.
 - `home/scripts/new-*` or other helper scripts for repeated edit patterns.

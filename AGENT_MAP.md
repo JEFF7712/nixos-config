@@ -18,7 +18,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Change overlays | `overlays/default.nix`, target overlay file | `overlays/<name>.nix` | `just build laptop` |
 | Update flake inputs | `flake.nix`, `flake.lock` | `flake.lock` via `just update` | `just check` |
 | Change ISO behavior | `hosts/iso/configuration.nix`, `home/rupan/iso.nix` | ISO host or ISO home config | `just eval iso && just build-iso` |
-| Change agent tooling | `modules/home-manager/ai-tools.nix`, `modules/home-manager/serena.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md`, `docs/validation-matrix.md` | `just check-agent-docs && just eval laptop` |
+| Change agent tooling | `modules/home-manager/ai-tools.nix`, `modules/home-manager/serena.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md` | `just check-agent-docs && just eval laptop` |
 | Change agent invariants or scaffolds | `checks/agent-invariants.bash`, `checks/agent-workflows.bash`, `home/scripts/new-*module` | invariant checker, workflow test, scaffold scripts | `just check-agent-workflows && just shell-check` |
 | Change agent self-improvement behavior | `docs/agent-self-improvement.md`, `AGENT_MAP.md`, `checks/agent-*.bash` | protocol doc, agent checks, helper scripts | `just check-agent-docs && just check-agent-workflows` |
 
@@ -35,12 +35,19 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 - Do not use `git add .`; stage the specific files changed.
 - Use `new-nixos-module <name>` and `new-home-module <name>` for new auto-discovered modules.
 
+## Validation
+
+Run the smallest command that proves the touched surface; the "Validate" column above is the per-task minimum. Run `just check` before larger handoffs.
+
+- `just quick` - fast default for low-risk Nix edits: laptop eval plus whitespace.
+- `just check` - broad local gate: agent checks, fmt, shell/wallpaper/profile checks, flake check, host evals, whitespace. Superset of CI (CI skips the heavier evals/builds).
+- `just build <host>` - realizes the closure and catches build failures eval misses. Use for package, overlay, or flake-input changes.
+- `just dry` / `just switch` - activation and final apply for laptop changes; intentional, they touch system state.
+- Escalate a task's minimum to `just check` when the change is risky, then `just build <host>` if it affects realized packages or services.
+
 ## Session Closeout
 
-- Run `agent-self-improve --check` at the end of coding-agent sessions that changed files, investigated behavior, or made a recommendation in this repo. If `~/.local/bin` is not on PATH, run `home/scripts/agent-self-improve --check`.
-- Also run it when a hurdle exposes missing docs, weak checks, brittle scripts, or unclear validation.
-- If the session revealed durable friction, update the smallest relevant agent-facing doc, check, script, or `just` recipe before the final response.
-- If no useful improvement exists, state that the self-improvement check found nothing worth changing.
+Run `agent-self-improve --check` at the end of sessions that changed files, investigated behavior, or made a recommendation (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH). If durable friction appeared, fix the smallest relevant doc, check, script, or `just` recipe; otherwise say nothing needed changing. Full protocol: `docs/agent-self-improvement.md`.
 
 ## Search Shortcuts
 
