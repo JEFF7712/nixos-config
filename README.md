@@ -40,3 +40,13 @@ This repo is the source of truth for my NixOS system, home-manager setup, deskto
 3. Boot from the USB drive
 4. Connect to Wi-Fi with `nmtui`
 5. Run `get-config`
+
+## Working With AI Agents
+
+This repo is heavily optimized for working with coding agents, and it ships an agent interface as first-class infrastructure:
+
+- `AGENT_MAP.md` - routing table mapping each task to the files to inspect, edit, and the command that validates it; read before broad search.
+- `just agent-context` - prints repo state, hosts, active profile, and the right validation command for the change at hand.
+- Machine-checked conventions in `checks/agent-*.bash` (hardcoded paths, module option shape, dangling refs, scaffold round-trips), enforced in CI, not just docs.
+- `new-nixos-module` / `new-home-module` scaffolds for the auto-discovered module trees.
+- Friction-triggered self-improvement (`docs/agent-self-improvement.md`): agents harden the repo's own interface when they hit a hurdle.
