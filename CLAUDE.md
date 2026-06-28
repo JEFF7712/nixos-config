@@ -60,4 +60,4 @@ The `repoPath` option (default `$HOME/nixos`) drives these paths — keep it con
 - CI: `build-iso.yml` on `v*` tags; `check.yml` on push/PR runs `nix flake check` + `nix fmt --fail-on-change`.
 - For NixOS/nixpkgs questions use the `mcp-nixos` MCP tools — training data lags nixpkgs.
 - Agent PDF reads need `pdftoppm` from `poppler-utils`; without it, fetched PDFs may have valid bytes but Read/render tools cannot inspect them in-session. `file` is also expected for MIME/type checks. Ad-hoc: `nix-shell -p poppler-utils file`; permanent: `ai-tools.enable` includes both.
-- `.gitignore` excludes `.mcp.json` and local tool state.
+- `.gitignore` excludes local tool state (`.claude`, `.serena`, `.codex`, `.superpowers`, `.venv`, `.worktrees`, build artifacts). `.mcp.json` is tracked (`nix-agent` + `mcp-nixos`) and pins `NIX_AGENT_FLAKE` to the repo path.

@@ -22,3 +22,7 @@ jobs:
         run: nix flake check
       - name: Check formatting
         run: nix fmt -- --fail-on-change --no-cache
+      - name: Agent checks
+        run: |
+          nix shell nixpkgs#just nixpkgs#ripgrep nixpkgs#fd nixpkgs#shellcheck -c \
+            bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check'

@@ -12,7 +12,8 @@ fail() {
 
 is_allowed_hardcoded_repo_path() {
   case "$1" in
-    hosts/iso/configuration.nix | \
+    .mcp.json | \
+      hosts/iso/configuration.nix | \
       hosts/laptop/configuration.nix | \
       modules/nixos/auto-update.nix | \
       modules/nixos/git.nix)
@@ -34,7 +35,7 @@ check_hardcoded_repo_paths() {
       fail "hardcoded /home/rupan/nixos outside allowlist: $entry"
     fi
   done < <(
-    rg -n '/home/rupan/nixos' \
+    rg -n --hidden '/home/rupan/nixos' \
       --glob '!CLAUDE.md' \
       --glob '!AGENTS.md' \
       --glob '!AGENT_MAP.md' \
