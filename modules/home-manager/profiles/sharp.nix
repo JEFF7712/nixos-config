@@ -300,7 +300,6 @@ in
     };
 
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/sharp";
-    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/sharp-light";
 
     niri = {
       animations = animations.snappy;
