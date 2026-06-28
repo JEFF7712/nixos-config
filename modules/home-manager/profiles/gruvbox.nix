@@ -71,7 +71,6 @@ in
     paletteLight = light;
     scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/gruvbox";
-    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/gruvbox-light";
 
     cursor = {
       theme = "Capitaine Cursors (Gruvbox)";

@@ -115,7 +115,6 @@ in
     waybarStyle = "floating";
     scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/everforest";
-    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/everforest-light";
 
     quickshell = r: {
       fresh = r.blue;

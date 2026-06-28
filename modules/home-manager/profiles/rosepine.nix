@@ -137,7 +137,6 @@ in
     waybarStyle = "pill";
     scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.repoPath}/home/assets/wallpapers/rosepine";
-    wallpaperDirLight = "${config.repoPath}/home/assets/wallpapers/rosepine-light";
 
     quickshell = r: {
       fg = r.bg0;
