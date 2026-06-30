@@ -11,7 +11,7 @@ model-device : cuda
 # Language: leave empty for auto-detect, or "en" for English-only.
 model-language : "en"
 
-transcription-prompt : ""
+transcription-prompt : "Technical dictation with AI, ML, Linux, NixOS, chemistry, and coding jargon. Prefer these spellings when heard: Rupan, Ramrupan Sunderapandyan, UW-Madison, Claude, Claude Code, CLAUDE.md, AGENTS.md, README.md, NixOS, nixpkgs, Home Manager, flake.nix, flake.lock, nix develop, nix shell, MCP, LLM, RAG, evals, embeddings, tokenizer, fine-tuning, LoRA, QLoRA, vLLM, Ollama, OpenAI, Anthropic, PyTorch, CUDA, Wayland, niri, Quickshell, GitHub, git, fish, uv, pyright, Arch Linux, Docker, homelab, agentic AI, AI agents, mechanistic interpretability, foundation models, world models, AI capabilities, artificial minds, recursive self-improvement, scientific ML, AI-for-science, computational chemistry, molecular ML, molecular dynamics, molecular modeling, cheminformatics, protein dynamics, drug discovery, ApptlyAI, rupan.dev, soluble.rupan.dev, DESRES."
 
 non-ascii-initial-delay : 0.15
 non-ascii-default-delay : 0.025

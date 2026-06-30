@@ -134,6 +134,12 @@ let
     ''}
 
     ${profile.niri.extraConfig}
+
+    ${lib.optionalString focus ''
+      window-rule {
+          opacity 1.0
+      }
+    ''}
   '';
 
   orEmpty = v: if v != null then v else "";

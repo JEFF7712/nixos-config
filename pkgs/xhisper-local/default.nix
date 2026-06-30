@@ -84,6 +84,20 @@ stdenv.mkDerivation {
         'python3 "$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null' \
         '"$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null'
 
+    substituteInPlace xhisper.sh \
+      --replace-fail \
+        'local cmd_args="--model $model_name --device $model_device"' \
+        'local cmd_args=(--model "$model_name" --device "$model_device")' \
+      --replace-fail \
+        'cmd_args="$cmd_args --language $model_language"' \
+        'cmd_args+=(--language "$model_language")' \
+      --replace-fail \
+        'cmd_args="$cmd_args --prompt \"$transcription_prompt\""' \
+        'cmd_args+=(--prompt "$transcription_prompt")' \
+      --replace-fail \
+        '"$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null' \
+        '"$TRANSCRIPT_SCRIPT" "$recording" "''${cmd_args[@]}" 2>/dev/null'
+
     # The user binds xhisper to Mod+Z (Super+Z). After the keypress fires the
     # script, paste() starts typing the status / transcript via uinput while
     # the physical Super key is often still held — so each character lands as

@@ -429,7 +429,7 @@ PanelWindow {
                 value: ""
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.wifiClicked()
-                onRightClicked: topbarWindow.run("kitty -e nmtui")
+                onRightClicked: topbarWindow.run("kitty -e sudo nmtui")
             }
             StatPill {
                 visible: topbarWindow.showBluetooth
