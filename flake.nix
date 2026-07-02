@@ -103,6 +103,8 @@
             config.permittedInsecurePackages = [
               "electron-37.10.3"
               "electron-39.8.10"
+              # build-time dep pinned by vesktop; drop once nixpkgs bumps it
+              "pnpm-10.29.2"
             ];
             inherit overlays;
           };

@@ -26,6 +26,12 @@
       serviceConfig.Type = "oneshot";
       script = ''
         repo=/home/rupan/nixos
+        # network-online.target can be reached before DNS actually resolves
+        # (Persistent= catch-up runs right after boot/resume); wait for it.
+        for _ in $(seq 60); do
+          ${pkgs.getent}/bin/getent hosts api.github.com >/dev/null 2>&1 && break
+          sleep 5
+        done
         runuser -u rupan -- nix flake update --flake "path:$repo"
         if ! runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
           runuser -u rupan -- git -C "$repo" commit -m "flake.lock: weekly auto-update" -- flake.lock
