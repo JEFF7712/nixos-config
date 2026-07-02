@@ -89,6 +89,17 @@
               ${pkgs.git}/bin/git clone https://github.com/JEFF7712/nixos-config.git "$TARGET_DIR"
               echo "✅ Config downloaded to $TARGET_DIR"
           fi
+
+          ASSETS_DIR="/home/rupan/nixos-assets"
+
+          if [ -d "$ASSETS_DIR/.git" ]; then
+              ${pkgs.git}/bin/git -C "$ASSETS_DIR" pull
+              echo "✅ Assets updated from GitHub."
+          else
+              rm -rf "$ASSETS_DIR"
+              ${pkgs.git}/bin/git clone --depth 1 https://github.com/JEFF7712/nixos-assets.git "$ASSETS_DIR"
+              echo "✅ Assets downloaded to $ASSETS_DIR"
+          fi
       else
           echo "❌ No Internet Connection."
       fi
