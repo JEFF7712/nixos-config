@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+/home/rupan/.local/bin/lock-screen &
+sleep 1
+
+manual_pause="$(stasis info 2>/dev/null | awk -F': *' '/^Manual Pause/{print $2; exit}' || true)"
+
+if [[ "$manual_pause" == "yes" ]]; then
+  exit 0
+fi
+
+systemctl suspend

@@ -27,7 +27,7 @@
         enable_loginctl true
         enable_dbus_inhibit false
         prepare_sleep_command "/home/rupan/.local/bin/lock-screen"
-        lid_close_action "/home/rupan/.local/bin/lock-screen & sleep 1; systemctl suspend"
+        lid_close_action "/home/rupan/.local/bin/lid-close-action"
         lock_screen:
           timeout 300
           command "/home/rupan/.local/bin/lock-screen"
