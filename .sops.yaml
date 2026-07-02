@@ -1,0 +1,12 @@
+keys:
+  # rupan's editing key (~/.config/sops/age/keys.txt)
+  - &rupan age1ckzw40ndw6v98ctczzw99lv7k257h4tx7xq6k9f0f5mltq9z9gtq36achw
+  # laptop host key (ssh-to-age of /etc/ssh/ssh_host_ed25519_key.pub); this is
+  # what decrypts at activation
+  - &laptop age1hyvs3v44jwprk3mn5k88vp879tlxm3kl865s4jfpgsr3ezl8fv0q6dychq
+creation_rules:
+  - path_regex: secrets/.*\.ya?ml$
+    key_groups:
+      - age:
+          - *rupan
+          - *laptop

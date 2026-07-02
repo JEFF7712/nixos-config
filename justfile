@@ -39,6 +39,10 @@ eval-all:
   just eval laptop
   just eval iso
 
+# The vmVariant is a separate eval; `just eval` won't catch breakage in it.
+eval-vm target="laptop":
+  nix eval --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.vm.drvPath"
+
 flake-check:
   nix flake check
 
@@ -122,6 +126,16 @@ build target="laptop":
 
 build-iso:
   nix build .#nixosConfigurations.iso.config.system.build.isoImage
+
+# Boot the host config in a throwaway QEMU VM (login rupan/rupan, see
+# virtualisation.vmVariant in the host config). Disk image lives in /tmp so
+# state never accumulates in the repo.
+vm target="laptop":
+  nix build --no-write-lock-file --out-link result-vm ".#nixosConfigurations.{{target}}.config.system.build.vm"
+  NIX_DISK_IMAGE=/tmp/nixos-vm-{{target}}.qcow2 ./result-vm/bin/run-*-vm
+
+vm-iso: build-iso
+  qemu-system-x86_64 -enable-kvm -m 8192 -smp 4 -boot d -cdrom result/iso/*.iso
 
 dry:
   sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake .#laptop

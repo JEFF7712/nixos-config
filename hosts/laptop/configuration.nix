@@ -31,6 +31,7 @@
   };
 
   nvidia.enable = true;
+  secrets.enable = true;
   niri.enable = true;
   general-laptop.enable = true;
   asus-numpad.enable = true;
@@ -53,6 +54,22 @@
   xhisperLocal = {
     enable = true;
     ollama.package = pkgs.ollama-cuda;
+  };
+
+  # `just vm` boots this config in QEMU. Strip hardware-bound pieces and give
+  # the VM a usable login: the real machine's password is imperative state
+  # that doesn't exist inside the VM image.
+  virtualisation.vmVariant = {
+    virtualisation = {
+      memorySize = 8192;
+      cores = 8;
+    };
+    nvidia.enable = lib.mkForce false;
+    # docker.nix enables this too; without the nvidia driver it fails an assert.
+    hardware.nvidia-container-toolkit.enable = lib.mkForce false;
+    # The VM's host key can't decrypt secrets.yaml; sops would fail activation.
+    secrets.enable = lib.mkForce false;
+    users.users.rupan.initialPassword = "rupan";
   };
 
   environment.shells = with pkgs; [

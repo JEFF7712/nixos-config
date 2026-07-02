@@ -2,6 +2,7 @@
 *.lock
 !flake.lock
 /result
+/result-vm
 /tmp
 *.cache
 /result

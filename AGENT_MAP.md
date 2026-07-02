@@ -18,6 +18,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Change overlays | `overlays/default.nix`, target overlay file | `overlays/<name>.nix` | `just build laptop` |
 | Update flake inputs | `flake.nix`, `flake.lock` | `flake.lock` via `just update` | `just check` |
 | Change ISO behavior | `hosts/iso/configuration.nix`, `home/rupan/iso.nix` | ISO host or ISO home config | `just eval iso && just build-iso` |
+| Change VM boot testing (`just vm`) | `justfile`, `virtualisation.vmVariant` in `hosts/laptop/configuration.nix` | vmVariant block, `vm`/`vm-iso` recipes | `just eval-vm` (vmVariant is not covered by `just eval`) |
 | Change agent tooling | `modules/home-manager/ai-tools.nix`, `modules/home-manager/serena.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md` | `just check-agent-docs && just eval laptop` |
 | Change agent invariants or scaffolds | `checks/agent-invariants.bash`, `checks/agent-workflows.bash`, `home/scripts/new-*module` | invariant checker, workflow test, scaffold scripts | `just check-agent-workflows && just shell-check` |
 | Change agent self-improvement behavior | `docs/agent-self-improvement.md`, `AGENT_MAP.md`, `checks/agent-*.bash` | protocol doc, agent checks, helper scripts | `just check-agent-docs && just check-agent-workflows` |
