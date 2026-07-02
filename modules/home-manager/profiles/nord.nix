@@ -122,7 +122,7 @@ in
     bar = "quickshell";
     waybarStyle = "floating";
     scriptDir = "${config.repoPath}/home/scripts";
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/nord";
+    wallpaperDir = "${config.assetsPath}/wallpapers/nord";
 
     quickshell = r: {
       bg = alpha "ee" r.bg0;

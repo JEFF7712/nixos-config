@@ -195,7 +195,7 @@ PanelWindow {
 
                         Image {
                             anchors.fill: parent
-                            source: Qt.resolvedUrl(Quickshell.env("HOME") + "/nixos/home/assets/previews/" + modelData + ".png")
+                            source: Qt.resolvedUrl(Quickshell.env("HOME") + "/nixos-assets/previews/" + modelData + ".png")
                             fillMode: Image.PreserveAspectCrop
                             cache: true
                             asynchronous: true

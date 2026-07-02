@@ -101,7 +101,7 @@ in
       kittyOpacity = 0.48;
     };
 
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/clean";
+    wallpaperDir = "${config.assetsPath}/wallpapers/clean";
 
     makoConfig = theme.mkMakoConfig {
       # match the clean bar (#66101010), a touch more opaque

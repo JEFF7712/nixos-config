@@ -8,6 +8,9 @@ PROFILE_COMMON_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_HOME="$(dirname "$(dirname "$PROFILE_COMMON_PATH")")"
 [ -d "$REPO_HOME/configs" ] || REPO_HOME="$HOME/nixos/home"
 
+# Wallpapers/previews live in a sibling repo so the flake source stays small.
+ASSETS_HOME="${ASSETS_HOME:-$HOME/nixos-assets}"
+
 PROFILES_DIR="$HOME/.config/desktop-profiles"
 ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"

@@ -168,7 +168,7 @@ in
 
         wallpaper = {
           enabled = true;
-          directory = "${config.repoPath}/home/assets/wallpapers/noctalia";
+          directory = "${config.assetsPath}/wallpapers/noctalia";
           panelPosition = "follow_bar";
           randomEnabled = true;
           randomIntervalSec = 3600;

@@ -5,7 +5,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/profile-common"
 
-PREVIEW_DIR="$REPO_HOME/assets/previews"
+PREVIEW_DIR="$ASSETS_HOME/previews"
 ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 THEME="$HOME/.config/rofi/profile-switcher.rasi"
 

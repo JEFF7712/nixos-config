@@ -16,7 +16,7 @@ This repo is the source of truth for my NixOS system, home-manager setup, deskto
 - `pkgs/` - local packages
 - `home/configs/` - live config defaults copied or linked into `$HOME` where mutability is intentional
 - `home/scripts/` - user scripts symlinked into `~/.local/bin`
-- `home/assets/` - wallpapers, previews, and other assets
+- `home/assets/` - small assets; wallpapers and previews live in the sibling `~/nixos-assets` repo (`assetsPath` option) to keep flake source copies small
 - `shells/` - dev shells, including ML and homelab environments
 - `justfile` - common maintenance, eval, dry-activate, and switch commands
 

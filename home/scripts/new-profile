@@ -21,7 +21,7 @@ fi
 
 REPO_ROOT="$(dirname "$REPO_HOME")"
 PROFILE_NIX="$REPO_ROOT/modules/home-manager/profiles/$NAME.nix"
-WALLPAPERS="$REPO_HOME/assets/wallpapers/$NAME"
+WALLPAPERS="$ASSETS_HOME/wallpapers/$NAME"
 
 if [ -e "$PROFILE_NIX" ]; then
   echo "Error: $PROFILE_NIX already exists." >&2
@@ -65,7 +65,7 @@ in
   desktopProfiles.profiles.__NAME__ = static.mkStaticProfile {
     palette = dark;
     scriptDir = "${config.repoPath}/home/scripts";
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/__NAME__";
+    wallpaperDir = "${config.assetsPath}/wallpapers/__NAME__";
 
     cursor = {
       theme = "Bibata-Modern-Classic";
@@ -109,5 +109,5 @@ echo
 echo "Next steps:"
 echo "  1. Edit the palette (and add a light palette via paletteLight if wanted)"
 echo "  2. Drop wallpapers into $WALLPAPERS"
-echo "  3. Add a preview image at $REPO_HOME/assets/previews/$NAME.png (rofi picker)"
+echo "  3. Add a preview image at $ASSETS_HOME/previews/$NAME.png (rofi picker)"
 echo "  4. Rebuild, then: switch-profile $NAME"

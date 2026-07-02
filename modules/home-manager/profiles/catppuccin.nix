@@ -164,7 +164,7 @@ let
     bar = "quickshell";
     waybarStyle = "pill";
     scriptDir = "${config.repoPath}/home/scripts";
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/catppuccin";
+    wallpaperDir = "${config.assetsPath}/wallpapers/catppuccin";
 
     quickshell = r: {
       fg = r.pink;

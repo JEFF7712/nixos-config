@@ -264,7 +264,7 @@ in
       iconThemeLight = "Papirus-Dark";
     };
 
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/tinted";
+    wallpaperDir = "${config.assetsPath}/wallpapers/tinted";
 
     niri = {
       animations = animations.soft;

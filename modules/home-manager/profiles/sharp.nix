@@ -299,7 +299,7 @@ in
       iconThemeLight = "Papirus-Dark";
     };
 
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/sharp";
+    wallpaperDir = "${config.assetsPath}/wallpapers/sharp";
 
     niri = {
       animations = animations.snappy;

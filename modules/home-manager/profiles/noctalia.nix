@@ -31,7 +31,7 @@
       iconThemeLight = "Papirus-Dark";
     };
 
-    wallpaperDir = "${config.repoPath}/home/assets/wallpapers/noctalia";
+    wallpaperDir = "${config.assetsPath}/wallpapers/noctalia";
 
     niri = {
       gaps = 5;

@@ -11,7 +11,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Scaffold a NixOS module | `modules/nixos/`, `hosts/<host>/configuration.nix` | run `new-nixos-module <name>`, then edit the generated module | `just check-agent-workflows && just fmt-check` |
 | Scaffold a home-manager module | `modules/home-manager/`, `home/rupan/<host>.nix` | run `new-home-module <name>`, then edit the generated module | `just check-agent-workflows && just fmt-check` |
 | Change desktop profile behavior | `modules/home-manager/desktop-profiles.nix`, `lib/desktop-profiles/` | profile module, profile helper library | `just check-profiles && just fmt-check` |
-| Add or tune a desktop profile | `modules/home-manager/profiles/`, `home/scripts/new-profile` | `modules/home-manager/profiles/<name>.nix`, `home/assets/wallpapers/<name>/` | `just check-profiles && just fmt-check` |
+| Add or tune a desktop profile | `modules/home-manager/profiles/`, `home/scripts/new-profile` | `modules/home-manager/profiles/<name>.nix`, `~/nixos-assets/wallpapers/<name>/` (separate repo) | `just check-profiles && just fmt-check` |
 | Change runtime profile scripts | `home/scripts/profile-common`, target script | `home/scripts/<script>` | `just shell-check && just wallpaper-script-check` |
 | Change Quickshell UI | `home/configs/quickshell*/`, profile bar references | QML/config files under `home/configs/quickshell*/` | `just qml-lint && just eval laptop` |
 | Add a local package | `pkgs/`, `overlays/local-packages.nix` | `pkgs/<name>/default.nix`, overlay export | `just build laptop` |
