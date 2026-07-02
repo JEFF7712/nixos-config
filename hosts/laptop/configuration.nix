@@ -13,13 +13,20 @@
 
   nix = {
     package = pkgs.nix;
+    # Pure-flake setup: no channels, and pin the registry + NIX_PATH to the
+    # locked nixpkgs so `nix run nixpkgs#foo`, comma, and `nix-shell -p`
+    # all resolve to the same rev as the running system.
+    channel.enable = false;
+    registry.nixpkgs.flake = inputs.nixpkgs;
+    nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
     settings = {
       experimental-features = [
         "nix-command"
         "flakes"
       ];
-      max-jobs = 4;
-      cores = 4;
+      max-jobs = "auto";
+      cores = 0;
+      download-buffer-size = 268435456;
     };
   };
 
@@ -91,6 +98,9 @@
   boot = {
     # Use the systemd-boot EFI boot loader.
     loader.systemd-boot.enable = true;
+    # nh clean prunes profiles, but ESP entries only shrink at the next
+    # switch; cap them so /boot can't fill up silently.
+    loader.systemd-boot.configurationLimit = 10;
     loader.efi.canTouchEfiVariables = true;
     supportedFilesystems = [ "exfat" ];
 

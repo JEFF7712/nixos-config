@@ -23,7 +23,13 @@
         pkgs.util-linux
         pkgs.coreutils
       ];
-      serviceConfig.Type = "oneshot";
+      serviceConfig = {
+        Type = "oneshot";
+        # Persistent= catch-up fires right after boot/resume; don't let the
+        # rebuild starve the interactive session.
+        Nice = 10;
+        IOSchedulingClass = "idle";
+      };
       script = ''
         repo=/home/rupan/nixos
         # network-online.target can be reached before DNS actually resolves
@@ -33,6 +39,14 @@
           sleep 5
         done
         runuser -u rupan -- nix flake update --flake "path:$repo"
+        # Gate on eval before committing or switching: a broken unstable bump
+        # should revert the lock and fail loudly, not break the rebuild.
+        if ! runuser -u rupan -- nix eval --no-write-lock-file \
+            "path:$repo#nixosConfigurations.laptop.config.system.build.toplevel.drvPath" >/dev/null; then
+          runuser -u rupan -- git -C "$repo" checkout -- flake.lock
+          echo "updated inputs fail eval; flake.lock reverted" >&2
+          exit 1
+        fi
         if ! runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
           runuser -u rupan -- git -C "$repo" commit -m "flake.lock: weekly auto-update" -- flake.lock
         fi

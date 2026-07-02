@@ -38,6 +38,8 @@
         nix-output-monitor
         nixfmt
         shellcheck
+        nurl
+        nix-init
       ]
       ++ [
         inputs.compchem-cctop.packages.${system}.default
