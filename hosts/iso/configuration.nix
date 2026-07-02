@@ -80,8 +80,9 @@
           TARGET_DIR="/home/rupan/nixos"
 
           if [ -d "$TARGET_DIR/.git" ]; then
-              cd "$TARGET_DIR"
-              ${pkgs.git}/bin/git pull
+              # reset instead of pull: survives upstream history rewrites
+              ${pkgs.git}/bin/git -C "$TARGET_DIR" fetch origin main
+              ${pkgs.git}/bin/git -C "$TARGET_DIR" reset --hard origin/main
               echo "✅ Config updated from GitHub."
           else
               echo "Resyncing fresh from GitHub..."
@@ -93,7 +94,8 @@
           ASSETS_DIR="/home/rupan/nixos-assets"
 
           if [ -d "$ASSETS_DIR/.git" ]; then
-              ${pkgs.git}/bin/git -C "$ASSETS_DIR" pull
+              ${pkgs.git}/bin/git -C "$ASSETS_DIR" fetch origin main
+              ${pkgs.git}/bin/git -C "$ASSETS_DIR" reset --hard origin/main
               echo "✅ Assets updated from GitHub."
           else
               rm -rf "$ASSETS_DIR"
