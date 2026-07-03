@@ -1,0 +1,9 @@
+# sops-encrypted secrets are committed by design (age X25519 + AES-GCM);
+# GitGuardian's high-entropy detector false-positives on the ENC blobs.
+# .sops.yaml holds only public age recipients.
+version: 2
+
+secret:
+  ignored_paths:
+    - "secrets/*.yaml"
+    - ".sops.yaml"
