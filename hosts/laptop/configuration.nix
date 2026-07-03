@@ -32,6 +32,7 @@
 
   nvidia.enable = true;
   secrets.enable = true;
+  secureboot.enable = true;
   niri.enable = true;
   general-laptop.enable = true;
   asus-numpad.enable = true;
