@@ -17,6 +17,9 @@
     ../laptop/base.nix
   ];
 
+  # Ephemeral @root + /persist (camp-1 impermanence); @home stays durable.
+  impermanence.enable = true;
+
   # Rehearsal VM (`just vm-crypt`): runs the real disko partitioning +
   # LUKS + btrfs inside QEMU, then boots from it. Same strip-downs as the
   # vmVariant in base.nix.

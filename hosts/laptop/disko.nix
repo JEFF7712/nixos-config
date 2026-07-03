@@ -36,6 +36,14 @@
               content = {
                 type = "btrfs";
                 extraArgs = [ "-f" ];
+                # Read-only blank snapshot of @root; the impermanence module
+                # rolls back to it on every boot.
+                postCreateHook = ''
+                  MNTPOINT=$(mktemp -d)
+                  mount /dev/mapper/cryptroot "$MNTPOINT" -o subvol=/
+                  trap 'umount "$MNTPOINT"; rm -rf "$MNTPOINT"' EXIT
+                  btrfs subvolume snapshot -r "$MNTPOINT/@root" "$MNTPOINT/@root-blank"
+                '';
                 subvolumes = {
                   "@root" = {
                     mountpoint = "/";
@@ -60,6 +68,13 @@
                   };
                   "@snapshots" = {
                     mountpoint = "/.snapshots";
+                    mountOptions = [
+                      "compress=zstd:1"
+                      "noatime"
+                    ];
+                  };
+                  "@persist" = {
+                    mountpoint = "/persist";
                     mountOptions = [
                       "compress=zstd:1"
                       "noatime"

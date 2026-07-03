@@ -6,6 +6,14 @@ host identity intact. `laptop-crypt` is the rehearsal host; on install day
 the layout is folded into `laptop` itself (sudoers and auto-update are
 pinned to `#laptop`, so the installed system must be that ref).
 
+The install also enables camp-1 impermanence (`impermanence.enable`,
+`modules/nixos/impermanence.nix`): `@root` is rolled back to a blank
+snapshot every boot, `@home`/`@nix` are durable, and declared system state
+lives on the `@persist` subvolume. Fold `impermanence.enable = true` into
+the laptop host together with the disko import. Expect the first weeks to
+surface undeclared state; the outgoing root is parked in `old_roots/` for
+14 days, so anything missed is recoverable from there before it ages out.
+
 ## Non-negotiables before wiping
 
 Root's disk is erased. Two key sets make the difference between a smooth
@@ -58,11 +66,18 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
    `echo -n 'THE-REAL-PASSPHRASE' > /tmp/disk.key`
 4. Partition + format + mount:
    `sudo nix run github:nix-community/disko/v1.13.0 -- --mode destroy,format,mount --flake ~/nixos#laptop`
-5. Restore the key material BEFORE installing:
+5. Restore the key material BEFORE installing. The durable copies live
+   under /persist (preservation bind-mounts them at runtime), but
+   nixos-install's activation runs without those binds, so ALSO copy them
+   to the plain paths; the plain copies evaporate on the first rollback
+   boot, which is fine:
    ```bash
+   mkdir -p /mnt/persist/var/lib/sbctl /mnt/persist/etc/ssh
+   rsync -aHAX /path/to/backup/sbctl/ /mnt/persist/var/lib/sbctl/
+   rsync -aHAX /path/to/backup/etc-ssh/ /mnt/persist/etc/ssh/
    mkdir -p /mnt/var/lib/sbctl /mnt/etc/ssh
-   rsync -aHAX /path/to/backup/sbctl/ /mnt/var/lib/sbctl/
-   rsync -aHAX /path/to/backup/etc-ssh/ /mnt/etc/ssh/
+   cp -a /mnt/persist/var/lib/sbctl/. /mnt/var/lib/sbctl/
+   cp -a /mnt/persist/etc/ssh/. /mnt/etc/ssh/
    ```
 6. `sudo nixos-install --flake ~/nixos#laptop --no-root-passwd`
    (lanzaboote signs with the restored keys; secure boot stays enforcing.)
@@ -73,7 +88,15 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
    `sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/nvme0n1p2`
 10. Verify: `bootctl status` (Secure Boot enabled, Measured UKI yes),
     `findmnt -t btrfs`, `ls /run/secrets/` (sops decrypted), reboot once
-    more to confirm TPM auto-unlock.
+    more to confirm TPM auto-unlock AND that the root rollback ran
+    (`ls /btrfs` gone, `sudo btrfs subvolume list / | grep old_roots`
+    shows the parked root; anything you wrote to `/` outside /persist is
+    gone).
+11. Impermanence shakedown, first weeks: when something resets after
+    reboot (a pairing, a service login, a cert), find its state dir,
+    add it to `preservation.preserveAt."/persist"` in
+    `modules/nixos/impermanence.nix`, and copy the current copy out of
+    the newest `old_roots/<timestamp>/` into /persist before it ages out.
 
 ## Cleanup (after a few stable days)
 
