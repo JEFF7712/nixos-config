@@ -14,7 +14,7 @@ is_allowed_hardcoded_repo_path() {
   case "$1" in
     .mcp.json | \
       hosts/iso/configuration.nix | \
-      hosts/laptop/configuration.nix | \
+      hosts/laptop/base.nix | \
       modules/nixos/auto-update.nix | \
       modules/nixos/git.nix)
       return 0
@@ -52,6 +52,7 @@ check_auto_discovered_imports() {
   done < <(
     rg -n 'import-tree ../../modules/(nixos|home-manager)|\.\./\.\./modules/(nixos|home-manager)|\./modules/(nixos|home-manager)' \
       --glob '!hosts/*/configuration.nix' \
+      --glob '!hosts/laptop/base.nix' \
       --glob '!home/rupan/*.nix' \
       --glob '!CLAUDE.md' \
       --glob '!AGENTS.md' \
