@@ -3,6 +3,7 @@
 !flake.lock
 /result
 /result-vm
+/result-vm-crypt
 /tmp
 *.cache
 /result

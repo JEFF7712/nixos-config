@@ -50,7 +50,7 @@ The `repoPath` option (default `$HOME/nixos`) drives these paths — keep it con
 
 ## Gotchas
 
-- `just switch` runs `nh os switch -R . -H laptop` through the resolved `nh` store path so the nice `nh` UI is preserved while sudoers stays pinned to an exact command. Passwordless `nixos-rebuild switch`/`test` is pinned to exact flake refs — `.#laptop`, `/home/rupan/nixos#laptop`, or `path:/home/rupan/nixos#laptop` (from the repo root); any other ref prompts for a password. `dry-activate` is globbed for headless dry runs.
+- `just switch` runs `nh os switch -R . -H laptop` through the resolved `nh` store path so the nice `nh` UI is preserved while sudoers stays pinned to an exact command. Passwordless `nixos-rebuild switch`/`test` is pinned to exact flake refs — `.#laptop`, `/home/rupan/nixos#laptop`, or `path:/home/rupan/nixos#laptop` (from the repo root); any other ref prompts for a password. `dry-activate` is globbed for headless dry runs. Agents have no interactive sudo, and `! sudo ...` also fails (no TTY for the password prompt): any non-pinned `sudo` is unusable in-session. Read root-only paths another way (many secrets are owned by rupan) or ask the user to run the command in a real terminal and paste the output.
 - GC and upgrades are automatic: `nh clean` daily (`--keep-since 7d --keep 3`) and the custom `auto-update` module — no `nix.gc`/`system.autoUpgrade`.
 - home-manager uses `backupFileExtension = "backup"` — activation renames conflicting existing files to `*.backup` instead of failing.
 - Some packages pull from `nixpkgs-stable` (25.11) — grep `pkgs-stable` before adding similar ones.

@@ -1,0 +1,12 @@
+--- a/lib/make-disk-image.nix
++++ b/lib/make-disk-image.nix
+@@ -41,7 +41,8 @@
+       ]
+       ++ (lib.optional configSupportsZfs "zfs")
+       ++ cfg.extraRootModules;
+-      kernel = pkgs.aggregateModules (
++      kernel = cfg.kernelPackages.kernel;
++      kernelModules = pkgs.aggregateModules (
+         [
+           cfg.kernelPackages.kernel
+         ]

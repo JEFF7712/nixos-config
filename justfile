@@ -37,6 +37,7 @@ eval target="laptop":
 
 eval-all:
   just eval laptop
+  just eval laptop-crypt
   just eval iso
 
 # The vmVariant is a separate eval; `just eval` won't catch breakage in it.
@@ -136,6 +137,11 @@ vm target="laptop":
 
 vm-iso: build-iso
   qemu-system-x86_64 -enable-kvm -m 8192 -smp 4 -boot d -cdrom result/iso/*.iso
+
+# Rehearse the LUKS reinstall: runs the real disko partitioning (GPT + LUKS2
+# + btrfs subvolumes) inside QEMU and boots from it. docs/luks-reinstall.md.
+vm-crypt:
+  nix run --no-write-lock-file -L ".#nixosConfigurations.laptop-crypt.config.system.build.vmWithDisko"
 
 dry:
   sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake .#laptop

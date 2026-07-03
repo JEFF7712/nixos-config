@@ -34,6 +34,12 @@
       url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Tracks master: the version tags are stale and break against current
+    # nixpkgs vmTools (disko #1027).
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -122,6 +128,15 @@
             config.allowUnfree = true;
           };
 
+          # disko's vmWithDisko passes a module aggregate as vmTools `kernel`,
+          # which nixpkgs rejects since 2026-06 (disko #1027). Patch to the
+          # new kernel/kernelModules split; drop once upstream merges a fix.
+          disko-patched = pkgs.applyPatches {
+            name = "disko-patched";
+            src = inputs.disko;
+            patches = [ ./patches/disko-vmtools-kernel.patch ];
+          };
+
           mkSystem =
             host: userModule:
             nixpkgs.lib.nixosSystem {
@@ -132,6 +147,7 @@
                   pkgs-stable
                   self
                   ;
+                diskoModule = "${disko-patched}/module.nix";
               };
               modules = [
                 ./hosts/${host}/configuration.nix
@@ -156,6 +172,9 @@
         {
           nixosConfigurations = {
             laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
+            # Post-LUKS-reinstall variant of laptop (disko + btrfs); see
+            # docs/luks-reinstall.md.
+            laptop-crypt = mkSystem "laptop-crypt" ./home/rupan/laptop.nix;
             iso = mkSystem "iso" ./home/rupan/iso.nix;
           };
         };
