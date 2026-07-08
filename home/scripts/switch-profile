@@ -78,8 +78,8 @@ profile_status() {
 
   pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1 \
     && mark ok "profile switcher popup" || mark fail "profile switcher popup"
-  pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1 \
-    && mark ok "app launcher" || mark fail "app launcher"
+  systemctl --user is-active --quiet vicinae.service \
+    && mark ok "vicinae launcher" || mark fail "vicinae launcher"
 
   link_target=$(readlink "$ACTIVE_LINK" 2>/dev/null || echo "")
   if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$active" != "noctalia" ]; then
@@ -335,16 +335,7 @@ if ! pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1; then
   disown
 fi
 
-# 6d. Custom app launcher — standalone Quickshell instance for all non-noctalia
-# profiles. Noctalia keeps its own launcher (we still start ours but it just
-# sits idle since Mod+Space routes to noctalia's IPC on that profile).
-LAUNCHER_PATH="$REPO_HOME/configs/quickshell-launcher/shell.qml"
-if ! pgrep -f "quickshell.*quickshell-launcher/shell.qml" >/dev/null 2>&1; then
-  quickshell -p "$LAUNCHER_PATH" >/dev/null 2>&1 &
-  disown
-fi
-
-# 6e. Re-arm focus-mode notification muting — mako restarts with each waybar
+# 6d. Re-arm focus-mode notification muting — mako restarts with each waybar
 # profile switch and resets to its default mode, so re-apply dnd if focus is
 # active. Quickshell reads the focus file directly (NotifService), so it needs
 # no re-arm.

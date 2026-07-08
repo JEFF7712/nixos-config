@@ -51,6 +51,7 @@
   airplay.enable = true;
   vpn.enable = true;
   git.enable = true;
+  vicinae.enable = true;
   xhisperLocal = {
     enable = true;
     ollama.package = pkgs.ollama-cuda;

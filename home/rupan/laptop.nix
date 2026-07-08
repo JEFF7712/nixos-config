@@ -68,6 +68,7 @@
   ai-tools.enable = true;
   agentConfig.enable = true;
   serena.enable = true;
+  vicinae.enable = true;
   dev.enable = true;
   xhisper.enable = true;
   pulseAgent.enable = false;

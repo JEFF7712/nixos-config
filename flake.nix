@@ -53,6 +53,10 @@
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    codex-cli-nix = {
+      url = "github:sadjow/codex-cli-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.5.0";
     compchem-cctop = {
       url = "github:JEFF7712/cctop";
@@ -70,6 +74,7 @@
       url = "github:saltnpepper97/stasis";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    vicinae.url = "github:vicinaehq/vicinae";
     terax = {
       url = "github:JEFF7712/terax-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -152,6 +157,7 @@
               };
               modules = [
                 ./hosts/${host}/configuration.nix
+                inputs.vicinae.nixosModules.default
                 home-manager.nixosModules.home-manager
                 {
                   home-manager.useGlobalPkgs = true;

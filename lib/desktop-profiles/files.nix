@@ -148,6 +148,111 @@ let
 
   runtimeFor = name: profile: lib.recursiveUpdate (runtimeDefaults.${name} or { }) profile.runtime;
 
+  stripAlpha =
+    color:
+    if
+      builtins.isString color && builtins.stringLength color == 9 && builtins.substring 0 1 color == "#"
+    then
+      "#" + builtins.substring 3 6 color
+    else
+      color;
+
+  colorFrom =
+    theme: key: fallback:
+    stripAlpha (theme.${key} or fallback);
+
+  vicinaeTheme =
+    name: variant: theme:
+    let
+      rawBg = colorFrom theme "rawBg" (colorFrom theme "bg" "#101010");
+      popupBg = colorFrom theme "popupBg" rawBg;
+      fg = colorFrom theme "fg" "#ffffff";
+      secondary = colorFrom theme "second" fg;
+      accent = colorFrom theme "accent" fg;
+      warm = colorFrom theme "warm" accent;
+      fresh = colorFrom theme "fresh" accent;
+      red = colorFrom theme "red" "#ff6b6b";
+    in
+    ''
+      [meta]
+      version = 1
+      name = "${name} ${variant}"
+      description = "Generated from the active desktop profile"
+      variant = "${variant}"
+      inherits = "vicinae-${variant}"
+
+      [colors.core]
+      background = "${rawBg}"
+      foreground = "${fg}"
+      secondary_background = "${popupBg}"
+      border = "${secondary}"
+      accent = "${accent}"
+
+      [colors.accents]
+      blue = "${accent}"
+      green = "${fresh}"
+      magenta = "${warm}"
+      orange = "${warm}"
+      purple = "${accent}"
+      red = "${red}"
+      yellow = "${warm}"
+      cyan = "${fresh}"
+
+      [colors.text]
+      default = "${fg}"
+      muted = "${secondary}"
+      placeholder = "${secondary}"
+      danger = "${red}"
+      success = "${fresh}"
+
+      [colors.list.item.selection]
+      background = "${popupBg}"
+      foreground = "${fg}"
+      secondary_background = "${rawBg}"
+      secondary_foreground = "${secondary}"
+
+      [colors.list.item.hover]
+      background = "${popupBg}"
+      foreground = "${fg}"
+      secondary_foreground = "${secondary}"
+
+      [colors.input]
+      border = "${secondary}"
+      border_focus = "${accent}"
+
+      [colors.loading]
+      bar = "${accent}"
+      spinner = "${accent}"
+    '';
+
+  vicinaeDarkTheme =
+    name: profile:
+    vicinaeTheme name "dark" (
+      profile.quickshellTheme or {
+        rawBg = "#101010";
+        popupBg = "#202020";
+        fg = "#ffffff";
+        second = "#d0d0d0";
+        accent = "#ffffff";
+        warm = "#e6dcc6";
+        fresh = "#d6eadc";
+      }
+    );
+
+  vicinaeLightTheme =
+    name: profile:
+    vicinaeTheme name "light" (
+      profile.quickshellThemeLight or profile.quickshellTheme or {
+        rawBg = "#f7f7f7";
+        popupBg = "#ffffff";
+        fg = "#101010";
+        second = "#404040";
+        accent = "#101010";
+        warm = "#6f5d32";
+        fresh = "#336b4f";
+      }
+    );
+
   generateProfileFiles =
     name: profile:
     let
@@ -182,6 +287,8 @@ let
         ".config/desktop-profiles/${name}/tmux-colors.conf".text = orEmpty profile.colors.tmux;
         ".config/desktop-profiles/${name}/hyprlock-colors.conf".text = orEmpty profile.colors.hyprlock;
         ".config/desktop-profiles/${name}/cava-colors".text = orEmpty profile.colors.cava;
+        ".config/desktop-profiles/${name}/vicinae-theme-dark.toml".text = vicinaeDarkTheme name profile;
+        ".config/desktop-profiles/${name}/vicinae-theme-light.toml".text = vicinaeLightTheme name profile;
         ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides false profile;
         ".config/desktop-profiles/${name}/niri-overrides-focus.kdl".text =
           generateNiriOverrides true profile;

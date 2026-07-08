@@ -20,7 +20,7 @@
               export GITHUB_PAT_TOKEN="$(${lib.getExe pkgs.gh} auth token)"
             fi
 
-            exec ${lib.getExe pkgs.codex} "$@"
+            exec ${lib.getExe inputs.codex-cli-nix.packages.${system}.default} "$@"
           '';
         in
         (with pkgs; [

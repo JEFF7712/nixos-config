@@ -237,6 +237,7 @@ apply_wallpaper_theme() {
   # Tag the runtime quickshell override so the topbar only adopts it while this
   # profile is active (a stale override is ignored under other profiles).
   printf '%s\n' "$profile" > "$PROFILES_DIR/runtime-theme-profile"
+  apply_vicinae_runtime_theme "$profile" "$variant"
 
   # Swap matugen's cava [color] block into the live cava config.
   [ -s "$PROFILES_DIR/runtime-cava-colors" ] \
@@ -556,7 +557,139 @@ copy_profile_colors() {
   apply_tmux_colors "$profile_dir" "$variant"
   apply_hyprlock_colors "$profile_dir" "$variant"
   apply_cava_colors "$profile_dir" "$variant"
+  apply_vicinae_theme "$profile_dir" "$variant"
   return 0
+}
+
+apply_vicinae_theme() {
+  local profile_dir="$1"
+  local dark_src light_src theme_dir settings tmp family size
+
+  dark_src="$profile_dir/vicinae-theme-dark.toml"
+  light_src="$profile_dir/vicinae-theme-light.toml"
+  [ -s "$dark_src" ] || return 0
+  [ -s "$light_src" ] || return 0
+
+  theme_dir="${XDG_DATA_HOME:-$HOME/.local/share}/vicinae/themes"
+  mkdir -p "$theme_dir"
+  install -m 644 "$dark_src" "$theme_dir/desktop-profile-dark.toml"
+  install -m 644 "$light_src" "$theme_dir/desktop-profile-light.toml"
+
+  settings="$CONFIG_HOME/vicinae/settings.json"
+  family=$(jq -r '.fonts.ui.family // "JetBrainsMono Nerd Font"' "$profile_dir/meta.json" 2>/dev/null || echo "JetBrainsMono Nerd Font")
+  size=$(jq -r '.fonts.ui.size // 11' "$profile_dir/meta.json" 2>/dev/null || echo 11)
+  tmp=$(mktemp "$settings.XXXXXX")
+  jq -n \
+    --arg family "$family" \
+    --argjson size "$size" \
+    '{
+      close_on_focus_loss: true,
+      pop_to_root_on_close: true,
+      search_files_in_root: true,
+      favicon_service: "twenty",
+      font: { normal: { family: $family, size: $size } },
+      launcher_window: {
+        opacity: 0.92,
+        material: "blur",
+        layer_shell: { enabled: true }
+      },
+      telemetry: { system_info: false },
+      theme: {
+        dark: { name: "desktop-profile-dark", icon_theme: "default" },
+        light: { name: "desktop-profile-light", icon_theme: "default" }
+      }
+    }' > "$tmp"
+  install -m 644 "$tmp" "$settings"
+  rm -f "$tmp"
+  systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+}
+
+json_color() {
+  local file="$1" key="$2" fallback="$3"
+  local color
+
+  color=$(jq -r --arg key "$key" --arg fallback "$fallback" '.[$key] // $fallback' "$file" 2>/dev/null || printf '%s\n' "$fallback")
+  case "$color" in
+    \#[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f])
+      printf '#%s\n' "${color:3:6}"
+      ;;
+    *)
+      printf '%s\n' "$color"
+      ;;
+  esac
+}
+
+apply_vicinae_runtime_theme() {
+  local profile="$1" variant="$2"
+  local theme_json="$PROFILES_DIR/runtime-quickshell-theme.json"
+  local theme_dir="${XDG_DATA_HOME:-$HOME/.local/share}/vicinae/themes"
+  local out raw_bg popup_bg fg secondary accent warm fresh red
+
+  [ -s "$theme_json" ] || return 0
+
+  raw_bg=$(json_color "$theme_json" rawBg "$(json_color "$theme_json" bg "#101010")")
+  popup_bg=$(json_color "$theme_json" popupBg "$raw_bg")
+  fg=$(json_color "$theme_json" fg "#ffffff")
+  secondary=$(json_color "$theme_json" second "$fg")
+  accent=$(json_color "$theme_json" accent "$fg")
+  warm=$(json_color "$theme_json" warm "$accent")
+  fresh=$(json_color "$theme_json" fresh "$accent")
+  red=$(json_color "$theme_json" red "#ff6b6b")
+
+  mkdir -p "$theme_dir"
+  out="$theme_dir/desktop-profile-$variant.toml"
+  cat > "$out" <<EOF
+[meta]
+version = 1
+name = "$profile $variant"
+description = "Generated from the active desktop profile wallpaper"
+variant = "$variant"
+inherits = "vicinae-$variant"
+
+[colors.core]
+background = "$raw_bg"
+foreground = "$fg"
+secondary_background = "$popup_bg"
+border = "$secondary"
+accent = "$accent"
+
+[colors.accents]
+blue = "$accent"
+green = "$fresh"
+magenta = "$warm"
+orange = "$warm"
+purple = "$accent"
+red = "$red"
+yellow = "$warm"
+cyan = "$fresh"
+
+[colors.text]
+default = "$fg"
+muted = "$secondary"
+placeholder = "$secondary"
+danger = "$red"
+success = "$fresh"
+
+[colors.list.item.selection]
+background = "$popup_bg"
+foreground = "$fg"
+secondary_background = "$raw_bg"
+secondary_foreground = "$secondary"
+
+[colors.list.item.hover]
+background = "$popup_bg"
+foreground = "$fg"
+secondary_foreground = "$secondary"
+
+[colors.input]
+border = "$secondary"
+border_focus = "$accent"
+
+[colors.loading]
+bar = "$accent"
+spinner = "$accent"
+EOF
+  systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
 }
 
 # apply_btop_theme <profile-dir> <variant>

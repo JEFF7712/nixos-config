@@ -33,6 +33,11 @@ let
     "cava-colors-light"
   ];
 
+  vicinaeThemeFiles = [
+    "vicinae-theme-dark.toml"
+    "vicinae-theme-light.toml"
+  ];
+
   entries = builtins.filter (x: x != null) (
     map (
       k:
@@ -66,6 +71,13 @@ let
       meta = builtins.fromJSON (pf."meta.json" or "null");
       self = meta.selfThemed or false;
       empties = builtins.filter (f: (pf ? ${f}) && (builtins.stringLength pf.${f} == 0)) colorFiles;
+      missingVicinaeThemes = builtins.filter (f: !(pf ? ${f})) vicinaeThemeFiles;
+      vicinaeThemeBad =
+        f:
+        !(
+          builtins.match ".*meta.*name = \"${name}.*variant = \".*colors.core.*accent = \".*" pf.${f} != null
+        );
+      badVicinaeThemes = builtins.filter (f: (pf ? ${f}) && vicinaeThemeBad f) vicinaeThemeFiles;
       niriOverrides = pf."niri-overrides.kdl" or "";
       niriFocus = pf."niri-overrides-focus.kdl" or "";
     in
@@ -77,6 +89,10 @@ let
       builtins.throw "profile '${name}': niri-overrides-focus.kdl does not disable animations"
     else if (!self) && empties != [ ] then
       builtins.throw "profile '${name}': empty color files: ${builtins.concatStringsSep ", " empties}"
+    else if missingVicinaeThemes != [ ] then
+      builtins.throw "profile '${name}': missing Vicinae theme files: ${builtins.concatStringsSep ", " missingVicinaeThemes}"
+    else if badVicinaeThemes != [ ] then
+      builtins.throw "profile '${name}': malformed Vicinae theme files: ${builtins.concatStringsSep ", " badVicinaeThemes}"
     else
       true;
 
