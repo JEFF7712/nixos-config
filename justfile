@@ -148,3 +148,6 @@ dry:
 
 switch:
   sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop
+
+gc:
+  nh clean all --keep-since 30d

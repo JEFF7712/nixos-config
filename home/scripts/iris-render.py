@@ -326,6 +326,199 @@ element-text {{ horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit;
     )
 
 
+def zed(p, out):
+    # Zed loads user themes from ~/.config/zed/themes/ and hot-reloads them on
+    # change, so rewriting this recolors the editor live. The name ("Iris Tinted")
+    # is pinned in Zed's settings by apply_zed_theme; keep the two in sync.
+    fg, bg, sf, dim, ac = p["fg"], p["bg"], p["surface"], p["dim"], p["accent"]
+    red, grn, ylw = p["red"], p["green"], p["yellow"]
+    kw = p.get("syntax_keyword", ac)
+    st = p.get("syntax_string", grn)
+    fn = p.get("syntax_func", ac)
+    ty = p.get("syntax_type", fg)
+    co = p.get("syntax_const", ylw)
+    pa = p.get("syntax_param", fg)
+    op = p.get("syntax_operator", ac)
+    cm = p.get("syntax_comment", dim)
+
+    def a(c, alpha):
+        return c + alpha
+
+    style = {
+        "border": a(dim, "66"),
+        "border.variant": a(dim, "40"),
+        "border.focused": a(ac, "cc"),
+        "border.selected": a(ac, "cc"),
+        "border.transparent": "#00000000",
+        "border.disabled": a(dim, "40"),
+        "elevated_surface.background": sf,
+        "surface.background": sf,
+        "background": bg,
+        "element.background": a(ac, "14"),
+        "element.hover": a(fg, "14"),
+        "element.active": a(ac, "2b"),
+        "element.selected": a(ac, "33"),
+        "element.disabled": a(dim, "1f"),
+        "drop_target.background": a(ac, "40"),
+        "ghost_element.background": "#00000000",
+        "ghost_element.hover": a(fg, "14"),
+        "ghost_element.active": a(ac, "2b"),
+        "ghost_element.selected": a(ac, "33"),
+        "ghost_element.disabled": a(dim, "1f"),
+        "text": fg,
+        "text.muted": dim,
+        "text.placeholder": a(dim, "cc"),
+        "text.disabled": a(dim, "99"),
+        "text.accent": ac,
+        "icon": fg,
+        "icon.muted": dim,
+        "icon.disabled": a(dim, "99"),
+        "icon.placeholder": dim,
+        "icon.accent": ac,
+        "status_bar.background": sf,
+        "title_bar.background": sf,
+        "title_bar.inactive_background": sf,
+        "toolbar.background": bg,
+        "tab_bar.background": sf,
+        "tab.inactive_background": sf,
+        "tab.active_background": bg,
+        "search.match_background": a(ac, "4d"),
+        "panel.background": bg,
+        "panel.focused_border": a(ac, "cc"),
+        "pane.focused_border": a(ac, "cc"),
+        "pane_group.border": a(dim, "66"),
+        "scrollbar.thumb.background": a(fg, "33"),
+        "scrollbar.thumb.hover_background": a(fg, "4d"),
+        "scrollbar.thumb.border": "#00000000",
+        "scrollbar.track.background": "#00000000",
+        "scrollbar.track.border": "#00000000",
+        "editor.foreground": fg,
+        "editor.background": bg,
+        "editor.gutter.background": bg,
+        "editor.subheader.background": sf,
+        "editor.active_line.background": a(ac, "14"),
+        "editor.highlighted_line.background": a(ac, "1f"),
+        "editor.line_number": a(dim, "cc"),
+        "editor.active_line_number": ac,
+        "editor.invisible": a(dim, "80"),
+        "editor.wrap_guide": a(dim, "40"),
+        "editor.active_wrap_guide": a(dim, "80"),
+        "editor.document_highlight.read_background": a(ac, "26"),
+        "editor.document_highlight.write_background": a(ac, "33"),
+        "terminal.background": bg,
+        "terminal.foreground": fg,
+        "terminal.bright_foreground": fg,
+        "terminal.dim_foreground": dim,
+        "terminal.ansi.black": sf,
+        "terminal.ansi.bright_black": dim,
+        "terminal.ansi.dim_black": sf,
+        "terminal.ansi.red": red,
+        "terminal.ansi.bright_red": red,
+        "terminal.ansi.dim_red": a(red, "99"),
+        "terminal.ansi.green": grn,
+        "terminal.ansi.bright_green": grn,
+        "terminal.ansi.dim_green": a(grn, "99"),
+        "terminal.ansi.yellow": ylw,
+        "terminal.ansi.bright_yellow": ylw,
+        "terminal.ansi.dim_yellow": a(ylw, "99"),
+        "terminal.ansi.blue": ac,
+        "terminal.ansi.bright_blue": ac,
+        "terminal.ansi.dim_blue": a(ac, "99"),
+        "terminal.ansi.magenta": kw,
+        "terminal.ansi.bright_magenta": kw,
+        "terminal.ansi.dim_magenta": a(kw, "99"),
+        "terminal.ansi.cyan": fn,
+        "terminal.ansi.bright_cyan": fn,
+        "terminal.ansi.dim_cyan": a(fn, "99"),
+        "terminal.ansi.white": fg,
+        "terminal.ansi.bright_white": fg,
+        "terminal.ansi.dim_white": dim,
+        "link_text.hover": ac,
+        "conflict": ylw,
+        "conflict.background": a(ylw, "1f"),
+        "created": grn,
+        "created.background": a(grn, "1f"),
+        "deleted": red,
+        "deleted.background": a(red, "1f"),
+        "error": red,
+        "error.background": a(red, "1f"),
+        "hidden": dim,
+        "hint": a(dim, "cc"),
+        "ignored": dim,
+        "info": ac,
+        "info.background": a(ac, "1f"),
+        "modified": ylw,
+        "modified.background": a(ylw, "1f"),
+        "predictive": a(dim, "cc"),
+        "renamed": ac,
+        "success": grn,
+        "unreachable": dim,
+        "warning": ylw,
+        "warning.background": a(ylw, "1f"),
+        "players": [
+            {"cursor": ac, "background": ac, "selection": a(ac, "40")},
+            {"cursor": grn, "background": grn, "selection": a(grn, "40")},
+            {"cursor": ylw, "background": ylw, "selection": a(ylw, "40")},
+        ],
+        "syntax": {
+            "comment": {"color": cm, "font_style": "italic"},
+            "comment.doc": {"color": cm, "font_style": "italic"},
+            "keyword": {"color": kw, "font_weight": 700},
+            "keyword.import": {"color": kw, "font_weight": 700},
+            "operator": {"color": op},
+            "punctuation": {"color": a(fg, "cc")},
+            "punctuation.bracket": {"color": a(fg, "cc")},
+            "punctuation.delimiter": {"color": a(fg, "cc")},
+            "punctuation.special": {"color": op},
+            "punctuation.list_marker": {"color": op},
+            "string": {"color": st},
+            "string.escape": {"color": co},
+            "string.regex": {"color": co},
+            "string.special": {"color": co},
+            "string.special.symbol": {"color": co},
+            "number": {"color": co},
+            "boolean": {"color": co},
+            "constant": {"color": co},
+            "type": {"color": ty},
+            "type.builtin": {"color": ty},
+            "function": {"color": fn},
+            "function.method": {"color": fn},
+            "function.builtin": {"color": fn},
+            "constructor": {"color": ty},
+            "variable": {"color": fg},
+            "variable.special": {"color": pa},
+            "variable.member": {"color": pa},
+            "property": {"color": pa},
+            "attribute": {"color": kw},
+            "tag": {"color": kw},
+            "label": {"color": op},
+            "embedded": {"color": fg},
+            "emphasis": {"color": fg, "font_style": "italic"},
+            "emphasis.strong": {"color": fg, "font_weight": 700},
+            "title": {"color": ac, "font_weight": 700},
+            "link_uri": {"color": ac},
+            "link_text": {"color": st, "font_style": "italic"},
+            "predictive": {"color": a(dim, "cc"), "font_style": "italic"},
+            "hint": {"color": a(dim, "cc"), "font_style": "italic"},
+            "variant": {"color": co},
+            "enum": {"color": ty},
+        },
+    }
+    theme = {
+        "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+        "name": "Iris",
+        "author": "iris (wallpaper-driven, tinted profile)",
+        "themes": [
+            {
+                "name": "Iris Tinted",
+                "appearance": "dark" if p.get("dark", True) else "light",
+                "style": style,
+            }
+        ],
+    }
+    w(out, json.dumps(theme, indent=2) + "\n")
+
+
 def spicetify_comfy(p, out):
     body = f"""text               = {hx(p["fg"])}
 subtext            = {hx(p["dim"])}
@@ -577,6 +770,7 @@ def main():
     fish(p, os.path.join(c, "fish/conf.d/matugen_theme.fish"))
     starship(p, os.path.join(c, "starship_matugen.toml"))
     rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))
+    zed(p, os.path.join(c, "zed/themes/iris.json"))
     spicetify_comfy(p, os.path.join(c, "spicetify/Themes/Comfy/color.ini"))
     obsidian(p, args.obsidian_vault)
 

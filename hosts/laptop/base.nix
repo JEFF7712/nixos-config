@@ -268,7 +268,7 @@
     clean = {
       enable = true;
       dates = "daily";
-      extraArgs = "--keep-since 7d --keep 3";
+      extraArgs = "--keep-since 7d --keep 3 --no-gcroots";
     };
   };
 

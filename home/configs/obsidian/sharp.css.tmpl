@@ -1,0 +1,149 @@
+/* sharp — Obsidian (Minimal) counterpart to the desktop `sharp` profile:
+   fixed neutral-grey surfaces, and the ONLY thing that tracks the wallpaper is
+   the accent (same model as the profile's niri focus-ring / GTK accent).
+
+   Written to <vault>/snippets/sharp.css by apply_obsidian_sharp on every
+   wallpaper change / variant toggle, which substitutes the accent tokens
+   (hex + h/s/l) from the wallpaper's vivid colour. Everything else is static,
+   so editing the greys here changes the theme on the next apply (no rebuild).
+   The greys mirror modules/home-manager/profiles/sharp.nix (dark + light). */
+
+/* The wallpaper-driven part — the only tokens that change between wallpapers. */
+.theme-dark,
+.theme-light {
+  --accent-h: @ACCENT_H@;
+  --accent-s: @ACCENT_S@%;
+  --accent-l: @ACCENT_L@%;
+  --text-accent: @ACCENT@;
+  --text-accent-hover: @ACCENT@;
+  --interactive-accent: @ACCENT@;
+  --interactive-accent-hover: @ACCENT@;
+  --icon-color-active: @ACCENT@;
+  --icon-color-hover: @ACCENT@;
+  --icon-color-focused: var(--sharp-fg);
+  --background-modifier-border-focus: @ACCENT@;
+  --icon-opacity: 0.8;
+  --icon-opacity-hover: 1;
+  --icon-opacity-active: 1;
+  --text-on-accent: var(--sharp-bg);
+
+  --background-primary: var(--sharp-bg);
+  --background-primary-alt: var(--sharp-surface);
+  --background-secondary: var(--sharp-surface);
+  --background-secondary-alt: var(--sharp-bg);
+  --background-modifier-border: var(--sharp-border);
+  --background-modifier-border-hover: var(--sharp-border-strong);
+  --background-translucent: var(--sharp-surface);
+  --divider-color: var(--sharp-surface);
+  --text-normal: var(--sharp-fg);
+  --text-muted: var(--sharp-dim);
+  --text-faint: var(--sharp-dim);
+  --icon-color: var(--sharp-fg);
+  --interactive-normal: var(--sharp-surface);
+  --interactive-hover: var(--sharp-surface);
+  --titlebar-background: var(--sharp-surface);
+  --titlebar-background-focused: var(--sharp-surface);
+  --titlebar-text-color: var(--sharp-dim);
+  --titlebar-text-color-focused: var(--sharp-fg);
+  --titlebar-text-color-highlighted: var(--sharp-fg);
+  --tab-container-background: var(--sharp-surface);
+  --tab-background-active: var(--sharp-bg);
+  --tab-text-color: color-mix(in srgb, var(--sharp-fg) 70%, var(--sharp-bg));
+  /* Minimal resolves tab/icon text from its own tokens at a more specific
+     scope (.workspace-tabs), so the core vars above never reach the tab
+     labels. Override Minimal's tokens too. */
+  --minimal-tab-text-color: color-mix(in srgb, var(--sharp-fg) 70%, var(--sharp-bg));
+  --minimal-tab-text-color-active: var(--sharp-fg);
+  --tab-text-color-active: var(--sharp-fg);
+  --tab-text-color-focused-active: var(--sharp-fg);
+  --tab-text-color-focused-active-current: var(--sharp-fg);
+  --tab-outline-color: var(--sharp-soft);
+  --ribbon-background: var(--sharp-surface);
+  --ribbon-background-collapsed: var(--sharp-surface);
+}
+
+/* Fixed neutral greys — mirror sharp.nix `dark`. */
+.theme-dark {
+  --sharp-bg: #141414;
+  --sharp-surface: #1c1c1c;
+  --sharp-border: #262626;
+  --sharp-border-strong: #3a3a3a;
+  --sharp-fg: #f2f2f2;
+  --sharp-dim: #8a8a8a;
+  --sharp-soft: color-mix(in srgb, #8a8a8a 32%, #141414);
+}
+
+/* Fixed neutral greys — mirror sharp.nix `light`. */
+.theme-light {
+  --sharp-bg: #fafafa;
+  --sharp-surface: #f0f0f0;
+  --sharp-border: #e2e2e2;
+  --sharp-border-strong: #c8c8c8;
+  --sharp-fg: #141414;
+  --sharp-dim: #5a5a5a;
+  --sharp-soft: color-mix(in srgb, #5a5a5a 28%, #fafafa);
+}
+
+/* Only the window-frame strip (`.titlebar`, a <body> child outside
+   .app-container). It is a fixed, full-width overlay (z-index 30) that sits ON
+   TOP of the workspace tab bar, so an opaque background would hide the tabs
+   underneath — keep it transparent; the tab-header container behind it is
+   already surface. */
+.titlebar,
+.titlebar-inner {
+  background-color: transparent !important;
+}
+.workspace-tab-header-container,
+.workspace-split.mod-root > .workspace-tabs.mod-top > .workspace-tab-header-container {
+  background-color: var(--sharp-surface) !important;
+}
+/* Flat greys collapse the sidebars into the body; add a hairline so they read
+   as separate panes. */
+.workspace-split.mod-left-split {
+  border-right: 0.5px solid var(--sharp-soft) !important;
+}
+.workspace-split.mod-right-split {
+  border-left: 0.5px solid var(--sharp-soft) !important;
+}
+.titlebar-text {
+  color: var(--sharp-dim) !important;
+}
+.titlebar .titlebar-button {
+  color: var(--sharp-fg) !important;
+}
+/* Minimal fades the header chrome (nav arrows, sidebar toggles, per-view action
+   icons) toward the background and only reveals them on hover; force a legible
+   colour + opacity for the whole top strip. */
+.workspace-tab-header-container .clickable-icon,
+.workspace-tab-header-spacer ~ .clickable-icon,
+.clickable-icon.sidebar-toggle-button,
+.sidebar-toggle-button,
+.view-header .clickable-icon,
+.view-actions .clickable-icon,
+.titlebar .clickable-icon {
+  color: var(--sharp-fg) !important;
+  opacity: 0.85 !important;
+}
+.workspace-tab-header-container .clickable-icon:hover,
+.clickable-icon.sidebar-toggle-button:hover,
+.sidebar-toggle-button:hover,
+.view-header .clickable-icon:hover,
+.view-actions .clickable-icon:hover,
+.titlebar .clickable-icon:hover {
+  color: @ACCENT@ !important;
+  opacity: 1 !important;
+}
+/* Tab labels: Minimal mutes inactive tabs to near-background and only reveals
+   text on hover. Force the title visible and a legible outline. */
+.workspace-tab-header .workspace-tab-header-inner-title {
+  color: color-mix(in srgb, var(--sharp-fg) 70%, var(--sharp-bg)) !important;
+}
+.workspace-tab-header.is-active .workspace-tab-header-inner-title,
+.workspace-tab-header.mod-active .workspace-tab-header-inner-title {
+  color: var(--sharp-fg) !important;
+}
+.workspace-tab-header.is-active,
+.workspace-tab-header.mod-active {
+  outline: 0.5px solid var(--sharp-soft) !important;
+  border-radius: 0;
+}

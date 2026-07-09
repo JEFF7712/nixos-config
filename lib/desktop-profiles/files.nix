@@ -265,6 +265,7 @@ let
             colorEngine
             matugenScheme
             wallpaperAccentVivid
+            obsidianWallpaperTheme
             ;
           cursor = profile.cursor.theme;
           cursorSize = profile.cursor.size;

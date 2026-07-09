@@ -20,27 +20,30 @@
     programs.nix-index.enable = true;
     programs.nix-index-database.comma.enable = true;
 
-    home.packages = with pkgs; [
-      geminicommit
-      jq
-      yq
-      net-tools
-      openssl_oqs
-      tcpdump
-      sops
-      age
-      dig
-      glab
-      nodejs_24
-      cloc
-      code-cursor
-      gh
-      bun
-      pnpm
-      ags
-      uv
-      ruff
-      awscli
-    ];
+    home.packages =
+      with pkgs;
+      [
+        geminicommit
+        jq
+        yq
+        net-tools
+        openssl_oqs
+        tcpdump
+        sops
+        age
+        dig
+        glab
+        nodejs_24
+        cloc
+        gh
+        bun
+        pnpm
+        ags
+        uv
+        ruff
+        awscli
+        cursor-agent
+      ]
+      ++ [ inputs.code-cursor-nix.packages.${pkgs.stdenv.hostPlatform.system}.cursor ];
   };
 }

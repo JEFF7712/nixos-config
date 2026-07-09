@@ -57,6 +57,10 @@
       url = "github:sadjow/codex-cli-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    code-cursor-nix = {
+      url = "github:jacopone/code-cursor-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.5.0";
     compchem-cctop = {
       url = "github:JEFF7712/cctop";

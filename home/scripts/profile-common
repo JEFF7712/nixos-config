@@ -91,8 +91,12 @@ set_wallpaper() {
   esac
 
   # Wallpaper-tinted profiles re-derive their palette from the new wallpaper.
-  # No-op for every other profile (gated inside).
-  apply_wallpaper_theme "$wallpaper"
+  # No-op for every other profile (gated inside). The derivation decodes a
+  # multi-megapixel image (magick) then reloads every colour consumer, so keep
+  # it off the critical path: the wallpaper is already up, the palette settles a
+  # beat later (same async philosophy as the per-app theme tail).
+  (apply_wallpaper_theme "$wallpaper") &
+  disown
 }
 
 # profile_wallpaper_theming <profile>
@@ -101,13 +105,47 @@ profile_wallpaper_theming() {
   [ "$(jq -r '.wallpaperTheming // false' "$PROFILES_DIR/$1/meta.json" 2>/dev/null)" = "true" ]
 }
 
+# Accent colors are a pure function of the wallpaper, but computing one means
+# decoding a multi-megapixel image through ImageMagick (~4s for a 4K PNG). Cache
+# the result keyed on path+mtime+kind so re-switching to a profile whose
+# wallpaper hasn't changed is instant.
+ACCENT_CACHE="$HOME/.cache/profile-accent-cache"
+
+accent_cache_get() {
+  local key="$1" line
+  [ -f "$ACCENT_CACHE" ] || return 1
+  line=$(grep -F "$key"$'\t' "$ACCENT_CACHE" 2>/dev/null | tail -1) || return 1
+  [ -n "$line" ] || return 1
+  printf '%s\n' "${line#*$'\t'}"
+}
+
+accent_cache_put() {
+  local key="$1" color="$2" tmp
+  [ -n "$color" ] || return 0
+  mkdir -p "$(dirname "$ACCENT_CACHE")"
+  tmp=$(mktemp "$ACCENT_CACHE.XXXXXX") || return 0
+  {
+    [ -f "$ACCENT_CACHE" ] && grep -Fv "$key"$'\t' "$ACCENT_CACHE" 2>/dev/null | tail -n 50
+    printf '%s\t%s\n' "$key" "$color"
+  } > "$tmp"
+  mv "$tmp" "$ACCENT_CACHE"
+}
+
+accent_cache_key() {
+  local kind="$1" img="$2" mt
+  mt=$(stat -c %Y "$img" 2>/dev/null || echo 0)
+  printf '%s:%s:%s\n' "$kind" "$img" "$mt"
+}
+
 # matugen_source_color <image>
 # Dominant, reasonably saturated color (#rrggbb) to seed matugen. Filters out
 # near-black/near-white/near-grey palette entries; falls back to the average
 # color, then a neutral, so matugen always gets a usable seed.
 matugen_source_color() {
-  local img="$1" c
-  c=$(magick "$img" -resize 200x200 -depth 8 -colors 16 -format "%c" histogram:info:- 2>/dev/null \
+  local img="$1" c key
+  key=$(accent_cache_key source "$img")
+  c=$(accent_cache_get "$key") && { printf '%s\n' "$c"; return 0; }
+  c=$(magick "$img" -thumbnail 200x200 -depth 8 -colors 16 -format "%c" histogram:info:- 2>/dev/null \
     | sort -rn \
     | awk '{
         for (i = 1; i <= NF; i++)
@@ -123,6 +161,7 @@ matugen_source_color() {
   [ -n "$c" ] || c=$(magick "$img" -resize 1x1 -depth 8 -format "#%02X%02X%02X" txt:- 2>/dev/null \
     | grep -oiE '#[0-9a-f]{6}' | head -1)
   [ -n "$c" ] || c="#6c7a89"
+  accent_cache_put "$key" "$c"
   printf '%s\n' "$c"
 }
 
@@ -132,8 +171,10 @@ matugen_source_color() {
 # (near-)grayscale image nothing scores, so we fall back to the dominant color.
 # Used for monochrome profiles that want one punchy wallpaper accent (sharp).
 matugen_vivid_color() {
-  local img="$1" c
-  c=$(magick "$img" -resize 200x200 -depth 8 -colors 64 -format "%c" histogram:info:- 2>/dev/null \
+  local img="$1" c key
+  key=$(accent_cache_key vivid "$img")
+  c=$(accent_cache_get "$key") && { printf '%s\n' "$c"; return 0; }
+  c=$(magick "$img" -thumbnail 200x200 -depth 8 -colors 64 -format "%c" histogram:info:- 2>/dev/null \
     | awk '{
         for (i = 1; i <= NF; i++)
           if ($i ~ /^#[0-9A-Fa-f]{6}/) {
@@ -153,6 +194,7 @@ matugen_vivid_color() {
         printf "#%02X%02X%02X\n", r, g, b
       }')
   [ -n "$c" ] || c=$(matugen_source_color "$img")
+  accent_cache_put "$key" "$c"
   printf '%s\n' "$c"
 }
 
@@ -232,6 +274,11 @@ apply_wallpaper_theme() {
     # The matugen templates surface the seed verbatim as {{colors.source_color}},
     # so the seed IS the accent — reuse it for the niri focus-ring below.
     accent="$color"
+    # Optionally re-theme the Obsidian vault: fixed greys, accent = wallpaper
+    # (matugen can't merge appearance.json, so this is a separate step).
+    if [ "$(jq -r '.obsidianWallpaperTheme // false' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)" = "true" ]; then
+      apply_obsidian_sharp "$variant" "$accent"
+    fi
   fi
 
   # Tag the runtime quickshell override so the topbar only adopts it while this
@@ -251,10 +298,20 @@ apply_wallpaper_theme() {
   fi
   nudge_gtk_reload
 
-  apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant"
+  # spicetify re-patches xpui and may relaunch Spotify; keep it off the critical
+  # path. On a profile switch this is the only spicetify apply (the switch tail
+  # skips it for wallpaper-theming profiles); on a standalone wallpaper change
+  # it runs here alone.
+  (apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant") &
+  disown
 
   # The topbar reads its theme JSON only at startup; restart it to repaint.
+  # This runs late in the (backgrounded) theme job, after the switch's trailing
+  # notify-send. That notify-send can dbus-activate mako in the brief window the
+  # topbar is down, and mako then squats org.freedesktop.Notifications. Kill it
+  # before relaunching quickshell so the shell reclaims the bus as it starts.
   if [ "$(profile_bar "$profile")" = "quickshell" ]; then
+    stop_mako
     pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
     quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
     disown
@@ -400,10 +457,10 @@ apply_profile_fonts() {
   [ -f "$meta_file" ] || return 0
 
   local ui_font ui_size mono_font mono_size
-  ui_font=$(jq -r '.fonts.ui.family // "JetBrainsMono Nerd Font"' "$meta_file")
-  ui_size=$(jq -r '.fonts.ui.size // 11' "$meta_file")
-  mono_font=$(jq -r '.fonts.mono.family // "JetBrainsMono Nerd Font"' "$meta_file")
-  mono_size=$(jq -r '.fonts.mono.size // 14' "$meta_file")
+  IFS=$'\t' read -r ui_font ui_size mono_font mono_size < <(
+    jq -r '[.fonts.ui.family // "JetBrainsMono Nerd Font", .fonts.ui.size // 11,
+            .fonts.mono.family // "JetBrainsMono Nerd Font", .fonts.mono.size // 14] | @tsv' "$meta_file"
+  )
 
   gsettings set org.gnome.desktop.interface font-name "$ui_font $ui_size" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface document-font-name "$ui_font $ui_size" 2>/dev/null || true
@@ -451,9 +508,12 @@ apply_profile_appearance() {
   [ -f "$meta_file" ] || return 0
 
   local gtk_theme icon_theme kitty_opacity
-  gtk_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end' "$meta_file")
-  icon_theme=$(jq -r --arg variant "$variant" 'if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end' "$meta_file")
-  kitty_opacity=$(jq -r '.appearance.kittyOpacity // 1.0' "$meta_file")
+  IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity < <(
+    jq -r --arg variant "$variant" '
+      [ (if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end),
+        (if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end),
+        (.appearance.kittyOpacity // 1.0) ] | @tsv' "$meta_file"
+  )
 
   gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
@@ -576,8 +636,12 @@ apply_vicinae_theme() {
   install -m 644 "$light_src" "$theme_dir/desktop-profile-light.toml"
 
   settings="$CONFIG_HOME/vicinae/settings.json"
-  family=$(jq -r '.fonts.ui.family // "JetBrainsMono Nerd Font"' "$profile_dir/meta.json" 2>/dev/null || echo "JetBrainsMono Nerd Font")
-  size=$(jq -r '.fonts.ui.size // 11' "$profile_dir/meta.json" 2>/dev/null || echo 11)
+  IFS=$'\t' read -r family size < <(
+    jq -r '[.fonts.ui.family // "JetBrainsMono Nerd Font", .fonts.ui.size // 11] | @tsv' \
+      "$profile_dir/meta.json" 2>/dev/null
+  ) || true
+  [ -n "$family" ] || family="JetBrainsMono Nerd Font"
+  [ -n "$size" ] || size=11
   tmp=$(mktemp "$settings.XXXXXX")
   jq -n \
     --arg family "$family" \
@@ -802,11 +866,15 @@ write_firefox_globals() {
   globals="$FIREFOX_CHROME/DownToneUI/_globals.css"
   [ -d "$(dirname "$globals")" ] || return 0
 
-  main=$(profile_runtime_value "$runtime_file" "$variant" firefox main)
-  sec=$(profile_runtime_value "$runtime_file" "$variant" firefox secondary)
-  accent=$(profile_runtime_value "$runtime_file" "$variant" firefox accent)
-  text=$(profile_runtime_value "$runtime_file" "$variant" firefox text)
-  accent_hsl=$(profile_runtime_value "$runtime_file" "$variant" firefox accentHsl)
+  [ -f "$runtime_file" ] || return 0
+  # One jq for all five firefox colors; keeps the per-key variant→dark fallback
+  # that profile_runtime_value applied individually.
+  IFS=$'\t' read -r main sec accent text accent_hsl < <(
+    jq -r --arg v "$variant" '
+      def g($k): (.firefox[$v][$k] // .firefox.dark[$k] // "");
+      [g("main"), g("secondary"), g("accent"), g("text"), g("accentHsl")] | @tsv
+    ' "$runtime_file" 2>/dev/null
+  ) || true
   [ -n "$main" ] || return 0
 
   scheme="dark"
@@ -868,8 +936,12 @@ apply_zed_theme() {
   local theme icon
 
   [ -f "$settings" ] || return 0
-  theme=$(profile_runtime_value "$runtime_file" "$variant" zed theme)
-  icon=$(profile_runtime_value "$runtime_file" "$variant" zed icon)
+  [ -f "$runtime_file" ] || return 0
+  IFS=$'\t' read -r theme icon < <(
+    jq -r --arg v "$variant" '
+      def g($k): (.zed[$v][$k] // .zed.dark[$k] // "");
+      [g("theme"), g("icon")] | @tsv' "$runtime_file" 2>/dev/null
+  ) || true
   if [ -n "$theme" ]; then
     set_zed_theme "$settings" "$theme" "$variant"
   fi
@@ -896,6 +968,82 @@ apply_vesktop_theme() {
   fi
 }
 
+# hex_to_hsl <#rrggbb>
+# Prints "H S L" (H 0-360, S/L 0-100, integers). Used to feed Minimal's
+# --accent-h/s/l from a hex accent.
+hex_to_hsl() {
+  local hex="${1#\#}" r g b
+  [ "${#hex}" -ge 6 ] || return 1
+  r=$((16#${hex:0:2}))
+  g=$((16#${hex:2:2}))
+  b=$((16#${hex:4:2}))
+  awk -v r="$r" -v g="$g" -v b="$b" 'BEGIN {
+    r /= 255; g /= 255; b /= 255
+    max = r; if (g > max) max = g; if (b > max) max = b
+    min = r; if (g < min) min = g; if (b < min) min = b
+    l = (max + min) / 2; d = max - min
+    if (d == 0) { h = 0; s = 0 }
+    else {
+      s = (l > 0.5) ? d / (2 - max - min) : d / (max + min)
+      if (max == r) h = (g - b) / d + (g < b ? 6 : 0)
+      else if (max == g) h = (b - r) / d + 2
+      else h = (r - g) / d + 4
+      h /= 6
+    }
+    printf "%d %d %d\n", int(h * 360 + 0.5), int(s * 100 + 0.5), int(l * 100 + 0.5)
+  }'
+}
+
+# apply_obsidian_sharp <variant> <accent>
+# Obsidian counterpart to the `sharp` desktop profile: writes a `sharp` CSS
+# snippet with fixed neutral greys where only the accent tracks the wallpaper,
+# then enables it (and drops tinted's residue) and syncs the native accent +
+# base theme by variant. matugen can't merge appearance.json, so the sharp
+# matugen branch of apply_wallpaper_theme calls this after generating colors.
+apply_obsidian_sharp() {
+  local variant="$1" accent="$2"
+  local vault tmpl appearance tmp theme h s l
+  [ -n "$accent" ] || return 0
+  [ -f "$OBSIDIAN_MINIMAL_SETTINGS" ] || return 0
+  tmpl="$REPO_HOME/configs/obsidian/sharp.css.tmpl"
+  [ -f "$tmpl" ] || return 0
+  vault="${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}"
+  [ -d "$vault" ] || return 0
+
+  read -r h s l < <(hex_to_hsl "$accent") || return 0
+  [ -n "$h" ] || return 0
+
+  mkdir -p "$vault/snippets"
+  tmp="$vault/snippets/sharp.css.tmp"
+  if sed -e "s/@ACCENT@/$accent/g" -e "s/@ACCENT_H@/$h/g" \
+    -e "s/@ACCENT_S@/$s/g" -e "s/@ACCENT_L@/$l/g" "$tmpl" > "$tmp"; then
+    mv "$tmp" "$vault/snippets/sharp.css"
+  else
+    rm -f "$tmp"
+    return 0
+  fi
+
+  theme="obsidian"
+  [ "$variant" = "light" ] && theme="moonstone"
+  appearance="$vault/appearance.json"
+  tmp=$(mktemp)
+  if jq --indent 2 --arg accent "$accent" --arg theme "$theme" '
+      .enabledCssSnippets = (
+        (.enabledCssSnippets // [])
+        | map(select(. != "tinted")) + ["sharp", "code-blocks"] | unique
+      )
+    | .accentColor = $accent
+    | .theme = $theme
+    | .textFontFamily = "Newsreader"
+    | .interfaceFontFamily = "IBM Plex Sans"
+    | .monospaceFontFamily = "IBM Plex Mono"
+  ' "$appearance" > "$tmp" 2>/dev/null; then
+    mv "$tmp" "$appearance"
+  else
+    rm -f "$tmp"
+  fi
+}
+
 # apply_obsidian_scheme <runtime-file> <variant>
 # Obsidian stays in dark appearance mode; the variant-resolved scheme is
 # written to darkScheme so light variants show light colors without flipping
@@ -907,16 +1055,26 @@ apply_obsidian_scheme() {
   [ -f "$OBSIDIAN_MINIMAL_SETTINGS" ] || return 0
 
   # Tear down any wallpaper-theming residue (iris-render leaves the `tinted`
-  # CSS snippet enabled + a native accentColor; both override Minimal's color
-  # scheme and would otherwise persist into non-tinted profiles). A profile may
-  # opt into a fixed native accent (obsidianAccent); otherwise clear it so the
-  # Minimal scheme drives the accent.
+  # snippet enabled and apply_obsidian_sharp leaves `sharp`, both plus a native
+  # accentColor; they override Minimal's color scheme and would otherwise
+  # persist into other profiles). The wallpaper-theming profile that owns the
+  # snippet re-adds it afterwards via apply_wallpaper_theme (which runs async
+  # off the wallpaper set, after this quick teardown). A profile may opt into a
+  # fixed native accent (obsidianAccent); otherwise clear it so the Minimal
+  # scheme drives the accent.
   appearance="${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}/appearance.json"
-  accent=$(profile_runtime_string "$runtime_file" "$variant" obsidianAccent)
+  accent=""
+  if [ -f "$runtime_file" ]; then
+    IFS=$'\t' read -r accent scheme < <(
+      jq -r --arg v "$variant" '
+        def s($sec): ($sec[$v] // $sec.dark // "");
+        [s(.obsidianAccent), s(.obsidian)] | @tsv' "$runtime_file" 2>/dev/null
+    ) || true
+  fi
   if [ -f "$appearance" ]; then
     tmp=$(mktemp)
     if jq --indent 2 --arg accent "$accent" \
-      '(.enabledCssSnippets // []) |= (map(select(. != "tinted")) + ["code-blocks"] | unique)
+      '(.enabledCssSnippets // []) |= (map(select(. != "tinted" and . != "sharp")) + ["code-blocks"] | unique)
        | .textFontFamily = "Newsreader"
        | .interfaceFontFamily = "IBM Plex Sans"
        | .monospaceFontFamily = "IBM Plex Mono"
@@ -928,7 +1086,6 @@ apply_obsidian_scheme() {
     fi
   fi
 
-  scheme=$(profile_runtime_string "$runtime_file" "$variant" obsidian)
   [ -n "$scheme" ] || return 0
 
   tmp=$(mktemp)
@@ -963,9 +1120,12 @@ apply_spicetify_theme() {
   local runtime_file="$1" variant="$2"
   local theme scheme js focus_id
   command -v spicetify >/dev/null 2>&1 || return 0
-  theme=$(profile_runtime_value "$runtime_file" "$variant" spicetify theme)
-  scheme=$(profile_runtime_value "$runtime_file" "$variant" spicetify scheme)
-  js=$(profile_runtime_value "$runtime_file" "$variant" spicetify js)
+  [ -f "$runtime_file" ] || return 0
+  IFS=$'\t' read -r theme scheme js < <(
+    jq -r --arg v "$variant" '
+      def g($k): (.spicetify[$v][$k] // .spicetify.dark[$k] // "");
+      [g("theme"), g("scheme"), g("js")] | @tsv' "$runtime_file" 2>/dev/null
+  ) || true
   [ -n "$scheme" ] || return 0
   [ -n "$theme" ] || theme="Comfy"
   [ -n "$js" ] || js="0"

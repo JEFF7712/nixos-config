@@ -264,6 +264,9 @@ in
     # baked greys below are the pre-first-tint fallback. tonal-spot keeps surface
     # chroma low (subtle tint) while the accent still follows the wallpaper hue.
     wallpaperTheming = true;
+    # Also re-theme the Obsidian vault: fixed neutral-grey surfaces, accent
+    # follows the wallpaper (apply_obsidian_sharp writes the `sharp` snippet).
+    obsidianWallpaperTheme = true;
     matugenScheme = "scheme-tonal-spot";
     # Accent = the wallpaper's most vivid+bright color (not the dominant mood
     # hue), surfaced raw via {{colors.source_color}} in the sharp templates.

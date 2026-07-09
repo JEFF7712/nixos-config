@@ -88,6 +88,7 @@
         njst = "cd ${config.repoPath} && sudo (readlink -f (command -v nixos-rebuild)) test --flake path:${config.repoPath}#laptop";
         njp = "cd ${config.repoPath} && nix fmt . && git add -A && gmc -y && git push";
         nju = "cd ${config.repoPath} && just update";
+        ngc = "cd ${config.repoPath} && just gc";
       };
       shellAbbrs = {
         sp = "switch-profile";
@@ -95,7 +96,6 @@
         t = "talosctl";
         tf = "terragrunt";
         zz = "zeditor .";
-        nhc = "nh clean all";
         ga = "git add .";
         gs = "git status";
         gp = "git push";

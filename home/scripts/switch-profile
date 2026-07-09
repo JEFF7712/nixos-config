@@ -177,9 +177,11 @@ if [ -f "$ACTIVE_FILE" ]; then
 fi
 
 TARGET_BAR=$(profile_bar "$TARGET")
-TARGET_SELF_THEMED=$(jq -r '.selfThemed // false' "$TARGET_DIR/meta.json")
-TARGET_CURSOR=$(jq -r '.cursor' "$TARGET_DIR/meta.json")
-TARGET_CURSOR_SIZE=$(jq -r '.cursorSize' "$TARGET_DIR/meta.json")
+# One jq pass for the three meta fields the switch itself needs (per-field forks
+# add up across the ~40 jq calls a switch makes).
+IFS=$'\t' read -r TARGET_SELF_THEMED TARGET_CURSOR TARGET_CURSOR_SIZE < <(
+  jq -r '[.selfThemed // false, .cursor, .cursorSize] | @tsv' "$TARGET_DIR/meta.json"
+)
 TARGET_WALLPAPER_DIR_FILE=$(pick_variant_file "$TARGET_VARIANT" "$TARGET_DIR/wallpaper-dir" "$TARGET_DIR/wallpaper-dir-light")
 TARGET_WALLPAPER_DIR=$(cat "$TARGET_WALLPAPER_DIR_FILE" 2>/dev/null || echo "")
 
@@ -224,7 +226,9 @@ if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET_SELF_THEMED" != "true" ]; then
   echo "  Applying color files..."
   copy_profile_colors "$TARGET_DIR" "$TARGET_VARIANT"
   write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
-  systemctl --user restart swayosd 2>/dev/null || true
+  # swayosd just needs to re-read its colors; a blocking restart costs ~2.7s.
+  (systemctl --user restart swayosd 2>/dev/null || true) &
+  disown
   # pywal cache + Firefox push are slow; run them off the critical path
   if command -v wal >/dev/null 2>&1; then
     WAL_THEME=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" pywal)
@@ -322,9 +326,9 @@ elif [ "$TARGET_BAR" = "quickshell" ]; then
   pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
   quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 2>/dev/null &
   disown
-
-  apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
-  apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
+  # fonts/appearance were already applied at step 5; unlike waybar (which needs a
+  # second pass to style its freshly-installed style.css) quickshell touches none
+  # of the files those helpers write, so re-running them here is dead work.
 fi
 
 # 6c. Profile switcher popup — runs as a standalone Quickshell instance on
@@ -416,7 +420,10 @@ if [ $STARTUP_MODE -eq 0 ]; then
     apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-    apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    # Wallpaper-theming profiles already re-themed spicetify inside
+    # apply_wallpaper_theme; don't re-patch xpui a second time.
+    profile_wallpaper_theming "$TARGET" \
+      || apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
   ) &
   disown
 

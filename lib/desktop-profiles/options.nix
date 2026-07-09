@@ -169,6 +169,19 @@ in
         '';
       };
 
+      obsidianWallpaperTheme = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          For matugen wallpaperTheming profiles: also re-theme the Obsidian
+          (Minimal) vault on each wallpaper change. apply_obsidian_sharp writes
+          a `sharp` CSS snippet with fixed neutral-grey surfaces where only the
+          accent tracks the wallpaper's vivid colour (the iris engine themes
+          Obsidian on its own, so this is redundant there). Ignored when
+          wallpaperTheming is false.
+        '';
+      };
+
       quickshellTheme = lib.mkOption {
         type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
         default = null;

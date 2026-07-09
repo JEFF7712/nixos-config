@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PREVIEW_DIR="$ASSETS_HOME/previews"
 TARGET_WIDTH=1920
+SWITCH_PROFILE="$SCRIPT_DIR/switch-profile"
+TOGGLE_VARIANT="$SCRIPT_DIR/toggle-variant"
 
 usage() {
   echo "Usage: generate-previews [-y] [profile...]"
@@ -73,9 +75,9 @@ restore() {
   RESTORED=1
   rm -f "$PREVIEW_DIR"/.tmp.*.png
   echo "Restoring original profile: $ORIG_PROFILE ($ORIG_VARIANT)"
-  switch-profile "$ORIG_PROFILE" || true
+  "$SWITCH_PROFILE" "$ORIG_PROFILE" || true
   if [ "$ORIG_VARIANT" = "light" ]; then
-    toggle-variant light || true
+    "$TOGGLE_VARIANT" light || true
   fi
 }
 trap restore EXIT INT TERM
@@ -149,7 +151,7 @@ i=0
 for name in "${PROFILES[@]}"; do
   i=$((i + 1))
   echo "[$i/${#PROFILES[@]}] $name: switching..."
-  if ! switch-profile "$name"; then
+  if ! "$SWITCH_PROFILE" "$name"; then
     echo "[$i/${#PROFILES[@]}] $name: switch-profile failed, skipping" >&2
     FAILED+=("$name")
     continue

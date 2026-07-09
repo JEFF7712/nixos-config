@@ -209,6 +209,17 @@ in
   };
 
   tinted = {
+    # Wallpaper-driven Zed theme: the iris engine rewrites ~/.config/zed/themes/iris.json
+    # (theme name "Iris Tinted") on every wallpaper apply; this only pins Zed's settings
+    # to that name so the editor tracks the live palette. See iris-render.py `zed`.
+    zed.dark = {
+      theme = "Iris Tinted";
+      icon = "Zed (Default)";
+    };
+    zed.light = {
+      theme = "Iris Tinted";
+      icon = "Material Icon Theme";
+    };
     spicetify.dark = spice "Comfy" "tinted" 0;
     spicetify.light = spice "Comfy" "tinted" 0;
   };
