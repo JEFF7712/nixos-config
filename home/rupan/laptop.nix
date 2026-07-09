@@ -62,13 +62,17 @@
   noctalia.enable = true;
   terminal.enable = true;
   common-apps.enable = true;
-  heavy-apps.enable = true;
+  heavy-apps = {
+    media.enable = true;
+    office.enable = true;
+    comms.enable = true;
+    science.enable = true;
+  };
   obsidian.enable = true;
   cli-toys.enable = true;
   cli-tools.enable = true;
   ai-tools.enable = true;
   agentConfig.enable = true;
-  serena.enable = true;
   vicinae.enable = true;
   dev.enable = true;
   xhisper.enable = true;

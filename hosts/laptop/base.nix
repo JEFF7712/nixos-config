@@ -46,7 +46,7 @@
   file-utils.enable = true;
   docker.enable = true;
   netbird.enable = true;
-  waydroid.enable = true;
+  waydroid.enable = false;
   game.enable = true;
   airplay.enable = true;
   vpn.enable = true;
@@ -116,6 +116,14 @@
   boot = {
     # Use the systemd-boot EFI boot loader.
     loader.systemd-boot.enable = true;
+    # Flash the menu briefly (hold a key to catch it for rollback / the
+    # `performance` specialisation) instead of the ~5s default.
+    loader.timeout = 1;
+    # zram is RAM-speed, so swap into it aggressively and skip readahead.
+    kernel.sysctl = {
+      "vm.swappiness" = 180;
+      "vm.page-cluster" = 0;
+    };
     # nh clean prunes profiles, but ESP entries only shrink at the next
     # switch; cap them so /boot can't fill up silently.
     loader.systemd-boot.configurationLimit = 10;
@@ -144,6 +152,8 @@
 
   # Configure network connections interactively with nmcli or nmtui.
   networking.networkmanager.enable = true;
+  # Don't block boot on the network being fully up (~5s off graphical.target).
+  systemd.services.NetworkManager-wait-online.enable = false;
 
   # Set your time zone.
   time.timeZone = "America/New_York";

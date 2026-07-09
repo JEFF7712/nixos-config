@@ -41,12 +41,9 @@
     ];
   };
 
-  swapDevices = [
-    {
-      device = "/swapfile";
-      size = 16 * 1024;
-    }
-  ];
+  # No disk swap: zram (RAM-speed, zstd) is the sole swap. The old /swapfile
+  # is removed manually with `sudo rm /swapfile` after the switch runs swapoff.
+  swapDevices = [ ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

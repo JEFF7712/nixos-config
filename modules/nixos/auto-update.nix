@@ -106,7 +106,7 @@
     systemd.timers.nixos-ai-tools-auto-update = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "daily";
+        OnCalendar = "hourly";
         Persistent = true;
         RandomizedDelaySec = "30m";
       };

@@ -25,6 +25,11 @@ PanelWindow {
     property bool warming: false
     property bool opening: false
     property bool closing: false
+    // False until the shell has settled after launch. The startup theme-load
+    // flips popupAttachToBar/popupAnimationStyle, whose change handlers call
+    // prewarm(); without this gate every popup would briefly map (warming ->
+    // visible) and flash near the bar on every profile switch.
+    property bool ready: false
     property int frozenHeight: 0
     readonly property string effectiveAnimationStyle: popupAttachToBar ? "attachedSlide" : popupAnimationStyle
     readonly property bool attachedSlide: effectiveAnimationStyle === "attachedSlide"
@@ -45,7 +50,7 @@ PanelWindow {
     property alias background: bgContainer.data
 
     function prewarm() {
-        if (!root.attachedSlide || root.active)
+        if (!root.ready || !root.attachedSlide || root.active)
             return;
         root.frozenHeight = Math.max(1, root.contentHeight);
         root.warming = true;
@@ -53,6 +58,7 @@ PanelWindow {
     }
 
     function open() {
+        root.ready = true;
         closeTimer.stop();
         openTimer.stop();
         warmTimer.stop();
@@ -101,7 +107,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    visible: mapped
+    visible: mapped && root.ready
     anchors {
         top: true
         right: root.popupPosition === "right"
@@ -116,6 +122,14 @@ PanelWindow {
     implicitHeight: (root.warming || root.opening || root.closing) ? root.frozenHeight : root.contentHeight
     exclusiveZone: -1
     color: "transparent"
+
+    Timer {
+        id: readyTimer
+        interval: 700
+        running: true
+        repeat: false
+        onTriggered: root.ready = true
+    }
 
     Timer {
         id: closeTimer
