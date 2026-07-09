@@ -23,7 +23,6 @@
       vlc
       avidemux
       telegram-desktop
-      obsidian
       ovito
       pkgs-stable.avogadro2
       slack

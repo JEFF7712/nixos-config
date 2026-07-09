@@ -525,7 +525,12 @@ def obsidian(p, vault):
     snaps = a.get("enabledCssSnippets", [])
     if "tinted" not in snaps:
         snaps.append("tinted")
+    if "code-blocks" not in snaps:
+        snaps.append("code-blocks")
     a["enabledCssSnippets"] = snaps
+    a["textFontFamily"] = "Newsreader"
+    a["interfaceFontFamily"] = "IBM Plex Sans"
+    a["monospaceFontFamily"] = "IBM Plex Mono"
     a["accentColor"] = p["accent"]
     a["theme"] = "obsidian" if p.get("dark", True) else "moonstone"
     tmp = app + ".tmp"

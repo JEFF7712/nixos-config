@@ -916,7 +916,10 @@ apply_obsidian_scheme() {
   if [ -f "$appearance" ]; then
     tmp=$(mktemp)
     if jq --indent 2 --arg accent "$accent" \
-      '(.enabledCssSnippets // []) |= map(select(. != "tinted"))
+      '(.enabledCssSnippets // []) |= (map(select(. != "tinted")) + ["code-blocks"] | unique)
+       | .textFontFamily = "Newsreader"
+       | .interfaceFontFamily = "IBM Plex Sans"
+       | .monospaceFontFamily = "IBM Plex Mono"
        | if $accent == "" then del(.accentColor) else .accentColor = $accent end' \
       "$appearance" > "$tmp" 2>/dev/null; then
       mv "$tmp" "$appearance"

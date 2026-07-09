@@ -20,6 +20,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Change ISO behavior | `hosts/iso/configuration.nix`, `home/rupan/iso.nix` | ISO host or ISO home config | `just eval iso && just build-iso` |
 | Change VM boot testing (`just vm`) | `justfile`, `virtualisation.vmVariant` in `hosts/laptop/base.nix` | vmVariant block, `vm`/`vm-iso` recipes | `just eval-vm` (vmVariant is not covered by `just eval`) |
 | Change LUKS reinstall prep | `docs/luks-reinstall.md`, `hosts/laptop-crypt/`, `hosts/laptop/disko.nix` | disko layout, crypt host, runbook | `just eval laptop-crypt` + build `vmWithDisko` for layout changes |
+| Change Obsidian vault fonts/CSS | `modules/home-manager/obsidian.nix`, `home/configs/obsidian/` | snippet CSS, custom-font-loader JSON, activation merge in module + `profile-common` / `iris-render.py` | `just fmt-check && just eval laptop` |
 | Change agent tooling | `modules/home-manager/ai-tools.nix`, `modules/home-manager/serena.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md` | `just check-agent-docs && just eval laptop` |
 | Change agent invariants or scaffolds | `checks/agent-invariants.bash`, `checks/agent-workflows.bash`, `home/scripts/new-*module` | invariant checker, workflow test, scaffold scripts | `just check-agent-workflows && just shell-check` |
 | Change agent self-improvement behavior | `docs/agent-self-improvement.md`, `AGENT_MAP.md`, `checks/agent-*.bash` | protocol doc, agent checks, helper scripts | `just check-agent-docs && just check-agent-workflows` |

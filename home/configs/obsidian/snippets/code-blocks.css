@@ -1,0 +1,69 @@
+/* Dedicated code-block styling.
+   Fixes two issues with the current setup:
+   1. Custom Font Loader Force Style paints Newsreader onto code.
+   2. Wallpaper-tinted chrome flattens surfaces, so blocks need their own contrast. */
+
+.theme-dark, .theme-light {
+  --code-background: color-mix(in srgb, var(--background-primary) 82%, #000000);
+  --code-size: 0.92em;
+}
+
+/* Keep monospace even when Force Style is on */
+code,
+pre,
+.cm-inline-code,
+.cm-s-obsidian span.cm-inline-code,
+.cm-hmd-codeblock,
+.HyperMD-codeblock,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock,
+.markdown-rendered code,
+.markdown-rendered pre,
+.markdown-rendered pre code {
+  font-family: "IBM Plex Mono", var(--font-monospace), ui-monospace, monospace !important;
+}
+
+/* Reading / Live Preview: fenced blocks as inset panels */
+.markdown-rendered pre,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock-bg {
+  background-color: var(--code-background) !important;
+}
+
+.markdown-rendered pre {
+  border: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+  border-radius: 8px;
+  padding: 0.85em 1em !important;
+  margin: 0.9em 0 !important;
+  overflow-x: auto;
+}
+
+/* Live Preview: continuous block chrome across code lines */
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin-bg {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-top: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+  border-left: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+  border-right: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+}
+
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-bg {
+  border-left: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+  border-right: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+}
+
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-end-bg {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border-bottom: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+  border-left: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+  border-right: 0.5px solid color-mix(in srgb, var(--text-muted) 40%, var(--background-primary));
+}
+
+/* Inline `code` chips */
+.markdown-rendered :not(pre) > code,
+.cm-s-obsidian span.cm-inline-code {
+  background-color: var(--code-background) !important;
+  border: 0.5px solid color-mix(in srgb, var(--text-muted) 32%, var(--background-primary));
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: var(--code-size);
+}
