@@ -15,12 +15,18 @@
       home.packages =
         let
           inherit (pkgs.stdenv.hostPlatform) system;
+          # Upstream codex-cli-nix omits codex-code-mode-host (required since
+          # 0.144 for command execution). Wrap with our local package that
+          # installs the companion binary beside the CLI.
+          codexCli = pkgs.callPackage ../../pkgs/codex-cli {
+            codex-upstream = inputs.codex-cli-nix.packages.${system}.default;
+          };
           codexWithGithubToken = pkgs.writeShellScriptBin "codex" ''
             if [ -z "''${GITHUB_PAT_TOKEN:-}" ]; then
               export GITHUB_PAT_TOKEN="$(${lib.getExe pkgs.gh} auth token)"
             fi
 
-            exec ${lib.getExe inputs.codex-cli-nix.packages.${system}.default} "$@"
+            exec ${lib.getExe codexCli} "$@"
           '';
         in
         (with pkgs; [

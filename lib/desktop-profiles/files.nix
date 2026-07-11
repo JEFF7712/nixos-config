@@ -282,7 +282,10 @@ let
         ".config/desktop-profiles/${name}/qt6ct.conf".text = orEmpty profile.colors.qt6;
         ".config/desktop-profiles/${name}/kitty-colors.conf".text = orEmpty profile.colors.kitty;
         ".config/desktop-profiles/${name}/fish-theme.fish".text = orEmpty profile.colors.fish;
-        ".config/desktop-profiles/${name}/starship.toml".text = orEmpty profile.colors.starship;
+        ".config/desktop-profiles/${name}/starship.toml".text = ''
+          scan_timeout = 100
+          ${orEmpty profile.colors.starship}
+        '';
         ".config/desktop-profiles/${name}/rofi-theme.rasi".text = orEmpty profile.colors.rofi;
         ".config/desktop-profiles/${name}/btop.theme".text = orEmpty profile.colors.btop;
         ".config/desktop-profiles/${name}/tmux-colors.conf".text = orEmpty profile.colors.tmux;
@@ -305,7 +308,10 @@ let
           ".config/desktop-profiles/${name}/qt6ct-light.conf".text = orEmpty profile.colorsLight.qt6;
           ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
           ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
-          ".config/desktop-profiles/${name}/starship-light.toml".text = orEmpty profile.colorsLight.starship;
+          ".config/desktop-profiles/${name}/starship-light.toml".text = ''
+            scan_timeout = 100
+            ${orEmpty profile.colorsLight.starship}
+          '';
           ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
           ".config/desktop-profiles/${name}/btop-light.theme".text = orEmpty profile.colorsLight.btop;
           ".config/desktop-profiles/${name}/tmux-colors-light.conf".text = orEmpty profile.colorsLight.tmux;

@@ -89,6 +89,7 @@ in
     '';
 
     xdg.configFile."noctalia/templates/starship.toml".text = ''
+      scan_timeout = 100
       format = "$all"
 
       [character]

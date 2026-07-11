@@ -281,7 +281,8 @@ set -g fish_color_autosuggestion {p["dim"]}
 def starship(p, out):
     w(
         out,
-        f"""format = "$all"
+        f"""scan_timeout = 100
+format = "$all"
 
 [character]
 success_symbol = "[❯]({p["accent"]})"
