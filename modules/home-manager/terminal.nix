@@ -104,6 +104,7 @@
         cc = "cursor .";
         claude = "claude --dangerously-skip-permissions";
         codex = "codex --yolo";
+        agent = "agent --force";
         ci = "$HOME/projects/ci-dashboard.sh";
       };
       interactiveShellInit = ''

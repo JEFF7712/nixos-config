@@ -23,8 +23,12 @@
         "nix-command"
         "flakes"
       ];
-      max-jobs = "auto";
-      cores = 0;
+      # Cap build fan-out on the i9-13900H (20 threads) / ~31G laptop.
+      # `auto`/`0` ran many -j20 jobs and OOM'd the desktop; leave ~8–10G
+      # for the session while still using most of the machine.
+      max-jobs = 4;
+      cores = 8;
+      max-substitution-jobs = 16;
       download-buffer-size = 268435456;
     };
   };
@@ -98,6 +102,11 @@
   services.power-profiles-daemon.enable = true;
   services.thermald.enable = true;
   services.fwupd.enable = true;
+  services.smartd = {
+    enable = true;
+    autodetect = true;
+    notifications.systembus-notify.enable = true;
+  };
   services.asusd.enable = true;
   zramSwap.enable = true;
   services.logind.settings.Login = {
@@ -195,7 +204,8 @@
             options = [ "NOPASSWD" ];
           }
           {
-            command = "${nh} os switch -R . -H laptop";
+            # Keep in sync with `just switch` — root ignores user nix.conf.
+            command = "${nh} os switch -R . -H laptop -- --max-jobs 4 --cores 8";
             options = [ "NOPASSWD" ];
           }
         ]
@@ -242,8 +252,7 @@
     ];
   };
 
-  # Enable the OpenSSH daemon.
-  services.openssh.enable = true;
+  services.openssh.enable = false;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];

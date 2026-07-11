@@ -76,6 +76,7 @@
   vicinae.enable = true;
   dev.enable = true;
   xhisper.enable = true;
+  systemHealthNotify.enable = true;
   pulseAgent.enable = false;
   desktopProfiles.enable = lib.mkDefault true;
 

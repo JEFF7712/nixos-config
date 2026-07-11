@@ -117,12 +117,34 @@ check_disabled_nix_services() {
   )
 }
 
+check_laptop_build_caps() {
+  local settings
+  settings=$(
+    rg -U --multiline -n 'nix\s*=\s*\{[\s\S]*?settings\s*=\s*\{[\s\S]*?\};' \
+      hosts/laptop/base.nix || true
+  )
+
+  if ! printf '%s\n' "$settings" | rg -q 'max-jobs\s*=\s*[1-9][0-9]*\s*;'; then
+    fail "hosts/laptop/base.nix must cap nix.settings.max-jobs to a positive integer (not auto)"
+  fi
+  if printf '%s\n' "$settings" | rg -q 'cores\s*=\s*0\s*;'; then
+    fail "hosts/laptop/base.nix must not set nix.settings.cores = 0 (uses all CPUs per job)"
+  fi
+  if ! rg -q 'OnCalendar = "hourly"' modules/nixos/auto-update.nix; then
+    fail "nixos-ai-tools-auto-update timer must stay hourly"
+  fi
+  if ! rg -q 'skipping rebuild' modules/nixos/auto-update.nix; then
+    fail "auto-update must skip rebuild when flake.lock is unchanged"
+  fi
+}
+
 check_hardcoded_repo_paths
 check_auto_discovered_imports
 check_module_options
 check_wallpaper_dirs
 check_script_refs
 check_disabled_nix_services
+check_laptop_build_caps
 
 if [ "$failures" -gt 0 ]; then
   exit 1
