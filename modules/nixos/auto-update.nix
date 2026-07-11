@@ -6,13 +6,19 @@
 }:
 
 {
-  options.auto-update.enable = lib.mkEnableOption "weekly flake input update plus daily AI tool updates";
+  options.auto-update.enable = lib.mkEnableOption "weekly flake input update plus hourly AI tool updates";
 
   # Replaces system.autoUpgrade, which is channel-based unless given a flake
   # and whose documented --update-input flags were removed from Nix >= 2.22.
   # The lock update and commit run as rupan so the repo never collects
   # root-owned files; only the rebuild itself runs as root.
   config = lib.mkIf config.auto-update.enable {
+    # Shared advisory lock: the two auto-update services AND `just switch`
+    # (justfile) all flock this before rebuilding, so no two full builds ever
+    # run at once. Two concurrent builds OOM the ~31G box (see CLAUDE.md).
+    # 0664 root:users lets unprivileged `just switch` open it (rupan ∈ users).
+    systemd.tmpfiles.rules = [ "f /run/nixos-auto-update.lock 0664 root users -" ];
+
     systemd.services.nixos-auto-update = {
       description = "Update flake inputs, commit lock file, and rebuild";
       wants = [ "network-online.target" ];
@@ -26,9 +32,14 @@
       serviceConfig = {
         Type = "oneshot";
         # Persistent= catch-up fires right after boot/resume; don't let the
-        # rebuild starve the interactive session.
-        Nice = 10;
+        # rebuild starve the interactive session. Caps match ~31G RAM /
+        # 20-thread i9: leave ~8G for the desktop, use most of the rest.
+        Nice = 15;
         IOSchedulingClass = "idle";
+        CPUQuota = "1200%";
+        MemoryHigh = "18G";
+        MemoryMax = "22G";
+        TasksMax = 1024;
       };
       script = ''
         repo=/home/rupan/nixos
@@ -49,10 +60,13 @@
           echo "updated inputs fail eval; flake.lock reverted" >&2
           exit 1
         fi
-        if ! runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
-          runuser -u rupan -- git -C "$repo" commit -m "flake.lock: weekly auto-update" -- flake.lock
+        if runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
+          echo "flake.lock unchanged; skipping rebuild"
+          exit 0
         fi
-        ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop"
+        runuser -u rupan -- git -C "$repo" commit -m "flake.lock: weekly auto-update" -- flake.lock
+        ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop" \
+          --option max-jobs 4 --option cores 8
       '';
     };
 
@@ -68,8 +82,12 @@
       ];
       serviceConfig = {
         Type = "oneshot";
-        Nice = 10;
+        Nice = 15;
         IOSchedulingClass = "idle";
+        CPUQuota = "1200%";
+        MemoryHigh = "18G";
+        MemoryMax = "22G";
+        TasksMax = 1024;
       };
       script = ''
         repo=/home/rupan/nixos
@@ -87,10 +105,13 @@
           echo "updated AI tool inputs fail eval; flake.lock reverted" >&2
           exit 1
         fi
-        if ! runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
-          runuser -u rupan -- git -C "$repo" commit -m "flake.lock: daily ai tools auto-update" -- flake.lock
+        if runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
+          echo "AI tool flake.lock unchanged; skipping rebuild"
+          exit 0
         fi
-        ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop"
+        runuser -u rupan -- git -C "$repo" commit -m "flake.lock: ai tools auto-update" -- flake.lock
+        ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop" \
+          --option max-jobs 4 --option cores 8
       '';
     };
 

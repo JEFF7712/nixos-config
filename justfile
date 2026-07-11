@@ -21,6 +21,9 @@ check-agent-docs:
 check-agent-workflows:
   bash checks/agent-workflows.bash
 
+check-laptop-safety:
+  nix eval --impure --no-write-lock-file --expr 'let config = (builtins.getFlake (toString ./.)).nixosConfigurations.laptop.config; in import ./checks/laptop-safety.nix { inherit config; }'
+
 qml-lint:
   nix shell nixpkgs#qt6.qtdeclarative -c qmllint \
     --import disable \
@@ -55,6 +58,7 @@ check-profiles host="laptop" user="rupan":
 check:
   just check-agent-docs
   just check-agent-workflows
+  just check-laptop-safety
   just fmt-check
   just shell-check
   just wallpaper-script-check
@@ -146,8 +150,23 @@ vm-crypt:
 dry:
   sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake .#laptop
 
+# Caps must match hosts/laptop/base.nix sudoers pin (and nix.settings).
+# Root builds ignore ~/.config/nix/nix.conf — pass flags explicitly.
+# flock guards against the auto-update rebuild (shared /run lock): two full
+# builds at once OOM the ~31G box. Bails early if auto-update holds it.
 switch:
-  sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop
+  #!/usr/bin/env bash
+  set -euo pipefail
+  lock=/run/nixos-auto-update.lock
+  [ -w "$lock" ] || lock="${TMPDIR:-/tmp}/nixos-switch.lock"
+  exec {fd}>>"$lock"
+  if ! flock -n "$fd"; then
+    echo "auto-update is rebuilding (holds /run/nixos-auto-update.lock)." >&2
+    echo "stop it:  sudo systemctl stop nixos-ai-tools-auto-update.service nixos-auto-update.service" >&2
+    echo "then rerun 'just switch', or wait for it to finish." >&2
+    exit 1
+  fi
+  sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop -- --max-jobs 4 --cores 8
 
 gc:
   nh clean all --keep-since 30d
