@@ -166,7 +166,7 @@ switch:
     echo "then rerun 'just switch', or wait for it to finish." >&2
     exit 1
   fi
-  sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop -- --max-jobs 4 --cores 8
+  sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop -- --max-jobs 2 --cores 8
 
 gc:
   nh clean all --keep-since 30d

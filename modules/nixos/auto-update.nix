@@ -66,7 +66,7 @@
         fi
         runuser -u rupan -- git -C "$repo" commit -m "flake.lock: weekly auto-update" -- flake.lock
         ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop" \
-          --option max-jobs 4 --option cores 8
+          --option max-jobs 2 --option cores 8
       '';
     };
 
@@ -111,7 +111,7 @@
         fi
         runuser -u rupan -- git -C "$repo" commit -m "flake.lock: ai tools auto-update" -- flake.lock
         ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop" \
-          --option max-jobs 4 --option cores 8
+          --option max-jobs 2 --option cores 8
       '';
     };
 

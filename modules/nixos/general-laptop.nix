@@ -1,5 +1,4 @@
 {
-  pkgs,
   lib,
   config,
   ...
@@ -10,6 +9,5 @@
 
   config = lib.mkIf config.general-laptop.enable {
     services.libinput.enable = true;
-    environment.systemPackages = with pkgs; [ eddie ];
   };
 }

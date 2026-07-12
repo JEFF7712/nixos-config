@@ -24,9 +24,11 @@
         "flakes"
       ];
       # Cap build fan-out on the i9-13900H (20 threads) / ~31G laptop.
-      # `auto`/`0` ran many -j20 jobs and OOM'd the desktop; leave ~8–10G
-      # for the session while still using most of the machine.
-      max-jobs = 4;
+      # `auto`/`0` ran many -j20 jobs and OOM'd the desktop. max-jobs=2 keeps
+      # peak concurrent-build memory to ~2 heavy compiles (4 could still OOM a
+      # 30G box) while 2*8=16 threads still saturate the CPU; oom-protection
+      # is the backstop if a single build overshoots.
+      max-jobs = 2;
       cores = 8;
       max-substitution-jobs = 16;
       download-buffer-size = 268435456;
@@ -38,6 +40,7 @@
   secureboot.enable = true;
   niri.enable = true;
   general-laptop.enable = true;
+  oom-protection.enable = true;
   asus-numpad.enable = true;
   audio.enable = true;
   ctls.enable = true;
@@ -205,7 +208,7 @@
           }
           {
             # Keep in sync with `just switch` — root ignores user nix.conf.
-            command = "${nh} os switch -R . -H laptop -- --max-jobs 4 --cores 8";
+            command = "${nh} os switch -R . -H laptop -- --max-jobs 2 --cores 8";
             options = [ "NOPASSWD" ];
           }
         ]
