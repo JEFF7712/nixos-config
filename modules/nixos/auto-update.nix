@@ -28,6 +28,7 @@
         pkgs.git
         pkgs.util-linux
         pkgs.coreutils
+        pkgs.bash
       ];
       serviceConfig = {
         Type = "oneshot";
@@ -64,6 +65,22 @@
           echo "flake.lock unchanged; skipping rebuild"
           exit 0
         fi
+        # Defer a toolchain-cascade bump: eval passes but the closure would
+        # rebuild stdenv/glibc and everything downstream from source (uncached
+        # nixpkgs tip). Revert and let a later run retry once hydra has cached
+        # it, rather than grind for hours. See CLAUDE.md / nix-cascade-guard.
+        rc=0
+        runuser -u rupan -- "$repo/home/scripts/nix-cascade-guard" \
+          "path:$repo#nixosConfigurations.laptop.config.system.build.toplevel" || rc=$?
+        if [ "$rc" = 10 ]; then
+          runuser -u rupan -- git -C "$repo" checkout -- flake.lock
+          echo "deferred: nixpkgs bump not yet cached (toolchain cascade); lock reverted, will retry next run" >&2
+          exit 0
+        elif [ "$rc" != 0 ]; then
+          runuser -u rupan -- git -C "$repo" checkout -- flake.lock
+          echo "cascade-guard error (rc=$rc); lock reverted" >&2
+          exit 1
+        fi
         runuser -u rupan -- git -C "$repo" commit -m "flake.lock: weekly auto-update" -- flake.lock
         ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop" \
           --option max-jobs 2 --option cores 8
@@ -79,6 +96,7 @@
         pkgs.git
         pkgs.util-linux
         pkgs.coreutils
+        pkgs.bash
       ];
       serviceConfig = {
         Type = "oneshot";
@@ -108,6 +126,20 @@
         if runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
           echo "AI tool flake.lock unchanged; skipping rebuild"
           exit 0
+        fi
+        # See the weekly service: defer an uncached toolchain-cascade bump
+        # instead of rebuilding the world from source.
+        rc=0
+        runuser -u rupan -- "$repo/home/scripts/nix-cascade-guard" \
+          "path:$repo#nixosConfigurations.laptop.config.system.build.toplevel" || rc=$?
+        if [ "$rc" = 10 ]; then
+          runuser -u rupan -- git -C "$repo" checkout -- flake.lock
+          echo "deferred: input bump not yet cached (toolchain cascade); lock reverted, will retry next run" >&2
+          exit 0
+        elif [ "$rc" != 0 ]; then
+          runuser -u rupan -- git -C "$repo" checkout -- flake.lock
+          echo "cascade-guard error (rc=$rc); lock reverted" >&2
+          exit 1
         fi
         runuser -u rupan -- git -C "$repo" commit -m "flake.lock: ai tools auto-update" -- flake.lock
         ${lib.getExe pkgs.nixos-rebuild} switch --flake "path:$repo#laptop" \

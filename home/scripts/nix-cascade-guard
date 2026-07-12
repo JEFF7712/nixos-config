@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Preflight guard against a toolchain "cascade" switch.
+#
+# A fresh nixpkgs revision (e.g. the nixos-unstable tip right after a
+# staging-next merge) evaluates fine but its binaries may not be on
+# cache.nixos.org yet, so a switch rebuilds stdenv/glibc/gcc and everything
+# downstream from source: thousands of derivations, hours on the capped box.
+# `nix eval` never catches this (it only proves the closure *evaluates*); a
+# `--dry-run` build does, because it reports how many derivations must be
+# built vs substituted.
+#
+# On this host a normal switch builds ~150 derivations (config delta plus the
+# unfree CUDA overlay packages, which never hit the public cache); a cascade
+# is 3000+. Default threshold 800 sits well clear of both. See CLAUDE.md.
+#
+# Usage:  nix-cascade-guard <flake-installable>
+# Exit:   0 safe · 10 cascade (>= threshold) · 2 dry-run/usage error
+# Env:    CASCADE_THRESHOLD (default 800)
+set -uo pipefail
+
+ref="${1:-}"
+if [ -z "$ref" ]; then
+  echo "usage: nix-cascade-guard <flake-installable>" >&2
+  exit 2
+fi
+threshold="${CASCADE_THRESHOLD:-800}"
+
+if ! dry="$(nix build --dry-run "$ref" --option max-jobs 2 --option cores 8 2>&1)"; then
+  echo "nix-cascade-guard: dry-run failed for $ref" >&2
+  printf '%s\n' "$dry" | tail -20 >&2
+  exit 2
+fi
+
+count="$(printf '%s\n' "$dry" | sed -nE 's/^these ([0-9]+) derivations will be built.*/\1/p' | head -1)"
+[ -z "$count" ] && count=0
+
+echo "nix-cascade-guard: $count derivations to build (threshold $threshold)" >&2
+if [ "$count" -ge "$threshold" ]; then
+  echo "nix-cascade-guard: CASCADE — nixpkgs revision not yet in the binary cache" >&2
+  exit 10
+fi
+exit 0

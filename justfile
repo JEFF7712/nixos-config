@@ -166,6 +166,19 @@ switch:
     echo "then rerun 'just switch', or wait for it to finish." >&2
     exit 1
   fi
+  # Refuse a toolchain-cascade switch (uncached nixpkgs tip → thousands of
+  # from-source builds, hours on this box). FORCE=1 to override.
+  if [ "${FORCE:-0}" != "1" ]; then
+    rc=0
+    ./home/scripts/nix-cascade-guard ".#nixosConfigurations.laptop.config.system.build.toplevel" || rc=$?
+    if [ "$rc" = "10" ]; then
+      echo "cascade: this switch would rebuild the toolchain from source (nixpkgs tip not cached yet)." >&2
+      echo "options: wait ~a day for hydra, pin nixpkgs back, or override with 'FORCE=1 just switch'." >&2
+      exit 1
+    elif [ "$rc" != "0" ]; then
+      echo "cascade-guard error (rc=$rc); proceeding without it." >&2
+    fi
+  fi
   sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop -- --max-jobs 2 --cores 8
 
 gc:
