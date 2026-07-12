@@ -167,19 +167,15 @@
   # Don't block boot on the network being fully up (~5s off graphical.target).
   systemd.services.NetworkManager-wait-online.enable = false;
 
-  # Set your time zone.
   time.timeZone = "America/New_York";
 
-  # Enable CUPS to print documents.
   services.printing.enable = true;
 
-  # Enable touchpad support (enabled default in most desktopManager).
   services.libinput.enable = true;
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.rupan = {
     isNormalUser = true;
-    extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [ "wheel" ];
     packages = with pkgs; [
       tree
     ];
@@ -225,8 +221,6 @@
     }
   ];
 
-  # List packages installed in system profile.
-  # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
     wget
     neovim
@@ -235,9 +229,6 @@
     virtiofsd
   ];
 
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  # programs.mtr.enable = true;
   security.pam.services.hyprlock = { };
 
   programs.gnupg.agent = {
@@ -257,11 +248,6 @@
 
   services.openssh.enable = false;
 
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 53317 ];

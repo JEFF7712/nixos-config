@@ -125,10 +125,8 @@
             inherit system;
             config.allowUnfree = true;
             config.permittedInsecurePackages = [
-              "electron-37.10.3"
+              # pulled by vesktop's build; revisit when nixpkgs bumps vesktop's electron
               "electron-39.8.10"
-              # build-time dep pinned by vesktop; drop once nixpkgs bumps it
-              "pnpm-10.29.2"
             ];
             inherit overlays;
           };
