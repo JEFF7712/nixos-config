@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+
+PROFILE_MANIFEST_SCHEMA=1
+PROFILES_DIR="${PROFILES_DIR:-$HOME/.config/desktop-profiles}"
+
+profile_manifest_path() {
+  printf '%s/%s/manifest.json\n' "$PROFILES_DIR" "$1"
+}
+
+_profile_manifest_jq() {
+  local profile="$1"
+  shift
+  jq -er "$@" "$(profile_manifest_path "$profile")"
+}
+
+profile_manifest_has_variant() {
+  _profile_manifest_jq "$1" --arg variant "$2" '.variants | has($variant)' >/dev/null
+}
+
+profile_manifest_validate() {
+  local profile="$1" variant="${2:-}" manifest profile_dir relative resolved
+  manifest=$(profile_manifest_path "$profile")
+  profile_dir="$PROFILES_DIR/$profile"
+  if [ ! -f "$manifest" ]; then
+    printf 'Error: profile %s has no manifest.json.\n' "$profile" >&2
+    return 1
+  fi
+  if ! jq -e --arg profile "$profile" --argjson schema "$PROFILE_MANIFEST_SCHEMA" '
+    (.schemaVersion | type == "number")
+    and .schemaVersion == $schema
+    and .name == $profile
+    and (.capabilities | type == "object")
+    and (.transition | type == "object")
+    and (.transition.defaultBar | type == "string")
+    and (.variants | type == "object")
+    and (.variants.dark | type == "object")
+    and (.artifacts | type == "object")
+  ' "$manifest" >/dev/null 2>&1; then
+    printf 'Error: profile %s has an invalid version-1 manifest.\n' "$profile" >&2
+    return 1
+  fi
+  if [ -n "$variant" ] && ! profile_manifest_has_variant "$profile" "$variant"; then
+    printf 'Error: profile %s has no %s variant.\n' "$profile" "$variant" >&2
+    return 1
+  fi
+  while IFS= read -r relative; do
+    case "$relative" in
+      /* | .. | ../* | */../* | */..)
+        printf 'Error: profile %s has unsafe artifact path %s.\n' "$profile" "$relative" >&2
+        return 1
+        ;;
+    esac
+    resolved=$(realpath -m -- "$profile_dir/$relative")
+    case "$resolved" in
+      "$profile_dir"/*) ;;
+      *)
+        printf 'Error: profile %s artifact escapes its directory: %s.\n' "$profile" "$relative" >&2
+        return 1
+        ;;
+    esac
+    if [ ! -f "$resolved" ]; then
+      printf 'Error: profile %s artifact is missing: %s.\n' "$profile" "$relative" >&2
+      return 1
+    fi
+  done < <(jq -r '[.artifacts, (.variants[] | .artifacts)] | .. | strings' "$manifest")
+}
+
+profile_manifest_bar() {
+  _profile_manifest_jq "$1" '.transition.defaultBar'
+}
+
+profile_manifest_capability() {
+  _profile_manifest_jq "$1" --arg key "$2" '.capabilities[$key]'
+}
+
+profile_manifest_transition_json() {
+  _profile_manifest_jq "$1" --arg key "$2" '.transition[$key]'
+}
+
+profile_manifest_wallpaper_dir() {
+  _profile_manifest_jq "$1" --arg variant "$2" '.variants[$variant].wallpaperDirectory'
+}
+
+profile_manifest_artifact() {
+  local profile="$1" variant="$2" key="$3" relative
+  relative=$(_profile_manifest_jq "$profile" --arg variant "$variant" --arg key "$key" '
+    (.variants[$variant].artifacts | getpath($key | split(".")))
+    // (.artifacts | getpath($key | split(".")))
+  ')
+  printf '%s/%s/%s\n' "$PROFILES_DIR" "$profile" "$relative"
+}
+
+profile_manifest_adapter() {
+  local profile="$1" variant="$2" adapter="$3"
+  jq -er --arg variant "$variant" --arg adapter "$adapter" \
+    '.variants[$variant].adapters[$adapter] // empty' "$(profile_manifest_path "$profile")"
+}
+
+profile_manifest_variants() {
+  _profile_manifest_jq "$1" '.variants | keys[]'
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  operation="${1:-}"
+  shift || true
+  case "$operation" in
+    validate) profile_manifest_validate "$@" ;;
+    has-variant) profile_manifest_has_variant "$@" ;;
+    bar) profile_manifest_bar "$@" ;;
+    capability) profile_manifest_capability "$@" ;;
+    transition) profile_manifest_transition_json "$@" ;;
+    wallpaper-dir) profile_manifest_wallpaper_dir "$@" ;;
+    artifact) profile_manifest_artifact "$@" ;;
+    adapter) profile_manifest_adapter "$@" ;;
+    variants) profile_manifest_variants "$@" ;;
+    *)
+      printf 'Usage: profile-manifest OPERATION PROFILE [ARGUMENTS...]\n' >&2
+      exit 2
+      ;;
+  esac
+fi

@@ -15,6 +15,7 @@ wallpaper-script-check:
   bash checks/iris-render.bash
   bash checks/merge-ini-section.bash
   bash checks/spicetify-theme.bash
+  bash checks/profile-manifest.bash
   bash checks/profile-transition.bash
   bash checks/profile-gsettings.bash
 

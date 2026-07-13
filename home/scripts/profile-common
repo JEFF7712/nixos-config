@@ -12,6 +12,7 @@ REPO_HOME="$(dirname "$(dirname "$PROFILE_COMMON_PATH")")"
 ASSETS_HOME="${ASSETS_HOME:-$HOME/nixos-assets}"
 
 PROFILES_DIR="$HOME/.config/desktop-profiles"
+. "$REPO_HOME/scripts/profile-manifest"
 ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
