@@ -197,35 +197,50 @@ if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
 fi
 TARGET_BAR=$(profile_bar "$TARGET")
 
+cleanup_transaction() {
+  local status="$1"
+  trap - EXIT INT TERM HUP
+  rm -rf "$TRANSACTION_DIR" || true
+  exit "$status"
+}
 TRANSACTION_ROOT="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
 mkdir -p "$TRANSACTION_ROOT"
 TRANSACTION_DIR=$(mktemp -d "$TRANSACTION_ROOT/profile-transition.XXXXXX")
+trap 'cleanup_transaction $?' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 chmod 700 "$TRANSACTION_DIR"
-SNAPSHOT_MANIFEST="$TRANSACTION_DIR/manifest"
-: > "$SNAPSHOT_MANIFEST"
 SNAPSHOT_COUNT=0
+declare -a SNAPSHOT_KINDS=()
+declare -a SNAPSHOT_PATHS=()
+declare -a SNAPSHOT_PAYLOADS=()
 
 snapshot_path() {
-  local path="$1" kind payload
+  local path="$1" kind payload=""
   SNAPSHOT_COUNT=$((SNAPSHOT_COUNT + 1))
-  payload="$SNAPSHOT_COUNT"
   if [ -L "$path" ]; then
     kind=symlink
     [ "${PROFILE_TRANSITION_FAIL_SNAPSHOT:-}" != payload ] || return 23
-    readlink "$path" > "$TRANSACTION_DIR/$payload" || return $?
+    IFS= read -r -d '' payload < <(readlink -z -- "$path") || return $?
   elif [ -f "$path" ]; then
     kind=file
+    payload="$TRANSACTION_DIR/$SNAPSHOT_COUNT"
     [ "${PROFILE_TRANSITION_FAIL_SNAPSHOT:-}" != payload ] || return 23
-    cp -p -- "$path" "$TRANSACTION_DIR/$payload" || return $?
+    cp -p -- "$path" "$payload" || return $?
   elif [ ! -e "$path" ]; then
     kind=missing
-    payload=-
   else
     echo "Error: cannot snapshot unsupported path: $path" >&2
     return 1
   fi
   [ "${PROFILE_TRANSITION_FAIL_SNAPSHOT:-}" != manifest ] || return 24
-  printf '%s\t%s\t%s\n' "$kind" "$payload" "$path" >> "$SNAPSHOT_MANIFEST" || return $?
+  SNAPSHOT_KINDS+=("$kind")
+  SNAPSHOT_PATHS+=("$path")
+  SNAPSHOT_PAYLOADS+=("$payload")
+  if [ -n "${PROFILE_TRANSITION_SIGNAL_DURING_SNAPSHOT:-}" ]; then
+    kill -s "$PROFILE_TRANSITION_SIGNAL_DURING_SNAPSHOT" "$$"
+  fi
 }
 
 snapshot_or_abort() {
@@ -235,16 +250,15 @@ snapshot_or_abort() {
   status=$?
   set -e
   [ "$status" -ne 0 ] || return 0
-  rm -rf "$TRANSACTION_DIR" || true
   exit "$status"
 }
 
 restore_snapshot() {
-  local -a entries=()
   local index kind payload path tmp restore_errors=0
-  mapfile -t entries < "$SNAPSHOT_MANIFEST"
-  for ((index=${#entries[@]} - 1; index >= 0; index--)); do
-    IFS=$'\t' read -r kind payload path <<< "${entries[$index]}"
+  for ((index=${#SNAPSHOT_PATHS[@]} - 1; index >= 0; index--)); do
+    kind="${SNAPSHOT_KINDS[$index]}"
+    path="${SNAPSHOT_PATHS[$index]}"
+    payload="${SNAPSHOT_PAYLOADS[$index]}"
     if [ "${PROFILE_TRANSITION_FAIL_RESTORE_PATH:-}" = "$path" ] \
       && [ "${RESTORE_FAILURE_INJECTED:-0}" -eq 0 ]; then
       RESTORE_FAILURE_INJECTED=1
@@ -259,14 +273,14 @@ restore_snapshot() {
       file)
         mkdir -p "$(dirname "$path")" || { restore_errors=1; continue; }
         tmp=$(mktemp "${path}.XXXXXX") || { restore_errors=1; continue; }
-        if ! cp -p -- "$TRANSACTION_DIR/$payload" "$tmp" || ! mv -f -- "$tmp" "$path"; then
+        if ! cp -p -- "$payload" "$tmp" || ! mv -f -- "$tmp" "$path"; then
           rm -f -- "$tmp"
           echo "rollback: restore $path failed" >&2
           restore_errors=1
         fi
         ;;
       symlink)
-        if ! link_atomic "$path" "$(cat "$TRANSACTION_DIR/$payload")"; then
+        if ! link_atomic "$path" "$payload"; then
           echo "rollback: restore $path failed" >&2
           restore_errors=1
         fi
@@ -278,7 +292,7 @@ restore_snapshot() {
 
 rollback() {
   local status="$1" rollback_errors=0
-  trap - EXIT
+  trap - EXIT INT TERM HUP
   set +e
   rollback_try() {
     local label="$1"
@@ -309,8 +323,8 @@ commit_transaction() {
     write_atomic "$PROFILES_DIR/variant-$TARGET" "$TARGET_VARIANT"
     [ "${PROFILE_TRANSITION_FAIL_COMMIT_AFTER:-}" != preference ] || return 1
   fi
-  trap - EXIT
   rm -rf "$TRANSACTION_DIR"
+  trap - EXIT INT TERM HUP
 }
 
 if [ "$WRITE_PREFERENCE" -eq 1 ]; then
@@ -327,7 +341,20 @@ if [ "$TARGET_BAR" = waybar ] && [ -s "$PROFILES_DIR/$TARGET/waybar-config.jsonc
     snapshot_or_abort "$CONFIG_HOME/waybar/style.css"
   fi
 fi
+if [ -n "${PROFILE_TRANSITION_TEST_FILE_PATH:-}" ]; then
+  snapshot_or_abort "$PROFILE_TRANSITION_TEST_FILE_PATH"
+fi
+if [ -n "${PROFILE_TRANSITION_TEST_SYMLINK_PATH:-}" ]; then
+  snapshot_or_abort "$PROFILE_TRANSITION_TEST_SYMLINK_PATH"
+fi
 trap 'rollback $?' EXIT
+
+if [ -n "${PROFILE_TRANSITION_TEST_MUTATE_SNAPSHOTS:-}" ]; then
+  printf 'mutated\n' > "$PROFILE_TRANSITION_TEST_FILE_PATH"
+  rm -f -- "$PROFILE_TRANSITION_TEST_SYMLINK_PATH"
+  ln -s -- changed "$PROFILE_TRANSITION_TEST_SYMLINK_PATH"
+  exit 29
+fi
 
 stop_bar "$CURRENT_BAR"
 NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides.kdl"

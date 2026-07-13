@@ -112,6 +112,55 @@ check_snapshot_failure() {
   fi
 }
 
+check_snapshot_signal_cleanup() {
+  local before after status runtime_dir="$tmpdir/runtime-signal"
+  mkdir -p "$runtime_dir"
+  before=$(tar -C "$home" -cf - . | sha256sum)
+  set +e
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$runtime_dir" \
+    PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+    BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    PROFILE_TRANSITION_SIGNAL_DURING_SNAPSHOT=TERM \
+    "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1
+  status=$?
+  set -e
+  assert_eq 143 "$status" "snapshot signal preserves the conventional status"
+  after=$(tar -C "$home" -cf - . | sha256sum)
+  assert_eq "$before" "$after" "snapshot signal occurs before mutation"
+  if find "$runtime_dir" -mindepth 1 -print -quit | grep -q .; then
+    printf 'FAIL: snapshot signal left a transaction directory behind\n' >&2
+    exit 1
+  fi
+}
+
+check_unusual_snapshot_paths() {
+  local odd_file odd_link odd_target runtime_dir status
+  odd_file="$home/.config/odd"$'\tline\nfile'
+  odd_link="$home/.config/odd-link"$'\n'
+  odd_target=$'target\tline\n'
+  runtime_dir="$tmpdir/runtime-unusual"
+  printf 'original unusual bytes\n' > "$odd_file"
+  ln -s -- "$odd_target" "$odd_link"
+  mkdir -p "$runtime_dir"
+  set +e
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$runtime_dir" \
+    PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+    BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    PROFILE_TRANSITION_TEST_FILE_PATH="$odd_file" \
+    PROFILE_TRANSITION_TEST_SYMLINK_PATH="$odd_link" \
+    PROFILE_TRANSITION_TEST_MUTATE_SNAPSHOTS=1 \
+    "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1
+  status=$?
+  set -e
+  assert_eq 29 "$status" "unusual path rollback preserves original status"
+  assert_eq "original unusual bytes" "$(cat "$odd_file")" \
+    "tab and newline file path round-trips"
+  if ! cmp -s <(printf '%s\0' "$odd_target") <(readlink -z -- "$odd_link"); then
+    printf 'FAIL: trailing-newline symlink target did not round-trip\n' >&2
+    exit 1
+  fi
+}
+
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar"
 
 for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
@@ -278,6 +327,8 @@ check_waybar_readiness_fake
 
 check_snapshot_failure payload 23
 check_snapshot_failure manifest 24
+check_snapshot_signal_cleanup
+check_unusual_snapshot_paths
 
 # Public mutation interfaces that later compatibility tests must enforce.
 COMPATIBILITY_MAPPINGS=(
@@ -553,6 +604,7 @@ fi
 assert_eq "noc" "$(cat "$profiles/active")" "Noctalia shutdown failure aborts before commit"
 assert_log_contains "verify-noctalia active=noc" "rollback verifies restarted Noctalia"
 
-if [ "${PROFILE_TRANSITION_TEST_SCOPE:-full}" != "core" ]; then
+if [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "delegation" ] \
+  || [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "full" ]; then
   check_public_delegation
 fi
