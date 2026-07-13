@@ -96,12 +96,16 @@ set -e
 
 if [[ $status -ne 0 ]]; then
   printf 'expected unchanged update pipeline to exit 0, got %d\n' "$status" >&2
+  cat "$command_log" >&2
   exit 1
 fi
 
-update_count=$(grep -Ec '^nix (flake update|--extra-experimental-features .* flake update)( |$)' "$command_log" || true)
-if [[ $update_count -ne 1 ]]; then
-  printf 'expected exactly one full flake update, got %d\n' "$update_count" >&2
+expected_update="nix flake update --flake path:$repo"
+update_count=$(grep -Ec '^nix .*flake update( |$)' "$command_log" || true)
+exact_update_count=$(grep -Fxc "$expected_update" "$command_log" || true)
+if [[ $update_count -ne 1 || $exact_update_count -ne 1 ]]; then
+  printf 'expected exactly one %q, got %d update invocations and %d exact matches\n' \
+    "$expected_update" "$update_count" "$exact_update_count" >&2
   cat "$command_log" >&2
   exit 1
 fi
