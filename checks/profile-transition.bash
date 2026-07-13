@@ -426,6 +426,110 @@ check_unusual_snapshot_paths() {
   fi
 }
 
+check_legacy_runtime_regressions() {
+  local output="$tmpdir/legacy-runtime.out"
+
+  printf 'missing\n' > "$profiles/active"
+  printf 'light\n' > "$profiles/active-variant"
+  printf 'light\n' > "$profiles/variant-noctalia"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'noctalia-started\n' > "$bar_state"
+  printf 'noctalia\n' > "$notification_state"
+  : > "$log"
+  run_fixture_transition startup >"$output" 2>&1
+  assert_eq missing "$(cat "$profiles/active")" \
+    "invalid startup fallback preserves the active preference"
+  assert_eq light "$(cat "$profiles/active-variant")" \
+    "invalid startup fallback preserves the global variant preference"
+  assert_eq light "$(cat "$profiles/variant-noctalia")" \
+    "invalid startup fallback preserves the Noctalia variant preference"
+  assert_eq "$profiles/noctalia/niri-overrides.kdl" \
+    "$(readlink "$profiles/active-niri-overrides.kdl")" \
+    "invalid startup falls back to Noctalia runtime"
+
+  printf 'old\n' > "$profiles/active"
+  printf 'light\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-old"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'started\n' > "$bar_state"
+  printf 'mako\n' > "$notification_state"
+  : > "$log"
+  run_fixture_transition startup >"$output" 2>&1
+  assert_eq '* { color: old-light; }' "$(cat "$home/.config/waybar/style.css")" \
+    "startup reapplies the valid active variant"
+  assert_eq old "$(cat "$profiles/active")" \
+    "valid startup preserves the active preference"
+  assert_eq light "$(cat "$profiles/active-variant")" \
+    "valid startup preserves the global variant preference"
+  assert_eq dark "$(cat "$profiles/variant-old")" \
+    "valid startup does not rewrite the per-profile preference"
+
+  printf 'quickshell\n' > "$profiles/bar-old"
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-old"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'started\n' > "$bar_state"
+  printf 'mako\n' > "$notification_state"
+  : > "$log"
+  run_fixture_transition reapply >"$output" 2>&1
+  assert_log_contains 'systemctl --user stop noctalia-shell' \
+    "reapply stops Noctalia when a bar override may have changed"
+  assert_log_contains 'pkill -f waybar' \
+    "reapply stops Waybar when a bar override may have changed"
+  assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+    "reapply stops Quickshell when a bar override may have changed"
+  rm -f "$profiles/bar-old"
+
+  printf 'on\n' > "$profiles/focus"
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-new"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'started\n' > "$bar_state"
+  printf 'mako\n' > "$notification_state"
+  : > "$log"
+  run_fixture_transition switch new >"$output" 2>&1
+  assert_eq "$profiles/new/niri-overrides-focus.kdl" \
+    "$(readlink "$profiles/active-niri-overrides.kdl")" \
+    "focus mode selects the target focus override"
+
+  printf 'dark\n' > "$profiles/variant-noctalia"
+  : > "$log"
+  run_fixture_transition switch noctalia >"$output" 2>&1
+  assert_eq "$profiles/noctalia/niri-overrides.kdl" \
+    "$(readlink "$profiles/active-niri-overrides.kdl")" \
+    "focus mode keeps Noctalia on its normal override"
+  assert_log_contains_eventually \
+    "noctalia-shell ipc --any-display call wallpaper random eDP-1 active=noctalia" \
+    "self-themed Noctalia dispatches wallpaper selection through shell IPC"
+
+  printf 'off\n' > "$profiles/focus"
+  printf 'dark\n' > "$profiles/variant-old"
+  : > "$log"
+  run_fixture_transition switch old >"$output" 2>&1
+  assert_log_contains_eventually \
+    "awww img $profiles/old/wallpapers/wallpaper.png --transition-type fade --transition-duration 1 active=old" \
+    "static profile selects a wallpaper after commit"
+  assert_log_contains_eventually \
+    "quickshell -p $REPO_ROOT/home/configs/quickshell-switcher/shell.qml active=old" \
+    "transition starts the profile switcher popup"
+
+  "$real_jq" '.wallpaperTheming = true' "$profiles/new/meta.json" \
+    > "$profiles/new/meta.json.tmp"
+  mv "$profiles/new/meta.json.tmp" "$profiles/new/meta.json"
+  mkdir -p "$home/.config/matugen"
+  printf 'fixture\n' > "$home/.config/matugen/config-new.toml"
+  printf 'light\n' > "$profiles/variant-new"
+  : > "$log"
+  run_fixture_transition switch new >"$output" 2>&1
+  assert_log_contains_eventually \
+    "matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c $home/.config/matugen/config-new.toml active=new" \
+    "wallpaper-themed profile dispatches its runtime palette adapter after commit"
+  # Noctalia intentionally delays template dispatch for four seconds.
+  sleep 4.1
+}
+
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar" "$persistent_pid_dir"
 
 for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
@@ -474,6 +578,11 @@ printf '{"bar":"quickshell","selfThemed":false,"hasLightVariant":true,"cursor":"
 cp -a "$profiles/old" "$profiles/noc"
 printf '{"bar":"noctalia","selfThemed":true,"hasLightVariant":false,"cursor":"default","cursorSize":24}\n' \
   > "$profiles/noc/meta.json"
+cp -a "$profiles/noc" "$profiles/noctalia"
+printf 'layout { gaps 4; }\n' > "$profiles/noctalia/niri-overrides-focus.kdl"
+for profile in old new; do
+  printf 'layout { gaps 4; }\n' > "$profiles/$profile/niri-overrides-focus.kdl"
+done
 
 mkdir -p "$home/.config/gtk-3.0" "$home/.config/gtk-4.0" \
   "$home/.config/qt5ct/colors" "$home/.config/qt6ct/colors" "$home/.config/kitty" \
@@ -495,7 +604,7 @@ printf 'light\n' > "$profiles/variant-new"
 ln -s "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 printf 'mako\n' > "$notification_state"
 
-for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper mako makoctl tmux kitty magick; do
+for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper mako makoctl tmux kitty magick matugen noctalia-shell; do
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$COMMAND_LOG"
@@ -508,6 +617,9 @@ done
 cat > "$bin_dir/niri" <<'EOF'
 #!/usr/bin/env bash
 printf 'niri %s\n' "$*" >> "$COMMAND_LOG"
+if [ "$*" = 'msg outputs' ]; then
+  printf 'Output "eDP-1" (eDP-1)\n'
+fi
 if [ -n "${NIRI_COUNT_FILE:-}" ]; then
   count=$(cat "$NIRI_COUNT_FILE" 2>/dev/null || echo 0)
   count=$((count + 1))
@@ -597,7 +709,7 @@ EOF
 cat > "$bin_dir/quickshell" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
-printf 'quickshell start active=%s\n' "$active" >> "$COMMAND_LOG"
+printf 'quickshell %s active=%s\n' "$*" "$active" >> "$COMMAND_LOG"
 case "$*" in
   *quickshell-switcher/shell.qml*) exit 0 ;;
 esac
@@ -613,6 +725,20 @@ if [ -n "${PERSISTENT_CHILDREN:-}" ]; then
   sleep 5
 fi
 EOF
+
+cat > "$bin_dir/awww" <<'EOF'
+#!/usr/bin/env bash
+active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
+printf 'awww %s active=%s\n' "$*" "$active" >> "$COMMAND_LOG"
+EOF
+
+for command in matugen noctalia-shell; do
+  cat > "$bin_dir/$command" <<'EOF'
+#!/usr/bin/env bash
+active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
+printf '%s %s active=%s\n' "$(basename "$0")" "$*" "$active" >> "$COMMAND_LOG"
+EOF
+done
 
 cat > "$bin_dir/mako" <<'EOF'
 #!/usr/bin/env bash
@@ -1201,3 +1327,4 @@ check_engine_variant_noops
 check_variant_resolves_after_lock
 check_lock_contention_is_nonblocking
 check_public_delegation
+check_legacy_runtime_regressions

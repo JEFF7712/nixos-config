@@ -88,6 +88,12 @@ stop_bar() {
   esac
 }
 
+stop_all_bars() {
+  stop_bar noctalia
+  stop_bar waybar
+  stop_bar quickshell
+}
+
 start_bar() {
   local bar="$1"
   case "$bar" in
@@ -668,10 +674,14 @@ if [ -n "${PROFILE_TRANSITION_TEST_MUTATE_SNAPSHOTS:-}" ]; then
   exit 29
 fi
 
-stop_bar "$CURRENT_BAR"
+if [ "$MODE" = reapply ]; then
+  stop_all_bars
+else
+  stop_bar "$CURRENT_BAR"
+fi
 install_staged_files
 NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides.kdl"
-if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
+if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = on ] && [ "$TARGET" != noctalia ]; then
   NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides-focus.kdl"
 fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
