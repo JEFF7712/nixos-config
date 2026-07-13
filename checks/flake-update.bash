@@ -170,9 +170,7 @@ commit_weekly="git -C $repo commit -m flake.lock:\ weekly\ auto-update -- flake.
 rebuild="nixos-rebuild switch --flake path:$repo#laptop --option max-jobs 2 --option cores 8"
 
 case_unchanged() {
-  setup_case unchanged
   run_pipeline
-  assert_status 0 "$PIPELINE_STATUS" unchanged
   assert_one_update "$update_weekly" unchanged
   assert_log_lacks 'nix-cascade-guard ' unchanged
   assert_log_lacks ' commit ' unchanged
@@ -180,38 +178,28 @@ case_unchanged() {
 }
 
 case_ai_inputs() {
-  setup_case ai_inputs
   run_pipeline ai
-  assert_status 0 "$PIPELINE_STATUS" ai_inputs
   assert_one_update "$update_ai" ai_inputs
 }
 
 case_lock_contention() {
-  setup_case lock_contention
   TEST_FLOCK_STATUS=1 run_pipeline
-  assert_status 0 "$PIPELINE_STATUS" lock_contention
   assert_log_lacks 'nix flake update' lock_contention
 }
 
 case_dns_timeout() {
-  setup_case dns_timeout
   TEST_DNS_STATUS=1 run_pipeline
-  assert_status 1 "$PIPELINE_STATUS" dns_timeout
   assert_log_lacks 'nix flake update' dns_timeout
 }
 
 case_eval_failure() {
-  setup_case eval_failure
   TEST_EVAL_STATUS=1 run_pipeline
-  assert_status 1 "$PIPELINE_STATUS" eval_failure
   assert_log_has "$restore" eval_failure
   assert_log_lacks 'nix-cascade-guard ' eval_failure
 }
 
 case_diff_error() {
-  setup_case diff_error
   TEST_DIFF_STATUS=2 run_pipeline
-  assert_status 1 "$PIPELINE_STATUS" diff_error
   assert_log_has "$restore" diff_error
   assert_log_lacks 'nix-cascade-guard ' diff_error
   assert_log_lacks ' commit ' diff_error
@@ -219,44 +207,34 @@ case_diff_error() {
 }
 
 case_cascade_deferred() {
-  setup_case cascade_deferred
   TEST_DIFF_STATUS=1 TEST_CASCADE_STATUS=10 run_pipeline
-  assert_status 0 "$PIPELINE_STATUS" cascade_deferred
   assert_log_has "$restore" cascade_deferred
   assert_log_lacks ' commit ' cascade_deferred
   assert_log_lacks 'nixos-rebuild ' cascade_deferred
 }
 
 case_cascade_error() {
-  setup_case cascade_error
   TEST_DIFF_STATUS=1 TEST_CASCADE_STATUS=7 run_pipeline
-  assert_status 1 "$PIPELINE_STATUS" cascade_error
   assert_log_has "$restore" cascade_error
   assert_log_lacks ' commit ' cascade_error
   assert_log_lacks 'nixos-rebuild ' cascade_error
 }
 
 case_commit_failure() {
-  setup_case commit_failure
   TEST_DIFF_STATUS=1 TEST_COMMIT_STATUS=1 run_pipeline
-  assert_status 1 "$PIPELINE_STATUS" commit_failure
   assert_log_has "$restore" commit_failure
   assert_log_lacks 'nixos-rebuild ' commit_failure
 }
 
 case_success_order() {
-  setup_case success_order
   TEST_DIFF_STATUS=1 run_pipeline
-  assert_status 0 "$PIPELINE_STATUS" success_order
   assert_log_has "$commit_weekly" success_order
   assert_log_has "$rebuild" success_order
   assert_before "$commit_weekly" "$rebuild" success_order
 }
 
 case_rebuild_failure() {
-  setup_case rebuild_failure
   TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
-  assert_status 5 "$PIPELINE_STATUS" rebuild_failure
   assert_log_has "$commit_weekly" rebuild_failure
   assert_log_has "$rebuild" rebuild_failure
   assert_log_lacks "$restore" rebuild_failure
@@ -264,20 +242,30 @@ case_rebuild_failure() {
 }
 
 case_termination() {
-  setup_case termination
   TEST_DIFF_STATUS=1 TEST_CASCADE_ACTION=term run_pipeline
-  assert_status 143 "$PIPELINE_STATUS" termination
   assert_log_has "$restore" termination
   assert_log_lacks ' commit ' termination
   assert_log_lacks 'nixos-rebuild ' termination
 }
 
-cases=(
-  unchanged ai_inputs lock_contention dns_timeout eval_failure diff_error
-  cascade_deferred cascade_error commit_failure success_order rebuild_failure termination
-)
-for case_name in "${cases[@]}"; do
-  "case_$case_name"
-done
+run_case() {
+  local name="$1" expected_status="$2"
+  setup_case "$name"
+  "case_$name"
+  assert_status "$expected_status" "$PIPELINE_STATUS" "$name"
+}
+
+run_case unchanged 0
+run_case ai_inputs 0
+run_case lock_contention 0
+run_case dns_timeout 1
+run_case eval_failure 1
+run_case diff_error 1
+run_case cascade_deferred 0
+run_case cascade_error 1
+run_case commit_failure 1
+run_case success_order 0
+run_case rebuild_failure 5
+run_case termination 143
 
 printf 'flake update pipeline checks passed\n'
