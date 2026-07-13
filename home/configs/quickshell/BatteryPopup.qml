@@ -1,19 +1,16 @@
 import QtQuick
-import Quickshell.Io
+import "services" as Services
 
 InfoPopup {
     id: root
     title: "BATTERY"
 
-    property string powerProfile: ""
-    property string charge: "-"
-    property string status_: "-"
-    property string timeLeft: ""
-    property string draw: "-"
-    property string health: "-"
-    property int chargeLimit: 100
-    property bool thresholdWritable: false
-    property bool idleInhibited: false
+    required property Services.PowerService powerService
+    readonly property string charge: powerService.available ? powerService.chargePercent + "%" : "-"
+    readonly property string status_: powerService.state === "unknown" ? "-" : powerService.state === "full" ? "fully charged" : powerService.state.replace(/-/g, " ")
+    readonly property string timeLeft: formatDuration(powerService.secondsRemaining)
+    readonly property string draw: powerService.available ? formatScalar(powerService.drawWatts) + " W" : "-"
+    readonly property string health: powerService.available && powerService.healthPercent > 0 ? powerService.healthPercent + "%" : "-"
     readonly property var profileOptions: [
         {
             "id": "power-saver",
@@ -32,15 +29,25 @@ InfoPopup {
         }
     ]
 
-    signal selectProfile(string name)
-
     function percent(value) {
         const parsed = parseInt(String(value).replace("%", ""));
         return isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
     }
 
     function hasBattery() {
-        return root.charge !== "-";
+        return root.powerService.available;
+    }
+
+    function formatScalar(value) {
+        return Number(value).toFixed(1).replace(/\.0$/, "");
+    }
+
+    function formatDuration(seconds) {
+        if (seconds <= 0)
+            return "";
+        if (seconds >= 3600)
+            return root.formatScalar(seconds / 3600) + " hours";
+        return Math.round(seconds / 60) + " minutes";
     }
 
     function statusLabel() {
@@ -61,11 +68,11 @@ InfoPopup {
     }
 
     function profileLabel() {
-        if (root.powerProfile === "power-saver")
+        if (root.powerService.profile === "power-saver")
             return "power saver";
-        if (root.powerProfile === "performance")
+        if (root.powerService.profile === "performance")
             return "performance";
-        if (root.powerProfile === "balanced")
+        if (root.powerService.profile === "balanced")
             return "balanced";
         return "profile unavailable";
     }
@@ -152,7 +159,7 @@ InfoPopup {
                 width: (parent.width - 12) / 3
                 height: parent.height
 
-                readonly property bool selected: root.powerProfile === modelData.id
+                readonly property bool selected: root.powerService.profile === modelData.id
 
                 Rectangle {
                     anchors.fill: parent
@@ -203,7 +210,7 @@ InfoPopup {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.selectProfile(modelData.id)
+                    onClicked: root.powerService.setProfile(modelData.id)
                 }
             }
         }
@@ -216,122 +223,31 @@ InfoPopup {
     }
 
     InfoToggle {
-        label: root.idleInhibited ? "idle inhibit on" : "idle inhibit off"
-        checked: root.idleInhibited
+        label: root.powerService.idleInhibited ? "idle inhibit on" : "idle inhibit off"
+        checked: root.powerService.idleInhibited
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         themeRawBg: root.themeRawBg
         dividerColor: root.dividerColor
-        onToggled: idleInhibitToggleProc.running = true
+        onToggled: root.powerService.toggleIdleInhibit()
     }
 
     Rectangle {
         width: parent.width
         height: 1
-        visible: root.thresholdWritable
+        visible: root.powerService.thresholdWritable
         color: root.dividerColor
     }
 
     InfoToggle {
-        label: root.chargeLimit >= 100 ? "charge limit off" : "charge limit " + root.chargeLimit + "%"
-        checked: root.chargeLimit < 100
-        visible: root.thresholdWritable
+        label: root.powerService.chargeLimit >= 100 ? "charge limit off" : "charge limit " + root.powerService.chargeLimit + "%"
+        checked: root.powerService.chargeLimit < 100
+        visible: root.powerService.thresholdWritable
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         themeRawBg: root.themeRawBg
         dividerColor: root.dividerColor
-        onToggled: {
-            limitProc.target = root.chargeLimit >= 100 ? 80 : 100;
-            limitProc.running = true;
-        }
-    }
-
-    Process {
-        id: fetchProc
-        command: ["sh", "-c", "dev=$(upower -e 2>/dev/null | grep -i BAT | head -1);" + "[ -z \"$dev\" ] && exit 0;" + "upower -i \"$dev\" | awk -F: '" + "/percentage:/{gsub(/^[ \\t]+/,\"\",$2); print \"charge|\"$2}" + "/state:/{gsub(/^[ \\t]+/,\"\",$2); print \"status|\"$2}" + "/time to empty:/{gsub(/^[ \\t]+/,\"\",$2); print \"time|\"$2}" + "/time to full:/{gsub(/^[ \\t]+/,\"\",$2); print \"time|\"$2}" + "/energy-rate:/{gsub(/^[ \\t]+/,\"\",$2); print \"draw|\"$2}" + "/energy-full:/{gsub(/^[ \\t]+/,\"\",$2); print \"efull|\"$2}" + "/energy-full-design:/{gsub(/^[ \\t]+/,\"\",$2); print \"edesign|\"$2}" + "';" + "thr=/sys/class/power_supply/BAT0/charge_control_end_threshold;" + "if [ -f \"$thr\" ]; then " + "echo \"limit|$(cat \"$thr\")\";" + "if [ -w \"$thr\" ]; then echo \"writable|1\"; else echo \"writable|0\"; fi;" + "fi"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                let eFull = 0;
-                let eDesign = 0;
-                const lines = this.text.split("\n");
-                for (const raw of lines) {
-                    const line = raw.trim();
-                    const idx = line.indexOf("|");
-                    if (idx < 0)
-                        continue;
-                    const key = line.substring(0, idx);
-                    const value = line.substring(idx + 1).trim();
-
-                    if (key === "charge")
-                        root.charge = value || "-";
-                    else if (key === "status")
-                        root.status_ = (value || "-").replace(/-/g, " ");
-                    else if (key === "time")
-                        root.timeLeft = value;
-                    else if (key === "draw")
-                        root.draw = value || "-";
-                    else if (key === "efull")
-                        eFull = parseFloat(value);
-                    else if (key === "edesign")
-                        eDesign = parseFloat(value);
-                    else if (key === "limit")
-                        root.chargeLimit = parseInt(value) || 100;
-                    else if (key === "writable")
-                        root.thresholdWritable = value === "1";
-                }
-                if (eFull > 0 && eDesign > 0)
-                    root.health = Math.round(eFull * 100 / eDesign) + "%";
-            }
-        }
-    }
-
-    Process {
-        id: limitProc
-        property int target: 100
-        command: ["sh", "-c", "echo " + limitProc.target + " > /sys/class/power_supply/BAT0/charge_control_end_threshold"]
-        onRunningChanged: {
-            if (!running)
-                fetchProc.running = true;
-        }
-    }
-
-    Process {
-        id: idleInhibitToggleProc
-        command: ["sh", "-c", "stasis toggle-inhibit >/dev/null 2>&1"]
-        onExited: idleInhibitProbe.running = true
-    }
-
-    Process {
-        id: idleInhibitProbe
-        command: ["sh", "-c", "stasis info 2>/dev/null | awk -F': *' '/^Manual Pause/{print $2; exit}'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                root.idleInhibited = this.text.trim() === "yes";
-            }
-        }
-    }
-
-    onShownChanged: {
-        if (shown) {
-            fetchProc.running = true;
-            idleInhibitProbe.running = true;
-        }
-    }
-
-    Timer {
-        running: true
-        interval: root.shown ? 5000 : 30000
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: fetchProc.running = true
-    }
-
-    Timer {
-        running: true
-        interval: root.shown ? 5000 : 30000
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: idleInhibitProbe.running = true
+        onToggled: root.powerService.toggleChargeLimit()
     }
 
     component MeterRow: Item {

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+source "$state_dir/power-state"
+printf 'upower %s\n' "$*" >>"$state_dir/calls.log"
+
+case "${1:-}" in
+  -e)
+    [ "$#" -eq 1 ] || exit 64
+    ;;
+  -i)
+    [ "$#" -eq 2 ] || exit 64
+    ;;
+  *)
+    exit 64
+    ;;
+esac
+
+active="$state_dir/active.upower"
+if ! mkdir "$active" 2>/dev/null; then
+  printf 'upower overlap\n' >>"$state_dir/overlap.log"
+  exit 70
+fi
+trap 'rmdir "$active" 2>/dev/null || true' EXIT
+
+if [ "${1:-}" = -e ] && [ -s "$state_dir/slow-probe" ]; then
+  printf '%s\n' "$$" >"$state_dir/slow-probe.pid"
+  exec sleep 30
+fi
+
+case "${1:-}" in
+  -e)
+    [ "$BATTERY" = 1 ] && printf '/org/freedesktop/UPower/devices/battery_BAT0\n'
+    ;;
+  -i)
+    [ "$BATTERY" = 1 ] || exit 1
+    if [ -s "$state_dir/malformed-upower" ]; then
+      printf 'percentage: invalid\n'
+      exit 0
+    fi
+    printf '  state:               %s\n' "$BATTERY_STATE"
+    printf '  energy-rate:         %s W\n' "$DRAW_WATTS"
+    printf '  energy-full:         %s Wh\n' "$ENERGY_FULL"
+    printf '  energy-full-design:  %s Wh\n' "$ENERGY_DESIGN"
+    printf '  percentage:          %s%%\n' "$CHARGE_PERCENT"
+    [ -z "$TIME_KIND" ] || printf '  time to %s:       %s\n' "$TIME_KIND" "$TIME_VALUE"
+    ;;
+esac

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+printf 'powerprofilesctl %s\n' "$*" >>"$state_dir/calls.log"
+active="$state_dir/active.powerprofilesctl"
+if ! mkdir "$active" 2>/dev/null; then
+  printf 'powerprofilesctl overlap\n' >>"$state_dir/overlap.log"
+  exit 70
+fi
+trap 'rmdir "$active" 2>/dev/null || true' EXIT
+
+case "${1:-}" in
+  get)
+    [ "$#" -eq 1 ] || exit 64
+    [ ! -s "$state_dir/profile-daemon-missing" ] || exit 1
+    cat "$state_dir/profile"
+    ;;
+  set)
+    [ "$#" -eq 2 ] || exit 64
+    case "$2" in power-saver|balanced|performance) ;; *) exit 64 ;; esac
+    if [ -s "$state_dir/slow-destruction-action" ]; then
+      printf '%s\n' "$$" >"$state_dir/slow-action.pid"
+      exec sleep 30
+    fi
+    if [ -e "$state_dir/slow-action" ]; then
+      rm -f "$state_dir/slow-action"
+      sleep 0.35
+    fi
+    printf '%s\n' "$2" >"$state_dir/profile"
+    printf 'profile %s\n' "$2" >>"$state_dir/actions.log"
+    ;;
+  *)
+    exit 64
+    ;;
+esac

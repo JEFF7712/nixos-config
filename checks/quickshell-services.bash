@@ -7,6 +7,7 @@ fixture_bin="${repo_root}/tests/quickshell/fixtures/bin/qs-test-owned-process"
 audio_native_fixture_qml="${repo_root}/tests/quickshell/integration/audio-native"
 media_fixture_qml="${repo_root}/tests/quickshell/integration/media-service"
 cava_fixture_qml="${repo_root}/tests/quickshell/integration/cava-service"
+power_fixture_qml="${repo_root}/tests/quickshell/integration/power-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -767,7 +768,7 @@ run_media_service_probe() {
   qs_pid=$!
   register_fixture_qs "$qs_pid"
   wait_for_path "$state_dir/ready" 10 || fail 'media fixture did not become ready'
-  wait_for_process "$qs_pid" 30 || rc=$?
+  wait_for_process "$qs_pid" 50 || rc=$?
   ((rc == 0)) || {
     sed -n '1,240p' "$state_dir/quickshell.log" >&2
     fail "media fixture exited unsuccessfully or timed out (rc=${rc})"
@@ -888,6 +889,156 @@ run_cava_service_probe() {
   done
 }
 
+run_power_service_probe() {
+  local state_dir qs_pid real_tee rc=0
+  printf 'quickshell-services: run_power_service_probe\n'
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-power-service.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal"
+  for command in upower powerprofilesctl stasis tee; do
+    ln -s "$audio_fixture_bin/$command" "$state_dir/fixture-bin/$command"
+  done
+  cp "$power_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$repo_root/home/configs/quickshell/services/PowerService.qml" "$state_dir/config/services/PowerService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/PowerModel.qml" "$state_dir/config/services/internal/PowerModel.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/PowerParser.js" "$state_dir/config/services/internal/PowerParser.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/power-probe" "$state_dir/config/services/internal/power-probe"
+  cat >"$state_dir/power-state" <<'EOF'
+BATTERY=1
+CHARGE_PERCENT=64
+BATTERY_STATE=discharging
+TIME_KIND=empty
+TIME_VALUE='2.5 hours'
+DRAW_WATTS=12.4
+ENERGY_FULL=52
+ENERGY_DESIGN=65
+EOF
+  printf 'balanced\n' >"$state_dir/profile"
+  printf 'no\n' >"$state_dir/stasis"
+  printf '80\n' >"$state_dir/threshold"
+  chmod 600 "$state_dir/threshold"
+  : >"$state_dir/actions.log"
+  : >"$state_dir/calls.log"
+  : >"$state_dir/overlap.log"
+
+  if QS_TEST_STATE_DIR="$state_dir" "$state_dir/fixture-bin/upower" -e extra >/dev/null 2>&1; then
+    fail 'fake upower accepted extra enumerate arguments'
+  fi
+  real_tee=$(command -v tee)
+
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" \
+    QS_TEST_REAL_TEE="$real_tee" \
+    QS_POWER_THRESHOLD_PATH="$state_dir/threshold" QT_QPA_PLATFORM=offscreen \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+  wait_for_path "$state_dir/ready" 10 || fail 'power fixture did not become ready'
+  wait_for_process "$qs_pid" 30 || rc=$?
+  if ((rc != 0)); then
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "power fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and .sharedIdentity == true and .busyObserved == true and
+    .diagnostics.profile == "balanced" and .diagnostics.chargeLimit == 100 and
+    .diagnostics.idleInhibited == false' "$state_dir/result.json" >/dev/null \
+    || {
+      jq . "$state_dir/result.json" >&2 || true
+      fail 'power fixture reported invalid state or action behavior'
+    }
+  [ "$(cat "$state_dir/threshold")" = 100 ] \
+    || fail 'power fixture charge-limit actions did not reach the fixture-only threshold'
+  [ "$(cat "$state_dir/actions.log")" = $'profile performance\nprofile power-saver\nprofile performance\nthreshold 75\nthreshold 100\nstasis toggle\nstasis toggle\nprofile power-saver\nprofile performance\nprofile balanced' ] \
+    || {
+      cat "$state_dir/actions.log" >&2
+      fail 'power fixture did not record exactly one command per action'
+    }
+  [ ! -s "$state_dir/overlap.log" ] \
+    || fail 'power fixture observed overlapping owned adapters'
+  ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+    || {
+      sed -n '1,240p' "$state_dir/quickshell.log" >&2
+      fail 'power fixture logged a binding or construction error'
+    }
+}
+
+run_power_destruction_probe() {
+  local mode=$1 state_dir strict_state qs_pid owned_pid owned_record strict_rc=0 rc=0
+  printf 'quickshell-services: run_power_destruction_probe %s\n' "$mode"
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-power-destruction.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal"
+  for command in upower powerprofilesctl stasis tee; do
+    ln -s "$audio_fixture_bin/$command" "$state_dir/fixture-bin/$command"
+  done
+  cp "$power_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$repo_root/home/configs/quickshell/services/PowerService.qml" "$state_dir/config/services/PowerService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/PowerModel.qml" "$state_dir/config/services/internal/PowerModel.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/PowerParser.js" "$state_dir/config/services/internal/PowerParser.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/power-probe" "$state_dir/config/services/internal/power-probe"
+  cat >"$state_dir/power-state" <<'EOF'
+BATTERY=1
+CHARGE_PERCENT=64
+BATTERY_STATE=discharging
+TIME_KIND=empty
+TIME_VALUE='2.5 hours'
+DRAW_WATTS=12.4
+ENERGY_FULL=52
+ENERGY_DESIGN=65
+EOF
+  if [ "$mode" = probe ]; then
+    strict_state="$state_dir/strict-slow"
+    mkdir -p "$strict_state"
+    cp "$state_dir/power-state" "$strict_state/power-state"
+    printf '1\n' >"$strict_state/slow-probe"
+    timeout 1 env QS_TEST_STATE_DIR="$strict_state" \
+      "$state_dir/fixture-bin/upower" -e extra >/dev/null 2>&1 || strict_rc=$?
+    ((strict_rc == 64)) \
+      || fail "fake upower slow mode did not reject extra enumerate arguments exactly (rc=${strict_rc})"
+  fi
+  printf 'balanced\n' >"$state_dir/profile"
+  printf 'no\n' >"$state_dir/stasis"
+  printf '80\n' >"$state_dir/threshold"
+  : >"$state_dir/actions.log"
+  : >"$state_dir/calls.log"
+  : >"$state_dir/overlap.log"
+  if [ "$mode" = probe ]; then
+    printf '1\n' >"$state_dir/slow-probe"
+  else
+    printf '1\n' >"$state_dir/slow-destruction-action"
+  fi
+
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" \
+    QS_POWER_THRESHOLD_PATH="$state_dir/threshold" QS_POWER_DESTRUCTION_MODE="$mode" \
+    QT_QPA_PLATFORM=offscreen "$quickshell_bin" --no-color -p "$state_dir/config" \
+    >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+  wait_for_path "$state_dir/ready" 10 || fail "power $mode destruction fixture did not become ready"
+  if [ "$mode" = probe ]; then
+    wait_for_path "$state_dir/slow-probe.pid" 10 || fail 'slow power probe did not start'
+    owned_pid=$(cat "$state_dir/slow-probe.pid")
+  else
+    wait_for_path "$state_dir/slow-action.pid" 10 || fail 'slow power action did not start'
+    owned_pid=$(cat "$state_dir/slow-action.pid")
+  fi
+  sleep 0.1
+  owned_record="$state_dir/owned.record"
+  write_process_identity_record "$owned_pid" "$owned_record"
+  kill -TERM "$qs_pid"
+  wait_for_process "$qs_pid" 10 || rc=$?
+  ((rc == 0 || rc == 143)) || fail "power $mode destruction fixture exited unexpectedly (rc=${rc})"
+  if wait_for_recorded_process "$owned_record" '' 3; then
+    :
+  else
+    rc=$?
+    ((rc != 124)) || fail "power $mode descendant survived shell destruction"
+  fi
+  ! recorded_pid_matches "$owned_record" '' \
+    || fail "power $mode descendant remained live after shell destruction"
+  [ ! -s "$state_dir/overlap.log" ] \
+    || fail "power $mode destruction fixture observed overlap"
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -932,6 +1083,8 @@ assert_no_view_processes_for_migrated_domains() {
   local media_model="$production_dir/services/internal/MediaModel.qml"
   local media_popup="$production_dir/MediaPopup.qml"
   local cava_service="$production_dir/services/CavaService.qml"
+  local power_service="$production_dir/services/PowerService.qml"
+  local power_model="$production_dir/services/internal/PowerModel.qml"
   local view
 
   rg -q '^import Quickshell\.Services\.Pipewire$' "$audio_backend" \
@@ -1047,6 +1200,47 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'Topbar.qml must render CavaService values directly'
   rg -q 'model:[[:space:]]*root\.cavaService\.values' "$media_popup" \
     || fail 'MediaPopup.qml must render CavaService values directly'
+
+  [ -f "$power_service" ] || fail 'PowerService.qml is missing'
+  [ -f "$power_model" ] || fail 'PowerModel.qml is missing'
+  rg -q 'Internal\.PowerModel[[:space:]]*\{' "$power_service" \
+    || fail 'PowerService.qml must compose the deep internal PowerModel'
+  [ "$(rg '^[[:space:]]*property' "$power_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = 'property bool detailedMonitoring: false' ] \
+    || fail 'PowerService.qml must expose only the narrow detailed-monitoring demand input'
+  [ "$(rg -o 'Services\.PowerService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one PowerService'
+  for view in Topbar.qml BatteryPopup.qml; do
+    rg -q 'required property Services\.PowerService powerService' "$production_dir/$view" \
+      || fail "$view must require PowerService"
+  done
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*powerService:[[:space:]]*powerService' "$shell" \
+    || fail 'production shell.qml does not wire PowerService directly to Topbar'
+  rg -U -q 'BatteryPopup[[:space:]]*\{[^}]*powerService:[[:space:]]*powerService' "$shell" \
+    || fail 'production shell.qml does not wire PowerService directly to BatteryPopup'
+  rg -U -q 'Services\.PowerService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*batteryPopup\.shown' "$shell" \
+    || fail 'production shell.qml must bind power cadence demand to BatteryPopup shown state'
+  rg -q 'interval:[[:space:]]*root\.detailedMonitoring \? 5000 : 30000' "$power_model" \
+    || fail 'PowerModel cadence must be five seconds shown and thirty seconds hidden'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|upower|powerprofilesctl|charge_control_end_threshold|stasis' \
+    "$production_dir/BatteryPopup.qml" \
+    || fail 'BatteryPopup.qml still owns power processes, timers, imports, or command construction'
+  ! rg -n 'batteryPercent|powerProfileOrder|property string powerProfile|setPowerProfile|powerprofilesctl|/sys/class/power_supply/BAT' \
+    "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml still owns power state, parsing, or command construction'
+  rg -U -q 'function batteryIcon\(\)[^{]*\{[^}]*if \(!topbarWindow\.powerService\.available\)[[:space:]]*return "󰁹"' \
+    "$production_dir/Topbar.qml" \
+    || fail 'Topbar unavailable battery icon no longer preserves the previous full/default visual'
+  rg -q 'powerService\.state === "full" \? "fully charged"' "$production_dir/BatteryPopup.qml" \
+    || fail 'BatteryPopup full state no longer renders as fully charged'
+  for signature in \
+    'function setProfile(profile: string): void' \
+    'function cycleProfile(direction: int): void' \
+    'function setChargeLimit(percent: int): void' \
+    'function toggleChargeLimit(): void' \
+    'function toggleIdleInhibit(): void'; do
+    rg -F -q "$signature" "$power_service" \
+      || fail "PowerService.qml is missing typed action signature: $signature"
+  done
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -1070,4 +1264,7 @@ run_process_cleanup_fixture
 run_native_construction_probes
 run_media_service_probe
 run_cava_service_probe
+run_power_service_probe
+run_power_destruction_probe probe
+run_power_destruction_probe action
 assert_no_view_processes_for_migrated_domains

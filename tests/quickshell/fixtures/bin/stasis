@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+printf 'stasis %s\n' "$*" >>"$state_dir/calls.log"
+active="$state_dir/active.stasis"
+if ! mkdir "$active" 2>/dev/null; then
+  printf 'stasis overlap\n' >>"$state_dir/overlap.log"
+  exit 70
+fi
+trap 'rmdir "$active" 2>/dev/null || true' EXIT
+
+case "${1:-}" in
+  info)
+    [ "$#" -eq 1 ] || exit 64
+    printf 'Manual Pause: %s\n' "$(cat "$state_dir/stasis")"
+    ;;
+  toggle-inhibit)
+    [ "$#" -eq 1 ] || exit 64
+    current=$(cat "$state_dir/stasis")
+    [ "$current" = yes ] && next=no || next=yes
+    printf '%s\n' "$next" >"$state_dir/stasis"
+    printf 'stasis toggle\n' >>"$state_dir/actions.log"
+    ;;
+  *)
+    exit 64
+    ;;
+esac

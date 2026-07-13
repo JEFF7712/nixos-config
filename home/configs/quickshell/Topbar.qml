@@ -11,6 +11,7 @@ PanelWindow {
     required property Services.AudioService audioService
     required property Services.MediaService mediaService
     required property Services.CavaService cavaService
+    required property Services.PowerService powerService
 
     property color themeFg
     property color themeBg
@@ -51,9 +52,6 @@ PanelWindow {
     property string ramUsage: "-"
     property string diskUsage: "-"
     property string networkIcon: "󰖪"
-    property string batteryPercent: ""
-    property string batteryIcon: "󰁹"
-    property string powerProfile: "balanced"
     property string activeTitle: "no active window"
     property int notificationCount: 0
     readonly property bool cavaRequested: mediaPill.visible
@@ -70,22 +68,8 @@ PanelWindow {
     signal systemClicked
     signal mediaClicked
 
-    readonly property var powerProfileOrder: ["power-saver", "balanced", "performance"]
-
     function run(cmd) {
         Quickshell.execDetached(["sh", "-c", cmd]);
-    }
-
-    function setPowerProfile(name) {
-        topbarWindow.run("powerprofilesctl set " + name);
-        topbarWindow.powerProfile = name;
-        statsProc.running = true;
-    }
-
-    function cyclePowerProfile() {
-        const order = topbarWindow.powerProfileOrder;
-        const idx = order.indexOf(topbarWindow.powerProfile);
-        topbarWindow.setPowerProfile(order[(idx + 1) % order.length]);
     }
 
     function volumeIcon() {
@@ -97,6 +81,23 @@ PanelWindow {
         if (percent < 67)
             return "󰖀";
         return "󰕾";
+    }
+
+    function batteryIcon() {
+        const percent = topbarWindow.powerService.chargePercent;
+        if (!topbarWindow.powerService.available)
+            return "󰁹";
+        if (topbarWindow.powerService.state === "charging")
+            return "󰂄";
+        if (percent > 90)
+            return "󰁹";
+        if (percent > 70)
+            return "󰂀";
+        if (percent > 40)
+            return "󰁾";
+        if (percent > 10)
+            return "󰁼";
+        return "󰂎";
     }
 
     WlrLayershell.namespace: "quickshell-topbar"
@@ -119,26 +120,18 @@ PanelWindow {
 
     Process {
         id: statsProc
-        command: ["sh", "-c", "cpu=$(awk '/^cpu / { if (!have) { u=$2+$4; t=$2+$3+$4+$5; have=1 } else { u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"; exit } }' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" + "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" + "dsk=$(df -P / 2>/dev/null | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}');" + "net=$(nmcli -t -f STATE general 2>/dev/null);" + "bc=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1);" + "bs=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1);" + "pp=$(powerprofilesctl get 2>/dev/null);" + "echo \"$cpu|$mem|$dsk|$net|$bc|$bs|$pp\""]
+        command: ["sh", "-c", "cpu=$(awk '/^cpu / { if (!have) { u=$2+$4; t=$2+$3+$4+$5; have=1 } else { u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"; exit } }' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" + "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" + "dsk=$(df -P / 2>/dev/null | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}');" + "net=$(nmcli -t -f STATE general 2>/dev/null);" + "echo \"$cpu|$mem|$dsk|$net\""]
         property string buffer: ""
         stdout: SplitParser {
             onRead: data => statsProc.buffer += data
         }
         onExited: {
             const p = statsProc.buffer.trim().split("|");
-            if (p.length >= 6) {
+            if (p.length >= 4) {
                 topbarWindow.cpuUsage = p[0] !== "" ? p[0] + "%" : "-";
                 topbarWindow.ramUsage = p[1] !== "" ? p[1] : "-";
                 topbarWindow.diskUsage = p[2] !== "" ? p[2] + "%" : "-";
                 topbarWindow.networkIcon = p[3] === "connected" ? "󰖩" : "󰖪";
-                const cap = parseInt(p[4]);
-                if (!isNaN(cap)) {
-                    topbarWindow.batteryPercent = cap + "%";
-                    topbarWindow.batteryIcon = p[5] === "Charging" ? "󰂄" : cap > 90 ? "󰁹" : cap > 70 ? "󰂀" : cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎";
-                }
-                if (p.length >= 7 && p[6] !== "") {
-                    topbarWindow.powerProfile = p[6];
-                }
             }
             statsProc.buffer = "";
         }
@@ -326,17 +319,12 @@ PanelWindow {
             }
             StatPill {
                 visible: topbarWindow.showBattery
-                icon: topbarWindow.batteryIcon
-                value: topbarWindow.batteryPercent === "100%" ? "" : topbarWindow.batteryPercent
+                icon: topbarWindow.batteryIcon()
+                value: !topbarWindow.powerService.available || topbarWindow.powerService.chargePercent === 100 ? "" : topbarWindow.powerService.chargePercent + "%"
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.batteryClicked()
-                onRightClicked: topbarWindow.cyclePowerProfile()
-                onScrolled: delta => {
-                    const order = topbarWindow.powerProfileOrder;
-                    const idx = order.indexOf(topbarWindow.powerProfile);
-                    const next = (idx + (delta > 0 ? 1 : -1) + order.length) % order.length;
-                    topbarWindow.setPowerProfile(order[next]);
-                }
+                onRightClicked: topbarWindow.powerService.cycleProfile(1)
+                onScrolled: delta => topbarWindow.powerService.cycleProfile(delta > 0 ? 1 : -1)
             }
             StatPill {
                 visible: topbarWindow.showNotifications && topbarWindow.notificationCount > 0

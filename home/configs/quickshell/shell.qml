@@ -23,6 +23,11 @@ ShellRoot {
         requested: topbar.cavaRequested || mediaPopup.active
     }
 
+    Services.PowerService {
+        id: powerService
+        detailedMonitoring: batteryPopup.shown
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -185,6 +190,7 @@ ShellRoot {
         audioService: audioService
         mediaService: mediaService
         cavaService: cavaService
+        powerService: powerService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -283,6 +289,7 @@ ShellRoot {
 
     BatteryPopup {
         id: batteryPopup
+        powerService: powerService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
@@ -296,8 +303,6 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
-        powerProfile: topbar.powerProfile
-        onSelectProfile: name => topbar.setPowerProfile(name)
     }
 
     CalendarPopup {

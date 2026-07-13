@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -u
+
+tmp_dir=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/quickshell-power-probe.XXXXXX")
+child_pid=
+
+cleanup() {
+  trap - EXIT TERM INT
+  if [ -n "$child_pid" ]; then
+    kill -TERM "$child_pid" 2>/dev/null || true
+    wait "$child_pid" 2>/dev/null || true
+  fi
+  rm -rf -- "$tmp_dir"
+}
+
+trap 'cleanup; exit 143' TERM INT
+trap cleanup EXIT
+
+run_adapter() {
+  local output=$1
+  shift
+  setpriv --pdeathsig TERM -- "$@" >"$output" 2>/dev/null &
+  child_pid=$!
+  wait "$child_pid" 2>/dev/null
+  local status=$?
+  child_pid=
+  return "$status"
+}
+
+run_adapter "$tmp_dir/devices" upower -e || true
+dev=$(grep -i BAT "$tmp_dir/devices" | head -n1 || true)
+
+printf 'snapshot|1\n'
+if [ -n "$dev" ]; then
+  run_adapter "$tmp_dir/battery" upower -i "$dev" || true
+  printf 'battery|1\n'
+  printf 'charge|%s\n' "$(awk -F: '/^[ \t]*percentage[ \t]*:/{gsub(/^[ \t]+/,"",$2); print $2; exit}' "$tmp_dir/battery")"
+  printf 'state|%s\n' "$(awk -F: '/^[ \t]*state[ \t]*:/{gsub(/^[ \t]+/,"",$2); print $2; exit}' "$tmp_dir/battery")"
+  printf 'time|%s\n' "$(awk -F: '/^[ \t]*time to (empty|full)[ \t]*:/{gsub(/^[ \t]+/,"",$2); print $2; exit}' "$tmp_dir/battery")"
+  printf 'draw|%s\n' "$(awk -F: '/^[ \t]*energy-rate[ \t]*:/{gsub(/^[ \t]+/,"",$2); print $2; exit}' "$tmp_dir/battery")"
+  printf 'full|%s\n' "$(awk -F: '/^[ \t]*energy-full[ \t]*:/{gsub(/^[ \t]+/,"",$2); print $2; exit}' "$tmp_dir/battery")"
+  printf 'design|%s\n' "$(awk -F: '/^[ \t]*energy-full-design[ \t]*:/{gsub(/^[ \t]+/,"",$2); print $2; exit}' "$tmp_dir/battery")"
+else
+  printf 'battery|0\ncharge|\nstate|\ntime|\ndraw|\nfull|\ndesign|\n'
+fi
+
+run_adapter "$tmp_dir/profile" powerprofilesctl get || true
+printf 'profile|%s\n' "$(cat "$tmp_dir/profile")"
+
+threshold=${QS_POWER_THRESHOLD_PATH:-/sys/class/power_supply/BAT0/charge_control_end_threshold}
+if [ -e "$threshold" ]; then
+  writable=0
+  [ -w "$threshold" ] && writable=1
+  printf 'threshold|%s|%s\n' "$(cat "$threshold" 2>/dev/null || true)" "$writable"
+else
+  printf 'threshold|absent\n'
+fi
+
+run_adapter "$tmp_dir/stasis" stasis info || true
+printf 'stasis|%s\n' "$(awk -F': *' '/^Manual Pause/{print $2; exit}' "$tmp_dir/stasis")"

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+real_tee=${QS_TEST_REAL_TEE:?QS_TEST_REAL_TEE is required}
+[ "$#" -eq 1 ] || exit 64
+[ "$1" = "$state_dir/threshold" ] || exit 64
+IFS= read -r value
+[[ "$value" =~ ^[0-9]+$ ]] || exit 64
+printf 'threshold %s\n' "$value" >>"$state_dir/actions.log"
+printf '%s\n' "$value" | "$real_tee" "$1"
