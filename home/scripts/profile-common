@@ -381,6 +381,15 @@ stop_mako() {
   pkill -x '\.?mako(-wrapped)?' 2>/dev/null || true
 }
 
+wait_for_mako_shutdown() {
+  local attempts="${1:-20}"
+  for _ in $(seq 1 "$attempts"); do
+    mako_running || return 0
+    sleep 0.1
+  done
+  return 1
+}
+
 start_mako() {
   mako_running || {
     mako 9>&- 2>/dev/null &
@@ -390,10 +399,7 @@ start_mako() {
 
 restart_mako() {
   stop_mako
-  for _ in $(seq 1 10); do
-    mako_running || break
-    sleep 0.1
-  done
+  wait_for_mako_shutdown 10 || true
   start_mako
 }
 

@@ -885,6 +885,34 @@ HOME="$home" XDG_CONFIG_HOME="$home/.config" \
 assert_eq quickshell "$(cat "$notification_state")" \
   "Quickshell starts only after Mako releases notification ownership"
 
+# A Waybar-to-Waybar transition must wait for the old Mako process to disappear
+# before deciding whether to launch its replacement. A stale owner string is not
+# enough: the replacement fake must remain alive after commit.
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'started\n' > "$bar_state"
+printf 'mako\n' > "$notification_state"
+rm -rf "$persistent_pid_dir"
+mkdir -p "$persistent_pid_dir"
+: > "$log"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  MAKO_STOP_POLLS=3 PERSISTENT_CHILDREN=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new
+for _ in $(seq 1 20); do
+  [ -f "$persistent_pid_dir/mako" ] && break
+  sleep 0.05
+done
+[ -f "$persistent_pid_dir/mako" ] || {
+  printf 'FAIL: Waybar transition did not leave a replacement Mako running\n' >&2
+  exit 1
+}
+assert_eq mako "$(cat "$notification_state")" \
+  "Waybar replacement Mako owns notifications after commit"
+stop_persistent_children
+
 # A ready bar process is insufficient when its notification owner is absent.
 printf 'noc\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
