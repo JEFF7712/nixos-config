@@ -27,13 +27,20 @@ require_executable home/scripts/new-nixos-module
 require_executable home/scripts/new-home-module
 require_executable home/scripts/agent-self-improve
 
+git_metadata_fixture=checks/.git/agent-invariants-hardcoded-path-test
+mkdir -p "${git_metadata_fixture%/*}"
+printf '/home/rupan/%s\n' nixos >"$git_metadata_fixture"
 if ! invariants_output=$(bash checks/agent-invariants.bash 2>&1); then
+  rm -f "$git_metadata_fixture"
+  rmdir "${git_metadata_fixture%/*}" 2>/dev/null || true
   if grep -Eq '(^|/|:)\.git(:|/)' <<<"$invariants_output"; then
     echo "agent invariants scanned Git metadata:" >&2
   fi
   printf '%s\n' "$invariants_output" >&2
   exit 1
 fi
+rm -f "$git_metadata_fixture"
+rmdir "${git_metadata_fixture%/*}" 2>/dev/null || true
 
 invariant_fixture=checks/.agent-invariants-hardcoded-path-test
 printf '/home/rupan/%s\n' nixos >"$invariant_fixture"
