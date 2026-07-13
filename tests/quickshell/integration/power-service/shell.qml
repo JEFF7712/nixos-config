@@ -11,7 +11,6 @@ ShellRoot {
     property int phase: 0
     property double phaseStarted: Date.now()
     property bool busyObserved: false
-    property var stableState: ({})
     property int probeBaseline: 0
     property QtObject consumerOne: QtObject {
         property var service: powerService
@@ -33,13 +32,6 @@ ShellRoot {
     }
     function scalars(): var {
         return {
-            available: powerService.available,
-            chargePercent: powerService.chargePercent,
-            state: powerService.state,
-            secondsRemaining: powerService.secondsRemaining,
-            drawWatts: powerService.drawWatts,
-            healthPercent: powerService.healthPercent,
-            profile: powerService.profile,
             chargeLimit: powerService.chargeLimit,
             thresholdWritable: powerService.thresholdWritable,
             idleInhibited: powerService.idleInhibited,
@@ -49,7 +41,7 @@ ShellRoot {
     function probeCount(): int {
         callsFile.reload();
         callsFile.waitForJob();
-        return callsFile.text().split("\n").filter(line => line.trim() === "upower -e").length;
+        return callsFile.text().split("\n").filter(line => line.trim() === "stasis info").length;
     }
     function fail(message): void {
         resultFile.setText(JSON.stringify({
@@ -81,21 +73,6 @@ ShellRoot {
         blockWrites: true
     }
     FileView {
-        id: malformedFile
-        path: root.stateDir + "/malformed-upower"
-        blockWrites: true
-    }
-    FileView {
-        id: missingProfileFile
-        path: root.stateDir + "/profile-daemon-missing"
-        blockWrites: true
-    }
-    FileView {
-        id: slowActionFile
-        path: root.stateDir + "/slow-action"
-        blockWrites: true
-    }
-    FileView {
         id: callsFile
         path: root.stateDir + "/calls.log"
         blockLoading: true
@@ -111,9 +88,9 @@ ShellRoot {
             if (root.destructionMode === "probe")
                 return;
             if (root.destructionMode === "action") {
-                if (powerService.available && root.phase === 0) {
+                if (root.phase === 0) {
                     root.phase = 1;
-                    powerService.setProfile("performance");
+                    powerService.toggleIdleInhibit();
                 }
                 return;
             }
@@ -122,10 +99,9 @@ ShellRoot {
             if (powerService.busy)
                 root.busyObserved = true;
 
-            if (root.phase === 0 && powerService.available && powerService.profile === "balanced") {
-                if (powerService.chargePercent !== 64 || powerService.state !== "discharging" || powerService.secondsRemaining !== 9000 || powerService.healthPercent !== 80 || powerService.chargeLimit !== 80 || !powerService.thresholdWritable || powerService.idleInhibited)
-                    return root.fail("initial state mismatch");
-                root.stableState = root.scalars();
+            if (root.phase === 0 && !powerService.busy) {
+                if (powerService.chargeLimit !== 80 || !powerService.thresholdWritable || powerService.idleInhibited)
+                    return root.fail("initial adapter state mismatch");
                 root.probeBaseline = root.probeCount();
                 root.advance();
             } else if (root.phase === 1 && root.elapsed() >= 5500) {
@@ -145,45 +121,23 @@ ShellRoot {
             } else if (root.phase === 4 && root.elapsed() >= 5500) {
                 if (root.probeCount() !== root.probeBaseline)
                     return root.fail("hidden cadence did not resume at 30 seconds");
-                malformedFile.setText("1\n");
                 root.probeBaseline = root.probeCount();
-                powerService.setProfile("performance");
-                root.advance();
-            } else if (root.phase === 5 && root.probeCount() === root.probeBaseline + 1 && powerService.profile === "performance" && !powerService.busy) {
-                if (powerService.chargePercent !== root.stableState.chargePercent)
-                    return root.fail("malformed probe replaced last valid battery state");
-                malformedFile.setText("");
-                powerService.cycleProfile(1);
-                root.advance();
-            } else if (root.phase === 6 && powerService.profile === "power-saver" && !powerService.busy) {
-                powerService.cycleProfile(-1);
-                root.advance();
-            } else if (root.phase === 7 && powerService.profile === "performance" && !powerService.busy) {
                 powerService.setChargeLimit(75);
                 root.advance();
-            } else if (root.phase === 8 && powerService.chargeLimit === 75 && !powerService.busy) {
+            } else if (root.phase === 5 && powerService.chargeLimit === 75 && !powerService.busy) {
                 powerService.toggleChargeLimit();
                 root.advance();
-            } else if (root.phase === 9 && powerService.chargeLimit === 100 && !powerService.busy) {
+            } else if (root.phase === 6 && powerService.chargeLimit === 100 && !powerService.busy) {
                 powerService.toggleIdleInhibit();
                 root.advance();
-            } else if (root.phase === 10 && powerService.idleInhibited && !powerService.busy) {
-                missingProfileFile.setText("1\n");
-                powerService.toggleIdleInhibit();
-                root.advance();
-            } else if (root.phase === 11 && !powerService.idleInhibited && powerService.profile === "unknown" && !powerService.busy) {
-                missingProfileFile.setText("");
-                slowActionFile.setText("1\n");
+            } else if (root.phase === 7 && powerService.idleInhibited && !powerService.busy) {
                 root.probeBaseline = root.probeCount();
-                powerService.setProfile("power-saver");
-                powerService.setProfile("performance");
-                powerService.setProfile("balanced");
+                powerService.toggleIdleInhibit();
+                powerService.toggleIdleInhibit();
                 root.advance();
-            } else if (root.phase === 12 && powerService.profile === "balanced" && !powerService.busy && root.probeCount() >= root.probeBaseline + 1) {
+            } else if (root.phase === 8 && powerService.idleInhibited && !powerService.busy && root.probeCount() === root.probeBaseline + 1) {
                 if (!root.busyObserved)
                     return root.fail("busy was never observable");
-                if (root.probeCount() !== root.probeBaseline + 1)
-                    return root.fail("rapid actions did not coalesce to one reconciliation");
                 finish();
             }
         }

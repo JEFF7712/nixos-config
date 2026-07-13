@@ -36,8 +36,13 @@ Scope {
         model.toggleIdleInhibit();
     }
 
+    Internal.UPowerBackend {
+        id: backend
+    }
+
     Internal.PowerModel {
         id: model
+        backend: backend
         detailedMonitoring: root.detailedMonitoring
     }
 }

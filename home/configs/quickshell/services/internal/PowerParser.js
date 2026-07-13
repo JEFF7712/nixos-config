@@ -9,37 +9,6 @@ function scalar(value) {
     return isFinite(parsed) ? parsed : NaN;
 }
 
-function durationSeconds(value) {
-    var match = String(value || "").trim().toLowerCase().match(/^([0-9]+(?:\.[0-9]+)?)\s+(seconds?|minutes?|hours?|days?)$/);
-    if (!match)
-        return 0;
-    var amount = parseFloat(match[1]);
-    var unit = match[2];
-    if (unit.indexOf("day") === 0)
-        return amount * 86400;
-    if (unit.indexOf("hour") === 0)
-        return amount * 3600;
-    if (unit.indexOf("minute") === 0)
-        return amount * 60;
-    return amount;
-}
-
-function batteryState(value) {
-    var normalized = String(value || "").trim().toLowerCase();
-    if (normalized === "fully-charged" || normalized === "full")
-        return "full";
-    if (["charging", "discharging", "pending-charge", "pending-discharge"].indexOf(normalized) !== -1)
-        return normalized;
-    return "unknown";
-}
-
-function profileState(value) {
-    var normalized = String(value || "").trim().toLowerCase();
-    if (["power-saver", "balanced", "performance"].indexOf(normalized) !== -1)
-        return normalized;
-    return "unknown";
-}
-
 function fields(text) {
     var result = {};
     var lines = String(text || "").split("\n");
@@ -103,6 +72,9 @@ function reduceAdapterResult(previous, domain, succeeded) {
     return errors;
 }
 
+// Narrow adapter snapshot: covers only the threshold and stasis subprocess
+// adapters this service still owns. Battery and profile state come from the
+// native UPower/PowerProfiles backend (see reduceNativeBattery/reduceNativeProfile).
 function reduceSnapshot(previous, text, exitCode) {
     if ((exitCode || 0) !== 0)
         return previous;
@@ -110,31 +82,6 @@ function reduceSnapshot(previous, text, exitCode) {
     if (values.snapshot !== "1")
         return previous;
     var next = copyState(previous);
-
-    if (values.battery === "0") {
-        next.available = false;
-        next.chargePercent = 0;
-        next.state = "unknown";
-        next.secondsRemaining = 0;
-        next.drawWatts = 0;
-        next.healthPercent = 0;
-    } else if (values.battery === "1") {
-        var charge = scalar(String(values.charge || "").replace("%", ""));
-        var draw = scalar(values.draw);
-        var full = scalar(values.full);
-        var design = scalar(values.design);
-        if (isFinite(charge) && isFinite(draw) && isFinite(full) && isFinite(design)) {
-            next.available = true;
-            next.chargePercent = Math.round(clamp(charge, 0, 100));
-            next.state = batteryState(values.state);
-            next.secondsRemaining = durationSeconds(values.time);
-            next.drawWatts = Math.max(0, draw);
-            next.healthPercent = design > 0 ? Math.round(clamp(full * 100 / design, 0, 100)) : 0;
-        }
-    }
-
-    if (values.profile !== undefined)
-        next.profile = profileState(values.profile);
 
     if (values.threshold === "absent") {
         next.chargeLimit = 100;
@@ -170,4 +117,78 @@ function parseSnapshot(text, exitCode) {
     if ((exitCode || 0) !== 0 || fields(text).snapshot !== "1")
         return null;
     return reduceSnapshot(initialState(), text, exitCode);
+}
+
+// Native UPower/PowerProfiles enum normalization ---------------------------
+//
+// Quickshell.Services.UPower exposes UPowerDeviceState::Enum and
+// PowerProfile::Enum as plain integers in QML. Their values are stable
+// (declared explicitly in the Quickshell C++ headers), so normalization can
+// be done with a pure lookup table, independent of any QML/Quickshell import.
+
+var DEVICE_STATE_NAMES = [
+    "unknown", // UPowerDeviceState.Unknown = 0
+    "charging", // UPowerDeviceState.Charging = 1
+    "discharging", // UPowerDeviceState.Discharging = 2
+    "unknown", // UPowerDeviceState.Empty = 3 (no design state for depleted-but-idle)
+    "full", // UPowerDeviceState.FullyCharged = 4
+    "pending-charge", // UPowerDeviceState.PendingCharge = 5
+    "pending-discharge" // UPowerDeviceState.PendingDischarge = 6
+];
+
+var PROFILE_NAMES = [
+    "power-saver", // PowerProfile.PowerSaver = 0
+    "balanced", // PowerProfile.Balanced = 1
+    "performance" // PowerProfile.Performance = 2
+];
+
+function nativeBatteryState(value) {
+    var index = Math.trunc(Number(value));
+    if (!isFinite(index) || index < 0 || index >= DEVICE_STATE_NAMES.length)
+        return "unknown";
+    return DEVICE_STATE_NAMES[index];
+}
+
+function nativeProfileState(value) {
+    var index = Math.trunc(Number(value));
+    if (!isFinite(index) || index < 0 || index >= PROFILE_NAMES.length)
+        return "unknown";
+    return PROFILE_NAMES[index];
+}
+
+// Reduces a native battery observation (from the UPower backend) into the
+// public battery fields, retaining the last valid reading whenever the
+// snapshot is transiently invalid (device not ready, absent, or not a
+// laptop battery) instead of resetting to zero/unknown.
+function reduceNativeBattery(previous, observation) {
+    var next = copyState(previous);
+    var obs = observation || {};
+    var valid = obs.ready === true && obs.isPresent === true && obs.isLaptopBattery === true && typeof obs.percentage === "number" && isFinite(obs.percentage);
+
+    if (!valid) {
+        next.available = false;
+        return next;
+    }
+
+    var state = nativeBatteryState(obs.stateValue);
+    var timeToEmpty = Math.max(0, scalar(obs.timeToEmpty) || 0);
+    var timeToFull = Math.max(0, scalar(obs.timeToFull) || 0);
+    var usesChargeTime = state === "charging" || state === "pending-charge";
+
+    next.available = true;
+    next.chargePercent = Math.round(clamp(obs.percentage * 100, 0, 100));
+    next.state = state;
+    next.secondsRemaining = usesChargeTime ? timeToFull : timeToEmpty;
+    next.drawWatts = Math.abs(scalar(obs.changeRate) || 0);
+    next.healthPercent = Math.round(clamp(scalar(obs.healthPercentage) || 0, 0, 100));
+    return next;
+}
+
+// PowerProfiles has no availability property and defaults to Balanced before
+// power-profiles-daemon responds (or if it is absent entirely), so this
+// reducer never marks profile state as unavailable; it only normalizes.
+function reduceNativeProfile(previous, profileValue) {
+    var next = copyState(previous);
+    next.profile = nativeProfileState(profileValue);
+    return next;
 }

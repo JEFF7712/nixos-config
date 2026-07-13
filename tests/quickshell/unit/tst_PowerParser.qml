@@ -7,94 +7,30 @@ TestCase {
 
     function snapshot(overrides) {
         const values = {
-            battery: "1",
-            charge: "64%",
-            state: "discharging",
-            time: "2.5 hours",
-            draw: "12.4 W",
-            full: "52 Wh",
-            design: "65 Wh",
-            profile: "balanced",
             threshold: "80|1",
             stasis: "no"
         };
         for (const key in overrides || {})
             values[key] = overrides[key];
-        return "snapshot|1\n" + "battery|" + values.battery + "\n" + "charge|" + values.charge + "\n" + "state|" + values.state + "\n" + "time|" + values.time + "\n" + "draw|" + values.draw + "\n" + "full|" + values.full + "\n" + "design|" + values.design + "\n" + "profile|" + values.profile + "\n" + "threshold|" + values.threshold + "\n" + "stasis|" + values.stasis + "\n";
+        return "snapshot|1\n" + "threshold|" + values.threshold + "\n" + "stasis|" + values.stasis + "\n";
     }
 
-    function test_noBatteryNormalizesUnavailable() {
-        const parsed = PowerParser.parseSnapshot(snapshot({
-            battery: "0",
-            charge: "",
-            state: "",
-            time: "",
-            draw: "",
-            full: "",
-            design: "",
-            threshold: "absent"
-        }));
-        verify(parsed !== null);
-        verify(!parsed.available);
-        compare(parsed.chargePercent, 0);
-        compare(parsed.state, "unknown");
-        compare(parsed.secondsRemaining, 0);
-        compare(parsed.drawWatts, 0);
-        compare(parsed.healthPercent, 0);
-        compare(parsed.chargeLimit, 100);
-        verify(!parsed.thresholdWritable);
-    }
-
-    function test_batteryStatesAndTimesNormalize() {
-        const charging = PowerParser.parseSnapshot(snapshot({
-            state: "charging",
-            time: "45 minutes"
-        }));
-        compare(charging.state, "charging");
-        compare(charging.secondsRemaining, 2700);
-        compare(PowerParser.parseSnapshot(snapshot({
-            state: "discharging"
-        })).state, "discharging");
-        compare(PowerParser.parseSnapshot(snapshot({
-            state: "fully-charged",
-            time: "unknown"
-        })).state, "full");
-        compare(PowerParser.parseSnapshot(snapshot({
-            state: "pending-charge"
-        })).state, "pending-charge");
-        compare(PowerParser.parseSnapshot(snapshot({
-            state: "pending-discharge"
-        })).state, "pending-discharge");
-    }
-
-    function test_chargeRateHealthAndBoundsNormalize() {
-        const parsed = PowerParser.parseSnapshot(snapshot({
-            charge: "105%",
-            draw: "8.75 W",
-            full: "49.5 Wh",
-            design: "60 Wh"
-        }));
-        compare(parsed.chargePercent, 100);
-        compare(parsed.drawWatts, 8.75);
-        compare(parsed.healthPercent, 83);
-    }
-
-    function test_profileEnumAndMissingDaemonNormalize() {
-        compare(PowerParser.parseSnapshot(snapshot({
-            profile: "power-saver"
-        })).profile, "power-saver");
-        compare(PowerParser.parseSnapshot(snapshot({
-            profile: "balanced"
-        })).profile, "balanced");
-        compare(PowerParser.parseSnapshot(snapshot({
-            profile: "performance"
-        })).profile, "performance");
-        compare(PowerParser.parseSnapshot(snapshot({
-            profile: ""
-        })).profile, "unknown");
-        compare(PowerParser.parseSnapshot(snapshot({
-            profile: "custom"
-        })).profile, "unknown");
+    function nativeBattery(overrides) {
+        const observation = {
+            ready: true,
+            isPresent: true,
+            isLaptopBattery: true,
+            percentage: 0.64,
+            stateValue: 2 // Discharging
+            ,
+            timeToEmpty: 9000,
+            timeToFull: 0,
+            changeRate: -12.4,
+            healthPercentage: 80
+        };
+        for (const key in overrides || {})
+            observation[key] = overrides[key];
+        return observation;
     }
 
     function test_thresholdAbsentReadOnlyAndWritableNormalize() {
@@ -148,50 +84,20 @@ TestCase {
 
     function test_malformedOrFailedSnapshotPreservesLastValid() {
         const previous = PowerParser.parseSnapshot(snapshot({
-            charge: "72%",
-            profile: "performance"
+            threshold: "72|1"
         }));
         compare(PowerParser.reduceSnapshot(previous, "not a snapshot"), previous);
-        const batteryMalformed = PowerParser.reduceSnapshot(previous, snapshot({
-            charge: "bad"
-        }));
-        compare(batteryMalformed.chargePercent, previous.chargePercent);
-        compare(batteryMalformed.state, previous.state);
         compare(PowerParser.reduceSnapshot(previous, snapshot(), 1), previous);
     }
 
-    function test_malformedBatteryDoesNotBlockOtherDomains() {
+    function test_malformedThresholdDoesNotBlockStasis() {
         const previous = PowerParser.parseSnapshot(snapshot({
-            charge: "72%",
-            profile: "balanced",
-            threshold: "80|1",
-            stasis: "no"
+            threshold: "80|1"
         }));
         const reduced = PowerParser.reduceSnapshot(previous, snapshot({
-            charge: "bad",
-            profile: "performance",
-            threshold: "75|0",
-            stasis: "yes"
-        }));
-        compare(reduced.chargePercent, 72);
-        compare(reduced.profile, "performance");
-        compare(reduced.chargeLimit, 75);
-        verify(!reduced.thresholdWritable);
-        verify(reduced.idleInhibited);
-    }
-
-    function test_malformedThresholdDoesNotBlockOtherDomains() {
-        const previous = PowerParser.parseSnapshot(snapshot({threshold: "80|1"}));
-        const reduced = PowerParser.reduceSnapshot(previous, snapshot({
-            charge: "55%",
-            state: "charging",
-            profile: "power-saver",
             threshold: "invalid",
             stasis: "yes"
         }));
-        compare(reduced.chargePercent, 55);
-        compare(reduced.state, "charging");
-        compare(reduced.profile, "power-saver");
         compare(reduced.chargeLimit, 80);
         verify(reduced.thresholdWritable);
         verify(reduced.idleInhibited);
@@ -243,5 +149,131 @@ TestCase {
         const unrelated = PowerParser.reduceAdapterResult(thresholdFailed, "profile", true);
         compare(unrelated.thresholdError, "threshold action failed");
         compare(unrelated.stasisError, "");
+    }
+
+    function test_nativeBatteryStateNormalizesAllDesignStates() {
+        compare(PowerParser.nativeBatteryState(0), "unknown"); // Unknown
+        compare(PowerParser.nativeBatteryState(1), "charging"); // Charging
+        compare(PowerParser.nativeBatteryState(2), "discharging"); // Discharging
+        compare(PowerParser.nativeBatteryState(3), "unknown"); // Empty
+        compare(PowerParser.nativeBatteryState(4), "full"); // FullyCharged
+        compare(PowerParser.nativeBatteryState(5), "pending-charge"); // PendingCharge
+        compare(PowerParser.nativeBatteryState(6), "pending-discharge"); // PendingDischarge
+        compare(PowerParser.nativeBatteryState(7), "unknown");
+        compare(PowerParser.nativeBatteryState(-1), "unknown");
+        compare(PowerParser.nativeBatteryState(NaN), "unknown");
+        compare(PowerParser.nativeBatteryState(undefined), "unknown");
+    }
+
+    function test_nativeProfileStateNormalizesAllProfiles() {
+        compare(PowerParser.nativeProfileState(0), "power-saver");
+        compare(PowerParser.nativeProfileState(1), "balanced");
+        compare(PowerParser.nativeProfileState(2), "performance");
+        compare(PowerParser.nativeProfileState(3), "unknown");
+        compare(PowerParser.nativeProfileState(-1), "unknown");
+        compare(PowerParser.nativeProfileState(NaN), "unknown");
+    }
+
+    function test_reduceNativeProfileNeverMarksUnavailable() {
+        const previous = PowerParser.initialState();
+        compare(PowerParser.reduceNativeProfile(previous, 0).profile, "power-saver");
+        compare(PowerParser.reduceNativeProfile(previous, 1).profile, "balanced");
+        compare(PowerParser.reduceNativeProfile(previous, 2).profile, "performance");
+        compare(PowerParser.reduceNativeProfile(previous, 99).profile, "unknown");
+    }
+
+    function test_reduceNativeBatteryNormalizesValidObservation() {
+        const previous = PowerParser.initialState();
+        const reduced = PowerParser.reduceNativeBattery(previous, nativeBattery());
+        verify(reduced.available);
+        compare(reduced.chargePercent, 64);
+        compare(reduced.state, "discharging");
+        compare(reduced.secondsRemaining, 9000);
+        compare(reduced.drawWatts, 12.4);
+        compare(reduced.healthPercent, 80);
+    }
+
+    function test_reduceNativeBatteryPicksTimeToFullWhileCharging() {
+        const previous = PowerParser.initialState();
+        const reduced = PowerParser.reduceNativeBattery(previous, nativeBattery({
+            stateValue: 1 // Charging
+            ,
+            timeToEmpty: 0,
+            timeToFull: 2700,
+            changeRate: 8.75
+        }));
+        compare(reduced.state, "charging");
+        compare(reduced.secondsRemaining, 2700);
+        compare(reduced.drawWatts, 8.75);
+    }
+
+    function test_reduceNativeBatteryPicksTimeToFullWhilePendingCharge() {
+        const previous = PowerParser.initialState();
+        const reduced = PowerParser.reduceNativeBattery(previous, nativeBattery({
+            stateValue: 5 // PendingCharge
+            ,
+            timeToEmpty: 0,
+            timeToFull: 1800
+        }));
+        compare(reduced.state, "pending-charge");
+        compare(reduced.secondsRemaining, 1800);
+    }
+
+    function test_reduceNativeBatteryClampsPercentAndHealth() {
+        const previous = PowerParser.initialState();
+        const reduced = PowerParser.reduceNativeBattery(previous, nativeBattery({
+            percentage: 1.2,
+            healthPercentage: 130
+        }));
+        compare(reduced.chargePercent, 100);
+        compare(reduced.healthPercent, 100);
+    }
+
+    function test_reduceNativeBatteryRetainsLastValidFieldsWhenTransientlyInvalid() {
+        const previous = PowerParser.reduceNativeBattery(PowerParser.initialState(), nativeBattery());
+        verify(previous.available);
+
+        const notReady = PowerParser.reduceNativeBattery(previous, nativeBattery({
+            ready: false
+        }));
+        verify(!notReady.available);
+        compare(notReady.chargePercent, previous.chargePercent);
+        compare(notReady.state, previous.state);
+        compare(notReady.secondsRemaining, previous.secondsRemaining);
+        compare(notReady.drawWatts, previous.drawWatts);
+        compare(notReady.healthPercent, previous.healthPercent);
+
+        const notPresent = PowerParser.reduceNativeBattery(previous, nativeBattery({
+            isPresent: false
+        }));
+        verify(!notPresent.available);
+        compare(notPresent.chargePercent, previous.chargePercent);
+
+        const notLaptopBattery = PowerParser.reduceNativeBattery(previous, nativeBattery({
+            isLaptopBattery: false
+        }));
+        verify(!notLaptopBattery.available);
+        compare(notLaptopBattery.chargePercent, previous.chargePercent);
+
+        const invalidPercentage = PowerParser.reduceNativeBattery(previous, nativeBattery({
+            percentage: NaN
+        }));
+        verify(!invalidPercentage.available);
+        compare(invalidPercentage.chargePercent, previous.chargePercent);
+
+        const missingObservation = PowerParser.reduceNativeBattery(previous, undefined);
+        verify(!missingObservation.available);
+        compare(missingObservation.chargePercent, previous.chargePercent);
+    }
+
+    function test_reduceNativeBatteryDoesNotAffectAdapterFields() {
+        const previous = PowerParser.reduceSnapshot(PowerParser.initialState(), snapshot({
+            threshold: "75|1",
+            stasis: "yes"
+        }));
+        const reduced = PowerParser.reduceNativeBattery(previous, nativeBattery());
+        compare(reduced.chargeLimit, 75);
+        verify(reduced.thresholdWritable);
+        verify(reduced.idleInhibited);
     }
 }

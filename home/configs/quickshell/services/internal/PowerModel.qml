@@ -6,6 +6,7 @@ import "PowerParser.js" as PowerParser
 Scope {
     id: root
 
+    required property var backend
     property bool detailedMonitoring: false
 
     property bool _available: false
@@ -58,19 +59,31 @@ Scope {
         };
     }
 
-    function _apply(state): void {
+    function _applyAdapters(state): void {
+        _chargeLimit = state.chargeLimit;
+        _thresholdWritable = state.thresholdWritable;
+        _idleInhibited = state.idleInhibited;
+        _thresholdError = state.thresholdError;
+        _stasisError = state.stasisError;
+    }
+
+    function _applyBattery(state): void {
         _available = state.available;
         _chargePercent = state.chargePercent;
         _state = state.state;
         _secondsRemaining = state.secondsRemaining;
         _drawWatts = state.drawWatts;
         _healthPercent = state.healthPercent;
-        _profile = state.profile;
-        _chargeLimit = state.chargeLimit;
-        _thresholdWritable = state.thresholdWritable;
-        _idleInhibited = state.idleInhibited;
-        _thresholdError = state.thresholdError;
-        _stasisError = state.stasisError;
+    }
+
+    function _reconcileBattery(): void {
+        const observation = root.backend ? root.backend.batteryObservation : null;
+        root._applyBattery(PowerParser.reduceNativeBattery(root._stateObject(), observation));
+    }
+
+    function _reconcileProfile(): void {
+        const value = root.backend ? root.backend.profileValue : -1;
+        root._profile = PowerParser.reduceNativeProfile(root._stateObject(), value).profile;
     }
 
     function _enqueue(command, kind, errorDomain): void {
@@ -110,8 +123,8 @@ Scope {
     function setProfile(profile: string): void {
         if (["power-saver", "balanced", "performance"].indexOf(profile) === -1)
             return;
-        _profile = profile;
-        _action(["setpriv", "--pdeathsig", "TERM", "--", "powerprofilesctl", "set", profile], "");
+        if (root.backend)
+            root.backend.setProfile(profile);
     }
 
     function cycleProfile(direction: int): void {
@@ -138,7 +151,11 @@ Scope {
         _action(["setpriv", "--pdeathsig", "TERM", "--", "stasis", "toggle-inhibit"], "stasis");
     }
 
-    Component.onCompleted: _requestProbe()
+    Component.onCompleted: {
+        root._reconcileBattery();
+        root._reconcileProfile();
+        root._requestProbe();
+    }
     Component.onDestruction: {
         pollTimer.stop();
         refreshDebounce.stop();
@@ -152,14 +169,25 @@ Scope {
             _requestProbe();
     }
 
+    property Connections backendConnections: Connections {
+        target: root.backend
+
+        function onBatteryObservationChanged(): void {
+            root._reconcileBattery();
+        }
+
+        function onProfileValueChanged(): void {
+            root._reconcileProfile();
+        }
+    }
+
     Process {
         id: commandProcess
         stdout: StdioCollector {}
         onExited: (exitCode, exitStatus) => {
             const job = root._currentJob;
             if (job && job.kind === "probe") {
-                const next = PowerParser.reduceSnapshot(root._stateObject(), stdout.text, exitCode);
-                root._apply(next);
+                root._applyAdapters(PowerParser.reduceSnapshot(root._stateObject(), stdout.text, exitCode));
             } else if (job && job.kind === "action") {
                 const errors = PowerParser.reduceAdapterResult(root._stateObject(), job.errorDomain, exitCode === 0);
                 root._thresholdError = errors.thresholdError;
