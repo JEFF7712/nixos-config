@@ -112,6 +112,9 @@ done
 cp -a "$profiles/old" "$profiles/qs"
 printf '{"bar":"quickshell","selfThemed":false,"hasLightVariant":true,"cursor":"default","cursorSize":24}\n' \
   > "$profiles/qs/meta.json"
+cp -a "$profiles/old" "$profiles/noc"
+printf '{"bar":"noctalia","selfThemed":true,"hasLightVariant":false,"cursor":"default","cursorSize":24}\n' \
+  > "$profiles/noc/meta.json"
 
 cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
 cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
@@ -143,6 +146,31 @@ if [ -n "${NIRI_COUNT_FILE:-}" ]; then
     exit 1
   fi
 fi
+EOF
+
+cat > "$bin_dir/systemctl" <<'EOF'
+#!/usr/bin/env bash
+printf 'systemctl %s\n' "$*" >> "$COMMAND_LOG"
+case " $* " in
+  *" stop noctalia-shell "*)
+    if [ -n "${SYSTEMCTL_COUNT_FILE:-}" ]; then
+      count=$(cat "$SYSTEMCTL_COUNT_FILE" 2>/dev/null || echo 0)
+      count=$((count + 1))
+      printf '%s\n' "$count" > "$SYSTEMCTL_COUNT_FILE"
+    fi
+    [ -n "${IGNORE_FIRST_NOCTALIA_STOP:-}" ] && [ "${count:-0}" -eq 1 ] \
+      || printf 'stopped\n' > "$BAR_STATE"
+    ;;
+  *" start noctalia-shell "*) printf 'noctalia-started\n' > "$BAR_STATE" ;;
+  *" is-active --quiet noctalia-shell "*)
+    if [ "$(cat "$BAR_STATE")" = "noctalia-started" ]; then
+      active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
+      printf 'verify-noctalia active=%s\n' "$active" >> "$COMMAND_LOG"
+      exit 0
+    fi
+    exit 3
+    ;;
+esac
 EOF
 
 cat > "$bin_dir/pkill" <<'EOF'
@@ -328,6 +356,24 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
 fi
 assert_eq "qs" "$(cat "$profiles/active")" "Quickshell shutdown failure aborts before commit"
 assert_log_contains "verify-quickshell active=qs" "rollback verifies restarted Quickshell"
+
+printf 'noc\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'dark\n' > "$profiles/variant-noc"
+ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'noctalia-started\n' > "$bar_state"
+printf '0\n' > "$tmpdir/systemctl-count"
+: > "$log"
+if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  SYSTEMCTL_COUNT_FILE="$tmpdir/systemctl-count" IGNORE_FIRST_NOCTALIA_STOP=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch old >/dev/null 2>&1; then
+  printf 'FAIL: transition continued while Noctalia remained running\n' >&2
+  exit 1
+fi
+assert_eq "noc" "$(cat "$profiles/active")" "Noctalia shutdown failure aborts before commit"
+assert_log_contains "verify-noctalia active=noc" "rollback verifies restarted Noctalia"
 
 if [ "${PROFILE_TRANSITION_TEST_SCOPE:-full}" != "core" ]; then
   check_public_delegation
