@@ -5,6 +5,7 @@ label=""
 repo=""
 target=""
 commit_message=""
+eval_failure="hard"
 inputs=()
 update_lock="${UPDATE_LOCK:-/run/nixos-auto-update.lock}"
 dns_retries="${DNS_RETRIES:-60}"
@@ -18,10 +19,19 @@ while (($#)); do
     --repo) repo=$2; shift 2 ;;
     --target) target=$2; shift 2 ;;
     --commit-message) commit_message=$2; shift 2 ;;
+    --eval-failure) eval_failure=$2; shift 2 ;;
     --input) inputs+=("$2"); shift 2 ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
 done
+
+case "$eval_failure" in
+  hard|defer) ;;
+  *)
+    printf 'invalid --eval-failure: %s (expected hard or defer)\n' "$eval_failure" >&2
+    exit 2
+    ;;
+esac
 
 for value in label repo target commit_message; do
   [ -n "${!value}" ] || {
@@ -105,6 +115,11 @@ if ! runuser -u rupan -- nix eval --no-write-lock-file \
   "${toplevel}.drvPath" >/dev/null; then
   restore_lock
   disarm_cleanup
+  if [[ $eval_failure == defer ]]; then
+    printf '%s update deferred: updated inputs fail eval; flake.lock reverted, will retry next run\n' \
+      "$label" >&2
+    exit 0
+  fi
   printf '%s update fails eval; flake.lock reverted\n' "$label" >&2
   exit 1
 fi

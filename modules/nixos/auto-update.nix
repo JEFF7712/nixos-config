@@ -25,6 +25,7 @@ let
       description,
       label,
       commitMessage,
+      evalFailure,
       inputs,
     }:
     let
@@ -38,6 +39,8 @@ let
           "path:/home/rupan/nixos#laptop"
           "--commit-message"
           commitMessage
+          "--eval-failure"
+          evalFailure
         ]
         ++ lib.concatMap (input: [
           "--input"
@@ -73,6 +76,7 @@ in
       description = "Update flake inputs, commit lock file, and rebuild";
       label = "weekly";
       commitMessage = "flake.lock: weekly auto-update";
+      evalFailure = "hard";
       inputs = [ ];
     };
 
@@ -80,6 +84,7 @@ in
       description = "Update AI tool flake inputs, commit lock file, and rebuild";
       label = "AI tools";
       commitMessage = "flake.lock: ai tools auto-update";
+      evalFailure = "defer";
       inputs = [
         "claude-code-nix"
         "codex-cli-nix"

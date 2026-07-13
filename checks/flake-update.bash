@@ -123,6 +123,18 @@ assert_log_lacks() {
   ! grep -Fq -- "$text" "$COMMAND_LOG" || fail "$name unexpectedly logged: $text"
 }
 
+assert_output_has() {
+  local text="$1" name="$2"
+  grep -Fq -- "$text" "$CASE_DIR/output.log" ||
+    fail "$name missing output: $text"
+}
+
+assert_lock_restored() {
+  local name="$1"
+  cmp -s "$CASE_DIR/expected.lock" "$repo/flake.lock" ||
+    fail "$name did not restore the pre-update flake.lock exactly"
+}
+
 assert_one_update() {
   local expected="$1" name="$2" count=0 line
   while IFS= read -r line; do
@@ -148,16 +160,22 @@ assert_before() {
 
 run_pipeline() {
   local variant="${1:-weekly}"
+  local eval_failure="${2:-}"
+  local label="$variant"
+  [[ $variant == ai ]] && label="AI tools"
   local command_log="$CASE_DIR/commands.log"
   local output_log="$CASE_DIR/output.log"
   local -a args=(
-    --label "$variant"
+    --label "$label"
     --repo "$repo"
     --target "path:$repo#laptop"
     --commit-message "flake.lock: $variant auto-update"
   )
   if [[ $variant == ai ]]; then
     args+=(--input claude-code-nix --input codex-cli-nix --input code-cursor-nix)
+  fi
+  if [[ -n $eval_failure ]]; then
+    args+=(--eval-failure "$eval_failure")
   fi
   set +e
   PATH="$bin_dir:$PATH" \
@@ -193,6 +211,7 @@ setup_case() {
   if [[ $repo == "$tmpdir/repo" ]]; then
     printf 'mock baseline\n' > "$repo/flake.lock"
   fi
+  cp -p "$repo/flake.lock" "$CASE_DIR/expected.lock"
   unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
   unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
   unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT
@@ -226,9 +245,41 @@ case_dns_timeout() {
   assert_log_lacks 'nix flake update' dns_timeout
 }
 
-case_eval_failure() {
-  TEST_EVAL_STATUS=1 run_pipeline
-  assert_log_lacks 'nix-cascade-guard ' eval_failure
+case_eval_failure_hard() {
+  TEST_MUTATE_LOCK=1 TEST_EVAL_STATUS=1 run_pipeline weekly hard
+  assert_lock_restored eval_failure_hard
+  assert_output_has 'weekly update fails eval; flake.lock reverted' eval_failure_hard
+  assert_log_lacks 'nix-cascade-guard ' eval_failure_hard
+  assert_log_lacks ' commit ' eval_failure_hard
+  assert_log_lacks 'nixos-rebuild ' eval_failure_hard
+}
+
+case_eval_failure_default_hard() {
+  TEST_MUTATE_LOCK=1 TEST_EVAL_STATUS=1 run_pipeline
+  assert_lock_restored eval_failure_default_hard
+  assert_output_has 'weekly update fails eval; flake.lock reverted' eval_failure_default_hard
+  assert_log_lacks 'nix-cascade-guard ' eval_failure_default_hard
+  assert_log_lacks ' commit ' eval_failure_default_hard
+  assert_log_lacks 'nixos-rebuild ' eval_failure_default_hard
+}
+
+case_eval_failure_defer() {
+  TEST_MUTATE_LOCK=1 TEST_EVAL_STATUS=1 run_pipeline ai defer
+  assert_lock_restored eval_failure_defer
+  assert_output_has \
+    'AI tools update deferred: updated inputs fail eval; flake.lock reverted, will retry next run' \
+    eval_failure_defer
+  assert_log_lacks 'nix-cascade-guard ' eval_failure_defer
+  assert_log_lacks ' commit ' eval_failure_defer
+  assert_log_lacks 'nixos-rebuild ' eval_failure_defer
+}
+
+case_invalid_eval_failure() {
+  run_pipeline weekly invalid
+  assert_output_has \
+    'invalid --eval-failure: invalid (expected hard or defer)' \
+    invalid_eval_failure
+  assert_log_lacks 'nix flake update' invalid_eval_failure
 }
 
 case_diff_error() {
@@ -286,7 +337,10 @@ run_case unchanged 0
 run_case ai_inputs 0
 run_case lock_contention 0
 run_case dns_timeout 1
-run_case eval_failure 1
+run_case eval_failure_hard 1
+run_case eval_failure_default_hard 1
+run_case eval_failure_defer 0
+run_case invalid_eval_failure 2
 run_case diff_error 1
 run_case cascade_deferred 0
 run_case cascade_error 1
@@ -328,7 +382,7 @@ case_real_dirty_noop() {
 }
 
 case_real_restore() {
-  local name="$1" expected_status="$2"
+  local name="$1" expected_status="$2" eval_failure="${3:-}"
   local saved_repo="$repo"
   local expected_mode
   repo="$real_repo"
@@ -338,10 +392,13 @@ case_real_restore() {
   expected_mode="$(stat -c %a "$repo/flake.lock")"
   case "$name" in
     update_failure) TEST_UPDATE_STATUS=1 ;;
+    eval_failure_hard) TEST_EVAL_STATUS=1 ;;
+    eval_failure_defer) TEST_EVAL_STATUS=1 ;;
     cascade_deferred) TEST_CASCADE_STATUS=10 ;;
     termination) TEST_CASCADE_ACTION=term ;;
   esac
-  TEST_REAL_GIT=1 TEST_MUTATE_LOCK=1 REAL_GIT="$real_git" TEST_DIFF_STATUS=1 run_pipeline
+  TEST_REAL_GIT=1 TEST_MUTATE_LOCK=1 REAL_GIT="$real_git" TEST_DIFF_STATUS=1 \
+    run_pipeline weekly "$eval_failure"
   assert_status "$expected_status" "$PIPELINE_STATUS" "real_$name"
   cmp -s "$CASE_DIR/expected.lock" "$repo/flake.lock" ||
     fail "real_$name did not restore the dirty pre-run lock byte-for-byte"
@@ -355,7 +412,23 @@ case_real_restore() {
 
 case_real_dirty_noop
 case_real_restore update_failure 1
+case_real_restore eval_failure_hard 1 hard
+case_real_restore eval_failure_defer 0 defer
 case_real_restore cascade_deferred 0
 case_real_restore termination 143
+
+weekly_service=$(nix eval --raw --no-write-lock-file \
+  '.#nixosConfigurations.laptop.config.systemd.services.nixos-auto-update.script')
+ai_service=$(nix eval --raw --no-write-lock-file \
+  '.#nixosConfigurations.laptop.config.systemd.services.nixos-ai-tools-auto-update.script')
+
+[[ $weekly_service == *'--eval-failure hard'* ]] ||
+  fail 'weekly service did not evaluate with --eval-failure hard'
+[[ $weekly_service != *'--eval-failure defer'* ]] ||
+  fail 'weekly service evaluated with defer policy'
+[[ $ai_service == *'--eval-failure defer'* ]] ||
+  fail 'AI service did not evaluate with --eval-failure defer'
+[[ $ai_service != *'--eval-failure hard'* ]] ||
+  fail 'AI service evaluated with hard policy'
 
 printf 'flake update pipeline checks passed\n'
