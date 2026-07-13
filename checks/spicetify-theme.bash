@@ -17,19 +17,18 @@ assert_eq() {
 }
 
 bin_dir="$tmpdir/bin"
-runtime_file="$tmpdir/runtime.json"
+export PROFILES_DIR="$tmpdir/profiles"
+runtime_file="$PROFILES_DIR/tinted/manifest.json"
 log_file="$tmpdir/commands.log"
-mkdir -p "$bin_dir"
+mkdir -p "$bin_dir" "$(dirname "$runtime_file")"
 
 cat > "$runtime_file" <<'EOF'
 {
-  "spicetify": {
-    "dark": {
-      "theme": "Comfy",
-      "scheme": "tinted",
-      "js": 0
-    }
-  }
+  "schemaVersion": 1,
+  "name": "tinted",
+  "variants": { "dark": { "adapters": { "spicetify": {
+    "theme": "Comfy", "scheme": "tinted", "js": 0
+  } } } }
 }
 EOF
 

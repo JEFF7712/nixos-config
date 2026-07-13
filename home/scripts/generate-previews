@@ -136,7 +136,7 @@ capture() {
 settle_delay() {
   local name="$1"
   if [ "$name" = "noctalia" ] ||
-    [ "$(jq -r '.selfThemed // false' "$PROFILES_DIR/$name/meta.json" 2>/dev/null)" = "true" ]; then
+    [ "$(profile_manifest_capability "$name" selfThemed)" = "true" ]; then
     echo 10
   else
     echo 5

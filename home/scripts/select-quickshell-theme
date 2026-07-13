@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 profiles="${XDG_CONFIG_HOME:-$HOME/.config}/desktop-profiles"
+PROFILES_DIR="$profiles"
+# shellcheck source=/dev/null
+. "$script_dir/profile-manifest"
 profile="${DESKTOP_PROFILE_TRANSITION_TARGET:-$(cat "$profiles/active" 2>/dev/null || true)}"
 variant="${DESKTOP_PROFILE_TRANSITION_VARIANT:-$(cat "$profiles/active-variant" 2>/dev/null || echo dark)}"
 runtime="$profiles/runtime-quickshell-theme.json"
@@ -15,8 +19,5 @@ if [ -s "$runtime" ] \
   exit 0
 fi
 
-theme="$profiles/$profile/quickshell-theme.json"
-if [ "$variant" = light ] && [ -s "$profiles/$profile/quickshell-theme-light.json" ]; then
-  theme="$profiles/$profile/quickshell-theme-light.json"
-fi
+theme=$(profile_manifest_artifact "$profile" "$variant" "quickshell.$variant" 2>/dev/null || true)
 cat "$theme" 2>/dev/null || true

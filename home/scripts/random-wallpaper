@@ -17,11 +17,8 @@ if [ "$PROFILE" = "noctalia" ]; then
 fi
 
 TARGET_DIR="$PROFILES_DIR/$PROFILE"
-if [ "$VARIANT" = "light" ] && [ -s "$TARGET_DIR/wallpaper-dir-light" ]; then
-  WALLPAPER_DIR=$(cat "$TARGET_DIR/wallpaper-dir-light")
-else
-  WALLPAPER_DIR=$(cat "$TARGET_DIR/wallpaper-dir" 2>/dev/null || echo "")
-fi
+profile_manifest_validate "$PROFILE" "$VARIANT"
+WALLPAPER_DIR=$(profile_manifest_wallpaper_dir "$PROFILE" "$VARIANT")
 
 [ -d "$WALLPAPER_DIR" ] || exit 0
 

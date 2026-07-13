@@ -387,7 +387,7 @@ ensure_waypaper_post_command() {
 
 # profile_bar <profile>
 # The bar to run for a profile: a runtime override (bar-<profile> state file,
-# written by switch-bar) wins over the profile's meta.json default.
+# written by switch-bar) wins over the profile manifest default.
 profile_bar() {
   local name="$1" ov="$PROFILES_DIR/bar-$1"
 
@@ -689,10 +689,8 @@ profile_runtime_string() {
 
   [ -f "$runtime_file" ] || return 0
 
-  jq -r \
-    --arg section "$section" \
-    --arg variant "$variant" \
-    '.[$section][$variant] // .[$section].dark // empty' \
+  jq -r --arg section "$section" --arg variant "$variant" \
+    '.variants[$variant].adapters[$section] // empty' \
     "$runtime_file" 2>/dev/null || true
 }
 
@@ -708,7 +706,7 @@ profile_runtime_value() {
     --arg section "$section" \
     --arg variant "$variant" \
     --arg key "$key" \
-    '.[$section][$variant][$key] // .[$section].dark[$key] // empty' \
+    '.variants[$variant].adapters[$section][$key] // empty' \
     "$runtime_file" 2>/dev/null || true
 }
 
@@ -770,8 +768,8 @@ apply_vicinae_theme() {
 
   settings="$CONFIG_HOME/vicinae/settings.json"
   IFS=$'\t' read -r family size < <(
-    jq -r '[.fonts.ui.family // "JetBrainsMono Nerd Font", .fonts.ui.size // 11] | @tsv' \
-      "$profile_dir/meta.json" 2>/dev/null
+    jq -r '[.transition.fonts.ui.family, .transition.fonts.ui.size] | @tsv' \
+      "$profile_dir/manifest.json" 2>/dev/null
   ) || true
   [ -n "$family" ] || family="JetBrainsMono Nerd Font"
   [ -n "$size" ] || size=11
@@ -1004,7 +1002,7 @@ write_firefox_globals() {
   # that profile_runtime_value applied individually.
   IFS=$'\t' read -r main sec accent text accent_hsl < <(
     jq -r --arg v "$variant" '
-      def g($k): (.firefox[$v][$k] // .firefox.dark[$k] // "");
+      def g($k): (.variants[$v].adapters.firefox[$k] // "");
       [g("main"), g("secondary"), g("accent"), g("text"), g("accentHsl")] | @tsv
     ' "$runtime_file" 2>/dev/null
   ) || true
@@ -1072,7 +1070,7 @@ apply_zed_theme() {
   [ -f "$runtime_file" ] || return 0
   IFS=$'\t' read -r theme icon < <(
     jq -r --arg v "$variant" '
-      def g($k): (.zed[$v][$k] // .zed.dark[$k] // "");
+      def g($k): (.variants[$v].adapters.zed[$k] // "");
       [g("theme"), g("icon")] | @tsv' "$runtime_file" 2>/dev/null
   ) || true
   if [ -n "$theme" ]; then
@@ -1200,8 +1198,7 @@ apply_obsidian_scheme() {
   if [ -f "$runtime_file" ]; then
     IFS=$'\t' read -r accent scheme < <(
       jq -r --arg v "$variant" '
-        def s($sec): ($sec[$v] // $sec.dark // "");
-        [s(.obsidianAccent), s(.obsidian)] | @tsv' "$runtime_file" 2>/dev/null
+        [.variants[$v].adapters.obsidianAccent // "", .variants[$v].adapters.obsidian // ""] | @tsv' "$runtime_file" 2>/dev/null
     ) || true
   fi
   if [ -f "$appearance" ]; then
@@ -1271,7 +1268,7 @@ apply_spicetify_theme() {
   [ -f "$runtime_file" ] || return 0
   IFS=$'\t' read -r theme scheme js < <(
     jq -r --arg v "$variant" '
-      def g($k): (.spicetify[$v][$k] // .spicetify.dark[$k] // "");
+      def g($k): (.variants[$v].adapters.spicetify[$k] // "");
       [g("theme"), g("scheme"), g("js")] | @tsv' "$runtime_file" 2>/dev/null
   ) || true
   [ -n "$scheme" ] || return 0

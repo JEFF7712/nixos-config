@@ -78,8 +78,8 @@ profiles_dir="$tmpdir/profiles"
 mkdir -p "$profiles_dir/tinted"
 printf 'tinted\n' > "$profiles_dir/active"
 printf 'light\n' > "$profiles_dir/active-variant"
-printf '{"wallpaperTheming":true,"colorEngine":"iris"}\n' > "$profiles_dir/tinted/meta.json"
-printf '{}\n' > "$profiles_dir/tinted/runtime.json"
+printf '{"schemaVersion":1,"name":"tinted","capabilities":{"wallpaperTheming":true,"colorEngine":"iris"},"variants":{"light":{"adapters":{}}}}\n' \
+  > "$profiles_dir/tinted/manifest.json"
 
 PROFILES_DIR="$profiles_dir"
 ACTIVE_FILE="$profiles_dir/active"
@@ -115,6 +115,6 @@ assert_eq tinted "$(cat "$profiles_dir/runtime-theme-profile")" \
   "wallpaper tint tags the runtime theme profile"
 assert_eq light "$(cat "$profiles_dir/runtime-theme-variant")" \
   "wallpaper tint tags the runtime theme variant"
-assert_eq "spicetify $profiles_dir/tinted/runtime.json light" \
+assert_eq "spicetify $profiles_dir/tinted/manifest.json light" \
   "$(grep '^spicetify ' "$log_file")" \
   "wallpaper tint reapplies the active profile spicetify scheme"

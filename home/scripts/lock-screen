@@ -65,13 +65,10 @@ else
       return 0
     fi
 
-    local variant wallpaper_dir
+    local variant wallpaper_dir profile
     variant=$(cat "$PROFILES_DIR/active-variant" 2>/dev/null || echo "dark")
-    if [ "$variant" = "light" ] && [ -s "$PROFILE_DIR/wallpaper-dir-light" ]; then
-      wallpaper_dir=$(cat "$PROFILE_DIR/wallpaper-dir-light")
-    else
-      wallpaper_dir=$(cat "$PROFILE_DIR/wallpaper-dir" 2>/dev/null || echo "")
-    fi
+    profile=$(basename "$PROFILE_DIR")
+    wallpaper_dir=$(profile_manifest_wallpaper_dir "$profile" "$variant")
 
     if [ -d "$wallpaper_dir" ]; then
       find "$wallpaper_dir" -maxdepth 1 \

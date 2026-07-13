@@ -17,7 +17,9 @@ ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 
 PROFILE_DIR="$PROFILES_DIR/$ACTIVE"
 OVERRIDE_FILE="$PROFILES_DIR/bar-$ACTIVE"
-DEFAULT_BAR=$(jq -r '.bar // "noctalia"' "$PROFILE_DIR/meta.json" 2>/dev/null || echo "noctalia")
+variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo dark)
+profile_manifest_validate "$ACTIVE" "$variant"
+DEFAULT_BAR=$(profile_manifest_bar "$ACTIVE")
 
 case "${1:-}" in
   "")
@@ -32,13 +34,13 @@ case "${1:-}" in
     exit 0
     ;;
   waybar)
-    [ -f "$PROFILE_DIR/waybar-config.jsonc" ] || {
+    profile_manifest_artifact "$ACTIVE" "$variant" waybar.config >/dev/null 2>&1 || {
       echo "Error: profile '$ACTIVE' has no waybar config." >&2
       exit 1
     }
     ;;
   quickshell)
-    [ -s "$PROFILE_DIR/quickshell-theme.json" ] || {
+    profile_manifest_artifact "$ACTIVE" "$variant" "quickshell.$variant" >/dev/null 2>&1 || {
       echo "Error: profile '$ACTIVE' has no quickshell theme." >&2
       exit 1
     }
