@@ -18,11 +18,12 @@ write_atomic() {
 }
 
 link_atomic() {
-  local path="$1" target="$2" tmp
+  local path="$1" target="$2" tmpdir
   mkdir -p "$(dirname "$path")"
-  tmp=$(mktemp -u "${path}.XXXXXX")
-  ln -s "$target" "$tmp"
-  mv "$tmp" "$path"
+  tmpdir=$(mktemp -d "${path}.XXXXXX")
+  ln -s "$target" "$tmpdir/link"
+  mv -T "$tmpdir/link" "$path"
+  rmdir "$tmpdir"
 }
 
 read_state() {
@@ -117,7 +118,11 @@ case "$MODE" in
   startup)
     [ $# -le 1 ] || usage
     TARGET="${1:-${CURRENT:-noctalia}}"
-    TARGET_VARIANT="$CURRENT_VARIANT"
+    if [ $# -eq 1 ] && [ "$TARGET" != "$CURRENT" ]; then
+      TARGET_VARIANT=$(read_state "$PROFILES_DIR/variant-$TARGET" "dark")
+    else
+      TARGET_VARIANT="$CURRENT_VARIANT"
+    fi
     WRITE_PREFERENCE=0
     if [ ! -d "$PROFILES_DIR/$TARGET" ]; then
       TARGET="noctalia"
@@ -156,9 +161,15 @@ TARGET_BAR=$(profile_bar "$TARGET")
 rollback() {
   local status=$?
   trap - EXIT
+  stop_bar "$TARGET_BAR"
   if [ "$OLD_ACTIVE_EXISTS" -eq 1 ]; then write_atomic "$ACTIVE_FILE" "$OLD_ACTIVE"; else rm -f "$ACTIVE_FILE"; fi
   if [ "$OLD_VARIANT_EXISTS" -eq 1 ]; then write_atomic "$VARIANT_FILE" "$OLD_VARIANT"; else rm -f "$VARIANT_FILE"; fi
   if [ "$OLD_LINK_EXISTS" -eq 1 ]; then link_atomic "$ACTIVE_LINK" "$OLD_LINK"; else rm -f "$ACTIVE_LINK"; fi
+  niri msg action load-config-file >/dev/null 2>&1 || true
+  if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
+    start_bar "$OLD_ACTIVE" "$OLD_VARIANT" "$CURRENT_BAR" || true
+    verify_bar "$CURRENT_BAR" || true
+  fi
   exit "$status"
 }
 trap rollback EXIT

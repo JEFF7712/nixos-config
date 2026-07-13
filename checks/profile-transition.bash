@@ -86,7 +86,7 @@ EOF
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar"
 
 for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
-  mktemp mv readlink rm sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
+  mktemp mv readlink rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
   utility_path=$(command -v "$utility")
   ln -s "$utility_path" "$bin_dir/$utility"
 done
@@ -135,6 +135,10 @@ EOF
 
 cat > "$bin_dir/waybar" <<'EOF'
 #!/usr/bin/env bash
+if [ -n "${START_COUNT_FILE:-}" ]; then
+  count=$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)
+  printf '%s\n' "$((count + 1))" > "$START_COUNT_FILE"
+fi
 printf 'started\n' > "$BAR_STATE"
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf 'waybar start active=%s\n' "$active" >> "$COMMAND_LOG"
@@ -144,6 +148,10 @@ cat > "$bin_dir/pgrep" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 state=$(cat "$BAR_STATE")
+if [ -n "${FAIL_FIRST_BAR_START:-}" ] && [ "$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)" = 1 ]; then
+  printf 'pgrep %s active=%s state=%s\n' "$*" "$active" "$state" >> "$COMMAND_LOG"
+  exit 1
+fi
 case " $* :$state" in
   *" waybar "*:started)
     printf 'verify-waybar active=%s\n' "$active" >> "$COMMAND_LOG"
@@ -193,6 +201,45 @@ assert_eq "$profiles/new/niri-overrides.kdl" \
   "Niri override points to the target profile"
 assert_log_contains "verify-waybar active=old" \
   "post-start target bar readiness is verified before active profile commit"
+
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf '0\n' > "$tmpdir/start-count"
+: > "$log"
+if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  START_COUNT_FILE="$tmpdir/start-count" FAIL_FIRST_BAR_START=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new; then
+  printf 'FAIL: transition succeeded despite target bar readiness failure\n' >&2
+  exit 1
+fi
+assert_eq "old" "$(cat "$profiles/active")" "rollback restores active profile"
+assert_eq "dark" "$(cat "$profiles/active-variant")" "rollback restores active variant"
+assert_eq "$profiles/old/niri-overrides.kdl" \
+  "$(readlink "$profiles/active-niri-overrides.kdl")" \
+  "rollback restores the previous Niri override"
+assert_eq "2" "$(cat "$tmpdir/start-count")" \
+  "rollback stops the target and restarts the previous bar"
+assert_eq "2" "$(grep -Fc 'niri msg action load-config-file' "$log")" \
+  "rollback reloads Niri after restoring the previous override"
+assert_log_contains "verify-waybar active=old" "rollback verifies the previous bar"
+
+printf 'new\n' > "$profiles/active"
+printf 'light\n' > "$profiles/active-variant"
+printf 'dark\n' > "$profiles/variant-old"
+ln -sfn "$profiles/new/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+: > "$log"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  "$REPO_ROOT/home/scripts/profile-transition" startup old
+assert_eq "* { color: #ffffff; }" "$(cat "$home/.config/waybar/style.css")" \
+  "explicit startup target restores its saved variant"
+assert_eq "new" "$(cat "$profiles/active")" "startup preserves active preference"
+assert_eq "light" "$(cat "$profiles/active-variant")" "startup preserves variant preference"
+
 if [ "${PROFILE_TRANSITION_TEST_SCOPE:-full}" != "core" ]; then
   check_public_delegation
 fi
