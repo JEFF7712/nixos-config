@@ -105,7 +105,7 @@ check_waybar_readiness_fake() {
 check_public_delegation() {
   local adapter_dir="$tmpdir/public-adapters"
   local engine_log="$tmpdir/public-engine.log"
-  local mapping public_invocation engine_invocation public_command before after diagnostics invocation
+  local mapping public_invocation engine_invocation public_command before after diagnostics invocation expected_variant
   local -a variant_args=()
 
   mkdir -p "$adapter_dir"
@@ -151,8 +151,9 @@ EOF
     HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
       ENGINE_LOG="$engine_log" REAL_JQ="$real_jq" PATH="$bin_dir" \
       "$adapter_dir/toggle-variant" "${variant_args[@]}" >"$diagnostics" 2>&1
-    assert_eq "" "$(cat "$engine_log")" \
-      "no-light profile variant invocation does not delegate"
+    expected_variant="${invocation:-toggle}"
+    assert_eq "profile-transition variant $expected_variant" "$(cat "$engine_log")" \
+      "no-light profile variant invocation delegates its decision"
     after=$(tar -C "$home" -cf - . | sha256sum)
     assert_eq "$before" "$after" \
       "no-light profile variant invocation leaves state untouched"
@@ -166,10 +167,133 @@ EOF
   HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
     ENGINE_LOG="$engine_log" REAL_JQ="$real_jq" PATH="$bin_dir" \
     "$adapter_dir/toggle-variant" dark >"$diagnostics" 2>&1
-  assert_eq "" "$(cat "$engine_log")" \
-    "explicit current variant does not delegate"
+  assert_eq "profile-transition variant dark" "$(cat "$engine_log")" \
+    "explicit current variant delegates its decision"
   after=$(tar -C "$home" -cf - . | sha256sum)
   assert_eq "$before" "$after" "explicit current variant leaves state untouched"
+}
+
+run_fixture_transition() {
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+    PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+    BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    "$REPO_ROOT/home/scripts/profile-transition" "$@"
+}
+
+check_engine_variant_noops() {
+  local before after invocation output="$tmpdir/variant-noop.out"
+
+  printf 'noc\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-noc"
+  ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  for invocation in toggle light; do
+    : > "$log"
+    before=$(tar -C "$home" -cf - . | sha256sum)
+    if ! run_fixture_transition variant "$invocation" >"$output" 2>&1; then
+      printf 'FAIL: no-light %s request exited nonzero\n' "$invocation" >&2
+      cat "$output" >&2
+      exit 1
+    fi
+    after=$(tar -C "$home" -cf - . | sha256sum)
+    assert_eq "$before" "$after" \
+      "no-light $invocation request is an engine no-op"
+    assert_log_not_contains 'niri msg action load-config-file' \
+      "no-light $invocation request stops before core mutation"
+  done
+
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-old"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  : > "$log"
+  before=$(tar -C "$home" -cf - . | sha256sum)
+  if ! run_fixture_transition variant dark >"$output" 2>&1; then
+    printf 'FAIL: explicit current variant exited nonzero\n' >&2
+    cat "$output" >&2
+    exit 1
+  fi
+  after=$(tar -C "$home" -cf - . | sha256sum)
+  assert_eq "$before" "$after" "explicit current variant is an engine no-op"
+  assert_log_not_contains 'niri msg action load-config-file' \
+    "explicit current variant stops before core mutation"
+}
+
+check_variant_resolves_after_lock() {
+  local pid status output="$tmpdir/variant-after-lock.out"
+
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-old"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'started\n' > "$bar_state"
+  printf 'mako\n' > "$notification_state"
+  : > "$log"
+
+  exec 8>"$tmpdir/profile.lock"
+  flock 8
+  run_fixture_transition variant toggle 8>&- >"$output" 2>&1 &
+  pid=$!
+  sleep 0.1
+  if ! kill -0 "$pid" 2>/dev/null; then
+    wait "$pid" || status=$?
+    printf 'FAIL: queued variant request exited before the lock was released (%s)\n' \
+      "${status:-0}" >&2
+    cat "$output" >&2
+    exit 1
+  fi
+
+  printf 'new\n' > "$profiles/active"
+  printf 'light\n' > "$profiles/active-variant"
+  printf 'light\n' > "$profiles/variant-new"
+  ln -sfn "$profiles/new/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  flock -u 8
+  exec 8>&-
+  wait "$pid"
+
+  assert_eq new "$(cat "$profiles/active")" \
+    "queued toggle resolves the active profile after locking"
+  assert_eq dark "$(cat "$profiles/active-variant")" \
+    "queued toggle resolves the current variant after locking"
+  assert_eq dark "$(cat "$profiles/variant-new")" \
+    "queued toggle persists the post-lock target preference"
+  assert_eq "$profiles/new/niri-overrides.kdl" \
+    "$(readlink "$profiles/active-niri-overrides.kdl")" \
+    "queued toggle applies the post-lock profile override"
+}
+
+check_two_queued_toggles() {
+  local first_pid second_pid
+
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-old"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'started\n' > "$bar_state"
+  printf 'mako\n' > "$notification_state"
+
+  exec 8>"$tmpdir/profile.lock"
+  flock 8
+  run_fixture_transition variant toggle 8>&- >"$tmpdir/queued-toggle-first.out" 2>&1 &
+  first_pid=$!
+  run_fixture_transition variant toggle 8>&- >"$tmpdir/queued-toggle-second.out" 2>&1 &
+  second_pid=$!
+  sleep 0.1
+  kill -0 "$first_pid" 2>/dev/null && kill -0 "$second_pid" 2>/dev/null || {
+    printf 'FAIL: both toggle requests did not queue behind the lock\n' >&2
+    exit 1
+  }
+  flock -u 8
+  exec 8>&-
+  wait "$first_pid"
+  wait "$second_pid"
+
+  assert_eq old "$(cat "$profiles/active")" \
+    "two queued toggles preserve the active profile"
+  assert_eq dark "$(cat "$profiles/active-variant")" \
+    "two queued toggles serialize to the original variant"
+  assert_eq dark "$(cat "$profiles/variant-old")" \
+    "two queued toggles serialize the profile preference"
 }
 
 check_post_commit_adapter_isolation() {
@@ -1056,4 +1180,7 @@ fi
 stop_persistent_children
 
 check_post_commit_adapter_isolation
+check_engine_variant_noops
+check_variant_resolves_after_lock
+check_two_queued_toggles
 check_public_delegation

@@ -336,40 +336,76 @@ dispatch_post_commit_adapters() {
 MODE="$1"
 shift
 
+case "$MODE" in
+  switch)
+    [ $# -eq 1 ] || usage
+    REQUESTED_TARGET="$1"
+    ;;
+  variant)
+    [ $# -eq 1 ] || usage
+    case "$1" in
+      dark | light | toggle) REQUESTED_VARIANT="$1" ;;
+      *) usage ;;
+    esac
+    ;;
+  reapply)
+    [ $# -eq 0 ] || usage
+    ;;
+  startup)
+    [ $# -le 1 ] || usage
+    REQUESTED_TARGET="${1:-}"
+    ;;
+  *) usage ;;
+esac
+
+LOCK_PATH="${PROFILE_TRANSITION_LOCK:-$HOME/.local/state/desktop-profiles/transition.lock}"
+mkdir -p "$(dirname "$LOCK_PATH")"
+exec 9>"$LOCK_PATH"
+flock 9 || { echo "Error: failed to acquire the profile transition lock." >&2; exit 75; }
+
 CURRENT=$(read_state "$ACTIVE_FILE" "")
 CURRENT_VARIANT=$(read_state "$VARIANT_FILE" "dark")
 
 case "$MODE" in
   switch)
-    [ $# -eq 1 ] || usage
-    TARGET="$1"
+    TARGET="$REQUESTED_TARGET"
     TARGET_VARIANT=$(read_state "$PROFILES_DIR/variant-$TARGET" "dark")
     WRITE_PREFERENCE=1
     ;;
   variant)
-    [ $# -eq 1 ] || usage
     [ -n "$CURRENT" ] || { echo "Error: no active profile." >&2; exit 1; }
     TARGET="$CURRENT"
-    case "$1" in
-      dark | light) TARGET_VARIANT="$1" ;;
-      toggle)
-        if [ "$CURRENT_VARIANT" = "dark" ]; then TARGET_VARIANT="light"; else TARGET_VARIANT="dark"; fi
+    if ! has_light_variant "$TARGET"; then
+      echo "Profile '$TARGET' has no light variant, nothing to do."
+      exit 0
+    fi
+    case "$REQUESTED_VARIANT" in
+      dark | light)
+        if [ "$REQUESTED_VARIANT" = "$CURRENT_VARIANT" ]; then
+          echo "$TARGET is already $CURRENT_VARIANT."
+          exit 0
+        fi
+        TARGET_VARIANT="$REQUESTED_VARIANT"
         ;;
-      *) usage ;;
+      toggle)
+        if [ "$CURRENT_VARIANT" = dark ]; then
+          TARGET_VARIANT=light
+        else
+          TARGET_VARIANT=dark
+        fi
+        ;;
     esac
     WRITE_PREFERENCE=1
     ;;
   reapply)
-    [ $# -eq 0 ] || usage
     [ -n "$CURRENT" ] || { echo "Error: no active profile to reapply." >&2; exit 1; }
     TARGET="$CURRENT"
     TARGET_VARIANT="$CURRENT_VARIANT"
     WRITE_PREFERENCE=1
     ;;
   startup)
-    [ $# -le 1 ] || usage
-    TARGET="${1:-${CURRENT:-noctalia}}"
-    if [ $# -eq 1 ] && [ "$TARGET" != "$CURRENT" ]; then
+    TARGET="${REQUESTED_TARGET:-${CURRENT:-noctalia}}"
+    if [ -n "$REQUESTED_TARGET" ] && [ "$TARGET" != "$CURRENT" ]; then
       TARGET_VARIANT=$(read_state "$PROFILES_DIR/variant-$TARGET" "dark")
     else
       TARGET_VARIANT="$CURRENT_VARIANT"
@@ -380,7 +416,6 @@ case "$MODE" in
       TARGET_VARIANT="dark"
     fi
     ;;
-  *) usage ;;
 esac
 
 [ -d "$PROFILES_DIR/$TARGET" ] || { echo "Error: profile '$TARGET' not found." >&2; exit 1; }
@@ -395,11 +430,6 @@ TARGET_SELF_THEMED=$(jq -r '.selfThemed // false' "$TARGET_DIR/meta.json" 2>/dev
 TARGET_WALLPAPER_DIR_FILE=$(pick_variant_file "$TARGET_VARIANT" \
   "$TARGET_DIR/wallpaper-dir" "$TARGET_DIR/wallpaper-dir-light")
 TARGET_WALLPAPER_DIR=$(cat "$TARGET_WALLPAPER_DIR_FILE" 2>/dev/null || echo "")
-
-LOCK_PATH="${PROFILE_TRANSITION_LOCK:-$HOME/.local/state/desktop-profiles/transition.lock}"
-mkdir -p "$(dirname "$LOCK_PATH")"
-exec 9>"$LOCK_PATH"
-flock -n 9 || { echo "Error: another profile transition is in progress." >&2; exit 75; }
 
 OLD_ACTIVE=$(read_state "$ACTIVE_FILE" "")
 OLD_VARIANT=$(read_state "$VARIANT_FILE" "dark")
