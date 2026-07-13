@@ -69,6 +69,12 @@ assert_eq $'dark\nlight' "$(profile_manifest_variants sharp)" "variant list"
 
 cp "$profile_dir/manifest.json" "$tmpdir/valid.json"
 
+printf 'managed fixture\n' > "$tmpdir/store-artifact"
+ln -s "$tmpdir/store-artifact" "$profile_dir/managed.css"
+jq '.variants.dark.artifacts.gtk3 = "managed.css"' "$tmpdir/valid.json" > "$profile_dir/manifest.json"
+profile_manifest_validate sharp dark
+cp "$tmpdir/valid.json" "$profile_dir/manifest.json"
+
 jq 'del(.schemaVersion)' "$tmpdir/valid.json" > "$profile_dir/manifest.json"
 expect_invalid "missing schema version"
 jq '.schemaVersion = "1"' "$tmpdir/valid.json" > "$profile_dir/manifest.json"

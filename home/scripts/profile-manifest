@@ -50,7 +50,7 @@ profile_manifest_validate() {
         return 1
         ;;
     esac
-    resolved=$(realpath -m -- "$profile_dir/$relative")
+    resolved=$(realpath -ms -- "$profile_dir/$relative")
     case "$resolved" in
       "$profile_dir"/*) ;;
       *)
