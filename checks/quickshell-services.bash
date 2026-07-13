@@ -9,6 +9,7 @@ media_fixture_qml="${repo_root}/tests/quickshell/integration/media-service"
 cava_fixture_qml="${repo_root}/tests/quickshell/integration/cava-service"
 power_fixture_qml="${repo_root}/tests/quickshell/integration/power-service"
 power_native_fixture_qml="${repo_root}/tests/quickshell/integration/power-native"
+system_fixture_qml="${repo_root}/tests/quickshell/integration/system-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -1065,6 +1066,58 @@ run_power_native_construction_probe() {
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
+run_system_service_probe() {
+  local state_dir qs_pid rc=0
+  printf 'quickshell-services: run_system_service_probe\n'
+  [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
+
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-system-service.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal"
+  for command in lock-screen systemctl; do
+    ln -s "$audio_fixture_bin/$command" "$state_dir/fixture-bin/$command"
+  done
+  cp "$system_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$repo_root/home/configs/quickshell/services/SystemService.qml" "$state_dir/config/services/SystemService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/SystemParser.js" "$state_dir/config/services/internal/SystemParser.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/SystemModel.qml" "$state_dir/config/services/internal/SystemModel.qml"
+  : >"$state_dir/actions.log"
+
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+  wait_for_path "$state_dir/ready" 10 || fail 'system fixture did not become ready'
+  wait_for_process "$qs_pid" 20 || rc=$?
+  if ((rc != 0)); then
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "system fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and .sharedIdentity == true and
+    (.diagnostics.available | type == "boolean") and
+    (.diagnostics.cpuPercent | type == "number") and
+    (.diagnostics.ramUsedGiB | type == "number") and
+    (.diagnostics.ramPercent | type == "number") and
+    (.diagnostics.diskPercent | type == "number") and
+    (.diagnostics.hostName | type == "string") and
+    (.diagnostics.kernel | type == "string")' \
+    "$state_dir/result.json" >/dev/null || {
+    jq . "$state_dir/result.json" >&2 || true
+    fail 'system fixture reported invalid state or action behavior'
+  }
+  [ "$(cat "$state_dir/actions.log")" = $'lock\nsystemctl suspend\nsystemctl reboot\nsystemctl poweroff' ] \
+    || {
+      cat "$state_dir/actions.log" >&2
+      fail 'system fixture did not record exactly one command per action'
+    }
+  ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+    || {
+      sed -n '1,240p' "$state_dir/quickshell.log" >&2
+      fail 'system fixture logged a binding or construction error'
+    }
+  jq -c '.diagnostics' "$state_dir/result.json"
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -1291,6 +1344,66 @@ assert_no_view_processes_for_migrated_domains() {
     rg -F -q "$signature" "$power_service" \
       || fail "PowerService.qml is missing typed action signature: $signature"
   done
+
+  local system_service="$production_dir/services/SystemService.qml"
+  local system_model="$production_dir/services/internal/SystemModel.qml"
+  local system_popup="$production_dir/SystemPopup.qml"
+  [ -f "$system_service" ] || fail 'SystemService.qml is missing'
+  [ -f "$system_model" ] || fail 'SystemModel.qml is missing'
+  rg -q 'Internal\.SystemModel[[:space:]]*\{' "$system_service" \
+    || fail 'SystemService.qml must compose the deep internal SystemModel'
+  [ "$(rg '^[[:space:]]*property' "$system_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = 'property bool detailedMonitoring: false' ] \
+    || fail 'SystemService.qml must expose only the narrow detailed-monitoring demand input'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"lock-screen"|"systemctl"' "$system_service" \
+    || fail 'SystemService.qml must stay a thin facade with no owned processes or command literals'
+  for public_property in available cpuPercent ramUsedGiB ramPercent diskPercent hostName kernel uptime nixGeneration lastError; do
+    rg -q "readonly property [^:]* ${public_property}:" "$system_service" \
+      || fail "SystemService.qml is missing readonly public property: $public_property"
+  done
+  for signature in \
+    'function lock(): void' \
+    'function suspend(): void' \
+    'function reboot(): void' \
+    'function powerOff(): void'; do
+    rg -F -q "$signature" "$system_service" \
+      || fail "SystemService.qml is missing typed action signature: $signature"
+  done
+  rg -U -q 'execDetached\(\["lock-screen"\]\)' "$system_model" \
+    || fail 'SystemModel.qml must own the exact lock-screen argv'
+  rg -U -q 'execDetached\(\["systemctl",[[:space:]]*"suspend"\]\)' "$system_model" \
+    || fail 'SystemModel.qml must own the exact systemctl suspend argv'
+  rg -U -q 'execDetached\(\["systemctl",[[:space:]]*"reboot"\]\)' "$system_model" \
+    || fail 'SystemModel.qml must own the exact systemctl reboot argv'
+  rg -U -q 'execDetached\(\["systemctl",[[:space:]]*"poweroff"\]\)' "$system_model" \
+    || fail 'SystemModel.qml must own the exact systemctl poweroff argv'
+  ! rg -n -i -g '*.qml' -g '!SystemModel.qml' 'lock-screen|"systemctl"' "$production_dir" \
+    || fail 'lock-screen/systemctl command construction exists outside SystemModel.qml'
+  [ "$(rg -o 'Services\.SystemService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one Services.SystemService'
+  rg -q 'id:[[:space:]]*systemService' "$shell" \
+    || fail 'production shell.qml must name the SystemService systemService'
+  for view in Topbar SystemPopup; do
+    rg -q "${view}[[:space:]]*\{" "$shell" \
+      || fail "production shell.qml is missing $view"
+    rg -U -q "${view}[[:space:]]*\{[^}]*systemService:[[:space:]]*systemService" "$shell" \
+      || fail "production shell.qml does not wire systemService directly to $view"
+  done
+  rg -U -q 'Services\.SystemService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*systemPopup\.shown' "$shell" \
+    || fail 'production shell.qml must bind system metadata cadence demand to SystemPopup shown state'
+  rg -q 'required property Services\.SystemService systemService' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must require SystemService'
+  rg -q 'required property Services\.SystemService systemService' "$system_popup" \
+    || fail 'SystemPopup.qml must require SystemService'
+  ! rg -n 'statsProc|cpuUsage|ramUsage|diskUsage' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml still owns cpu/ram/disk metrics state or the composite stats process'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io' "$system_popup" \
+    || fail 'SystemPopup.qml still owns processes, timers, or Quickshell.Io'
+  ! rg -n '/proc/stat|/proc/meminfo|"df"|df -P|hostnamectl|uname -r|readlink[^\n]*nix' "$system_popup" \
+    || fail 'SystemPopup.qml still constructs system-metrics or metadata commands'
+  [ "$(rg -c 'niri msg action quit -s' "$system_popup")" -eq 1 ] \
+    || fail 'SystemPopup.qml must retain exactly one documented Niri logout command until Task 9'
+  ! rg -n 'niri msg action quit -s' "$system_service" "$system_model" \
+    || fail 'Niri session logout must remain a NiriService action, not SystemService'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -1318,4 +1431,5 @@ run_power_service_probe
 run_power_destruction_probe probe
 run_power_destruction_probe action
 run_power_native_construction_probe
+run_system_service_probe
 assert_no_view_processes_for_migrated_domains

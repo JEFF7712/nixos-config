@@ -1,21 +1,22 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import "services" as Services
 
 InfoPopup {
     id: root
     title: "SYSTEM"
     edgeSlide: true
 
-    property string cpuUsage: "-"
-    property string ramUsage: "-"
-    property string diskUsage: "-"
-    property string hostName: "-"
-    property string kernel: "-"
-    property string uptime: "-"
-    property string nixGen: ""
-    property int ramPercent: 0
+    required property Services.SystemService systemService
     property color themeWarm: "#e6dcc6"
+
+    readonly property string hostName: systemService.hostName !== "" ? systemService.hostName : "-"
+    readonly property string kernel: systemService.kernel !== "" ? systemService.kernel : "-"
+    readonly property string uptime: systemService.uptime !== "" ? systemService.uptime : "-"
+    readonly property string cpuUsage: systemService.available ? systemService.cpuPercent + "%" : "-"
+    readonly property string ramUsage: systemService.available ? systemService.ramUsedGiB.toFixed(1) + "G" : "-"
+    readonly property string diskUsage: systemService.available ? systemService.diskPercent + "%" : "-"
+    readonly property int ramPercent: systemService.available ? systemService.ramPercent : 0
 
     function exec(cmd) {
         Quickshell.execDetached(["sh", "-c", cmd]);
@@ -31,8 +32,8 @@ InfoPopup {
         const parts = [];
         if (root.kernel !== "-")
             parts.push(root.kernel);
-        if (root.nixGen !== "")
-            parts.push("gen " + root.nixGen);
+        if (root.systemService.nixGeneration !== "")
+            parts.push("gen " + root.systemService.nixGeneration);
         return parts.join("  ");
     }
 
@@ -122,7 +123,10 @@ InfoPopup {
         label: "lock"
         themeFg: root.themeFg
         themeAccent: root.themeAccent
-        onActivated: root.exec("lock-screen")
+        onActivated: {
+            root.systemService.lock();
+            root.close();
+        }
     }
 
     SystemAction {
@@ -130,7 +134,10 @@ InfoPopup {
         label: "sleep"
         themeFg: root.themeFg
         themeAccent: root.themeAccent
-        onActivated: root.exec("systemctl suspend")
+        onActivated: {
+            root.systemService.suspend();
+            root.close();
+        }
     }
 
     SystemAction {
@@ -147,7 +154,10 @@ InfoPopup {
         warm: true
         themeFg: root.themeFg
         themeAccent: root.themeWarm
-        onActivated: root.exec("systemctl reboot")
+        onActivated: {
+            root.systemService.reboot();
+            root.close();
+        }
     }
 
     SystemAction {
@@ -156,48 +166,10 @@ InfoPopup {
         warm: true
         themeFg: root.themeFg
         themeAccent: root.themeWarm
-        onActivated: root.exec("systemctl poweroff")
-    }
-
-    Process {
-        id: fetchProc
-        command: ["sh", "-c", "echo \"host|$(hostnamectl hostname 2>/dev/null || hostname)\";" + "echo \"kernel|$(uname -r)\";" + "echo \"uptime|$(uptime -p 2>/dev/null | sed 's/^up //')\";" + "awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; if (t>0) printf \"rampct|%d\\n\", (t-a)*100/t}' /proc/meminfo;" + "g=$(readlink /nix/var/nix/profiles/system 2>/dev/null | grep -o '[0-9]*' | head -1);" + "[ -n \"$g\" ] && echo \"gen|$g\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = this.text.split("\n");
-                for (const raw of lines) {
-                    const l = raw.trim();
-                    const idx = l.indexOf("|");
-                    if (idx < 0)
-                        continue;
-                    const k = l.substring(0, idx);
-                    const v = l.substring(idx + 1).trim();
-                    if (k === "host")
-                        root.hostName = v || "-";
-                    else if (k === "kernel")
-                        root.kernel = v || "-";
-                    else if (k === "uptime")
-                        root.uptime = v || "-";
-                    else if (k === "rampct")
-                        root.ramPercent = parseInt(v) || 0;
-                    else if (k === "gen")
-                        root.nixGen = v;
-                }
-            }
+        onActivated: {
+            root.systemService.powerOff();
+            root.close();
         }
-    }
-
-    onShownChanged: {
-        if (shown)
-            fetchProc.running = true;
-    }
-
-    Timer {
-        running: root.shown
-        interval: 30000
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: fetchProc.running = true
     }
 
     component ResourceRow: Item {

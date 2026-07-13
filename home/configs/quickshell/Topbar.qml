@@ -12,6 +12,7 @@ PanelWindow {
     required property Services.MediaService mediaService
     required property Services.CavaService cavaService
     required property Services.PowerService powerService
+    required property Services.SystemService systemService
 
     property color themeFg
     property color themeBg
@@ -48,9 +49,6 @@ PanelWindow {
     property color pillBg: "#0affffff"
     property color pillBorder: "#14ffffff"
 
-    property string cpuUsage: "-"
-    property string ramUsage: "-"
-    property string diskUsage: "-"
     property string networkIcon: "󰖪"
     property string activeTitle: "no active window"
     property int notificationCount: 0
@@ -118,22 +116,18 @@ PanelWindow {
     exclusiveZone: topbarWindow.barHeight + (topbarWindow.barMarginTop > 0 ? topbarWindow.barMarginTop : 0) + topbarWindow.exclusiveZoneOffset
     color: "transparent"
 
+    // Network connectivity stays a Topbar-owned residual probe until Task 10
+    // migrates it into NetworkService; cpu/mem/disk now come from SystemService.
     Process {
-        id: statsProc
-        command: ["sh", "-c", "cpu=$(awk '/^cpu / { if (!have) { u=$2+$4; t=$2+$3+$4+$5; have=1 } else { u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"; exit } }' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" + "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" + "dsk=$(df -P / 2>/dev/null | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}');" + "net=$(nmcli -t -f STATE general 2>/dev/null);" + "echo \"$cpu|$mem|$dsk|$net\""]
+        id: networkProc
+        command: ["sh", "-c", "nmcli -t -f STATE general 2>/dev/null"]
         property string buffer: ""
         stdout: SplitParser {
-            onRead: data => statsProc.buffer += data
+            onRead: data => networkProc.buffer += data
         }
         onExited: {
-            const p = statsProc.buffer.trim().split("|");
-            if (p.length >= 4) {
-                topbarWindow.cpuUsage = p[0] !== "" ? p[0] + "%" : "-";
-                topbarWindow.ramUsage = p[1] !== "" ? p[1] : "-";
-                topbarWindow.diskUsage = p[2] !== "" ? p[2] + "%" : "-";
-                topbarWindow.networkIcon = p[3] === "connected" ? "󰖩" : "󰖪";
-            }
-            statsProc.buffer = "";
+            topbarWindow.networkIcon = networkProc.buffer.trim() === "connected" ? "󰖩" : "󰖪";
+            networkProc.buffer = "";
         }
     }
 
@@ -142,7 +136,7 @@ PanelWindow {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: statsProc.running = true
+        onTriggered: networkProc.running = true
     }
 
     Process {
@@ -340,7 +334,7 @@ PanelWindow {
                 tint: topbarWindow.themeAccent
                 tintIcon: true
                 onActivated: topbarWindow.systemClicked()
-                onRightClicked: topbarWindow.run("lock-screen")
+                onRightClicked: topbarWindow.systemService.lock()
             }
         }
 

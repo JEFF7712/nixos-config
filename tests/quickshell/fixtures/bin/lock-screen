@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+[ "$#" -eq 0 ] || exit 64
+printf 'lock\n' >>"$state_dir/actions.log"

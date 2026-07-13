@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+[ "$#" -eq 1 ] || exit 64
+case "$1" in
+  suspend | reboot | poweroff)
+    printf 'systemctl %s\n' "$1" >>"$state_dir/actions.log"
+    ;;
+  *)
+    exit 64
+    ;;
+esac
