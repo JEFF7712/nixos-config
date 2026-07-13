@@ -11,6 +11,12 @@ ShellRoot {
         id: audioService
     }
 
+    Services.MediaService {
+        id: mediaService
+        audioService: audioService
+        detailedMonitoring: mediaPopup.shown
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -171,6 +177,7 @@ ShellRoot {
     Topbar {
         id: topbar
         audioService: audioService
+        mediaService: mediaService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -346,7 +353,7 @@ ShellRoot {
 
     MediaPopup {
         id: mediaPopup
-        audioService: audioService
+        mediaService: mediaService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
@@ -360,11 +367,6 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
-        status: topbar.mediaStatus
-        track: topbar.mediaTitle
-        artist: topbar.mediaArtist
-        album: topbar.mediaAlbum
-        artUrl: topbar.mediaArtUrl
         cavaValues: topbar.cavaValues
     }
 

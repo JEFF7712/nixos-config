@@ -1,0 +1,106 @@
+{
+  "selection": "bare playerctl default selection",
+  "scenarios": {
+    "onePlayer": {
+      "state": {
+        "available": true,
+        "status": "Playing",
+        "title": "Fixture@@@song\nslash\\snowman ☃ 音楽",
+        "artist": "Fixture artist",
+        "album": "Fixture album",
+        "artUrl": "file:///fixture-cover.png",
+        "lengthMicros": 120000000,
+        "positionSeconds": 12.5,
+        "shuffle": "Off",
+        "loop": "None",
+        "volume": 0.75,
+        "volumeSupported": true
+      },
+      "expected": {
+        "title": "Fixture@@@song\nslash\\snowman ☃ 音楽",
+        "status": "Playing"
+      }
+    },
+    "multipleDefaultPaused": {
+      "state": {
+        "available": true,
+        "defaultPlayer": "paused-default",
+        "players": [
+          {
+            "name": "playing-other",
+            "status": "Playing",
+            "title": "Playing but not default",
+            "artist": "Other artist",
+            "album": "Other album",
+            "artUrl": "file:///other.png",
+            "lengthMicros": 180000000,
+            "positionSeconds": 60,
+            "shuffle": "Off",
+            "loop": "None",
+            "volume": 0.9,
+            "volumeSupported": true
+          },
+          {
+            "name": "paused-default",
+            "status": "Paused",
+            "title": "Paused bare default",
+            "artist": "Default artist",
+            "album": "Default album",
+            "artUrl": "file:///default.png",
+            "lengthMicros": 150000000,
+            "positionSeconds": 30,
+            "shuffle": "Off",
+            "loop": "Track",
+            "volume": 0.6,
+            "volumeSupported": true
+          }
+        ]
+      },
+      "expected": {
+        "title": "Paused bare default",
+        "status": "Paused"
+      }
+    },
+    "disappearance": {
+      "state": {
+        "available": false
+      },
+      "expectedAvailable": false
+    },
+    "recovery": {
+      "state": {
+        "available": true,
+        "status": "Playing",
+        "title": "Recovered player",
+        "artist": "Recovery artist",
+        "album": "Recovery album",
+        "artUrl": "file:///recovered.png",
+        "lengthMicros": 200000000,
+        "positionSeconds": 40,
+        "shuffle": "Off",
+        "loop": "None",
+        "volume": 0.5,
+        "volumeSupported": true
+      },
+      "expected": {
+        "title": "Recovered player",
+        "status": "Playing"
+      }
+    }
+  },
+  "expectedActions": [
+    "play-pause",
+    "shuffle Toggle",
+    "loop Playlist",
+    "volume 0.42",
+    "position 25.00",
+    "previous",
+    "next",
+    "play-pause",
+    "play-pause",
+    "previous",
+    "play-pause",
+    "play-pause"
+  ],
+  "forbiddenActionArg": "--player"
+}

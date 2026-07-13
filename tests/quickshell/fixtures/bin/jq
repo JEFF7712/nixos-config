@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+real_jq=${QS_TEST_REAL_JQ:?QS_TEST_REAL_JQ is required}
+
+if [ "${1-}" = -cn ] && [ -f "$state_dir/malformed-snapshot.once" ]; then
+  rm -f "$state_dir/malformed-snapshot.once"
+  printf '{"record":true'
+  exit 0
+fi
+
+exec "$real_jq" "$@"

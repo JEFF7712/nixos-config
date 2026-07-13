@@ -5,6 +5,7 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 fixture_qml="${repo_root}/tests/quickshell/integration/process-cleanup"
 fixture_bin="${repo_root}/tests/quickshell/fixtures/bin/qs-test-owned-process"
 audio_native_fixture_qml="${repo_root}/tests/quickshell/integration/audio-native"
+media_fixture_qml="${repo_root}/tests/quickshell/integration/media-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -730,6 +731,79 @@ run_native_construction_probes() {
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
+run_media_service_probe() {
+  local state_dir qs_pid rc=0 follow_pid follow_record real_jq
+  printf 'quickshell-services: run_media_service_probe\n'
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-media-service.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal" "$state_dir/processes"
+  ln -s "$audio_fixture_bin/playerctl" "$state_dir/fixture-bin/playerctl"
+  ln -s "$audio_fixture_bin/jq" "$state_dir/fixture-bin/jq"
+  cp "$media_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$media_fixture_qml/policy.json" "$state_dir/policy.json"
+  cp "$repo_root/home/configs/quickshell/services/AudioService.qml" "$state_dir/config/services/AudioService.qml"
+  cp "$repo_root/home/configs/quickshell/services/MediaService.qml" "$state_dir/config/services/MediaService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/AudioReducer.js" "$state_dir/config/services/internal/AudioReducer.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/AudioModel.qml" "$state_dir/config/services/internal/AudioModel.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/PipewireAudioBackend.qml" "$state_dir/config/services/internal/PipewireAudioBackend.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/MediaParser.js" "$state_dir/config/services/internal/MediaParser.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/MediaModel.qml" "$state_dir/config/services/internal/MediaModel.qml"
+  : >"$state_dir/actions.log"
+  mkfifo "$state_dir/follow.fifo"
+  jq -e '.selection == "bare playerctl default selection" and
+    (.scenarios.onePlayer.state.available | type == "boolean") and
+    (.scenarios.multipleDefaultPaused.state.players | length) >= 2 and
+    .scenarios.multipleDefaultPaused.expected.status == "Paused" and
+    .scenarios.disappearance.expectedAvailable == false and
+    (.expectedActions | type == "array") and
+    .forbiddenActionArg == "--player"' "$state_dir/policy.json" >/dev/null \
+    || fail 'media policy fixture is incomplete or invalid'
+  jq '.scenarios.onePlayer.state' "$state_dir/policy.json" >"$state_dir/player.json"
+
+  real_jq=$(command -v jq)
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QS_TEST_REAL_JQ="$real_jq" QT_QPA_PLATFORM=offscreen \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+  wait_for_path "$state_dir/ready" 10 || fail 'media fixture did not become ready'
+  wait_for_process "$qs_pid" 30 || rc=$?
+  ((rc == 0)) || {
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "media fixture exited unsuccessfully or timed out (rc=${rc})"
+  }
+  jq -e '.passed == true and .sharedIdentity == true and .policyPassed == true and
+    .malformedPreserved == true and .disappearancePreserved == true and
+    .recoveryPassed == true and .cadencePassed == true and
+    .followCoalesced == true and .bareDefaultPassed == true and
+    .noDuplicateEnablePassed == true and .followRestartPassed == true and
+    .pendingInvalidationPassed == true and .queuedInvalidationPassed == true and
+    .actionOrderPassed == true and .delayedActionPassed == true' \
+    "$state_dir/result.json" >/dev/null || {
+    jq . "$state_dir/result.json" >&2 || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail 'media fixture reported invalid state or action routing'
+  }
+  diff -u <(jq -r '.expectedActions[]' "$state_dir/policy.json") "$state_dir/actions.log" \
+    || fail 'media fixture did not route exactly one expected action per gesture'
+  ! rg -F -q -- "$(jq -r '.forbiddenActionArg' "$state_dir/policy.json")" "$state_dir/playerctl-calls.log" \
+    || fail 'media actions invented an explicit player selector'
+  [ ! -s "$state_dir/playerctl-overlap.log" ] \
+    || fail 'media fixture observed overlapping snapshot or action commands'
+  ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+    || fail 'media fixture logged a binding or construction error'
+  [ ! -e "$state_dir/follow.active" ] || fail 'media follow active marker survived shell exit'
+  for follow_record in "$state_dir"/processes/follow.*.record; do
+    [ -e "$follow_record" ] || continue
+    follow_pid=$(record_value pid "$follow_record")
+    ! kill -0 "$follow_pid" 2>/dev/null || fail 'media follow process survived shell exit'
+  done
+  [ "$(rg -c '^start ' "$state_dir/playerctl-lifecycle.log")" -eq 2 ] \
+    || fail 'media fixture did not perform exactly one forced follow restart'
+  [ "$(rg -c '^term ' "$state_dir/playerctl-lifecycle.log")" -eq 2 ] \
+    || fail 'media fixture did not clean both follow process generations'
+  jq -c . "$state_dir/result.json"
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -770,6 +844,9 @@ assert_no_view_processes_for_migrated_domains() {
   local shell="$production_dir/shell.qml"
   local audio_service="$production_dir/services/AudioService.qml"
   local audio_backend="$production_dir/services/internal/PipewireAudioBackend.qml"
+  local media_service="$production_dir/services/MediaService.qml"
+  local media_model="$production_dir/services/internal/MediaModel.qml"
+  local media_popup="$production_dir/MediaPopup.qml"
   local view
 
   rg -q '^import Quickshell\.Services\.Pipewire$' "$audio_backend" \
@@ -797,15 +874,65 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'production shell.qml must instantiate exactly one Services.AudioService'
   rg -q 'id:[[:space:]]*audioService' "$shell" \
     || fail 'production shell.qml must name the AudioService audioService'
-  for view in Topbar VolumePopup MediaPopup; do
+  for view in Topbar VolumePopup; do
     rg -q "${view}[[:space:]]*\{" "$shell" \
       || fail "production shell.qml is missing $view"
     rg -U -q "${view}[[:space:]]*\{[^}]*audioService:[[:space:]]*audioService" "$shell" \
       || fail "production shell.qml does not wire audioService directly to $view"
   done
+  rg -U -q 'Services\.MediaService[[:space:]]*\{[^}]*audioService:[[:space:]]*audioService' "$shell" \
+    || fail 'production shell.qml does not wire AudioService directly to MediaService'
   ! rg -n 'topbar\.(volume|setVolume|adjustVolume|toggleMute|openMixer|run\([^\n]*(wpctl|pavucontrol))' \
     "$production_dir/VolumePopup.qml" "$production_dir/MediaPopup.qml" "$shell" \
     || fail 'migrated popups still route audio through topbar'
+
+  [ -f "$media_service" ] || fail 'MediaService.qml is missing'
+  [ -f "$media_model" ] || fail 'MediaModel.qml is missing'
+  rg -q 'Internal\.MediaModel[[:space:]]*\{' "$media_service" \
+    || fail 'MediaService.qml must compose the deep internal MediaModel'
+  ! rg -n '(^|[[:space:]])(Process|Timer)[[:space:]]*\{|property[^:]*[[:space:]]_[A-Za-z]|_requestSnapshot|_applySnapshot|_enqueue|_startNext|_action|playerctl|refreshDebounce' "$media_service" \
+    || fail 'MediaService.qml leaks mutable media ownership instead of remaining a thin facade'
+  ! rg -U -q 'function _action\([^}]*refreshDebounce\.restart\(' "$media_model" \
+    || fail 'MediaModel actions must schedule reconciliation after completion, not enqueue time'
+  ! rg -U -q 'job && job\.reconcileAfter[^}]*_requestSnapshot\(' "$media_model" \
+    || fail 'MediaModel action completion must reconcile through the debounce policy'
+  [ "$(rg '^[[:space:]]*(required[[:space:]]+)?property' "$media_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = $'property bool detailedMonitoring: false\nrequired property AudioService audioService' ] \
+    || fail 'MediaService.qml exposes writable properties beyond audioService and detailedMonitoring'
+  for public_property in available playing status title artist album artUrl positionSeconds lengthSeconds effectiveVolume shuffleEnabled volumeIsPlayer loopMode canSeek canTogglePlaying canGoNext canGoPrevious canShuffle canLoop canSetPlayerVolume; do
+    rg -q "readonly property [^:]* ${public_property}:" "$media_service" \
+      || fail "MediaService.qml is missing readonly public property: $public_property"
+  done
+  [ "$(rg -o 'Services\.MediaService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one Services.MediaService'
+  ! rg -n -i -g '*.qml' -g '!MediaService.qml' -g '!MediaModel.qml' 'playerctl' "$production_dir" \
+    || fail 'playerctl media commands exist outside the MediaService implementation'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io' "$media_popup" \
+    || fail 'MediaPopup.qml still owns media processes, timers, or Quickshell.Io'
+  ! rg -n 'media(Status|Title|Artist|Album|ArtUrl)|mediaFollowProc' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml still owns media scalar state or follow process'
+  rg -q 'required property Services\.MediaService mediaService' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must require MediaService'
+  rg -q 'required property Services\.MediaService mediaService' "$media_popup" \
+    || fail 'MediaPopup.qml must require MediaService'
+  for signature in \
+    'function togglePlaying(): void' \
+    'function next(): void' \
+    'function previous(): void' \
+    'function seek(seconds: real): void' \
+    'function toggleShuffle(): void' \
+    'function cycleLoop(): void' \
+    'function setEffectiveVolume(value: real): void'; do
+    rg -F -q "$signature" "$media_service" \
+      || fail "MediaService.qml is missing typed action signature: $signature"
+  done
+  ! rg -U -q 'onDetailedMonitoringChanged:[^\n]*refreshDebounce|onDetailedMonitoringChanged:[[:space:]]*\{[^}]*refreshDebounce' "$media_service" \
+    || fail 'MediaService detailedMonitoring enable must not schedule the follow debounce timer'
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*mediaService:[[:space:]]*mediaService' "$shell" \
+    || fail 'production shell.qml does not wire MediaService directly to Topbar'
+  rg -U -q 'MediaPopup[[:space:]]*\{[^}]*mediaService:[[:space:]]*mediaService' "$shell" \
+    || fail 'production shell.qml does not wire MediaService directly to MediaPopup'
+  ! rg -n 'status:[[:space:]]*topbar\.media|track:[[:space:]]*topbar\.media|artist:[[:space:]]*topbar\.media|album:[[:space:]]*topbar\.media|artUrl:[[:space:]]*topbar\.media' "$shell" \
+    || fail 'MediaPopup still receives media state through Topbar'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -827,4 +954,5 @@ assert_native_fixture_always_validates_public_contract
 run_unit_tests
 run_process_cleanup_fixture
 run_native_construction_probes
+run_media_service_probe
 assert_no_view_processes_for_migrated_domains

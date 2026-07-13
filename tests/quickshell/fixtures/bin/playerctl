@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+state_file="$state_dir/player.json"
+actions="$state_dir/actions.log"
+lifecycles="$state_dir/playerctl-lifecycle.log"
+printf '%q ' "$@" >>"$state_dir/playerctl-calls.log"
+printf '\n' >>"$state_dir/playerctl-calls.log"
+
+read_value() {
+  jq -r "if has(\"players\") then .defaultPlayer as \$default | .players[] | select(.name == \$default) | $1 else $1 end" "$state_file"
+}
+
+require_player() {
+  [ "$(jq -r '.available' "$state_file")" = true ]
+}
+
+update() {
+  local filter=$1 value=${2-} tmp
+  tmp=$(mktemp "$state_dir/player.XXXXXX")
+  jq --arg value "$value" "if has(\"players\") then .defaultPlayer as \$default | .players |= map(if .name == \$default then ($filter) else . end) else ($filter) end" "$state_file" >"$tmp"
+  mv "$tmp" "$state_file"
+}
+
+notify() {
+  [ -p "$state_dir/follow.fifo" ] || return 0
+  printf '%s\n' "$(read_value '.status')" >"$state_dir/follow.fifo"
+}
+
+record_action() {
+  printf '%s\n' "$*" >>"$actions"
+}
+
+if [ "$#" -eq 4 ] && [ "$1" = --follow ] && [ "$2" = metadata ] && [ "$3" = --format ] && [ "$4" = '{{status}}' ]; then
+  if [ -f "$state_dir/follow.active" ]; then
+    printf 'follow-overlap %s\n' "$$" >>"$state_dir/playerctl-overlap.log"
+    exit 75
+  fi
+  mkdir -p "$state_dir/processes"
+  record="$state_dir/processes/follow.$$.record"
+  printf 'pid=%s\nppid=%s\n' "$$" "$PPID" >"$record"
+  printf 'start %s\n' "$$" >>"$lifecycles"
+  cleanup() {
+    printf 'term %s\n' "$$" >>"$lifecycles"
+    rm -f "$state_dir/follow.active"
+  }
+  trap cleanup EXIT
+  trap 'exit 0' TERM INT
+  printf '%s\n' "$$" >"$state_dir/follow.active"
+  while true; do
+    while IFS= read -r line; do
+      printf '%s\n' "$line"
+      if [ -f "$state_dir/follow-exit.once" ]; then
+        rm -f "$state_dir/follow-exit.once"
+        printf 'forced-exit %s\n' "$$" >>"$lifecycles"
+        exit 42
+      fi
+    done <"$state_dir/follow.fifo"
+  done
+  exit 0
+fi
+
+lock="$state_dir/playerctl-command.lock"
+if ! mkdir "$lock" 2>/dev/null; then
+  printf 'overlap %s\n' "$$" >>"$state_dir/playerctl-overlap.log"
+  exit 75
+fi
+trap 'rmdir "$lock"' EXIT
+require_player || exit 1
+
+case "${1-}" in
+  status)
+    [ "$#" -eq 1 ] || exit 64
+    if [ -f "$state_dir/slow-snapshot.once" ]; then
+      delay=$(cat "$state_dir/slow-snapshot.once")
+      rm -f "$state_dir/slow-snapshot.once"
+      : >"$state_dir/slow-snapshot.active"
+      sleep "$delay"
+      rm -f "$state_dir/slow-snapshot.active"
+    fi
+    read_value '.status'
+    ;;
+  metadata)
+    [ "$#" -eq 2 ] || exit 64
+    case "$2" in
+      xesam:title) read_value '.title' ;;
+      xesam:artist) read_value '.artist' ;;
+      xesam:album) read_value '.album' ;;
+      mpris:artUrl) read_value '.artUrl' ;;
+      mpris:length) read_value '.lengthMicros' ;;
+      *) exit 64 ;;
+    esac
+    ;;
+  position)
+    if [ "$#" -eq 1 ]; then
+      read_value '.positionSeconds'
+    elif [ "$#" -eq 2 ]; then
+      record_action "position $2"
+      update '.positionSeconds = ($value | tonumber)' "$2"
+      notify
+    else
+      exit 64
+    fi
+    ;;
+  shuffle)
+    if [ "$#" -eq 1 ]; then
+      read_value '.shuffle'
+    elif [ "$#" -eq 2 ] && [ "$2" = Toggle ]; then
+      record_action 'shuffle Toggle'
+      update '.shuffle = (if .shuffle == "On" then "Off" else "On" end)'
+      notify
+    else
+      exit 64
+    fi
+    ;;
+  loop)
+    if [ "$#" -eq 1 ]; then
+      read_value '.loop'
+    elif [ "$#" -eq 2 ] && [[ "$2" =~ ^(None|Playlist|Track)$ ]]; then
+      record_action "loop $2"
+      update '.loop = $value' "$2"
+      notify
+    else
+      exit 64
+    fi
+    ;;
+  volume)
+    [ "$(read_value '.volumeSupported')" = true ] || exit 1
+    if [ "$#" -eq 1 ]; then
+      read_value '.volume'
+    elif [ "$#" -eq 2 ]; then
+      record_action "volume $2"
+      update '.volume = ($value | tonumber)' "$2"
+      notify
+    else
+      exit 64
+    fi
+    ;;
+  previous|play-pause|next)
+    [ "$#" -eq 1 ] || exit 64
+    record_action "$1"
+    delayed_notify=0
+    if [ -f "$state_dir/slow-action.once" ]; then
+      delay=$(cat "$state_dir/slow-action.once")
+      rm -f "$state_dir/slow-action.once"
+      sleep "$delay"
+    fi
+    if [ "$1" = play-pause ] && [ -f "$state_dir/delayed-play-pause.once" ]; then
+      delayed_notify=1
+      delay=$(cat "$state_dir/delayed-play-pause.once")
+      rm -f "$state_dir/delayed-play-pause.once"
+      (
+        trap - EXIT
+        sleep "$delay"
+        tmp=$(mktemp "$state_dir/player.XXXXXX")
+        jq 'if has("players") then .defaultPlayer as $default | .players |= map(if .name == $default then (.status = (if .status == "Playing" then "Paused" else "Playing" end)) else . end) else .status = (if .status == "Playing" then "Paused" else "Playing" end) end' "$state_file" >"$tmp"
+        mv "$tmp" "$state_file"
+        printf '%s\n' "$(read_value '.status')" >"$state_dir/follow.fifo"
+      ) </dev/null >/dev/null 2>&1 &
+    elif [ "$1" = play-pause ]; then
+      update '.status = (if .status == "Playing" then "Paused" else "Playing" end)'
+    fi
+    if ((delayed_notify == 1)); then
+      :
+    elif [ -f "$state_dir/suppress-action-notify.count" ]; then
+      remaining=$(cat "$state_dir/suppress-action-notify.count")
+      remaining=$((remaining - 1))
+      if ((remaining > 0)); then
+        printf '%s\n' "$remaining" >"$state_dir/suppress-action-notify.count"
+      else
+        rm -f "$state_dir/suppress-action-notify.count"
+      fi
+    else
+      notify
+    fi
+    ;;
+  *)
+    printf 'playerctl: unsupported argv:' >&2
+    printf ' %q' "$@" >&2
+    printf '\n' >&2
+    exit 64
+    ;;
+esac

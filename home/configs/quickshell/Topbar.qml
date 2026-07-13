@@ -9,6 +9,7 @@ PanelWindow {
     id: topbarWindow
 
     required property Services.AudioService audioService
+    required property Services.MediaService mediaService
 
     property color themeFg
     property color themeBg
@@ -54,11 +55,6 @@ PanelWindow {
     property string powerProfile: "balanced"
     property string activeTitle: "no active window"
     property int notificationCount: 0
-    property string mediaStatus: ""
-    property string mediaTitle: ""
-    property string mediaArtist: ""
-    property string mediaAlbum: ""
-    property string mediaArtUrl: ""
     property var cavaValues: []
     property bool cavaRequested: false
     property int activeWorkspace: 1
@@ -101,10 +97,6 @@ PanelWindow {
         if (percent < 67)
             return "󰖀";
         return "󰕾";
-    }
-
-    function adjustMedia(delta) {
-        topbarWindow.run("playerctl " + (delta > 0 ? "next" : "previous"));
     }
 
     WlrLayershell.namespace: "quickshell-topbar"
@@ -160,35 +152,13 @@ PanelWindow {
         onTriggered: statsProc.running = true
     }
 
-    // setpriv --pdeathsig: playerctl --follow does not exit when quickshell's
-    // stdout pipe closes (only on next write, which never comes while idle), so
-    // without this it orphans on every pkill/profile-switch and piles up.
-    // sh exec replaces itself with playerctl, so the pdeathsig applies to it.
-    Process {
-        id: mediaFollowProc
-        running: true
-        command: ["setpriv", "--pdeathsig", "TERM", "--", "sh", "-c", "exec playerctl --follow metadata --format '{{status}}@@@{{xesam:title}}@@@{{xesam:artist}}@@@{{xesam:album}}@@@{{mpris:artUrl}}' 2>/dev/null"]
-        stdout: SplitParser {
-            onRead: data => {
-                if (!data)
-                    return;
-                const parts = data.split("@@@");
-                topbarWindow.mediaStatus = parts[0] || "";
-                topbarWindow.mediaTitle = parts[1] || "";
-                topbarWindow.mediaArtist = parts[2] || "";
-                topbarWindow.mediaAlbum = parts[3] || "";
-                topbarWindow.mediaArtUrl = parts[4] || "";
-            }
-        }
-    }
-
     // cava raw-output visualizer feeding the centered media module. Only runs
     // while media is actually playing to avoid idle CPU. setpriv --pdeathsig so
     // it dies with quickshell rather than orphaning on pkill/profile-switch.
     readonly property string cavaConfigPath: Qt.resolvedUrl("cava-bar.conf").toString().replace("file://", "")
     Process {
         id: cavaProc
-        running: topbarWindow.mediaStatus === "Playing" && (topbarWindow.showMedia || topbarWindow.cavaRequested)
+        running: topbarWindow.mediaService.playing && (topbarWindow.showMedia || topbarWindow.cavaRequested)
         command: ["setpriv", "--pdeathsig", "TERM", "--", "cava", "-p", topbarWindow.cavaConfigPath]
         stdout: SplitParser {
             onRead: data => {
@@ -502,12 +472,12 @@ PanelWindow {
 
         Item {
             id: mediaModule
-            visible: topbarWindow.showMedia && topbarWindow.mediaStatus !== "" && topbarWindow.mediaStatus !== "Stopped"
+            visible: topbarWindow.showMedia && topbarWindow.mediaService.available && topbarWindow.mediaService.status !== "Stopped"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
 
             readonly property bool flat: topbarWindow.flatMode
-            readonly property bool playing: topbarWindow.mediaStatus === "Playing"
+            readonly property bool playing: topbarWindow.mediaService.playing
             readonly property color tint: playing ? topbarWindow.themeAccent : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.55)
 
             width: mediaContent.implicitWidth + (flat ? 16 : 22)
@@ -584,7 +554,7 @@ PanelWindow {
                     }
 
                     Text {
-                        text: topbarWindow.mediaTitle.length > 26 ? topbarWindow.mediaTitle.substring(0, 25) + "…" : topbarWindow.mediaTitle
+                        text: topbarWindow.mediaService.title.length > 26 ? topbarWindow.mediaService.title.substring(0, 25) + "…" : topbarWindow.mediaService.title
                         color: topbarWindow.themeFg
                         opacity: 0.85
                         font {
@@ -631,12 +601,15 @@ PanelWindow {
                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 onClicked: mouse => {
                     if (mouse.button === Qt.MiddleButton)
-                        topbarWindow.run("playerctl play-pause");
+                        topbarWindow.mediaService.togglePlaying();
                     else
                         topbarWindow.mediaClicked();
                 }
                 onWheel: event => {
-                    topbarWindow.adjustMedia(event.angleDelta.y);
+                    if (event.angleDelta.y > 0)
+                        topbarWindow.mediaService.next();
+                    else if (event.angleDelta.y < 0)
+                        topbarWindow.mediaService.previous();
                     event.accepted = true;
                 }
             }

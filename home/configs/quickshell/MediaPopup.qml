@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell
-import Quickshell.Io
 import "services" as Services
 
 InfoPopup {
@@ -10,30 +9,16 @@ InfoPopup {
     popupPosition: "center"
     implicitWidth: 330
 
-    required property Services.AudioService audioService
+    required property Services.MediaService mediaService
 
-    property string status: ""
-    property string track: ""
-    property string artist: ""
-    property string album: ""
-    property string artUrl: ""
     property var cavaValues: []
 
-    property real positionSec: 0
-    property real lengthSec: 0
-    property bool shuffleOn: false
-    property string loopMode: "None"
-    property real volume: 0
-    property bool volumeIsPlayer: false
     property bool seeking: false
+    property real seekPosition: 0
 
-    readonly property bool playing: root.status === "Playing"
-    readonly property bool canSeek: root.lengthSec > 0
-    readonly property real seekFrac: root.lengthSec > 0 ? Math.max(0, Math.min(1, root.positionSec / root.lengthSec)) : 0
+    readonly property real displayedPosition: root.seeking ? root.seekPosition : root.mediaService.positionSeconds
+    readonly property real seekFrac: root.mediaService.lengthSeconds > 0 ? Math.max(0, Math.min(1, root.displayedPosition / root.mediaService.lengthSeconds)) : 0
 
-    function exec(cmd) {
-        Quickshell.execDetached(["sh", "-c", cmd]);
-    }
     function fmt(sec) {
         if (!sec || sec < 0)
             return "0:00";
@@ -41,104 +26,9 @@ InfoPopup {
         const s = Math.floor(sec % 60);
         return m + ":" + (s < 10 ? "0" + s : s);
     }
-    function refresh() {
-        statePoll.running = true;
-        posProc.running = true;
-    }
-    function setVolume(frac) {
-        const v = Math.max(0, Math.min(1, frac));
-        root.volume = v;
-        if (root.volumeIsPlayer)
-            root.exec("playerctl volume " + v.toFixed(2));
-        else
-            root.audioService.setVolume(Math.round(v * 100));
-    }
-    function cycleLoop() {
-        const next = root.loopMode === "None" ? "Playlist" : root.loopMode === "Playlist" ? "Track" : "None";
-        root.loopMode = next;
-        root.exec("playerctl loop " + next);
-        refreshTimer.restart();
-    }
-
     onShownChanged: {
-        if (root.shown)
-            root.refresh();
-        else
+        if (!root.shown)
             root.seeking = false;
-    }
-
-    Process {
-        id: posProc
-        command: ["sh", "-c", "playerctl position 2>/dev/null"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const v = parseFloat(this.text.trim());
-                if (!isNaN(v) && !root.seeking)
-                    root.positionSec = v;
-            }
-        }
-    }
-
-    Process {
-        id: statePoll
-        command: ["sh", "-c", "len=$(playerctl metadata mpris:length 2>/dev/null); shf=$(playerctl shuffle 2>/dev/null); lp=$(playerctl loop 2>/dev/null); pv=$(playerctl volume 2>/dev/null); echo \"$len|$shf|$lp|$pv\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const p = this.text.trim().split("|");
-                if (p.length < 4)
-                    return;
-                const len = parseFloat(p[0]);
-                root.lengthSec = !isNaN(len) ? len / 1000000 : 0;
-                root.shuffleOn = p[1].trim() === "On";
-                const lp = p[2].trim();
-                root.loopMode = (lp === "Track" || lp === "Playlist") ? lp : "None";
-                const pv = parseFloat(p[3]);
-                if (!isNaN(pv)) {
-                    root.volumeIsPlayer = true;
-                    root.volume = Math.max(0, Math.min(1, pv));
-                } else {
-                    root.volumeIsPlayer = false;
-                    root.volume = root.audioService.available ? root.audioService.volumePercent / 100.0 : 0;
-                }
-            }
-        }
-    }
-
-    Connections {
-        target: root.audioService
-        function onVolumePercentChanged() {
-            if (!root.volumeIsPlayer)
-                root.volume = root.audioService.volumePercent / 100.0;
-        }
-    }
-
-    Timer {
-        id: posPoll
-        running: root.shown
-        interval: 1500
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: posProc.running = true
-    }
-
-    Timer {
-        id: interp
-        running: root.shown && root.playing && !root.seeking
-        interval: 500
-        repeat: true
-        onTriggered: {
-            if (root.lengthSec > 0)
-                root.positionSec = Math.min(root.lengthSec, root.positionSec + 0.5);
-            else
-                root.positionSec += 0.5;
-        }
-    }
-
-    Timer {
-        id: refreshTimer
-        interval: 120
-        repeat: false
-        onTriggered: statePoll.running = true
     }
 
     background: [
@@ -156,7 +46,7 @@ InfoPopup {
             Image {
                 id: bgArtSrc
                 anchors.fill: parent
-                source: root.artUrl
+                source: root.mediaService.artUrl
                 fillMode: Image.PreserveAspectCrop
                 visible: false
                 asynchronous: true
@@ -211,7 +101,7 @@ InfoPopup {
                 id: cover
                 anchors.fill: parent
                 anchors.margins: 1
-                source: root.artUrl
+                source: root.mediaService.artUrl
                 fillMode: Image.PreserveAspectCrop
                 visible: cover.status === Image.Ready
                 asynchronous: true
@@ -236,7 +126,7 @@ InfoPopup {
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: root.track || "—"
+            text: root.mediaService.title || "—"
             color: root.themeFg
             font {
                 family: "JetBrainsMono Nerd Font"
@@ -250,19 +140,19 @@ InfoPopup {
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: root.artist
+            text: root.mediaService.artist
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
             font {
                 family: "JetBrainsMono Nerd Font"
                 pixelSize: 11
             }
             elide: Text.ElideRight
-            visible: root.artist !== ""
+            visible: root.mediaService.artist !== ""
         }
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: root.album
+            text: root.mediaService.album
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
             font {
                 family: "JetBrainsMono Nerd Font"
@@ -270,14 +160,14 @@ InfoPopup {
                 italic: true
             }
             elide: Text.ElideRight
-            visible: root.album !== ""
+            visible: root.mediaService.album !== ""
         }
     }
 
     Item {
         width: parent.width
         height: 22
-        visible: root.playing && root.cavaValues.length > 0
+        visible: root.mediaService.playing && root.cavaValues.length > 0
 
         Row {
             anchors.centerIn: parent
@@ -310,7 +200,7 @@ InfoPopup {
             id: posLabel
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            text: root.fmt(root.positionSec)
+            text: root.fmt(root.displayedPosition)
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
             font {
                 family: "JetBrainsMono Nerd Font"
@@ -321,7 +211,7 @@ InfoPopup {
             id: lenLabel
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: root.fmt(root.lengthSec)
+            text: root.fmt(root.mediaService.lengthSeconds)
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
             font {
                 family: "JetBrainsMono Nerd Font"
@@ -350,7 +240,7 @@ InfoPopup {
                 color: root.themeAccent
             }
             Rectangle {
-                visible: root.canSeek
+                visible: root.mediaService.canSeek
                 width: 10
                 height: 10
                 radius: 5
@@ -361,11 +251,11 @@ InfoPopup {
             MouseArea {
                 anchors.fill: parent
                 anchors.margins: -6
-                enabled: root.canSeek
-                cursorShape: root.canSeek ? Qt.PointingHandCursor : Qt.ArrowCursor
+                enabled: root.mediaService.canSeek
+                cursorShape: root.mediaService.canSeek ? Qt.PointingHandCursor : Qt.ArrowCursor
                 function seekTo(mx) {
                     const frac = Math.max(0, Math.min(1, mx / seekTrack.width));
-                    root.positionSec = frac * root.lengthSec;
+                    root.seekPosition = frac * root.mediaService.lengthSeconds;
                 }
                 onPressed: mouse => {
                     root.seeking = true;
@@ -376,7 +266,7 @@ InfoPopup {
                         seekTo(mouse.x);
                 }
                 onReleased: {
-                    root.exec("playerctl position " + root.positionSec.toFixed(2));
+                    root.mediaService.seek(root.seekPosition);
                     root.seeking = false;
                 }
             }
@@ -389,29 +279,26 @@ InfoPopup {
 
         CtrlBtn {
             icon: "󰒞"
-            active: root.shuffleOn
-            onActivated: {
-                root.exec("playerctl shuffle Toggle");
-                refreshTimer.restart();
-            }
+            active: root.mediaService.shuffleEnabled
+            onActivated: root.mediaService.toggleShuffle()
         }
         CtrlBtn {
             icon: "󰒮"
-            onActivated: root.exec("playerctl previous")
+            onActivated: root.mediaService.previous()
         }
         CtrlBtn {
-            icon: root.playing ? "󰏤" : "󰐊"
+            icon: root.mediaService.playing ? "󰏤" : "󰐊"
             primary: true
-            onActivated: root.exec("playerctl play-pause")
+            onActivated: root.mediaService.togglePlaying()
         }
         CtrlBtn {
             icon: "󰒭"
-            onActivated: root.exec("playerctl next")
+            onActivated: root.mediaService.next()
         }
         CtrlBtn {
-            icon: root.loopMode === "Track" ? "󰑘" : "󰑖"
-            active: root.loopMode !== "None"
-            onActivated: root.cycleLoop()
+            icon: root.mediaService.loopMode === "Track" ? "󰑘" : "󰑖"
+            active: root.mediaService.loopMode !== "None"
+            onActivated: root.mediaService.cycleLoop()
         }
     }
 
@@ -423,7 +310,7 @@ InfoPopup {
             id: volIcon
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            text: root.volume <= 0 ? "󰖁" : root.volume < 0.5 ? "󰖀" : "󰕾"
+            text: root.mediaService.effectiveVolume <= 0 ? "󰖁" : root.mediaService.effectiveVolume < 0.5 ? "󰖀" : "󰕾"
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.75)
             font {
                 family: "JetBrainsMono Nerd Font"
@@ -434,7 +321,7 @@ InfoPopup {
             id: volTag
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: root.volumeIsPlayer ? "APP" : "SYS"
+            text: root.mediaService.volumeIsPlayer ? "APP" : "SYS"
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.35)
             font {
                 family: "JetBrainsMono Nerd Font"
@@ -460,7 +347,7 @@ InfoPopup {
             Rectangle {
                 id: volFill
                 height: parent.height
-                width: parent.width * root.volume
+                width: parent.width * root.mediaService.effectiveVolume
                 radius: 3
                 color: root.themeAccent
             }
@@ -477,7 +364,7 @@ InfoPopup {
                 anchors.margins: -6
                 cursorShape: Qt.PointingHandCursor
                 function setFromX(mx) {
-                    root.setVolume(mx / volTrack.width);
+                    root.mediaService.setEffectiveVolume(mx / volTrack.width);
                 }
                 onPressed: mouse => setFromX(mouse.x)
                 onPositionChanged: mouse => {
