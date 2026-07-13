@@ -14,6 +14,7 @@ wallpaper-script-check:
   bash checks/wallpaper-scripts.bash
   bash checks/iris-render.bash
   bash checks/spicetify-theme.bash
+  bash checks/profile-transition.bash
 
 check-local-bin:
   bash checks/local-bin-rot.bash
