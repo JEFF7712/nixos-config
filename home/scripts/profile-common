@@ -383,7 +383,7 @@ stop_mako() {
 
 start_mako() {
   mako_running || {
-    mako 2>/dev/null &
+    mako 9>&- 2>/dev/null &
     disown
   }
 }

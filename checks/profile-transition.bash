@@ -3,7 +3,6 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
 
 home="$tmpdir/home"
 profiles="$home/.config/desktop-profiles"
@@ -11,6 +10,10 @@ bin_dir="$tmpdir/bin"
 log="$tmpdir/commands.log"
 real_jq="$(command -v jq)"
 bar_state="$tmpdir/waybar.state"
+notification_state="$tmpdir/notification.state"
+persistent_pid_dir="$tmpdir/persistent-pids"
+export NOTIFICATION_STATE="$notification_state"
+export PERSISTENT_PID_DIR="$persistent_pid_dir"
 
 assert_eq() {
   local expected="$1" actual="$2" label="$3"
@@ -53,6 +56,31 @@ assert_mode() {
   local expected="$1" path="$2" label="$3"
   assert_eq "$expected" "$(stat -c '%a' "$path")" "$label"
 }
+
+stop_persistent_children() {
+  local pid_file pid alive
+  local -a pids=()
+  for pid_file in "$persistent_pid_dir"/*; do
+    [ -f "$pid_file" ] || continue
+    pid=$(cat "$pid_file")
+    pids+=("$pid")
+    kill "$pid" 2>/dev/null || true
+  done
+  for _ in $(seq 1 20); do
+    alive=0
+    for pid in "${pids[@]}"; do
+      kill -0 "$pid" 2>/dev/null && alive=1
+    done
+    [ "$alive" -eq 1 ] || break
+    sleep 0.05
+  done
+  for pid in "${pids[@]}"; do
+    kill -KILL "$pid" 2>/dev/null || true
+  done
+  rm -rf "$persistent_pid_dir"
+}
+
+trap 'stop_persistent_children; rm -rf "$tmpdir"' EXIT
 
 check_waybar_readiness_fake() {
   printf 'stopped\n' > "$bar_state"
@@ -184,7 +212,7 @@ check_unusual_snapshot_paths() {
   fi
 }
 
-mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar"
+mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar" "$persistent_pid_dir"
 
 for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
   mktemp mv readlink rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
@@ -251,6 +279,7 @@ printf 'dark\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-old"
 printf 'light\n' > "$profiles/variant-new"
 ln -s "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'mako\n' > "$notification_state"
 
 for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper mako makoctl tmux kitty magick; do
   cat > "$bin_dir/$command" <<'EOF'
@@ -288,10 +317,15 @@ case " $* " in
       count=$((count + 1))
       printf '%s\n' "$count" > "$SYSTEMCTL_COUNT_FILE"
     fi
-    [ -n "${IGNORE_FIRST_NOCTALIA_STOP:-}" ] && [ "${count:-0}" -eq 1 ] \
-      || printf 'stopped\n' > "$BAR_STATE"
+    if ! { [ -n "${IGNORE_FIRST_NOCTALIA_STOP:-}" ] && [ "${count:-0}" -eq 1 ]; }; then
+      printf 'stopped\n' > "$BAR_STATE"
+      [ "$(cat "$NOTIFICATION_STATE")" != noctalia ] || printf 'none\n' > "$NOTIFICATION_STATE"
+    fi
     ;;
-  *" start noctalia-shell "*) printf 'noctalia-started\n' > "$BAR_STATE" ;;
+  *" start noctalia-shell "*)
+    printf 'noctalia-started\n' > "$BAR_STATE"
+    [ -n "${FAIL_NOTIFICATION_OWNER:-}" ] || printf 'noctalia\n' > "$NOTIFICATION_STATE"
+    ;;
   *" is-active --quiet noctalia-shell "*)
     if [ "$(cat "$BAR_STATE")" = "noctalia-started" ]; then
       active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
@@ -318,6 +352,13 @@ case " $* " in
   *" quickshell"*"quickshell/shell.qml"*)
     [ -n "${IGNORE_FIRST_BAR_STOP:-}" ] && [ "${count:-0}" -eq 1 ] || printf 'stopped\n' > "$BAR_STATE"
     ;;
+  *" \\.?mako(-wrapped)? "*)
+    if [ -n "${MAKO_STOP_POLLS:-}" ]; then
+      printf 'mako-stopping:%s\n' "$MAKO_STOP_POLLS" > "$NOTIFICATION_STATE"
+    else
+      printf 'none\n' > "$NOTIFICATION_STATE"
+    fi
+    ;;
 esac
 EOF
 
@@ -330,19 +371,69 @@ fi
 printf 'started\n' > "$BAR_STATE"
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf 'waybar start active=%s\n' "$active" >> "$COMMAND_LOG"
+if [ -n "${PERSISTENT_CHILDREN:-}" ]; then
+  mkdir -p "$PERSISTENT_PID_DIR"
+  pid_file="$PERSISTENT_PID_DIR/waybar"
+  printf '%s\n' "$$" > "$pid_file"
+  trap 'rm -f "$pid_file"' EXIT
+  sleep 5
+fi
 EOF
 
 cat > "$bin_dir/quickshell" <<'EOF'
 #!/usr/bin/env bash
-printf 'quickshell-started\n' > "$BAR_STATE"
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf 'quickshell start active=%s\n' "$active" >> "$COMMAND_LOG"
+if [ "$(cat "$NOTIFICATION_STATE")" = none ] && [ -z "${FAIL_NOTIFICATION_OWNER:-}" ]; then
+  printf 'quickshell-started\n' > "$BAR_STATE"
+  printf 'quickshell\n' > "$NOTIFICATION_STATE"
+fi
+if [ -n "${PERSISTENT_CHILDREN:-}" ]; then
+  mkdir -p "$PERSISTENT_PID_DIR"
+  pid_file="$PERSISTENT_PID_DIR/quickshell"
+  printf '%s\n' "$$" > "$pid_file"
+  trap 'rm -f "$pid_file"' EXIT
+  sleep 5
+fi
+EOF
+
+cat > "$bin_dir/mako" <<'EOF'
+#!/usr/bin/env bash
+printf 'mako %s\n' "$*" >> "$COMMAND_LOG"
+[ -n "${FAIL_NOTIFICATION_OWNER:-}" ] || printf 'mako\n' > "$NOTIFICATION_STATE"
+if [ -n "${PERSISTENT_CHILDREN:-}" ]; then
+  mkdir -p "$PERSISTENT_PID_DIR"
+  pid_file="$PERSISTENT_PID_DIR/mako"
+  printf '%s\n' "$$" > "$pid_file"
+  trap 'rm -f "$pid_file"' EXIT
+  sleep 5
+fi
 EOF
 
 cat > "$bin_dir/pgrep" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 state=$(cat "$BAR_STATE")
+if [[ " $* " == *" \\.?mako(-wrapped)? "* ]]; then
+  notification=$(cat "$NOTIFICATION_STATE")
+  case "$notification" in
+    mako)
+      printf 'pgrep-mako active\n' >> "$COMMAND_LOG"
+      exit 0
+      ;;
+    mako-stopping:*)
+      polls=${notification##*:}
+      printf 'pgrep-mako stopping=%s\n' "$polls" >> "$COMMAND_LOG"
+      if [ "$polls" -gt 1 ]; then
+        printf 'mako-stopping:%s\n' "$((polls - 1))" > "$NOTIFICATION_STATE"
+        exit 0
+      fi
+      printf 'none\n' > "$NOTIFICATION_STATE"
+      exit 1
+      ;;
+    *) exit 1 ;;
+  esac
+fi
 if [ -n "${FAIL_FIRST_BAR_START:-}" ] && [ "$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)" = 1 ]; then
   printf 'pgrep %s active=%s state=%s\n' "$*" "$active" "$state" >> "$COMMAND_LOG"
   exit 1
@@ -362,6 +453,18 @@ case " $* :$state" in
     printf 'pgrep %s active=%s state=%s\n' "$*" "$active" "$state" >> "$COMMAND_LOG"
     exit 1
     ;;
+esac
+EOF
+
+cat > "$bin_dir/busctl" <<'EOF'
+#!/usr/bin/env bash
+printf 'busctl %s\n' "$*" >> "$COMMAND_LOG"
+[ "$*" = '--user status org.freedesktop.Notifications' ] || exit 1
+case "$(cat "$NOTIFICATION_STATE")" in
+  mako | mako-stopping:*) printf 'mako notification server\n' ;;
+  quickshell) printf 'quickshell notification server\n' ;;
+  noctalia) printf 'noctalia-shell notification server\n' ;;
+  *) exit 1 ;;
 esac
 EOF
 
@@ -728,6 +831,8 @@ for previous in old qs noc; do
         assert_log_contains 'systemctl --user start awww' "Waybar starts awww from $previous"
         assert_log_contains_eventually 'mako ' "Waybar starts Mako from $previous"
         assert_log_contains 'makoctl mode -a dnd' "Waybar rearms focus DND from $previous"
+        assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
+          "Waybar verifies notification ownership from $previous"
         ;;
       qs)
         assert_log_contains "pgrep -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
@@ -735,6 +840,8 @@ for previous in old qs noc; do
         assert_log_contains 'systemctl --user start awww' "Quickshell starts awww from $previous"
         assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Quickshell stops Mako from $previous"
         assert_log_not_contains 'makoctl mode -a dnd' "Quickshell does not rearm focus DND from $previous"
+        assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
+          "Quickshell verifies notification ownership from $previous"
         ;;
       noc)
         assert_log_contains 'systemctl --user is-active --quiet noctalia-shell' \
@@ -742,6 +849,8 @@ for previous in old qs noc; do
         assert_log_contains 'systemctl --user stop awww' "Noctalia stops awww from $previous"
         assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Noctalia stops Mako from $previous"
         assert_log_not_contains 'makoctl mode -a dnd' "Noctalia does not rearm focus DND from $previous"
+        assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
+          "Noctalia verifies notification ownership from $previous"
         ;;
     esac
   done
@@ -759,6 +868,88 @@ assert_mode 644 "$home/.config/mako/config" "Mako config remains writable"
 assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
   "core GTK color file is installed"
 assert_log_not_contains 'apply_vicinae' "core staging excludes best-effort application adapters"
+
+# Quickshell cannot claim org.freedesktop.Notifications until Mako has released
+# it. The transition must wait for that release rather than committing a bar
+# process whose notification server never came up.
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'started\n' > "$bar_state"
+printf 'mako\n' > "$notification_state"
+: > "$log"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" MAKO_STOP_POLLS=3 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch qs
+assert_eq quickshell "$(cat "$notification_state")" \
+  "Quickshell starts only after Mako releases notification ownership"
+
+# A ready bar process is insufficient when its notification owner is absent.
+printf 'noc\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'noctalia-started\n' > "$bar_state"
+printf 'noctalia\n' > "$notification_state"
+: > "$log"
+if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" FAIL_NOTIFICATION_OWNER=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch old >/dev/null 2>&1; then
+  printf 'FAIL: transition committed Waybar without its notification owner\n' >&2
+  exit 1
+fi
+assert_eq noc "$(cat "$profiles/active")" \
+  "notification ownership failure rolls back active profile"
+
+# Spawned bars and notification daemons outlive the engine, but must not retain
+# its flock file descriptor and block the next transition.
+printf 'noc\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'noctalia-started\n' > "$bar_state"
+printf 'noctalia\n' > "$notification_state"
+rm -rf "$persistent_pid_dir"
+mkdir -p "$persistent_pid_dir"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" PERSISTENT_CHILDREN=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch old
+for _ in $(seq 1 20); do
+  [ -f "$persistent_pid_dir/waybar" ] && [ -f "$persistent_pid_dir/mako" ] && break
+  sleep 0.05
+done
+[ -f "$persistent_pid_dir/waybar" ] && [ -f "$persistent_pid_dir/mako" ] || {
+  printf 'FAIL: persistent Waybar and Mako fakes did not remain running\n' >&2
+  exit 1
+}
+if ! flock -n "$tmpdir/profile.lock" true; then
+  printf 'FAIL: persistent bar child retained the transition lock\n' >&2
+  exit 1
+fi
+stop_persistent_children
+
+printf 'old\n' > "$profiles/active"
+printf 'started\n' > "$bar_state"
+printf 'mako\n' > "$notification_state"
+mkdir -p "$persistent_pid_dir"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" PERSISTENT_CHILDREN=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch qs
+for _ in $(seq 1 20); do
+  [ -f "$persistent_pid_dir/quickshell" ] && break
+  sleep 0.05
+done
+[ -f "$persistent_pid_dir/quickshell" ] || {
+  printf 'FAIL: persistent Quickshell fake did not remain running\n' >&2
+  exit 1
+}
+if ! flock -n "$tmpdir/profile.lock" true; then
+  printf 'FAIL: persistent Quickshell child retained the transition lock\n' >&2
+  exit 1
+fi
+stop_persistent_children
 
 if [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "delegation" ] \
   || [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "full" ]; then
