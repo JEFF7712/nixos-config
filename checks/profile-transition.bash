@@ -609,7 +609,7 @@ check_legacy_runtime_regressions() {
     "matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c $home/.config/matugen/config-new.toml active=new" \
     "wallpaper-themed profile dispatches its runtime palette adapter after commit"
   assert_log_not_contains \
-    "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml active=new" \
+    "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
     "wallpaper theme does not kill Quickshell to repaint"
   # After switch from waybar→quickshell there is exactly one topbar launch from start_bar;
   # wallpaper theming must not launch shell.qml again.
