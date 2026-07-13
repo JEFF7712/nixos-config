@@ -117,86 +117,98 @@ ShellRoot {
     }
 
     function applyTheme(theme) {
-        root.resetThemeDefaults();
-        if (!theme)
-            return;
-        if (theme.fg)
-            root.themeFg = theme.fg;
-        if (theme.bg)
-            root.themeBg = theme.bg;
-        if (theme.popupBg)
-            root.popupBg = theme.popupBg;
-        if (theme.rawBg)
-            root.themeRawBg = theme.rawBg;
-        if (theme.accent)
-            root.themeAccent = theme.accent;
-        if (theme.second)
-            root.themeSecond = theme.second;
-        if (theme.warm)
-            root.themeWarm = theme.warm;
-        if (theme.fresh)
-            root.themeFresh = theme.fresh;
-        if (theme.barRadius)
-            root.barRadius = parseInt(theme.barRadius);
-        if (theme.barHeight)
-            root.barHeight = parseInt(theme.barHeight);
-        if (theme.barMargin)
-            root.barMargin = parseInt(theme.barMargin);
-        if (theme.barMarginTop !== undefined)
-            root.barMarginTop = parseInt(theme.barMarginTop);
-        if (theme.exclusiveZoneOffset !== undefined)
-            root.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset);
-        if (theme.showWorkspaces)
-            root.showWorkspaces = theme.showWorkspaces === "true";
-        if (theme.showClock)
-            root.showClock = theme.showClock === "true";
-        if (theme.showClockDate)
-            root.showClockDate = theme.showClockDate === "true";
-        if (theme.showWorkspaceNumbers)
-            root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true";
-        if (theme.showActiveWindow)
-            root.showActiveWindow = theme.showActiveWindow === "true";
-        if (theme.showMedia)
-            root.showMedia = theme.showMedia === "true";
-        if (theme.showVolume)
-            root.showVolume = theme.showVolume === "true";
-        if (theme.showNetwork)
-            root.showNetwork = theme.showNetwork === "true";
-        if (theme.showBluetooth)
-            root.showBluetooth = theme.showBluetooth === "true";
-        if (theme.showBattery)
-            root.showBattery = theme.showBattery === "true";
-        if (theme.showNotifications)
-            root.showNotifications = theme.showNotifications === "true";
-        if (theme.showSystem)
-            root.showSystem = theme.showSystem === "true";
-        if (theme.barFont)
-            root.barFont = theme.barFont;
-        if (theme.flatMode)
-            root.flatMode = theme.flatMode === "true";
-        if (theme.showBarDividers)
-            root.showBarDividers = theme.showBarDividers === "true";
-        if (theme.moduleAnimationStyle)
-            root.moduleAnimationStyle = theme.moduleAnimationStyle;
-        if (theme.dividerColor)
-            root.dividerColor = theme.dividerColor;
-        if (theme.barBorder)
-            root.barBorderColor = theme.barBorder;
-        if (theme.barInnerHighlight)
-            root.barInnerHighlight = theme.barInnerHighlight;
-        if (theme.pillBg)
-            root.pillBg = theme.pillBg;
-        if (theme.pillBorder)
-            root.pillBorder = theme.pillBorder;
+        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
+        for (const p of popups) {
+            if (p)
+                p.suppressPrewarm = true;
+        }
+        try {
+            root.resetThemeDefaults();
+            if (!theme)
+                return;
+            if (theme.fg)
+                root.themeFg = theme.fg;
+            if (theme.bg)
+                root.themeBg = theme.bg;
+            if (theme.popupBg)
+                root.popupBg = theme.popupBg;
+            if (theme.rawBg)
+                root.themeRawBg = theme.rawBg;
+            if (theme.accent)
+                root.themeAccent = theme.accent;
+            if (theme.second)
+                root.themeSecond = theme.second;
+            if (theme.warm)
+                root.themeWarm = theme.warm;
+            if (theme.fresh)
+                root.themeFresh = theme.fresh;
+            if (theme.barRadius)
+                root.barRadius = parseInt(theme.barRadius);
+            if (theme.barHeight)
+                root.barHeight = parseInt(theme.barHeight);
+            if (theme.barMargin)
+                root.barMargin = parseInt(theme.barMargin);
+            if (theme.barMarginTop !== undefined)
+                root.barMarginTop = parseInt(theme.barMarginTop);
+            if (theme.exclusiveZoneOffset !== undefined)
+                root.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset);
+            if (theme.showWorkspaces)
+                root.showWorkspaces = theme.showWorkspaces === "true";
+            if (theme.showClock)
+                root.showClock = theme.showClock === "true";
+            if (theme.showClockDate)
+                root.showClockDate = theme.showClockDate === "true";
+            if (theme.showWorkspaceNumbers)
+                root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true";
+            if (theme.showActiveWindow)
+                root.showActiveWindow = theme.showActiveWindow === "true";
+            if (theme.showMedia)
+                root.showMedia = theme.showMedia === "true";
+            if (theme.showVolume)
+                root.showVolume = theme.showVolume === "true";
+            if (theme.showNetwork)
+                root.showNetwork = theme.showNetwork === "true";
+            if (theme.showBluetooth)
+                root.showBluetooth = theme.showBluetooth === "true";
+            if (theme.showBattery)
+                root.showBattery = theme.showBattery === "true";
+            if (theme.showNotifications)
+                root.showNotifications = theme.showNotifications === "true";
+            if (theme.showSystem)
+                root.showSystem = theme.showSystem === "true";
+            if (theme.barFont)
+                root.barFont = theme.barFont;
+            if (theme.flatMode)
+                root.flatMode = theme.flatMode === "true";
+            if (theme.showBarDividers)
+                root.showBarDividers = theme.showBarDividers === "true";
+            if (theme.moduleAnimationStyle)
+                root.moduleAnimationStyle = theme.moduleAnimationStyle;
+            if (theme.dividerColor)
+                root.dividerColor = theme.dividerColor;
+            if (theme.barBorder)
+                root.barBorderColor = theme.barBorder;
+            if (theme.barInnerHighlight)
+                root.barInnerHighlight = theme.barInnerHighlight;
+            if (theme.pillBg)
+                root.pillBg = theme.pillBg;
+            if (theme.pillBorder)
+                root.pillBorder = theme.pillBorder;
 
-        // Only assign when the value changes so wallpaper rethemes (same sharp
-        // layout, new colors) do not trip InfoPopup's attach/style prewarm flash.
-        const nextAttach = theme.popupAttachToBar !== undefined ? theme.popupAttachToBar === "true" : false;
-        const nextAnim = theme.popupAnimationStyle !== undefined ? theme.popupAnimationStyle : "softPop";
-        if (root.popupAttachToBar !== nextAttach)
-            root.popupAttachToBar = nextAttach;
-        if (root.popupAnimationStyle !== nextAnim)
-            root.popupAnimationStyle = nextAnim;
+            // Only assign when the value changes so wallpaper rethemes (same sharp
+            // layout, new colors) do not trip InfoPopup's attach/style prewarm flash.
+            const nextAttach = theme.popupAttachToBar !== undefined ? theme.popupAttachToBar === "true" : false;
+            const nextAnim = theme.popupAnimationStyle !== undefined ? theme.popupAnimationStyle : "softPop";
+            if (root.popupAttachToBar !== nextAttach)
+                root.popupAttachToBar = nextAttach;
+            if (root.popupAnimationStyle !== nextAnim)
+                root.popupAnimationStyle = nextAnim;
+        } finally {
+            for (const p of popups) {
+                if (p)
+                    p.suppressPrewarm = false;
+            }
+        }
     }
 
     property bool themeLoaded: false

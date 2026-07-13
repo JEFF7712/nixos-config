@@ -30,6 +30,9 @@ PanelWindow {
     // prewarm(); without this gate every popup would briefly map (warming ->
     // visible) and flash near the bar on every profile switch.
     property bool ready: false
+    // Set by shell.applyTheme while swapping profile/wallpaper themes so
+    // attach/style changes do not prewarm-map every popup.
+    property bool suppressPrewarm: false
     property int frozenHeight: 0
     readonly property string effectiveAnimationStyle: popupAttachToBar ? "attachedSlide" : popupAnimationStyle
     readonly property bool attachedSlide: effectiveAnimationStyle === "attachedSlide"
@@ -50,11 +53,20 @@ PanelWindow {
     property alias background: bgContainer.data
 
     function prewarm() {
-        if (!root.ready || !root.attachedSlide || root.active)
+        if (root.suppressPrewarm || !root.ready || !root.attachedSlide || root.active)
             return;
         root.frozenHeight = Math.max(1, root.contentHeight);
         root.warming = true;
         warmTimer.restart();
+    }
+
+    onSuppressPrewarmChanged: {
+        if (!root.suppressPrewarm)
+            return;
+        warmTimer.stop();
+        root.warming = false;
+        if (!root.active)
+            root.frozenHeight = 0;
     }
 
     function open() {
