@@ -27,7 +27,27 @@ require_executable home/scripts/new-nixos-module
 require_executable home/scripts/new-home-module
 require_executable home/scripts/agent-self-improve
 
-bash checks/agent-invariants.bash
+if ! invariants_output=$(bash checks/agent-invariants.bash 2>&1); then
+  if grep -Eq '(^|/|:)\.git(:|/)' <<<"$invariants_output"; then
+    echo "agent invariants scanned Git metadata:" >&2
+  fi
+  printf '%s\n' "$invariants_output" >&2
+  exit 1
+fi
+
+invariant_fixture=checks/.agent-invariants-hardcoded-path-test
+printf '/home/rupan/%s\n' nixos >"$invariant_fixture"
+if fixture_output=$(bash checks/agent-invariants.bash 2>&1); then
+  rm -f "$invariant_fixture"
+  echo "agent invariants missed a hardcoded repo path in a project file" >&2
+  exit 1
+fi
+rm -f "$invariant_fixture"
+if ! grep -Fq "$invariant_fixture" <<<"$fixture_output"; then
+  echo "agent invariants failed for an unexpected reason:" >&2
+  printf '%s\n' "$fixture_output" >&2
+  exit 1
+fi
 
 self_improve_output=$(home/scripts/agent-self-improve --check)
 for expected in \

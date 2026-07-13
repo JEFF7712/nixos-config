@@ -36,6 +36,7 @@ check_hardcoded_repo_paths() {
     fi
   done < <(
     rg -n --hidden '/home/rupan/nixos' \
+      --glob '!.git' \
       --glob '!CLAUDE.md' \
       --glob '!AGENTS.md' \
       --glob '!AGENT_MAP.md' \
