@@ -3,6 +3,7 @@ set -euo pipefail
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
+real_git="$(command -v git)"
 
 repo="$tmpdir/repo"
 bin_dir="$tmpdir/bin"
@@ -31,6 +32,9 @@ make_fake nix <<'EOF'
 printf 'nix %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
+if [[ "${TEST_MUTATE_LOCK:-}" == 1 && " $* " == *' flake update '* ]]; then
+  printf 'mutated by update\n' > "$TEST_REPO/flake.lock"
+fi
 if [[ " $* " == *' eval '* ]]; then
   exit "${TEST_EVAL_STATUS:-0}"
 fi
@@ -42,6 +46,9 @@ make_fake git <<'EOF'
 printf 'git %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
+if [[ "${TEST_REAL_GIT:-}" == 1 ]]; then
+  exec "$REAL_GIT" "$@"
+fi
 case " $* " in
   *' rev-parse --show-toplevel '*) printf '%s\n' "$TEST_REPO" ;;
   *' diff --quiet '*) exit "${TEST_DIFF_STATUS:-0}" ;;
@@ -157,6 +164,12 @@ run_pipeline() {
     DNS_RETRY_DELAY=0 \
     CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
     NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
+    REAL_GIT="${REAL_GIT:-}" \
+    TEST_REAL_GIT="${TEST_REAL_GIT:-0}" \
+    TEST_MUTATE_LOCK="${TEST_MUTATE_LOCK:-0}" \
+    TEST_UPDATE_STATUS="${TEST_UPDATE_STATUS:-0}" \
+    TEST_CASCADE_STATUS="${TEST_CASCADE_STATUS:-0}" \
+    TEST_CASCADE_ACTION="${TEST_CASCADE_ACTION:-}" \
     home/scripts/nixos-flake-update "${args[@]}" >"$output_log" 2>&1
   PIPELINE_STATUS=$?
   set -e
@@ -168,12 +181,12 @@ setup_case() {
   mkdir -p "$CASE_DIR"
   : > "$COMMAND_LOG"
   unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
-  unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
+unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
+  unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT
 }
 
 update_weekly="nix flake update --flake path:$repo"
 update_ai="nix flake update --flake path:$repo claude-code-nix codex-cli-nix code-cursor-nix"
-restore="git -C $repo checkout -- flake.lock"
 commit_weekly="git -C $repo commit -m flake.lock:\ weekly\ auto-update -- flake.lock"
 rebuild="nixos-rebuild switch --flake path:$repo#laptop --option max-jobs 2 --option cores 8"
 
@@ -202,13 +215,11 @@ case_dns_timeout() {
 
 case_eval_failure() {
   TEST_EVAL_STATUS=1 run_pipeline
-  assert_log_has "$restore" eval_failure
   assert_log_lacks 'nix-cascade-guard ' eval_failure
 }
 
 case_diff_error() {
   TEST_DIFF_STATUS=2 run_pipeline
-  assert_log_has "$restore" diff_error
   assert_log_lacks 'nix-cascade-guard ' diff_error
   assert_log_lacks ' commit ' diff_error
   assert_log_lacks 'nixos-rebuild ' diff_error
@@ -216,21 +227,18 @@ case_diff_error() {
 
 case_cascade_deferred() {
   TEST_DIFF_STATUS=1 TEST_CASCADE_STATUS=10 run_pipeline
-  assert_log_has "$restore" cascade_deferred
   assert_log_lacks ' commit ' cascade_deferred
   assert_log_lacks 'nixos-rebuild ' cascade_deferred
 }
 
 case_cascade_error() {
   TEST_DIFF_STATUS=1 TEST_CASCADE_STATUS=7 run_pipeline
-  assert_log_has "$restore" cascade_error
   assert_log_lacks ' commit ' cascade_error
   assert_log_lacks 'nixos-rebuild ' cascade_error
 }
 
 case_commit_failure() {
   TEST_DIFF_STATUS=1 TEST_COMMIT_STATUS=1 run_pipeline
-  assert_log_has "$restore" commit_failure
   assert_log_lacks 'nixos-rebuild ' commit_failure
 }
 
@@ -245,13 +253,11 @@ case_rebuild_failure() {
   TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
   assert_log_has "$commit_weekly" rebuild_failure
   assert_log_has "$rebuild" rebuild_failure
-  assert_log_lacks "$restore" rebuild_failure
   assert_before "$commit_weekly" "$rebuild" rebuild_failure
 }
 
 case_termination() {
   TEST_DIFF_STATUS=1 TEST_CASCADE_ACTION=term run_pipeline
-  assert_log_has "$restore" termination
   assert_log_lacks ' commit ' termination
   assert_log_lacks 'nixos-rebuild ' termination
 }
@@ -275,5 +281,45 @@ run_case commit_failure 1
 run_case success_order 0
 run_case rebuild_failure 5
 run_case termination 143
+
+real_repo="$tmpdir/real-repo"
+mkdir -p "$real_repo"
+"$real_git" -C "$real_repo" init -q
+"$real_git" -C "$real_repo" config user.name Fixture
+"$real_git" -C "$real_repo" config user.email fixture@example.invalid
+printf '{}\n' > "$real_repo/flake.nix"
+printf 'committed lock\n' > "$real_repo/flake.lock"
+"$real_git" -C "$real_repo" add flake.nix flake.lock
+"$real_git" -C "$real_repo" commit -qm fixture
+
+case_real_restore() {
+  local name="$1" expected_status="$2"
+  local saved_repo="$repo"
+  local expected_mode
+  repo="$real_repo"
+  setup_case "real-$name"
+  printf 'dirty pre-run lock\nsecond line without newline' > "$repo/flake.lock"
+  cp -p "$repo/flake.lock" "$CASE_DIR/expected.lock"
+  expected_mode="$(stat -c %a "$repo/flake.lock")"
+  case "$name" in
+    update_failure) TEST_UPDATE_STATUS=1 ;;
+    cascade_deferred) TEST_CASCADE_STATUS=10 ;;
+    termination) TEST_CASCADE_ACTION=term ;;
+  esac
+  TEST_REAL_GIT=1 TEST_MUTATE_LOCK=1 REAL_GIT="$real_git" TEST_DIFF_STATUS=1 run_pipeline
+  assert_status "$expected_status" "$PIPELINE_STATUS" "real_$name"
+  cmp -s "$CASE_DIR/expected.lock" "$repo/flake.lock" ||
+    fail "real_$name did not restore the dirty pre-run lock byte-for-byte"
+  [[ $(stat -c %a "$repo/flake.lock") == "$expected_mode" ]] ||
+    fail "real_$name did not preserve the pre-run lock mode"
+  if compgen -G "$repo/.flake.lock.snapshot.*" >/dev/null; then
+    fail "real_$name left a lock snapshot behind"
+  fi
+  repo="$saved_repo"
+}
+
+case_real_restore update_failure 1
+case_real_restore cascade_deferred 0
+case_real_restore termination 143
 
 printf 'flake update pipeline checks passed\n'

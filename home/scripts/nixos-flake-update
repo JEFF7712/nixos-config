@@ -36,7 +36,15 @@ target_name="${target##*#}"
 toplevel="${target_flake}#nixosConfigurations.${target_name}.config.system.build.toplevel"
 
 restore_lock() {
-  runuser -u rupan -- git -C "$repo" checkout -- flake.lock
+  mv -f -- "$lock_snapshot" "$repo/flake.lock"
+  lock_snapshot=""
+}
+
+remove_snapshot() {
+  if [[ -n $lock_snapshot ]]; then
+    rm -f -- "$lock_snapshot"
+    lock_snapshot=""
+  fi
 }
 
 dirty_lock=false
@@ -49,7 +57,7 @@ disarm_cleanup() {
 cleanup() {
   local status=$?
   trap - EXIT INT TERM
-  if [[ $dirty_lock == true ]] && ! restore_lock; then
+  if [[ $dirty_lock == true && -n $lock_snapshot ]] && ! restore_lock; then
     printf '%s cleanup failed while restoring flake.lock\n' "$label" >&2
     status=1
   fi
@@ -71,6 +79,13 @@ for ((attempt = 0; attempt < dns_retries; attempt++)); do
 done
 if [[ $dns_ready != true ]]; then
   printf '%s update: DNS unavailable\n' "$label" >&2
+  exit 1
+fi
+
+lock_snapshot="$(mktemp "$repo/.flake.lock.snapshot.XXXXXX")"
+if ! cp --preserve=mode,ownership,timestamps -- "$repo/flake.lock" "$lock_snapshot"; then
+  remove_snapshot
+  printf '%s update: could not snapshot flake.lock\n' "$label" >&2
   exit 1
 fi
 
@@ -98,6 +113,7 @@ diff_status=0
 runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock || diff_status=$?
 case "$diff_status" in
   0)
+    remove_snapshot
     disarm_cleanup
     printf '%s flake.lock unchanged; skipping rebuild\n' "$label"
     exit 0
@@ -129,6 +145,7 @@ elif [[ $cascade_status -ne 0 ]]; then
 fi
 
 runuser -u rupan -- git -C "$repo" commit -m "$commit_message" -- flake.lock
+remove_snapshot
 disarm_cleanup
 "$nixos_rebuild" switch --flake "$target" \
   --option max-jobs 2 --option cores 8
