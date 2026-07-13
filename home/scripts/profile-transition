@@ -189,11 +189,11 @@ apply_system_preferences() {
   )
   color_scheme=prefer-dark
   [ "$TARGET_VARIANT" != light ] || color_scheme=prefer-light
-  gsettings set org.gnome.desktop.interface cursor-theme "$cursor" 2>/dev/null || failed=1
-  gsettings set org.gnome.desktop.interface cursor-size "$cursor_size" 2>/dev/null || failed=1
-  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || failed=1
-  gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || failed=1
-  gsettings set org.gnome.desktop.interface color-scheme "$color_scheme" 2>/dev/null || failed=1
+  gsettings set org.gnome.desktop.interface cursor-theme "$cursor" || failed=1
+  gsettings set org.gnome.desktop.interface cursor-size "$cursor_size" || failed=1
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" || failed=1
+  gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" || failed=1
+  gsettings set org.gnome.desktop.interface color-scheme "$color_scheme" || failed=1
   return "$failed"
 }
 
@@ -311,11 +311,26 @@ send_profile_notification() {
 }
 
 run_post_commit_adapter() {
-  local name="$1"
+  local name="$1" capture first detail="" state_dir status=0
   shift
-  if [ "${PROFILE_TRANSITION_FAIL_ADAPTER:-}" = "$name" ] || ! "$@"; then
-    printf '%s\n' "$name" >> "$ADAPTER_FAILURE_LOG"
+  capture=$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/profile-transition-$name.XXXXXX")
+  if [ "${PROFILE_TRANSITION_FAIL_ADAPTER:-}" = "$name" ]; then
+    status=1
+  else
+    "$@" 2>"$capture" || status=$?
   fi
+  if [ "$status" -ne 0 ]; then
+    first=$(grep -m1 -v '^[[:space:]]*$' "$capture" || true)
+    if [ "$(grep -c . "$capture" || true)" -gt 1 ]; then
+      state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/desktop-profiles/adapter-errors"
+      mkdir -p "$state_dir"
+      detail=$(mktemp "$state_dir/$name.XXXXXX.log")
+      install -m 600 "$capture" "$detail"
+    fi
+    printf '%s%s%s\n' "$name" "${first:+: $first}" "${detail:+ (details: $detail)}" \
+      >> "$ADAPTER_FAILURE_LOG"
+  fi
+  rm -f "$capture"
 }
 
 dispatch_post_commit_adapters() {

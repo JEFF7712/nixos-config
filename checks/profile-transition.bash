@@ -336,9 +336,9 @@ check_post_commit_adapter_isolation() {
   : > "$log"
 
   HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+    XDG_STATE_HOME="$tmpdir/state" PROFILE_TRANSITION_GSETTINGS_ERROR=1 \
     PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
     BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-    PROFILE_TRANSITION_FAIL_ADAPTER=zed \
     "$REPO_ROOT/home/scripts/profile-transition" switch new >"$output" 2>&1
 
   assert_eq new "$(cat "$profiles/active")" \
@@ -352,11 +352,18 @@ check_post_commit_adapter_isolation() {
     "application adapter failure preserves the committed bar"
   assert_log_contains 'notify-send Desktop Profile Switched to new' \
     "a failed application adapter does not prevent later adapters"
-  if ! grep -Fq 'Warning: post-commit adapters failed: zed' "$output"; then
+  if ! grep -Fq 'system-preferences: gsettings: schema unavailable' "$output"; then
     printf 'FAIL: application adapter failure warning was not summarized\n' >&2
     cat "$output" >&2
     exit 1
   fi
+  detail_path=$(sed -n 's/.*details: \([^)]*\)).*/\1/p' "$output")
+  [ -f "$detail_path" ] || { printf 'FAIL: adapter detail log was not retained\n' >&2; exit 1; }
+  assert_eq 600 "$(stat -c %a "$detail_path")" "adapter detail log permissions"
+  grep -Fq 'full diagnostic line' "$detail_path" || {
+    printf 'FAIL: adapter detail log omitted complete stderr\n' >&2
+    exit 1
+  }
 }
 
 check_snapshot_failure() {
@@ -703,6 +710,10 @@ for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpa
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$COMMAND_LOG"
+if [ "$(basename "$0")" = gsettings ] && [ -n "${PROFILE_TRANSITION_GSETTINGS_ERROR:-}" ]; then
+  printf 'gsettings: schema unavailable\nfull diagnostic line\n' >&2
+  exit 1
+fi
 case "$(basename "$0") $*" in
   "systemctl --user is-active"*) printf 'active\n' ;;
 esac
