@@ -1,15 +1,13 @@
 import QtQuick
+import "services" as Services
 
 InfoPopup {
     id: root
     title: "AUDIO"
 
-    property string volumeLevel: "-"
-    property bool muted: false
-
-    signal setVolume(int percent)
-    signal toggleMute
-    signal openMixer
+    required property Services.AudioService audioService
+    readonly property string volumeLevel: audioService.available ? audioService.volumePercent + "%" : "-"
+    readonly property bool muted: audioService.muted
 
     function volumePercent() {
         const parsed = parseInt(String(root.volumeLevel).replace("%", ""));
@@ -161,10 +159,10 @@ InfoPopup {
                 anchors.margins: -8
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onPressed: mouse => root.setVolume(root.sliderPercent(mouse.x - 8, sliderTrack.width))
+                onPressed: mouse => root.audioService.setVolume(root.sliderPercent(mouse.x - 8, sliderTrack.width))
                 onPositionChanged: mouse => {
                     if (pressed)
-                        root.setVolume(root.sliderPercent(mouse.x - 8, sliderTrack.width));
+                        root.audioService.setVolume(root.sliderPercent(mouse.x - 8, sliderTrack.width));
                 }
             }
         }
@@ -204,7 +202,7 @@ InfoPopup {
             pillBg: root.pillBg
             pillBorder: root.pillBorder
             flatMode: root.flatMode
-            onActivated: root.toggleMute()
+            onActivated: root.audioService.toggleMute()
         }
 
         AudioButton {
@@ -216,7 +214,7 @@ InfoPopup {
             pillBg: root.pillBg
             pillBorder: root.pillBorder
             flatMode: root.flatMode
-            onActivated: root.openMixer()
+            onActivated: root.audioService.openMixer()
         }
     }
 

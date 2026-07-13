@@ -2,9 +2,14 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "services" as Services
 
 ShellRoot {
     id: root
+
+    Services.AudioService {
+        id: audioService
+    }
 
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
@@ -165,6 +170,7 @@ ShellRoot {
 
     Topbar {
         id: topbar
+        audioService: audioService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -213,6 +219,7 @@ ShellRoot {
 
     VolumePopup {
         id: volumePopup
+        audioService: audioService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
@@ -226,11 +233,6 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
-        volumeLevel: topbar.volumeLevel
-        muted: topbar.volumeMuted
-        onSetVolume: percent => topbar.setVolume(percent)
-        onToggleMute: topbar.run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
-        onOpenMixer: topbar.run("pavucontrol")
     }
 
     WifiPopup {
@@ -344,6 +346,7 @@ ShellRoot {
 
     MediaPopup {
         id: mediaPopup
+        audioService: audioService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent

@@ -2,12 +2,15 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
+import "services" as Services
 
 InfoPopup {
     id: root
     title: "MEDIA"
     popupPosition: "center"
     implicitWidth: 330
+
+    required property Services.AudioService audioService
 
     property string status: ""
     property string track: ""
@@ -48,7 +51,7 @@ InfoPopup {
         if (root.volumeIsPlayer)
             root.exec("playerctl volume " + v.toFixed(2));
         else
-            root.exec("wpctl set-volume @DEFAULT_AUDIO_SINK@ " + v.toFixed(2));
+            root.audioService.setVolume(Math.round(v * 100));
     }
     function cycleLoop() {
         const next = root.loopMode === "None" ? "Playlist" : root.loopMode === "Playlist" ? "Track" : "None";
@@ -78,11 +81,11 @@ InfoPopup {
 
     Process {
         id: statePoll
-        command: ["sh", "-c", "len=$(playerctl metadata mpris:length 2>/dev/null); shf=$(playerctl shuffle 2>/dev/null); lp=$(playerctl loop 2>/dev/null); pv=$(playerctl volume 2>/dev/null); sv=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print $2}'); echo \"$len|$shf|$lp|$pv|$sv\""]
+        command: ["sh", "-c", "len=$(playerctl metadata mpris:length 2>/dev/null); shf=$(playerctl shuffle 2>/dev/null); lp=$(playerctl loop 2>/dev/null); pv=$(playerctl volume 2>/dev/null); echo \"$len|$shf|$lp|$pv\""]
         stdout: StdioCollector {
             onStreamFinished: {
                 const p = this.text.trim().split("|");
-                if (p.length < 5)
+                if (p.length < 4)
                     return;
                 const len = parseFloat(p[0]);
                 root.lengthSec = !isNaN(len) ? len / 1000000 : 0;
@@ -95,10 +98,17 @@ InfoPopup {
                     root.volume = Math.max(0, Math.min(1, pv));
                 } else {
                     root.volumeIsPlayer = false;
-                    const sv = parseFloat(p[4]);
-                    root.volume = !isNaN(sv) ? Math.max(0, Math.min(1, sv)) : 0;
+                    root.volume = root.audioService.available ? root.audioService.volumePercent / 100.0 : 0;
                 }
             }
+        }
+    }
+
+    Connections {
+        target: root.audioService
+        function onVolumePercentChanged() {
+            if (!root.volumeIsPlayer)
+                root.volume = root.audioService.volumePercent / 100.0;
         }
     }
 

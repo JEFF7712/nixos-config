@@ -4,6 +4,8 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 fixture_qml="${repo_root}/tests/quickshell/integration/process-cleanup"
 fixture_bin="${repo_root}/tests/quickshell/fixtures/bin/qs-test-owned-process"
+audio_fixture_qml="${repo_root}/tests/quickshell/integration/audio-service"
+audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
 declare -a fixture_qs_pids=()
@@ -456,6 +458,142 @@ run_process_cleanup_fixture() {
   run_term_fixture
 }
 
+run_audio_fixture_contract_tests() {
+  local state_dir mutation_pid unsupported_state unsupported_pid unsupported_rc=0
+  local exit_state exit_pid exit_rc=0
+  printf 'quickshell-services: run_audio_fixture_contract_tests\n'
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-audio-contract.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  printf 'volume=0.40\nmute=0\n' >"$state_dir/audio.state"
+
+  QS_TEST_STATE_DIR="$state_dir" "$audio_fixture_bin/wpctl" \
+    set-volume -l 1.0 '@DEFAULT_AUDIO_SINK@' 50% &
+  mutation_pid=$!
+  wait_for_path "$state_dir/wpctl.lock" 5 \
+    || fail 'fake wpctl mutation did not acquire its overlap lock'
+  if QS_TEST_STATE_DIR="$state_dir" "$audio_fixture_bin/wpctl" \
+      get-volume '@DEFAULT_AUDIO_SINK@' >/dev/null 2>&1; then
+    wait "$mutation_pid"
+    fail 'fake wpctl get-volume bypassed the shared overlap lock'
+  fi
+  wait "$mutation_pid"
+  rg -q '^overlap get-volume @DEFAULT_AUDIO_SINK@$' "$state_dir/audio-overlap.log" \
+    || fail 'fake wpctl did not record read/write overlap'
+
+  unsupported_state="$state_dir/pw-mon-unsupported"
+  mkdir -p "$unsupported_state"
+  QS_TEST_STATE_DIR="$unsupported_state" "$audio_fixture_bin/pw-mon" unexpected \
+    >"$unsupported_state/stdout.log" 2>"$unsupported_state/stderr.log" &
+  unsupported_pid=$!
+  wait_for_process "$unsupported_pid" 2 || unsupported_rc=$?
+  if ((unsupported_rc == 124)); then
+    kill -TERM "$unsupported_pid" 2>/dev/null || true
+    wait "$unsupported_pid" 2>/dev/null || true
+    fail 'fake pw-mon accepted unsupported argv'
+  fi
+  ((unsupported_rc != 0)) || fail 'fake pw-mon unsupported argv exited successfully'
+  [ ! -e "$unsupported_state/pw-mon.fifo" ] \
+    || fail 'fake pw-mon created a FIFO for unsupported argv'
+
+  exit_state="$state_dir/pw-mon-exit"
+  mkdir -p "$exit_state"
+  QS_TEST_STATE_DIR="$exit_state" "$audio_fixture_bin/pw-mon" \
+    >"$exit_state/stdout.log" 2>"$exit_state/stderr.log" &
+  exit_pid=$!
+  wait_for_path "$exit_state/pw-mon.record" 5 \
+    || fail 'fake pw-mon EXIT probe did not publish its lifecycle record'
+  kill -USR1 "$exit_pid"
+  wait "$exit_pid" || exit_rc=$?
+  ((exit_rc == 0)) || fail 'fake pw-mon EXIT probe did not exit cleanly'
+  [ ! -e "$exit_state/pw-mon.fifo" ] \
+    || fail 'fake pw-mon left its owned FIFO behind on EXIT'
+  rg -q "stopped $exit_pid" "$exit_state/pw-mon.lifecycle" \
+    || fail 'fake pw-mon did not record EXIT cleanup'
+}
+
+run_audio_service_fixture() {
+  local state_dir qs_pid rc=0 pw_mon_pid started term_state term_pid
+  printf 'quickshell-services: run_audio_service_fixture\n'
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-audio-service.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin"
+  mkdir -p "$state_dir/config/services"
+  ln -s "$audio_fixture_bin/wpctl" "$state_dir/fixture-bin/wpctl"
+  ln -s "$audio_fixture_bin/pw-mon" "$state_dir/fixture-bin/pw-mon"
+  ln -s "$audio_fixture_bin/pavucontrol" "$state_dir/fixture-bin/pavucontrol"
+  cp "$audio_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$repo_root/home/configs/quickshell/services/AudioService.qml" "$state_dir/config/services/AudioService.qml"
+  printf 'volume=0.40\nmute=0\n' >"$state_dir/audio.state"
+  printf '0.77\n' >"$state_dir/confirmation-volume"
+
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+
+  if ! wait_for_path "$state_dir/ready" 10 || ! wait_for_path "$state_dir/pw-mon.fifo" 10; then
+    kill -TERM "$qs_pid" 2>/dev/null || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail 'audio-service fixture did not become ready within ten seconds'
+  fi
+
+  printf 'malformed\n' >"$state_dir/audio-probe-mode"
+  printf 'changed: Props:volume\n' >"$state_dir/pw-mon.fifo"
+  if ! wait_for_path "$state_dir/unavailable" 5; then
+    kill -TERM "$qs_pid" 2>/dev/null || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail 'audio-service fixture did not become unavailable after an invalid current probe'
+  fi
+
+  printf 'valid\n' >"$state_dir/audio-probe-mode"
+  printf 'volume=0.63\nmute=1\n' >"$state_dir/audio.state.tmp"
+  mv -f "$state_dir/audio.state.tmp" "$state_dir/audio.state"
+  printf 'changed: Props:volume Props:mute\n' >"$state_dir/pw-mon.fifo"
+
+  wait_for_process "$qs_pid" 10 || rc=$?
+  if ((rc != 0)); then
+    kill -TERM "$qs_pid" 2>/dev/null || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "audio-service fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+
+  jq -e '.passed == true and .diagnostics.sharedObject == true and .diagnostics.volumePercent == 77 and .diagnostics.muted == false' \
+    "$state_dir/result.json" >/dev/null || {
+    jq . "$state_dir/result.json" >&2 || true
+    fail 'audio-service fixture reported failure or invalid diagnostics'
+  }
+  [ "$(cat "$state_dir/audio-actions.log")" = $'set-volume 100\nset-volume 98\nset-volume 100\nset-mute toggle' ] \
+    || fail 'audio-service fixture did not record exactly one backend action per gesture'
+  [ "$(cat "$state_dir/pavucontrol-actions.log")" = launch ] \
+    || fail 'audio-service fixture did not record exactly one detached mixer launch'
+  [ ! -e "$state_dir/audio-overlap.log" ] \
+    || fail 'audio-service fixture observed overlapping backend mutations'
+  [ "$(wc -l <"$state_dir/audio-probes.log")" -eq 4 ] \
+    || fail 'AudioService did not coalesce queued mutations into one final confirmation probe'
+
+  pw_mon_pid=$(record_value pid "$state_dir/pw-mon.record")
+  started=$SECONDS
+  while kill -0 "$pw_mon_pid" 2>/dev/null && ((SECONDS - started < 5)); do
+    sleep 0.05
+  done
+  ! kill -0 "$pw_mon_pid" 2>/dev/null \
+    || fail 'AudioService pw-mon survived fixture shell shutdown'
+
+  term_state="$state_dir/pw-mon-term"
+  mkdir -p "$term_state"
+  QS_TEST_STATE_DIR="$term_state" "$audio_fixture_bin/pw-mon" &
+  term_pid=$!
+  wait_for_path "$term_state/pw-mon.record" 5 \
+    || fail 'fake pw-mon did not publish its lifecycle record'
+  kill -TERM "$term_pid"
+  wait "$term_pid" \
+    || fail 'fake pw-mon did not exit cleanly on TERM'
+  rg -q "stopped $term_pid" "$term_state/pw-mon.lifecycle" \
+    || fail 'fake pw-mon did not record clean TERM handling'
+  [ ! -e "$term_state/pw-mon.fifo" ] \
+    || fail 'fake pw-mon left its owned FIFO behind after TERM'
+}
+
 run_native_construction_probes() {
   printf 'quickshell-services: run_native_construction_probes\n'
   printf 'quickshell-services: SKIP no native service construction probes are registered\n'
@@ -483,7 +621,31 @@ assert_no_view_processes_for_migrated_domains() {
     "$domain_command_count" "$domain_command_digest"
   printf 'quickshell-services: fixture baseline Process=%s:%s (excluded from production)\n' \
     "$fixture_process_count" "$fixture_process_digest"
-  printf 'quickshell-services: SKIP no migrated domains are registered for structural rejection\n'
+  local production_dir="$repo_root/home/configs/quickshell"
+  local shell="$production_dir/shell.qml"
+  local view
+
+  for view in Topbar.qml VolumePopup.qml MediaPopup.qml; do
+    ! rg -n -i 'wpctl|pw-mon' "$production_dir/$view" \
+      || fail "$view still owns system-sink audio commands"
+  done
+  ! rg -n -i -g '*.qml' -g '!AudioService.qml' 'wpctl|pw-mon|pavucontrol' "$production_dir" \
+    || fail 'system-sink audio command construction exists outside AudioService.qml'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{' "$production_dir/VolumePopup.qml" \
+    || fail 'VolumePopup.qml still owns a Process'
+  [ "$(rg -o 'Services\.AudioService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one Services.AudioService'
+  rg -q 'id:[[:space:]]*audioService' "$shell" \
+    || fail 'production shell.qml must name the AudioService audioService'
+  for view in Topbar VolumePopup MediaPopup; do
+    rg -q "${view}[[:space:]]*\{" "$shell" \
+      || fail "production shell.qml is missing $view"
+    rg -U -q "${view}[[:space:]]*\{[^}]*audioService:[[:space:]]*audioService" "$shell" \
+      || fail "production shell.qml does not wire audioService directly to $view"
+  done
+  ! rg -n 'topbar\.(volume|setVolume|adjustVolume|toggleMute|openMixer|run\([^\n]*(wpctl|pavucontrol))' \
+    "$production_dir/VolumePopup.qml" "$production_dir/MediaPopup.qml" "$shell" \
+    || fail 'migrated popups still route audio through topbar'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -492,5 +654,7 @@ fi
 
 run_unit_tests
 run_process_cleanup_fixture
+run_audio_fixture_contract_tests
+run_audio_service_fixture
 run_native_construction_probes
 assert_no_view_processes_for_migrated_domains

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}"
+[ "$#" -eq 0 ] || exit 64
+printf 'launch\n' >>"$QS_TEST_STATE_DIR/pavucontrol-actions.log"

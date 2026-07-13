@@ -3,9 +3,12 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "services" as Services
 
 PanelWindow {
     id: topbarWindow
+
+    required property Services.AudioService audioService
 
     property color themeFg
     property color themeBg
@@ -45,8 +48,6 @@ PanelWindow {
     property string cpuUsage: "-"
     property string ramUsage: "-"
     property string diskUsage: "-"
-    property string volumeLevel: "-"
-    property bool volumeMuted: false
     property string networkIcon: "󰖪"
     property string batteryPercent: ""
     property string batteryIcon: "󰁹"
@@ -91,26 +92,9 @@ PanelWindow {
         topbarWindow.setPowerProfile(order[(idx + 1) % order.length]);
     }
 
-    function adjustVolume(delta) {
-        const step = 2;
-        const arg = delta > 0 ? (step + "%+") : (step + "%-");
-        topbarWindow.run("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ " + arg);
-    }
-
-    function setVolume(percent) {
-        const clamped = Math.max(0, Math.min(100, percent));
-        topbarWindow.volumeLevel = clamped + "%";
-        topbarWindow.run("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ " + clamped + "%");
-    }
-
-    function volumePercent() {
-        const parsed = parseInt(String(topbarWindow.volumeLevel).replace("%", ""));
-        return isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
-    }
-
     function volumeIcon() {
-        const percent = topbarWindow.volumePercent();
-        if (topbarWindow.volumeMuted || percent <= 0)
+        const percent = topbarWindow.audioService.volumePercent;
+        if (topbarWindow.audioService.muted || percent <= 0)
             return "󰖁";
         if (percent < 34)
             return "󰕿";
@@ -143,26 +127,25 @@ PanelWindow {
 
     Process {
         id: statsProc
-        command: ["sh", "-c", "cpu=$(awk '/^cpu / { if (!have) { u=$2+$4; t=$2+$3+$4+$5; have=1 } else { u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"; exit } }' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" + "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" + "dsk=$(df -P / 2>/dev/null | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}');" + "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" + "net=$(nmcli -t -f STATE general 2>/dev/null);" + "bc=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1);" + "bs=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1);" + "pp=$(powerprofilesctl get 2>/dev/null);" + "echo \"$cpu|$mem|$dsk|$vol|$net|$bc|$bs|$pp\""]
+        command: ["sh", "-c", "cpu=$(awk '/^cpu / { if (!have) { u=$2+$4; t=$2+$3+$4+$5; have=1 } else { u2=$2+$4; t2=$2+$3+$4+$5; if (t2>t) printf \"%d\", (u2-u)*100/(t2-t); else printf \"0\"; exit } }' <(cat /proc/stat; sleep 0.2; cat /proc/stat));" + "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" + "dsk=$(df -P / 2>/dev/null | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}');" + "net=$(nmcli -t -f STATE general 2>/dev/null);" + "bc=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1);" + "bs=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1);" + "pp=$(powerprofilesctl get 2>/dev/null);" + "echo \"$cpu|$mem|$dsk|$net|$bc|$bs|$pp\""]
         property string buffer: ""
         stdout: SplitParser {
             onRead: data => statsProc.buffer += data
         }
         onExited: {
             const p = statsProc.buffer.trim().split("|");
-            if (p.length >= 7) {
+            if (p.length >= 6) {
                 topbarWindow.cpuUsage = p[0] !== "" ? p[0] + "%" : "-";
                 topbarWindow.ramUsage = p[1] !== "" ? p[1] : "-";
                 topbarWindow.diskUsage = p[2] !== "" ? p[2] + "%" : "-";
-                topbarWindow.volumeLevel = p[3] !== "" ? p[3] + "%" : "-";
-                topbarWindow.networkIcon = p[4] === "connected" ? "󰖩" : "󰖪";
-                const cap = parseInt(p[5]);
+                topbarWindow.networkIcon = p[3] === "connected" ? "󰖩" : "󰖪";
+                const cap = parseInt(p[4]);
                 if (!isNaN(cap)) {
                     topbarWindow.batteryPercent = cap + "%";
-                    topbarWindow.batteryIcon = p[6] === "Charging" ? "󰂄" : cap > 90 ? "󰁹" : cap > 70 ? "󰂀" : cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎";
+                    topbarWindow.batteryIcon = p[5] === "Charging" ? "󰂄" : cap > 90 ? "󰁹" : cap > 70 ? "󰂀" : cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎";
                 }
-                if (p.length >= 8 && p[7] !== "") {
-                    topbarWindow.powerProfile = p[7];
+                if (p.length >= 7 && p[6] !== "") {
+                    topbarWindow.powerProfile = p[6];
                 }
             }
             statsProc.buffer = "";
@@ -175,43 +158,6 @@ PanelWindow {
         repeat: true
         triggeredOnStart: true
         onTriggered: statsProc.running = true
-    }
-
-    Process {
-        id: volumeProbe
-        command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{vol=int($2*100); mute=index($0,\"MUTED\")>0?\"m\":\"a\"; print vol\"|\"mute}'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const parts = this.text.trim().split("|");
-                if (parts.length === 2) {
-                    topbarWindow.volumeLevel = parts[0] !== "" ? parts[0] + "%" : "-";
-                    topbarWindow.volumeMuted = parts[1] === "m";
-                }
-            }
-        }
-    }
-
-    Timer {
-        id: volumeDebounce
-        interval: 50
-        repeat: false
-        onTriggered: volumeProbe.running = true
-    }
-
-    // pw-mon (pipewire-native) emits param-change events on every volume/mute
-    // change, regardless of which tool triggered it. setpriv --pdeathsig ensures
-    // it dies with quickshell instead of orphaning on pkill/profile-switch.
-    Process {
-        id: volumeSubscribeProc
-        running: true
-        command: ["setpriv", "--pdeathsig", "TERM", "--", "stdbuf", "-oL", "pw-mon"]
-        stdout: SplitParser {
-            onRead: data => {
-                if (data.indexOf("Props:volume") !== -1 || data.indexOf("Props:mute") !== -1 || data.indexOf("Props:channelVolumes") !== -1) {
-                    volumeDebounce.restart();
-                }
-            }
-        }
     }
 
     // setpriv --pdeathsig: playerctl --follow does not exit when quickshell's
@@ -416,12 +362,12 @@ PanelWindow {
             StatPill {
                 visible: topbarWindow.showVolume
                 icon: topbarWindow.volumeIcon()
-                value: (topbarWindow.volumeMuted || topbarWindow.volumeLevel === "100%" || topbarWindow.volumeLevel === "0%") ? "" : topbarWindow.volumeLevel
-                tint: topbarWindow.volumeMuted ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4) : topbarWindow.themeAccent
+                value: (!topbarWindow.audioService.available || topbarWindow.audioService.muted || topbarWindow.audioService.volumePercent === 100 || topbarWindow.audioService.volumePercent === 0) ? "" : topbarWindow.audioService.volumePercent + "%"
+                tint: topbarWindow.audioService.muted ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4) : topbarWindow.themeAccent
                 onActivated: topbarWindow.volumeClicked()
-                onMiddleClicked: topbarWindow.run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
-                onRightClicked: topbarWindow.run("pavucontrol")
-                onScrolled: delta => topbarWindow.adjustVolume(delta)
+                onMiddleClicked: topbarWindow.audioService.toggleMute()
+                onRightClicked: topbarWindow.audioService.openMixer()
+                onScrolled: delta => topbarWindow.audioService.adjustVolume(delta)
             }
             StatPill {
                 visible: topbarWindow.showNetwork

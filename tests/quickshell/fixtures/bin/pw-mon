@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}"
+[ "$#" -eq 0 ] || {
+  printf 'unsupported pw-mon argv:' >&2
+  printf ' <%s>' "$@" >&2
+  printf '\n' >&2
+  exit 64
+}
+
+fifo="$QS_TEST_STATE_DIR/pw-mon.fifo"
+lifecycle="$QS_TEST_STATE_DIR/pw-mon.lifecycle"
+record="$QS_TEST_STATE_DIR/pw-mon.record"
+[ ! -e "$fifo" ] || {
+  printf 'pw-mon FIFO already exists: %s\n' "$fifo" >&2
+  exit 73
+}
+mkfifo "$fifo"
+fifo_created=1
+
+start_time=$(awk '{ print $22 }' "/proc/$$/stat")
+signature=$(sha256sum "/proc/$$/cmdline" | awk '{ print $1 }')
+{
+  printf 'pid=%s\n' "$$"
+  printf 'start_time=%s\n' "$start_time"
+  printf 'command_signature=%s\n' "$signature"
+} >"$record"
+printf 'started %s\n' "$$" >>"$lifecycle"
+
+cleanup() {
+  local status=$?
+  trap - TERM INT EXIT
+  printf 'stopped %s\n' "$$" >>"$lifecycle"
+  if [ "$fifo_created" = 1 ]; then
+    rm -f -- "$fifo"
+  fi
+  exit "$status"
+}
+trap cleanup TERM INT EXIT
+trap 'exit 0' USR1
+
+exec 3<>"$fifo"
+while IFS= read -r event <&3; do
+  printf '%s\n' "$event"
+done
