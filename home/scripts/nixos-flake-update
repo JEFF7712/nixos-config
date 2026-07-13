@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+label=""
+repo=""
+target=""
+commit_message=""
+inputs=()
+update_lock="${UPDATE_LOCK:-/run/nixos-auto-update.lock}"
+dns_retries="${DNS_RETRIES:-60}"
+dns_retry_delay="${DNS_RETRY_DELAY:-5}"
+cascade_guard="${CASCADE_GUARD:-}"
+nixos_rebuild="${NIXOS_REBUILD:-nixos-rebuild}"
+
+while (($#)); do
+  case "$1" in
+    --label) label=$2; shift 2 ;;
+    --repo) repo=$2; shift 2 ;;
+    --target) target=$2; shift 2 ;;
+    --commit-message) commit_message=$2; shift 2 ;;
+    --input) inputs+=("$2"); shift 2 ;;
+    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
+  esac
+done
+
+for value in label repo target commit_message; do
+  [ -n "${!value}" ] || {
+    printf 'missing --%s\n' "${value//_/-}" >&2
+    exit 2
+  }
+done
+
+cascade_guard="${cascade_guard:-$repo/home/scripts/nix-cascade-guard}"
+target_flake="${target%%#*}"
+target_name="${target##*#}"
+toplevel="${target_flake}#nixosConfigurations.${target_name}.config.system.build.toplevel"
+
+restore_lock() {
+  runuser -u rupan -- git -C "$repo" checkout -- flake.lock
+}
+
+exec {lock_fd}>"$update_lock"
+flock -n "$lock_fd" || exit 0
+
+dns_ready=false
+for ((attempt = 0; attempt < dns_retries; attempt++)); do
+  if getent hosts api.github.com >/dev/null 2>&1; then
+    dns_ready=true
+    break
+  fi
+  if ((attempt + 1 < dns_retries)); then
+    sleep "$dns_retry_delay"
+  fi
+done
+if [[ $dns_ready != true ]]; then
+  printf '%s update: DNS unavailable\n' "$label" >&2
+  exit 1
+fi
+
+if ! runuser -u rupan -- nix flake update --flake "path:$repo" "${inputs[@]}"; then
+  restore_lock
+  printf '%s update failed; flake.lock reverted\n' "$label" >&2
+  exit 1
+fi
+
+if ! runuser -u rupan -- nix eval --no-write-lock-file \
+  "${toplevel}.drvPath" >/dev/null; then
+  restore_lock
+  printf '%s update fails eval; flake.lock reverted\n' "$label" >&2
+  exit 1
+fi
+
+if runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
+  printf '%s flake.lock unchanged; skipping rebuild\n' "$label"
+  exit 0
+fi
+
+cascade_status=0
+runuser -u rupan -- "$cascade_guard" \
+  "$toplevel" || cascade_status=$?
+if [[ $cascade_status -eq 10 ]]; then
+  restore_lock
+  printf '%s update deferred: toolchain cascade; flake.lock reverted\n' "$label" >&2
+  exit 0
+elif [[ $cascade_status -ne 0 ]]; then
+  restore_lock
+  printf '%s cascade guard failed (rc=%d); flake.lock reverted\n' \
+    "$label" "$cascade_status" >&2
+  exit 1
+fi
+
+runuser -u rupan -- git -C "$repo" commit -m "$commit_message" -- flake.lock
+"$nixos_rebuild" switch --flake "$target" \
+  --option max-jobs 2 --option cores 8
