@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-STARTUP_MODE=0
-REAPPLY_MODE=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$SCRIPT_DIR/profile-common"
@@ -110,326 +108,31 @@ profile_status() {
 
 case "${1:-}" in
   --startup)
-    STARTUP_MODE=1
     shift
+    [ $# -le 1 ] || { echo "Usage: switch-profile --startup [NAME]" >&2; exit 1; }
+    if [ $# -eq 1 ]; then
+      exec "$SCRIPT_DIR/profile-transition" startup "$1"
+    fi
+    exec "$SCRIPT_DIR/profile-transition" startup
     ;;
   --reapply)
-    REAPPLY_MODE=1
     shift
+    [ $# -eq 0 ] || { echo "Usage: switch-profile --reapply" >&2; exit 1; }
+    exec "$SCRIPT_DIR/profile-transition" reapply
     ;;
   --status)
     profile_status
     exit $?
     ;;
   -t | --toggle)
-    exec toggle-variant
+    shift
+    exec "$SCRIPT_DIR/toggle-variant" "$@"
     ;;
 esac
 
-if [ $STARTUP_MODE -eq 0 ] && [ $REAPPLY_MODE -eq 0 ] && [ $# -eq 0 ]; then
+if [ $# -eq 0 ]; then
   list_profiles
   exit 0
 fi
-
-if [ $STARTUP_MODE -eq 1 ]; then
-  TARGET="${1:-$(cat "$ACTIVE_FILE" 2>/dev/null || echo "noctalia")}"
-  TARGET_VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
-elif [ $REAPPLY_MODE -eq 1 ]; then
-  TARGET=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
-  [ -n "$TARGET" ] || {
-    echo "Error: no active profile to reapply." >&2
-    exit 1
-  }
-  TARGET_VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
-else
-  TARGET="$1"
-  # Restore this profile's last-used variant (defaults to dark)
-  TARGET_VARIANT=$(cat "$PROFILES_DIR/variant-$TARGET" 2>/dev/null || echo "dark")
-fi
-
-TARGET_DIR="$PROFILES_DIR/$TARGET"
-TARGET_RUNTIME="$TARGET_DIR/runtime.json"
-
-if [ $STARTUP_MODE -eq 1 ] && [ ! -d "$TARGET_DIR" ]; then
-  TARGET="noctalia"
-  TARGET_DIR="$PROFILES_DIR/$TARGET"
-  TARGET_RUNTIME="$TARGET_DIR/runtime.json"
-  TARGET_VARIANT="dark"
-fi
-
-if [ ! -d "$TARGET_DIR" ]; then
-  if [ $STARTUP_MODE -eq 1 ]; then
-    echo "Warning: profile '$TARGET' not found during startup; skipping." >&2
-    exit 0
-  fi
-  echo "Error: profile '$TARGET' not found." >&2
-  list_profiles
-  exit 1
-fi
-
-# Read currently running bar from active profile (override-aware)
-CURRENT_BAR="noctalia"
-if [ -f "$ACTIVE_FILE" ]; then
-  CURRENT=$(cat "$ACTIVE_FILE")
-  if [ -f "$PROFILES_DIR/$CURRENT/meta.json" ]; then
-    CURRENT_BAR=$(profile_bar "$CURRENT")
-  fi
-fi
-
-TARGET_BAR=$(profile_bar "$TARGET")
-# One jq pass for the three meta fields the switch itself needs (per-field forks
-# add up across the ~40 jq calls a switch makes).
-IFS=$'\t' read -r TARGET_SELF_THEMED TARGET_CURSOR TARGET_CURSOR_SIZE < <(
-  jq -r '[.selfThemed // false, .cursor, .cursorSize] | @tsv' "$TARGET_DIR/meta.json"
-)
-TARGET_WALLPAPER_DIR_FILE=$(pick_variant_file "$TARGET_VARIANT" "$TARGET_DIR/wallpaper-dir" "$TARGET_DIR/wallpaper-dir-light")
-TARGET_WALLPAPER_DIR=$(cat "$TARGET_WALLPAPER_DIR_FILE" 2>/dev/null || echo "")
-
-echo "Switching to profile: $TARGET"
-
-# 1. Stop current bar. Reapply can't trust CURRENT_BAR (switch-bar may have
-# just changed the override), so it stops every bar candidate.
-if [ $REAPPLY_MODE -eq 1 ]; then
-  echo "  Stopping bars..."
-  systemctl --user stop noctalia-shell 2>/dev/null || true
-  pkill -f waybar 2>/dev/null || true
-  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
-  for _ in $(seq 1 20); do
-    pgrep -f waybar >/dev/null 2>&1 || break
-    sleep 0.1
-  done
-  rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
-  stop_mako
-elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "noctalia" ]; then
-  echo "  Stopping noctalia-shell..."
-  systemctl --user stop noctalia-shell 2>/dev/null || true
-elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "waybar" ]; then
-  echo "  Stopping waybar..."
-  pkill -f waybar 2>/dev/null || true
-  # Wait up to 2s for waybar to fully exit before proceeding
-  for _ in $(seq 1 20); do
-    pgrep -f waybar >/dev/null 2>&1 || break
-    sleep 0.1
-  done
-  # Clean up waybar configs so a stale config doesn't persist
-  rm -f "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" 2>/dev/null || true
-  # Stop mako (self-themed shells manage their own notifications)
-  stop_mako
-elif [ $STARTUP_MODE -eq 0 ] && [ "$CURRENT_BAR" = "quickshell" ]; then
-  echo "  Stopping quickshell topbar..."
-  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
-  stop_mako
-fi
-
-# 2. Copy color files (self-themed profiles manage their own colors)
-if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET_SELF_THEMED" != "true" ]; then
-  echo "  Applying color files..."
-  copy_profile_colors "$TARGET_DIR" "$TARGET_VARIANT"
-  write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
-  # swayosd just needs to re-read its colors; a blocking restart costs ~2.7s.
-  (systemctl --user restart swayosd 2>/dev/null || true) &
-  disown
-  # pywal cache + Firefox push are slow; run them off the critical path
-  if command -v wal >/dev/null 2>&1; then
-    WAL_THEME=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" pywal)
-    [ -n "$WAL_THEME" ] || WAL_THEME="base16-nord"
-    (
-      wal --theme "$WAL_THEME" -q 2>/dev/null || true
-      if command -v pywalfox >/dev/null 2>&1; then
-        pywalfox update 2>/dev/null || true
-      fi
-    ) &
-    disown
-  fi
-elif [ $STARTUP_MODE -eq 0 ]; then
-  # Self-themed target: hand cava back to noctalia's generated theme
-  restore_cava_noctalia_theme
-fi
-
-# 3. Update niri overrides symlink atomically (tmp + mv avoids missing-file window).
-# Focus/performance mode persists across profile switches (never on noctalia).
-echo "  Updating niri overrides..."
-NIRI_OVERRIDE="$TARGET_DIR/niri-overrides.kdl"
-if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$TARGET" != "noctalia" ]; then
-  NIRI_OVERRIDE="$TARGET_DIR/niri-overrides-focus.kdl"
-fi
-TMPLINK=$(mktemp -u "$PROFILES_DIR/.active-niri-overrides.XXXXXX")
-ln -s "$NIRI_OVERRIDE" "$TMPLINK"
-mv "$TMPLINK" "$ACTIVE_LINK"
-
-# 4. Reload niri (picks up new cursor, borders, shadow, tab-indicator, opacity)
-niri msg action load-config-file 2>/dev/null || true
-
-# 5. Apply cursor to GTK/XDG layer
-echo "  Applying cursor..."
-gsettings set org.gnome.desktop.interface cursor-theme "$TARGET_CURSOR"   2>/dev/null || true
-gsettings set org.gnome.desktop.interface cursor-size  "$TARGET_CURSOR_SIZE" 2>/dev/null || true
-set_gtk_setting "$CONFIG_HOME/gtk-3.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
-set_gtk_setting "$CONFIG_HOME/gtk-3.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
-set_gtk_setting "$CONFIG_HOME/gtk-4.0/settings.ini" gtk-cursor-theme-name "$TARGET_CURSOR"
-set_gtk_setting "$CONFIG_HOME/gtk-4.0/settings.ini" gtk-cursor-theme-size "$TARGET_CURSOR_SIZE"
-apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
-apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
-
-# 6. Record active profile and variant preference (global + per-profile memory)
-if [ $STARTUP_MODE -eq 0 ]; then
-  echo "$TARGET" > "$ACTIVE_FILE"
-  echo "$TARGET_VARIANT" > "$VARIANT_FILE"
-  echo "$TARGET_VARIANT" > "$PROFILES_DIR/variant-$TARGET"
-fi
-if [ "$TARGET_VARIANT" = "light" ]; then
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
-else
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
-fi
-
-# 6b. Start new bar + manage awww (noctalia has its own wallpaper engine; others need awww)
-if [ "$TARGET_BAR" = "noctalia" ]; then
-  echo "  Starting noctalia-shell..."
-  systemctl --user stop awww 2>/dev/null || true  # noctalia owns the wallpaper layer
-  systemctl --user start noctalia-shell 2>/dev/null || true
-elif [ "$TARGET_BAR" = "waybar" ]; then
-  echo "  Starting waybar..."
-  systemctl --user start awww 2>/dev/null || true  # awww needed for static wallpapers
-  if [ -f "$TARGET_DIR/waybar-config.jsonc" ]; then
-    WAYBAR_STYLE=$(pick_variant_file "$TARGET_VARIANT" "$TARGET_DIR/waybar-style.css" "$TARGET_DIR/waybar-style-light.css")
-    mkdir -p "$HOME/.config/waybar"
-    # Home Manager generates profile files as read-only; install writable copies
-    # so repeated profile switches can update the live config.
-    install -m 644 "$TARGET_DIR/waybar-config.jsonc" "$HOME/.config/waybar/config.jsonc"
-    install -m 644 "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
-  fi
-  if [ -f "$TARGET_DIR/mako-config" ]; then
-    MAKO_CONFIG=$(pick_variant_file "$TARGET_VARIANT" "$TARGET_DIR/mako-config" "$TARGET_DIR/mako-config-light")
-    mkdir -p "$HOME/.config/mako"
-    install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
-  fi
-  apply_profile_fonts "$CONFIG_HOME" "$TARGET_DIR/meta.json"
-  apply_profile_appearance "$CONFIG_HOME" "$TARGET_DIR/meta.json" "$TARGET_VARIANT"
-  if [ $STARTUP_MODE -eq 1 ]; then
-    pgrep -f waybar >/dev/null 2>&1 || {
-      waybar 2>/dev/null &
-      disown
-    }
-  else
-    waybar 2>/dev/null &
-    disown
-  fi
-  # Start mako for waybar profile notifications
-  start_mako
-elif [ "$TARGET_BAR" = "quickshell" ]; then
-  echo "  Starting quickshell topbar..."
-  systemctl --user start awww 2>/dev/null || true
-  # Quickshell renders notifications natively (NotificationServer); make sure
-  # mako isn't holding the org.freedesktop.Notifications bus name.
-  stop_mako
-  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
-  quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 2>/dev/null &
-  disown
-  # fonts/appearance were already applied at step 5; unlike waybar (which needs a
-  # second pass to style its freshly-installed style.css) quickshell touches none
-  # of the files those helpers write, so re-running them here is dead work.
-fi
-
-# 6c. Profile switcher popup — runs as a standalone Quickshell instance on
-# every profile (started here if not already running; idempotent).
-SWITCHER_PATH="$REPO_HOME/configs/quickshell-switcher/shell.qml"
-if ! pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1; then
-  quickshell -p "$SWITCHER_PATH" >/dev/null 2>&1 &
-  disown
-fi
-
-# 6d. Re-arm focus-mode notification muting — mako restarts with each waybar
-# profile switch and resets to its default mode, so re-apply dnd if focus is
-# active. Quickshell reads the focus file directly (NotifService), so it needs
-# no re-arm.
-if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$TARGET_BAR" = "waybar" ]; then
-  (
-    for _ in $(seq 1 15); do
-      makoctl mode -a dnd 2>/dev/null && break
-      sleep 0.2
-    done
-  ) &
-  disown
-fi
-
-# 7. Set wallpaper (self-themed: shell drives it via IPC, retried in the
-# background until the shell's IPC is up — replaces the old fixed sleeps)
-echo "  Setting wallpaper..."
-if [ "$TARGET_SELF_THEMED" = "true" ]; then
-  stop_video_wallpaper
-  NOCTALIA_SCREENS=$(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
-  (
-    first=1
-    while IFS= read -r screen; do
-      [ -n "$screen" ] || continue
-      if [ $first -eq 1 ]; then
-        for _ in $(seq 1 40); do
-          if noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null; then
-            break
-          fi
-          sleep 0.25
-        done
-        first=0
-      else
-        noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
-      fi
-    done <<< "$NOCTALIA_SCREENS"
-    # Wait for noctalia to generate colors.json, then apply user templates (including kitty)
-    sleep 4
-    NOCSHELL=$(readlink -f "$(which noctalia-shell)")
-    NOCBASE="${NOCSHELL%/bin/noctalia-shell}"
-    SCRIPTS="$NOCBASE/share/noctalia-shell/Scripts/python/src/theming"
-    if [ -f "$SCRIPTS/template-processor.py" ] && [ -f "$HOME/.config/noctalia/colors.json" ]; then
-      cd "$SCRIPTS" && python3 template-processor.py \
-        --scheme "$HOME/.config/noctalia/colors.json" \
-        --config "$HOME/.config/noctalia/user-templates.toml" \
-        --mode dark 2>/dev/null || true
-    fi
-  ) &
-  disown
-elif [ -d "$TARGET_WALLPAPER_DIR" ]; then
-  WALLPAPER=$(pick_random_wallpaper "$TARGET_WALLPAPER_DIR")
-  if [ -n "$WALLPAPER" ]; then
-    set_wallpaper "$WALLPAPER"
-  else
-    echo "  Warning: no supported wallpapers found in $TARGET_WALLPAPER_DIR"
-  fi
-  # Update waypaper config so its folder picker opens the right directory
-  WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
-  if [ -f "$WAYPAPER_CFG" ] && [ -n "$TARGET_WALLPAPER_DIR" ]; then
-    ensure_waypaper_post_command "$WAYPAPER_CFG"
-    WAYPAPER_FOLDER="${TARGET_WALLPAPER_DIR/#$HOME/\~}"
-    sed -i "s|^folder = .*|folder = $WAYPAPER_FOLDER|" "$WAYPAPER_CFG"
-    [ -n "$WALLPAPER" ] && sed -i "s|^wallpaper = .*|wallpaper = ${WALLPAPER/#$HOME/\~}|" "$WAYPAPER_CFG"
-  fi
-fi
-
-# 8. Signal kitty to reload colors (self-themed: template-processor post_hook handles it)
-if [ $STARTUP_MODE -eq 0 ] && [ "$TARGET_SELF_THEMED" != "true" ]; then
-  pkill -USR1 -x kitty 2>/dev/null || true
-fi
-
-if [ $STARTUP_MODE -eq 0 ]; then
-  # 9. Repaint open GTK apps (their CSS name is unchanged across profiles)
-  nudge_gtk_reload
-
-  # 10. Per-app themes (Zed, Vesktop, Obsidian, Spotify/spicetify) — off the
-  # critical path (spicetify apply re-patches xpui and may relaunch Spotify)
-  (
-    apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-    apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-    apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-    # Wallpaper-theming profiles already re-themed spicetify inside
-    # apply_wallpaper_theme; don't re-patch xpui a second time.
-    profile_wallpaper_theming "$TARGET" \
-      || apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-  ) &
-  disown
-
-  # 11. Notify
-  notify-send "Desktop Profile" "Switched to $TARGET" 2>/dev/null || true
-  echo "Done. Profile '$TARGET' is now active."
-else
-  echo "Done. Startup profile '$TARGET' reapplied."
-fi
+[ $# -eq 1 ] || { echo "Usage: switch-profile NAME" >&2; exit 1; }
+exec "$SCRIPT_DIR/profile-transition" switch "$1"

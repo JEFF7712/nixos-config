@@ -135,6 +135,42 @@ EOF
   done
 }
 
+check_post_commit_adapter_isolation() {
+  local output="$tmpdir/post-commit-adapter.out"
+
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'light\n' > "$profiles/variant-new"
+  printf 'off\n' > "$profiles/focus"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'started\n' > "$bar_state"
+  printf 'mako\n' > "$notification_state"
+  : > "$log"
+
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+    PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+    BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    PROFILE_TRANSITION_FAIL_ADAPTER=zed \
+    "$REPO_ROOT/home/scripts/profile-transition" switch new >"$output" 2>&1
+
+  assert_eq new "$(cat "$profiles/active")" \
+    "application adapter failure preserves the committed profile"
+  assert_eq light "$(cat "$profiles/active-variant")" \
+    "application adapter failure preserves the committed variant"
+  assert_eq "$profiles/new/niri-overrides.kdl" \
+    "$(readlink "$profiles/active-niri-overrides.kdl")" \
+    "application adapter failure preserves the committed Niri override"
+  assert_eq started "$(cat "$bar_state")" \
+    "application adapter failure preserves the committed bar"
+  assert_log_contains 'notify-send Desktop Profile Switched to new' \
+    "a failed application adapter does not prevent later adapters"
+  if ! grep -Fq 'Warning: post-commit adapters failed: zed' "$output"; then
+    printf 'FAIL: application adapter failure warning was not summarized\n' >&2
+    cat "$output" >&2
+    exit 1
+  fi
+}
+
 check_snapshot_failure() {
   local failure="$1" expected_status="$2" before after status runtime_dir
   runtime_dir="$tmpdir/runtime-$failure"
@@ -215,7 +251,7 @@ check_unusual_snapshot_paths() {
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar" "$persistent_pid_dir"
 
 for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
-  mktemp mv readlink rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
+  mktemp mv paste readlink rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
   utility_path=$(command -v "$utility")
   ln -s "$utility_path" "$bin_dir/$utility"
 done
@@ -384,6 +420,9 @@ cat > "$bin_dir/quickshell" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf 'quickshell start active=%s\n' "$active" >> "$COMMAND_LOG"
+case "$*" in
+  *quickshell-switcher/shell.qml*) exit 0 ;;
+esac
 if [ "$(cat "$NOTIFICATION_STATE")" = none ] && [ -z "${FAIL_NOTIFICATION_OWNER:-}" ]; then
   printf 'quickshell-started\n' > "$BAR_STATE"
   printf 'quickshell\n' > "$NOTIFICATION_STATE"
@@ -979,7 +1018,5 @@ if ! flock -n "$tmpdir/profile.lock" true; then
 fi
 stop_persistent_children
 
-if [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "delegation" ] \
-  || [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "full" ]; then
-  check_public_delegation
-fi
+check_post_commit_adapter_isolation
+check_public_delegation

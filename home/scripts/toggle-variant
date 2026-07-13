@@ -3,125 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-. "$SCRIPT_DIR/profile-common"
-
-PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
-[ -z "$PROFILE" ] && { echo "No active profile." >&2; exit 1; }
-
-PROFILE_DIR="$PROFILES_DIR/$PROFILE"
-PROFILE_RUNTIME="$PROFILE_DIR/runtime.json"
-HAS_LIGHT=$(jq -r '.hasLightVariant // false' "$PROFILE_DIR/meta.json" 2>/dev/null || echo "false")
-
-if [ "$HAS_LIGHT" != "true" ]; then
-  echo "Profile '$PROFILE' has no light variant — nothing to do."
-  exit 0
-fi
-
-CURRENT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
-
-# With an explicit argument, set that variant (no-op if already active);
-# without one, flip.
 case "${1:-}" in
-  dark | light)
-    NEW="$1"
-    if [ "$NEW" = "$CURRENT" ]; then
-      echo "$PROFILE is already $CURRENT."
-      exit 0
-    fi
-    ;;
-  "")
-    if [ "$CURRENT" = "dark" ]; then
-      NEW="light"
-    else
-      NEW="dark"
-    fi
-    ;;
+  dark | light | "") ;;
   *)
     echo "Usage: toggle-variant [dark|light]" >&2
     exit 1
     ;;
 esac
-
-echo "Switching $PROFILE: $CURRENT → $NEW"
-
-# Record the new variant first so anything reading active-variant from here on
-# (quickshell theme loader, startup re-apply) sees the right value.
-echo "$NEW" > "$VARIANT_FILE"
-echo "$NEW" > "$PROFILES_DIR/variant-$PROFILE"
-
-copy_profile_colors "$PROFILE_DIR" "$NEW"
-apply_profile_fonts "$CONFIG_HOME" "$PROFILE_DIR/meta.json"
-apply_profile_appearance "$CONFIG_HOME" "$PROFILE_DIR/meta.json" "$NEW"
-systemctl --user restart swayosd 2>/dev/null || true
-
-# Reload kitty
-pkill -USR1 -x kitty 2>/dev/null || true
-
-# Wallpaper
-if [ "$NEW" = "light" ]; then
-  WALLPAPER_DIR=$(cat "$PROFILE_DIR/wallpaper-dir-light" 2>/dev/null || echo "")
-else
-  WALLPAPER_DIR=$(cat "$PROFILE_DIR/wallpaper-dir" 2>/dev/null || echo "")
-fi
-if [ -d "$WALLPAPER_DIR" ]; then
-  WALLPAPER=$(pick_random_wallpaper "$WALLPAPER_DIR")
-  if [ -n "$WALLPAPER" ]; then
-    set_wallpaper "$WALLPAPER"
-    WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
-    if [ -f "$WAYPAPER_CFG" ]; then
-      ensure_waypaper_post_command "$WAYPAPER_CFG"
-      WAYPAPER_FOLDER="${WALLPAPER_DIR/#$HOME/\~}"
-      sed -i "s|^folder = .*|folder = $WAYPAPER_FOLDER|" "$WAYPAPER_CFG"
-      sed -i "s|^wallpaper = .*|wallpaper = ${WALLPAPER/#$HOME/\~}|" "$WAYPAPER_CFG"
-    fi
-  fi
-fi
-
-# Bar-specific reloads
-BAR=$(jq -r '.bar // empty' "$PROFILE_DIR/meta.json" 2>/dev/null || echo "")
-if [ "$BAR" = "waybar" ]; then
-  WAYBAR_STYLE=$(pick_variant_file "$NEW" "$PROFILE_DIR/waybar-style.css" "$PROFILE_DIR/waybar-style-light.css")
-  if [ -s "$WAYBAR_STYLE" ]; then
-    cp --remove-destination "$WAYBAR_STYLE" "$HOME/.config/waybar/style.css"
-    pkill -SIGUSR2 waybar 2>/dev/null || true
-  fi
-  apply_profile_fonts "$CONFIG_HOME" "$PROFILE_DIR/meta.json"
-  apply_profile_appearance "$CONFIG_HOME" "$PROFILE_DIR/meta.json" "$NEW"
-elif [ "$BAR" = "quickshell" ]; then
-  # The topbar reads its theme JSON (variant-aware) only at startup; restart it.
-  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
-  quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 2>/dev/null &
-  disown
-fi
-
-# Mako (used by all non-noctalia bars)
-if [ "$BAR" != "noctalia" ] && [ -f "$PROFILE_DIR/mako-config" ]; then
-  MAKO_CONFIG=$(pick_variant_file "$NEW" "$PROFILE_DIR/mako-config" "$PROFILE_DIR/mako-config-light")
-  if [ -s "$MAKO_CONFIG" ]; then
-    mkdir -p "$HOME/.config/mako"
-    install -m 644 "$MAKO_CONFIG" "$HOME/.config/mako/config"
-    restart_mako
-  fi
-fi
-
-# Per-app themes (slow ones off the critical path)
-write_firefox_globals "$PROFILE_RUNTIME" "$NEW"
-(
-  apply_zed_theme "$PROFILE_RUNTIME" "$NEW"
-  apply_vesktop_theme "$PROFILE_RUNTIME" "$NEW"
-  apply_obsidian_scheme "$PROFILE_RUNTIME" "$NEW"
-) &
-disown
-
-# System color-scheme preference
-if [ "$NEW" = "light" ]; then
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
-else
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
-fi
-
-# Repaint open GTK apps (their CSS name is unchanged across variants)
-nudge_gtk_reload
-
-notify-send "Desktop Profile" "$PROFILE → $NEW" 2>/dev/null || true
-echo "Done. $PROFILE is now $NEW."
+[ $# -le 1 ] || { echo "Usage: toggle-variant [dark|light]" >&2; exit 1; }
+exec "$SCRIPT_DIR/profile-transition" variant "${1:-toggle}"

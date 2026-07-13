@@ -172,6 +172,166 @@ notification_owner_is() {
   busctl --user status org.freedesktop.Notifications 2>/dev/null | grep -qi "$expected"
 }
 
+apply_system_preferences() {
+  local cursor cursor_size gtk_theme icon_theme color_scheme failed=0
+  IFS=$'\t' read -r cursor cursor_size gtk_theme icon_theme < <(
+    jq -r --arg variant "$TARGET_VARIANT" '
+      [(.cursor // "default"), (.cursorSize // 24),
+       (if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end),
+       (if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end)] | @tsv' \
+      "$TARGET_DIR/meta.json"
+  )
+  color_scheme=prefer-dark
+  [ "$TARGET_VARIANT" != light ] || color_scheme=prefer-light
+  gsettings set org.gnome.desktop.interface cursor-theme "$cursor" 2>/dev/null || failed=1
+  gsettings set org.gnome.desktop.interface cursor-size "$cursor_size" 2>/dev/null || failed=1
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || failed=1
+  gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || failed=1
+  gsettings set org.gnome.desktop.interface color-scheme "$color_scheme" 2>/dev/null || failed=1
+  return "$failed"
+}
+
+apply_static_wallpaper() {
+  local wallpaper="" waypaper_config waypaper_folder
+  [ -d "$TARGET_WALLPAPER_DIR" ] || return 0
+  wallpaper=$(pick_random_wallpaper "$TARGET_WALLPAPER_DIR")
+  if [ -z "$wallpaper" ]; then
+    echo "Warning: no supported wallpapers found in $TARGET_WALLPAPER_DIR" >&2
+    return 0
+  fi
+  set_wallpaper "$wallpaper"
+  waypaper_config="$HOME/.config/waypaper/config.ini"
+  if [ -f "$waypaper_config" ]; then
+    ensure_waypaper_post_command "$waypaper_config"
+    waypaper_folder="${TARGET_WALLPAPER_DIR/#$HOME/\~}"
+    sed -i "s|^folder = .*|folder = $waypaper_folder|" "$waypaper_config"
+    sed -i "s|^wallpaper = .*|wallpaper = ${wallpaper/#$HOME/\~}|" "$waypaper_config"
+  fi
+}
+
+apply_noctalia_wallpaper() {
+  local screens
+  command -v noctalia-shell >/dev/null 2>&1 || return 0
+  stop_video_wallpaper
+  screens=$(niri msg outputs 2>/dev/null | grep '^Output ' \
+    | sed 's/^Output ".*" (\(.*\))/\1/')
+  (
+    local first=1 screen shell_path shell_base scripts
+    while IFS= read -r screen; do
+      [ -n "$screen" ] || continue
+      if [ "$first" -eq 1 ]; then
+        for _ in $(seq 1 40); do
+          noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null && break
+          sleep 0.25
+        done
+        first=0
+      else
+        noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
+      fi
+    done <<< "$screens"
+    sleep 4
+    shell_path=$(readlink -f "$(command -v noctalia-shell)")
+    shell_base="${shell_path%/bin/noctalia-shell}"
+    scripts="$shell_base/share/noctalia-shell/Scripts/python/src/theming"
+    if [ -f "$scripts/template-processor.py" ] && [ -f "$HOME/.config/noctalia/colors.json" ]; then
+      cd "$scripts" && python3 template-processor.py \
+        --scheme "$HOME/.config/noctalia/colors.json" \
+        --config "$HOME/.config/noctalia/user-templates.toml" \
+        --mode dark 2>/dev/null || true
+    fi
+  ) 9>&- &
+  disown
+}
+
+apply_wallpaper_adapter() {
+  if [ "$TARGET_SELF_THEMED" = true ]; then
+    apply_noctalia_wallpaper
+  else
+    apply_static_wallpaper
+  fi
+}
+
+refresh_pywal() {
+  local theme
+  command -v wal >/dev/null 2>&1 || return 0
+  theme=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" pywal)
+  [ -n "$theme" ] || theme=base16-nord
+  (
+    wal --theme "$theme" -q 2>/dev/null || true
+    command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
+  ) 9>&- &
+  disown
+}
+
+restart_swayosd() {
+  (systemctl --user restart swayosd 2>/dev/null || true) 9>&- &
+  disown
+}
+
+start_profile_switcher() {
+  local switcher_path="$REPO_HOME/configs/quickshell-switcher/shell.qml"
+  pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1 && return 0
+  quickshell -p "$switcher_path" 9>&- >/dev/null 2>&1 &
+  disown
+}
+
+reload_kitty() {
+  pkill -USR1 -x kitty 2>/dev/null || true
+}
+
+send_profile_notification() {
+  notify-send "Desktop Profile" "Switched to $TARGET"
+}
+
+run_post_commit_adapter() {
+  local name="$1"
+  shift
+  if [ "${PROFILE_TRANSITION_FAIL_ADAPTER:-}" = "$name" ] || ! "$@"; then
+    printf '%s\n' "$name" >> "$ADAPTER_FAILURE_LOG"
+  fi
+}
+
+dispatch_post_commit_adapters() {
+  local summary
+  ADAPTER_FAILURE_LOG=$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/profile-transition-adapters.XXXXXX")
+  trap 'rm -f "$ADAPTER_FAILURE_LOG"' EXIT INT TERM HUP
+
+  run_post_commit_adapter wallpaper apply_wallpaper_adapter
+  run_post_commit_adapter system-preferences apply_system_preferences
+  run_post_commit_adapter profile-switcher start_profile_switcher
+
+  if [ "$MODE" != startup ]; then
+    if [ "$TARGET_SELF_THEMED" = true ]; then
+      run_post_commit_adapter cava restore_cava_noctalia_theme
+    else
+      run_post_commit_adapter btop apply_btop_theme "$TARGET_DIR" "$TARGET_VARIANT"
+      run_post_commit_adapter tmux apply_tmux_colors "$TARGET_DIR" "$TARGET_VARIANT"
+      run_post_commit_adapter hyprlock apply_hyprlock_colors "$TARGET_DIR" "$TARGET_VARIANT"
+      run_post_commit_adapter cava apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
+      run_post_commit_adapter vicinae apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"
+      run_post_commit_adapter firefox write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
+      run_post_commit_adapter swayosd restart_swayosd
+      run_post_commit_adapter pywal refresh_pywal
+      run_post_commit_adapter kitty reload_kitty
+    fi
+    run_post_commit_adapter gtk nudge_gtk_reload
+    run_post_commit_adapter zed apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    run_post_commit_adapter vesktop apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    run_post_commit_adapter obsidian apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    if ! profile_wallpaper_theming "$TARGET"; then
+      run_post_commit_adapter spicetify apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    fi
+    run_post_commit_adapter notification send_profile_notification
+  fi
+
+  if [ -s "$ADAPTER_FAILURE_LOG" ]; then
+    summary=$(paste -sd, "$ADAPTER_FAILURE_LOG")
+    echo "Warning: post-commit adapters failed: $summary" >&2
+  fi
+  rm -f "$ADAPTER_FAILURE_LOG"
+  trap - EXIT INT TERM HUP
+}
+
 [ $# -ge 1 ] || usage
 MODE="$1"
 shift
@@ -228,6 +388,13 @@ if [ "$TARGET_VARIANT" = "light" ] && ! has_light_variant "$TARGET"; then
   echo "Error: profile '$TARGET' has no light variant." >&2
   exit 1
 fi
+
+TARGET_DIR="$PROFILES_DIR/$TARGET"
+TARGET_RUNTIME="$TARGET_DIR/runtime.json"
+TARGET_SELF_THEMED=$(jq -r '.selfThemed // false' "$TARGET_DIR/meta.json" 2>/dev/null || echo false)
+TARGET_WALLPAPER_DIR_FILE=$(pick_variant_file "$TARGET_VARIANT" \
+  "$TARGET_DIR/wallpaper-dir" "$TARGET_DIR/wallpaper-dir-light")
+TARGET_WALLPAPER_DIR=$(cat "$TARGET_WALLPAPER_DIR_FILE" 2>/dev/null || echo "")
 
 LOCK_PATH="${PROFILE_TRANSITION_LOCK:-$HOME/.local/state/desktop-profiles/transition.lock}"
 mkdir -p "$(dirname "$LOCK_PATH")"
@@ -473,3 +640,7 @@ start_bar "$TARGET_BAR"
 verify_bar "$TARGET_BAR"
 
 commit_transaction
+flock -u 9
+exec 9>&-
+dispatch_post_commit_adapters
+exit 0
