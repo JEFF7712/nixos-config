@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+profiles="${XDG_CONFIG_HOME:-$HOME/.config}/desktop-profiles"
+profile="${DESKTOP_PROFILE_TRANSITION_TARGET:-$(cat "$profiles/active" 2>/dev/null || true)}"
+variant="${DESKTOP_PROFILE_TRANSITION_VARIANT:-$(cat "$profiles/active-variant" 2>/dev/null || echo dark)}"
+runtime="$profiles/runtime-quickshell-theme.json"
+
+[ -n "$profile" ] || exit 0
+
+if [ -s "$runtime" ] \
+  && [ "$(cat "$profiles/runtime-theme-profile" 2>/dev/null || true)" = "$profile" ] \
+  && [ "$(cat "$profiles/runtime-theme-variant" 2>/dev/null || true)" = "$variant" ]; then
+  cat "$runtime"
+  exit 0
+fi
+
+theme="$profiles/$profile/quickshell-theme.json"
+if [ "$variant" = light ] && [ -s "$profiles/$profile/quickshell-theme-light.json" ]; then
+  theme="$profiles/$profile/quickshell-theme-light.json"
+fi
+cat "$theme" 2>/dev/null || true

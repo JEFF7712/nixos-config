@@ -48,7 +48,9 @@ PROFILE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 if [ "$(profile_bar "$PROFILE")" = "quickshell" ]; then
   VARIANT=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
   OVERRIDE="$PROFILES_DIR/runtime-quickshell-theme.json"
-  if [ -s "$OVERRIDE" ] && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null)" = "$PROFILE" ]; then
+  if [ -s "$OVERRIDE" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null)" = "$PROFILE" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-variant" 2>/dev/null)" = "$VARIANT" ]; then
     SRC="$OVERRIDE"
   else
     SRC=$(pick_variant_file "$VARIANT" \
@@ -59,7 +61,8 @@ if [ "$(profile_bar "$PROFILE")" = "quickshell" ]; then
     tmp=$(mktemp)
     if jq --arg f "$MONO" '.barFont=$f' "$SRC" > "$tmp" 2>/dev/null; then
       mv "$tmp" "$OVERRIDE"
-      printf '%s\n' "$PROFILE" > "$PROFILES_DIR/runtime-theme-profile"
+      write_profile_value_atomic "$PROFILES_DIR/runtime-theme-profile" "$PROFILE"
+      write_profile_value_atomic "$PROFILES_DIR/runtime-theme-variant" "$VARIANT"
     else
       rm -f "$tmp"
     fi

@@ -111,6 +111,10 @@ apply_spicetify_theme() {
 : > "$log_file"
 COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" apply_wallpaper_theme "$tmpdir/still.png"
 
+assert_eq tinted "$(cat "$profiles_dir/runtime-theme-profile")" \
+  "wallpaper tint tags the runtime theme profile"
+assert_eq light "$(cat "$profiles_dir/runtime-theme-variant")" \
+  "wallpaper tint tags the runtime theme variant"
 assert_eq "spicetify $profiles_dir/tinted/runtime.json light" \
   "$(grep '^spicetify ' "$log_file")" \
   "wallpaper tint reapplies the active profile spicetify scheme"

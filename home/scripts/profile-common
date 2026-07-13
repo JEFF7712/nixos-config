@@ -20,6 +20,13 @@ CONFIG_HOME="$HOME/.config"
 OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
 WAYPAPER_POST_COMMAND='$HOME/.local/bin/waypaper-backend-sync $wallpaper'
 
+write_profile_value_atomic() {
+  local path="$1" value="$2" tmp
+  tmp=$(mktemp "$path.XXXXXX")
+  printf '%s\n' "$value" > "$tmp"
+  mv "$tmp" "$path"
+}
+
 firefox_chrome_dir() {
   local d
   for d in "$HOME/.mozilla/firefox/"*.default-release; do
@@ -285,9 +292,10 @@ apply_wallpaper_theme() {
     fi
   fi
 
-  # Tag the runtime quickshell override so the topbar only adopts it while this
-  # profile is active (a stale override is ignored under other profiles).
-  printf '%s\n' "$profile" > "$PROFILES_DIR/runtime-theme-profile"
+  # Tag the runtime quickshell override so the topbar only adopts it for the
+  # exact profile and variant that generated it.
+  write_profile_value_atomic "$PROFILES_DIR/runtime-theme-profile" "$profile"
+  write_profile_value_atomic "$PROFILES_DIR/runtime-theme-variant" "$variant"
   apply_vicinae_runtime_theme "$profile" "$variant"
 
   # Swap matugen's cava [color] block into the live cava config.
