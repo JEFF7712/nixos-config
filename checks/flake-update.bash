@@ -32,8 +32,12 @@ make_fake nix <<'EOF'
 printf 'nix %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
-if [[ "${TEST_MUTATE_LOCK:-}" == 1 && " $* " == *' flake update '* ]]; then
-  printf 'mutated by update\n' > "$TEST_REPO/flake.lock"
+if [[ " $* " == *' flake update '* ]]; then
+  if [[ "${TEST_DIFF_STATUS:-0}" == 2 ]]; then
+    rm -f "$TEST_REPO/flake.lock"
+  elif [[ "${TEST_MUTATE_LOCK:-}" == 1 || "${TEST_DIFF_STATUS:-0}" == 1 ]]; then
+    printf 'mutated by update\n' > "$TEST_REPO/flake.lock"
+  fi
 fi
 if [[ " $* " == *' eval '* ]]; then
   exit "${TEST_EVAL_STATUS:-0}"
@@ -168,8 +172,14 @@ run_pipeline() {
     TEST_REAL_GIT="${TEST_REAL_GIT:-0}" \
     TEST_MUTATE_LOCK="${TEST_MUTATE_LOCK:-0}" \
     TEST_UPDATE_STATUS="${TEST_UPDATE_STATUS:-0}" \
+    TEST_DIFF_STATUS="${TEST_DIFF_STATUS:-0}" \
+    TEST_EVAL_STATUS="${TEST_EVAL_STATUS:-0}" \
+    TEST_COMMIT_STATUS="${TEST_COMMIT_STATUS:-0}" \
     TEST_CASCADE_STATUS="${TEST_CASCADE_STATUS:-0}" \
     TEST_CASCADE_ACTION="${TEST_CASCADE_ACTION:-}" \
+    TEST_FLOCK_STATUS="${TEST_FLOCK_STATUS:-0}" \
+    TEST_DNS_STATUS="${TEST_DNS_STATUS:-0}" \
+    TEST_REBUILD_STATUS="${TEST_REBUILD_STATUS:-0}" \
     home/scripts/nixos-flake-update "${args[@]}" >"$output_log" 2>&1
   PIPELINE_STATUS=$?
   set -e
@@ -180,8 +190,11 @@ setup_case() {
   COMMAND_LOG="$CASE_DIR/commands.log"
   mkdir -p "$CASE_DIR"
   : > "$COMMAND_LOG"
+  if [[ $repo == "$tmpdir/repo" ]]; then
+    printf 'mock baseline\n' > "$repo/flake.lock"
+  fi
   unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
-unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
+  unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
   unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT
 }
 
@@ -292,6 +305,28 @@ printf 'committed lock\n' > "$real_repo/flake.lock"
 "$real_git" -C "$real_repo" add flake.nix flake.lock
 "$real_git" -C "$real_repo" commit -qm fixture
 
+case_real_dirty_noop() {
+  local saved_repo="$repo"
+  repo="$real_repo"
+  setup_case real-dirty-noop
+  printf 'dirty no-op lock\nsecond line without newline' > "$repo/flake.lock"
+  cp -p "$repo/flake.lock" "$CASE_DIR/expected.lock"
+  TEST_REAL_GIT=1 REAL_GIT="$real_git" run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" real_dirty_noop
+  cmp -s "$CASE_DIR/expected.lock" "$repo/flake.lock" ||
+    fail 'real_dirty_noop changed the dirty pre-run lock'
+  if "$real_git" -C "$repo" diff --quiet -- flake.lock; then
+    fail 'real_dirty_noop committed the dirty pre-run lock'
+  fi
+  assert_log_lacks 'nix-cascade-guard ' real_dirty_noop
+  assert_log_lacks ' commit ' real_dirty_noop
+  assert_log_lacks 'nixos-rebuild ' real_dirty_noop
+  if compgen -G "$repo/.flake.lock.snapshot.*" >/dev/null; then
+    fail 'real_dirty_noop left a lock snapshot behind'
+  fi
+  repo="$saved_repo"
+}
+
 case_real_restore() {
   local name="$1" expected_status="$2"
   local saved_repo="$repo"
@@ -318,6 +353,7 @@ case_real_restore() {
   repo="$saved_repo"
 }
 
+case_real_dirty_noop
 case_real_restore update_failure 1
 case_real_restore cascade_deferred 0
 case_real_restore termination 143

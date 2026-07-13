@@ -109,9 +109,9 @@ if ! runuser -u rupan -- nix eval --no-write-lock-file \
   exit 1
 fi
 
-diff_status=0
-runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock || diff_status=$?
-case "$diff_status" in
+compare_status=0
+cmp -s -- "$repo/flake.lock" "$lock_snapshot" || compare_status=$?
+case "$compare_status" in
   0)
     remove_snapshot
     disarm_cleanup
@@ -122,8 +122,8 @@ case "$diff_status" in
   *)
     restore_lock
     disarm_cleanup
-    printf '%s could not inspect flake.lock diff (rc=%d); lock reverted\n' \
-      "$label" "$diff_status" >&2
+    printf '%s could not compare flake.lock snapshot (rc=%d); lock reverted\n' \
+      "$label" "$compare_status" >&2
     exit 1
     ;;
 esac
