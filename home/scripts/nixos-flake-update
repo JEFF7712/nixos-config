@@ -39,6 +39,23 @@ restore_lock() {
   runuser -u rupan -- git -C "$repo" checkout -- flake.lock
 }
 
+dirty_lock=false
+
+disarm_cleanup() {
+  dirty_lock=false
+  trap - EXIT INT TERM
+}
+
+cleanup() {
+  local status=$?
+  trap - EXIT INT TERM
+  if [[ $dirty_lock == true ]] && ! restore_lock; then
+    printf '%s cleanup failed while restoring flake.lock\n' "$label" >&2
+    status=1
+  fi
+  exit "$status"
+}
+
 exec {lock_fd}>"$update_lock"
 flock -n "$lock_fd" || exit 0
 
@@ -57,8 +74,14 @@ if [[ $dns_ready != true ]]; then
   exit 1
 fi
 
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+dirty_lock=true
+
 if ! runuser -u rupan -- nix flake update --flake "path:$repo" "${inputs[@]}"; then
   restore_lock
+  disarm_cleanup
   printf '%s update failed; flake.lock reverted\n' "$label" >&2
   exit 1
 fi
@@ -66,29 +89,46 @@ fi
 if ! runuser -u rupan -- nix eval --no-write-lock-file \
   "${toplevel}.drvPath" >/dev/null; then
   restore_lock
+  disarm_cleanup
   printf '%s update fails eval; flake.lock reverted\n' "$label" >&2
   exit 1
 fi
 
-if runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
-  printf '%s flake.lock unchanged; skipping rebuild\n' "$label"
-  exit 0
-fi
+diff_status=0
+runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock || diff_status=$?
+case "$diff_status" in
+  0)
+    disarm_cleanup
+    printf '%s flake.lock unchanged; skipping rebuild\n' "$label"
+    exit 0
+    ;;
+  1) ;;
+  *)
+    restore_lock
+    disarm_cleanup
+    printf '%s could not inspect flake.lock diff (rc=%d); lock reverted\n' \
+      "$label" "$diff_status" >&2
+    exit 1
+    ;;
+esac
 
 cascade_status=0
 runuser -u rupan -- "$cascade_guard" \
   "$toplevel" || cascade_status=$?
 if [[ $cascade_status -eq 10 ]]; then
   restore_lock
+  disarm_cleanup
   printf '%s update deferred: toolchain cascade; flake.lock reverted\n' "$label" >&2
   exit 0
 elif [[ $cascade_status -ne 0 ]]; then
   restore_lock
+  disarm_cleanup
   printf '%s cascade guard failed (rc=%d); flake.lock reverted\n' \
     "$label" "$cascade_status" >&2
   exit 1
 fi
 
 runuser -u rupan -- git -C "$repo" commit -m "$commit_message" -- flake.lock
+disarm_cleanup
 "$nixos_rebuild" switch --flake "$target" \
   --option max-jobs 2 --option cores 8

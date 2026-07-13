@@ -34,6 +34,9 @@ make_fake nix <<'EOF'
 printf 'nix %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
+if [[ " $* " == *' eval '* ]]; then
+  exit "${TEST_EVAL_STATUS:-0}"
+fi
 EOF
 
 make_fake git <<'EOF'
@@ -43,7 +46,9 @@ printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
 case " $* " in
   *' rev-parse --show-toplevel '*) printf '%s\n' "$TEST_REPO" ;;
-  *' diff --quiet '*|*' diff --exit-code '*) exit 0 ;;
+  *' diff --quiet '*) exit "${TEST_DIFF_STATUS:-0}" ;;
+  *' diff --exit-code '*) exit 0 ;;
+  *' commit '*) exit "${TEST_COMMIT_STATUS:-0}" ;;
   *' status --porcelain '*) exit 0 ;;
 esac
 EOF
@@ -68,29 +73,43 @@ shift
 exec "$@"
 EOF
 
-for command in nix-cascade-guard nixos-rebuild; do
-  make_fake "$command" <<'EOF'
+make_fake nix-cascade-guard <<'EOF'
+#!/usr/bin/env bash
+printf '%s' "${0##*/}" >> "$COMMAND_LOG"
+printf ' %q' "$@" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+if [[ "${TEST_CASCADE_ACTION:-}" == term ]]; then
+  kill -TERM "$PPID"
+  sleep 1
+fi
+exit "${TEST_CASCADE_STATUS:-0}"
+EOF
+
+make_fake nixos-rebuild <<'EOF'
 #!/usr/bin/env bash
 printf '%s' "${0##*/}" >> "$COMMAND_LOG"
 printf ' %q' "$@" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
 EOF
-done
+
+run_pipeline() {
+  PATH="$bin_dir:$PATH" \
+    COMMAND_LOG="$command_log" \
+    TEST_REPO="$repo" \
+    UPDATE_LOCK="$tmpdir/update.lock" \
+    DNS_RETRIES=1 \
+    DNS_RETRY_DELAY=0 \
+    CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
+    NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
+    home/scripts/nixos-flake-update \
+      --label weekly \
+      --repo "$repo" \
+      --target "path:$repo#laptop" \
+      --commit-message "flake.lock: weekly auto-update"
+}
 
 set +e
-PATH="$bin_dir:$PATH" \
-  COMMAND_LOG="$command_log" \
-  TEST_REPO="$repo" \
-  UPDATE_LOCK="$tmpdir/update.lock" \
-  DNS_RETRIES=1 \
-  DNS_RETRY_DELAY=0 \
-  CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
-  NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
-  home/scripts/nixos-flake-update \
-    --label weekly \
-    --repo "$repo" \
-    --target "path:$repo#laptop" \
-    --commit-message "flake.lock: weekly auto-update"
+run_pipeline
 status=$?
 set -e
 
@@ -115,3 +134,51 @@ if grep -Eq '^(nix-cascade-guard|nixos-rebuild)( |$)|^git .*commit( |$)' "$comma
   cat "$command_log" >&2
   exit 1
 fi
+
+assert_restored_failure() {
+  local name="$1"
+  local status="$2"
+  if [[ $status -eq 0 ]] || ! grep -Fq 'checkout -- flake.lock' "$command_log"; then
+    printf '%s expected nonzero status and lock restoration, got %d\n' "$name" "$status" >&2
+    cat "$command_log" >&2
+    exit 1
+  fi
+}
+
+: > "$command_log"
+set +e
+TEST_DIFF_STATUS=2 run_pipeline
+status=$?
+set -e
+assert_restored_failure 'diff error' "$status"
+if grep -Eq '^(nix-cascade-guard|nixos-rebuild)( |$)|^git .*commit( |$)' "$command_log"; then
+  printf 'diff error unexpectedly continued the pipeline\n' >&2
+  cat "$command_log" >&2
+  exit 1
+fi
+
+: > "$command_log"
+set +e
+TEST_DIFF_STATUS=1 TEST_COMMIT_STATUS=1 run_pipeline
+status=$?
+set -e
+assert_restored_failure 'commit failure' "$status"
+if grep -Eq '^nixos-rebuild( |$)' "$command_log"; then
+  printf 'commit failure unexpectedly rebuilt\n' >&2
+  cat "$command_log" >&2
+  exit 1
+fi
+
+: > "$command_log"
+set +e
+TEST_DIFF_STATUS=1 TEST_CASCADE_ACTION=term run_pipeline
+status=$?
+set -e
+assert_restored_failure 'terminated pre-commit pipeline' "$status"
+if grep -Eq '^git .*commit( |$)|^nixos-rebuild( |$)' "$command_log"; then
+  printf 'terminated pipeline unexpectedly committed or rebuilt\n' >&2
+  cat "$command_log" >&2
+  exit 1
+fi
+
+printf 'flake update pipeline checks passed\n'
