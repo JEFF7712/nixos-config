@@ -13,6 +13,7 @@ PanelWindow {
     required property Services.CavaService cavaService
     required property Services.PowerService powerService
     required property Services.SystemService systemService
+    required property Services.NiriService niriService
 
     property color themeFg
     property color themeBg
@@ -50,12 +51,16 @@ PanelWindow {
     property color pillBorder: "#14ffffff"
 
     property string networkIcon: "󰖪"
-    property string activeTitle: "no active window"
     property int notificationCount: 0
     readonly property bool cavaRequested: mediaPill.visible
-    property int activeWorkspace: 1
-    property var occupiedWorkspaces: ({})
-    property var workspaceList: []
+    readonly property string activeTitle: topbarWindow.niriService.focusedTitle || topbarWindow.niriService.focusedAppId || "no active window"
+    readonly property int activeWorkspaceIndex: {
+        for (let i = 0; i < topbarWindow.niriService.workspaces.count; i++) {
+            if (topbarWindow.niriService.workspaces.get(i).id === topbarWindow.niriService.activeWorkspaceId)
+                return i;
+        }
+        return -1;
+    }
 
     signal wifiClicked
     signal volumeClicked
@@ -139,89 +144,6 @@ PanelWindow {
         onTriggered: networkProc.running = true
     }
 
-    Process {
-        id: workspacesProc
-        command: ["sh", "-c", "niri msg -j workspaces 2>/dev/null || true"]
-        property string buffer: ""
-        stdout: SplitParser {
-            onRead: data => workspacesProc.buffer += data
-        }
-        onExited: {
-            try {
-                const workspaces = JSON.parse(workspacesProc.buffer || "[]");
-                const occupied = {};
-                const list = [];
-                let active = topbarWindow.activeWorkspace;
-                for (const ws of workspaces) {
-                    const idx = ws.idx || ws.id;
-                    if (idx === undefined)
-                        continue;
-                    list.push(idx);
-                    if (ws.active_window_id !== null && ws.active_window_id !== undefined) {
-                        occupied[idx] = true;
-                    }
-                    if (ws.is_focused || ws.is_active)
-                        active = idx;
-                }
-                list.sort((a, b) => a - b);
-                topbarWindow.workspaceList = list;
-                topbarWindow.occupiedWorkspaces = occupied;
-                topbarWindow.activeWorkspace = active;
-            } catch (e) {}
-            workspacesProc.buffer = "";
-        }
-    }
-
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: workspacesProc.running = true
-    }
-
-    Process {
-        id: titleProc
-        command: ["sh", "-c", "niri msg -j focused-window 2>/dev/null || true"]
-        property string buffer: ""
-        stdout: SplitParser {
-            onRead: data => titleProc.buffer += data
-        }
-        onExited: {
-            try {
-                const win = JSON.parse(titleProc.buffer || "{}");
-                topbarWindow.activeTitle = win.title || win.app_id || "no active window";
-            } catch (e) {
-                topbarWindow.activeTitle = "no active window";
-            }
-            titleProc.buffer = "";
-        }
-    }
-
-    Timer {
-        interval: 1500
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: titleProc.running = true
-    }
-
-    Process {
-        id: niriEventStream
-        running: true
-        command: ["sh", "-c", "niri msg event-stream 2>/dev/null"]
-        stdout: SplitParser {
-            onRead: data => {
-                if (data.indexOf("Workspace") !== -1) {
-                    workspacesProc.running = true;
-                }
-                if (data.indexOf("Window") !== -1) {
-                    titleProc.running = true;
-                }
-            }
-        }
-    }
-
     Rectangle {
         anchors.fill: parent
         radius: topbarWindow.barRadius
@@ -251,9 +173,12 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
-                    model: topbarWindow.workspaceList
+                    model: topbarWindow.niriService.workspaces
                     delegate: WorkspacePill {
-                        wsId: modelData
+                        wsId: model.id
+                        occupied: model.occupied
+                        active: model.active
+                        urgent: model.urgent
                     }
                 }
             }
@@ -267,7 +192,7 @@ PanelWindow {
                 color: topbarWindow.themeAccent
                 anchors.bottom: parent.bottom
                 opacity: 0.9
-                x: (topbarWindow.activeWorkspace - 1) * 36 + 5
+                x: Math.max(0, topbarWindow.activeWorkspaceIndex) * 36 + 5
                 Behavior on x {
                     SpringAnimation {
                         spring: 3.5
@@ -621,8 +546,11 @@ PanelWindow {
     component WorkspacePill: Item {
         id: wsRoot
         property int wsId: 1
-        readonly property bool isActive: topbarWindow.activeWorkspace === wsId
-        readonly property bool isOccupied: topbarWindow.occupiedWorkspaces[wsId] === true
+        property bool occupied: false
+        property bool active: false
+        property bool urgent: false
+        readonly property bool isActive: wsRoot.active
+        readonly property bool isOccupied: wsRoot.occupied
         readonly property bool noNumbers: !topbarWindow.showWorkspaceNumbers
         readonly property bool flat: topbarWindow.flatMode
 
@@ -721,10 +649,9 @@ PanelWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: topbarWindow.run("niri msg action focus-workspace " + wsRoot.wsId)
+            onClicked: topbarWindow.niriService.focusWorkspace(wsRoot.wsId)
             onWheel: event => {
-                const cmd = event.angleDelta.y > 0 ? "focus-workspace-up" : "focus-workspace-down";
-                topbarWindow.run("niri msg action " + cmd);
+                topbarWindow.niriService.focusAdjacent(event.angleDelta.y > 0 ? -1 : 1);
                 event.accepted = true;
             }
         }

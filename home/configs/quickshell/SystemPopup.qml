@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import "services" as Services
 
 InfoPopup {
@@ -8,6 +7,7 @@ InfoPopup {
     edgeSlide: true
 
     required property Services.SystemService systemService
+    required property Services.NiriService niriService
     property color themeWarm: "#e6dcc6"
 
     readonly property string hostName: systemService.hostName !== "" ? systemService.hostName : "-"
@@ -17,11 +17,6 @@ InfoPopup {
     readonly property string ramUsage: systemService.available ? systemService.ramUsedGiB.toFixed(1) + "G" : "-"
     readonly property string diskUsage: systemService.available ? systemService.diskPercent + "%" : "-"
     readonly property int ramPercent: systemService.available ? systemService.ramPercent : 0
-
-    function exec(cmd) {
-        Quickshell.execDetached(["sh", "-c", cmd]);
-        root.close();
-    }
 
     function percent(value) {
         const parsed = parseInt(String(value).replace("%", ""));
@@ -145,7 +140,10 @@ InfoPopup {
         label: "logout"
         themeFg: root.themeFg
         themeAccent: root.themeAccent
-        onActivated: root.exec("niri msg action quit -s")
+        onActivated: {
+            root.niriService.quitSession();
+            root.close();
+        }
     }
 
     SystemAction {

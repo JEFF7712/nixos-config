@@ -10,6 +10,7 @@ cava_fixture_qml="${repo_root}/tests/quickshell/integration/cava-service"
 power_fixture_qml="${repo_root}/tests/quickshell/integration/power-service"
 power_native_fixture_qml="${repo_root}/tests/quickshell/integration/power-native"
 system_fixture_qml="${repo_root}/tests/quickshell/integration/system-service"
+niri_fixture_qml="${repo_root}/tests/quickshell/integration/niri-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -1118,6 +1119,63 @@ run_system_service_probe() {
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
+run_niri_service_probe() {
+  local state_dir qs_pid rc=0 record pid
+  printf 'quickshell-services: run_niri_service_probe\n'
+  [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
+
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-niri-service.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal" "$state_dir/processes"
+  ln -s "$audio_fixture_bin/niri" "$state_dir/fixture-bin/niri"
+  cp "$niri_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$repo_root/home/configs/quickshell/services/NiriService.qml" "$state_dir/config/services/NiriService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/NiriParser.js" "$state_dir/config/services/internal/NiriParser.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/NiriModel.qml" "$state_dir/config/services/internal/NiriModel.qml"
+  : >"$state_dir/actions.log"
+  : >"$state_dir/niri-lifecycle.log"
+  mkfifo "$state_dir/niri-event.fifo"
+
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+  wait_for_path "$state_dir/ready" 10 || fail 'niri fixture did not become ready'
+  wait_for_process "$qs_pid" 25 || rc=$?
+  if ((rc != 0)); then
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "niri fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and .sharedIdentity == true and
+    .malformedEventIgnored == true and .actionsPassed == true and
+    .retryTimingPassed == true and .exhaustionPassed == true and
+    (.diagnostics.activeWorkspaceId | type == "number") and
+    (.diagnostics.focusedTitle | type == "string") and
+    (.diagnostics.focusedAppId | type == "string") and
+    (.diagnostics.streamHealthy | type == "boolean") and
+    (.diagnostics.lastError | type == "string")' \
+    "$state_dir/result.json" >/dev/null || {
+    jq . "$state_dir/result.json" >&2 || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail 'niri fixture reported invalid state, action, or retry behavior'
+  }
+  [ ! -s "$state_dir/niri-overlap.log" ] \
+    || fail 'niri fixture observed overlapping event-stream processes'
+  ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+    || {
+      sed -n '1,240p' "$state_dir/quickshell.log" >&2
+      fail 'niri fixture logged a binding or construction error'
+    }
+  for record in "$state_dir"/processes/niri-stream.*.record; do
+    [ -e "$record" ] || continue
+    pid=$(record_value pid "$record")
+    ! kill -0 "$pid" 2>/dev/null || fail 'niri event-stream process survived fixture exit'
+  done
+  [ ! -d "$state_dir/niri-stream.active" ] \
+    || fail 'niri event-stream active marker survived fixture exit'
+  jq -c . "$state_dir/result.json"
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -1400,10 +1458,70 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'SystemPopup.qml still owns processes, timers, or Quickshell.Io'
   ! rg -n '/proc/stat|/proc/meminfo|"df"|df -P|hostnamectl|uname -r|readlink[^\n]*nix' "$system_popup" \
     || fail 'SystemPopup.qml still constructs system-metrics or metadata commands'
-  [ "$(rg -c 'niri msg action quit -s' "$system_popup")" -eq 1 ] \
-    || fail 'SystemPopup.qml must retain exactly one documented Niri logout command until Task 9'
+  ! rg -n '"niri"|niri msg' "$system_popup" \
+    || fail 'SystemPopup.qml must not contain any niri command construction; logout is a NiriService action'
   ! rg -n 'niri msg action quit -s' "$system_service" "$system_model" \
     || fail 'Niri session logout must remain a NiriService action, not SystemService'
+
+  local niri_service="$production_dir/services/NiriService.qml"
+  local niri_model="$production_dir/services/internal/NiriModel.qml"
+  local niri_parser="$production_dir/services/internal/NiriParser.js"
+  [ -f "$niri_service" ] || fail 'NiriService.qml is missing'
+  [ -f "$niri_model" ] || fail 'NiriModel.qml is missing'
+  [ -f "$niri_parser" ] || fail 'NiriParser.js is missing'
+  rg -q 'Internal\.NiriModel[[:space:]]*\{' "$niri_service" \
+    || fail 'NiriService.qml must compose the deep internal NiriModel'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"niri"' "$niri_service" \
+    || fail 'NiriService.qml must stay a thin facade with no owned processes or command literals'
+  for public_property in activeWorkspaceId workspaces focusedTitle focusedAppId streamHealthy lastError; do
+    rg -q "readonly property [^:]* ${public_property}:" "$niri_service" \
+      || fail "NiriService.qml is missing readonly public property: $public_property"
+  done
+  for signature in \
+    'function focusWorkspace(id: int): void' \
+    'function focusAdjacent(direction: int): void' \
+    'function quitSession(): void'; do
+    rg -F -q "$signature" "$niri_service" \
+      || fail "NiriService.qml is missing typed action signature: $signature"
+  done
+  rg -U -q 'command:[[:space:]]*\["niri",[[:space:]]*"msg",[[:space:]]*"-j",[[:space:]]*"workspaces"\]' "$niri_model" \
+    || fail 'NiriModel.qml must own the exact direct workspaces snapshot argv'
+  rg -U -q 'command:[[:space:]]*\["niri",[[:space:]]*"msg",[[:space:]]*"-j",[[:space:]]*"focused-window"\]' "$niri_model" \
+    || fail 'NiriModel.qml must own the exact direct focused-window snapshot argv'
+  rg -U -q 'command:[[:space:]]*\["setpriv",[[:space:]]*"--pdeathsig",[[:space:]]*"TERM",[[:space:]]*"--",[[:space:]]*"niri",[[:space:]]*"msg",[[:space:]]*"-j",[[:space:]]*"event-stream"\]' "$niri_model" \
+    || fail 'NiriModel.qml must own the exact parent-death-protected event-stream argv'
+  rg -U -q 'execDetached\(\["niri",[[:space:]]*"msg",[[:space:]]*"action",[[:space:]]*"focus-workspace",[[:space:]]*String\(id\)\]\)' "$niri_model" \
+    || fail 'NiriModel.qml must own the exact focus-workspace argv'
+  rg -U -q 'execDetached\(\["niri",[[:space:]]*"msg",[[:space:]]*"action",[[:space:]]*direction < 0 \? "focus-workspace-up" : "focus-workspace-down"\]\)' "$niri_model" \
+    || fail 'NiriModel.qml must own the exact focus-workspace-up/down argv'
+  rg -U -q 'execDetached\(\["niri",[[:space:]]*"msg",[[:space:]]*"action",[[:space:]]*"quit",[[:space:]]*"-s"\]\)' "$niri_model" \
+    || fail 'NiriModel.qml must own the exact session quit argv'
+  ! rg -n -i -g '*.qml' -g '!NiriModel.qml' -g '!NiriService.qml' '"niri"|niri msg' "$production_dir" \
+    || fail 'niri command construction exists outside the NiriService implementation'
+  [ "$(rg -o 'Services\.NiriService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one Services.NiriService'
+  rg -q 'id:[[:space:]]*niriService' "$shell" \
+    || fail 'production shell.qml must name the NiriService niriService'
+  for view in Topbar SystemPopup; do
+    rg -U -q "${view}[[:space:]]*\{[^}]*niriService:[[:space:]]*niriService" "$shell" \
+      || fail "production shell.qml does not wire niriService directly to $view"
+  done
+  rg -q 'required property Services\.NiriService niriService' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must require NiriService'
+  rg -q 'required property Services\.NiriService niriService' "$system_popup" \
+    || fail 'SystemPopup.qml must require NiriService'
+  ! rg -n 'workspacesProc|titleProc|niriEventStream|\bactiveWorkspace\b|occupiedWorkspaces|\bworkspaceList\b' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml still owns Niri processes, timers, parser state, or command construction'
+  rg -q 'model:[[:space:]]*topbarWindow\.niriService\.workspaces' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must render NiriService workspaces directly'
+  ! rg -n '\(topbarWindow\.activeWorkspace - 1\) \* 36' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml workspace indicator must not assume workspace id minus one'
+  rg -q 'niriService\.focusWorkspace\(' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml workspace click must call niriService.focusWorkspace'
+  rg -q 'niriService\.focusAdjacent\(' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml workspace wheel must call niriService.focusAdjacent'
+  rg -q 'niriService\.quitSession\(\)' "$system_popup" \
+    || fail 'SystemPopup.qml logout must call niriService.quitSession()'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -1432,4 +1550,5 @@ run_power_destruction_probe probe
 run_power_destruction_probe action
 run_power_native_construction_probe
 run_system_service_probe
+run_niri_service_probe
 assert_no_view_processes_for_migrated_domains

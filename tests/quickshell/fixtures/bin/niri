@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+fifo="$state_dir/niri-event.fifo"
+
+if [ "${1-}" = --fixture-write ]; then
+  shift
+  printf '%s\n' "$@" >"$fifo"
+  exit 0
+fi
+
+[ "${1-}" = msg ] || exit 64
+shift
+
+case "${1-}" in
+  -j)
+    shift
+    case "${1-}" in
+      workspaces)
+        cat "$state_dir/workspaces.json"
+        exit 0
+        ;;
+      focused-window)
+        cat "$state_dir/focused-window.json"
+        exit 0
+        ;;
+      event-stream)
+        # Falls through to the long-running loop below.
+        ;;
+      *)
+        exit 64
+        ;;
+    esac
+    ;;
+  action)
+    shift
+    case "${1-}" in
+      focus-workspace)
+        [ "$#" -eq 2 ] || exit 64
+        printf 'focus-workspace %s\n' "$2" >>"$state_dir/actions.log"
+        exit 0
+        ;;
+      focus-workspace-up)
+        [ "$#" -eq 1 ] || exit 64
+        printf 'focus-workspace-up\n' >>"$state_dir/actions.log"
+        exit 0
+        ;;
+      focus-workspace-down)
+        [ "$#" -eq 1 ] || exit 64
+        printf 'focus-workspace-down\n' >>"$state_dir/actions.log"
+        exit 0
+        ;;
+      quit)
+        [ "$#" -eq 2 ] && [ "$2" = -s ] || exit 64
+        printf 'quit -s\n' >>"$state_dir/actions.log"
+        exit 0
+        ;;
+      *)
+        exit 64
+        ;;
+    esac
+    ;;
+  *)
+    exit 64
+    ;;
+esac
+
+# --- niri msg -j event-stream: long-running, FIFO-driven ---
+
+if ! mkdir "$state_dir/niri-stream.active" 2>/dev/null; then
+  printf 'overlap %s\n' "$$" >>"$state_dir/niri-overlap.log"
+  exit 75
+fi
+
+generation_file="$state_dir/generation"
+generation=1
+if [ -f "$generation_file" ]; then
+  generation=$(($(cat "$generation_file") + 1))
+fi
+printf '%s\n' "$generation" >"$generation_file"
+mkdir -p "$state_dir/processes"
+record="$state_dir/processes/niri-stream.$$.record"
+printf 'pid=%s\nppid=%s\n' "$$" "$PPID" >"$record"
+printf 'start %s %s %s\n' "$generation" "$$" "$(date +%s%3N)" >>"$state_dir/niri-lifecycle.log"
+
+cleanup() {
+  trap '' TERM INT
+  printf 'exit %s %s %s\n' "$generation" "$$" "$(date +%s%3N)" >>"$state_dir/niri-lifecycle.log"
+  rmdir "$state_dir/niri-stream.active" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+handle_term() {
+  trap '' TERM INT
+  exit 0
+}
+trap handle_term TERM INT
+
+if [ -f "$state_dir/auto-crash.$generation" ]; then
+  exit 42
+fi
+
+# Real niri always sends the full current state immediately on connecting
+# to the event stream; mirror that so streamHealthy has a real signal to
+# key off of without a separate "process merely started" concept.
+printf '{"WorkspacesChanged":{"workspaces":[]}}\n'
+
+while true; do
+  while IFS= read -r line; do
+    case "$line" in
+      crash) exit 42 ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done <"$fifo"
+done

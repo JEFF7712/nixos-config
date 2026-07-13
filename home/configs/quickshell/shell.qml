@@ -33,6 +33,10 @@ ShellRoot {
         detailedMonitoring: systemPopup.shown
     }
 
+    Services.NiriService {
+        id: niriService
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -290,6 +294,7 @@ ShellRoot {
         cavaService: cavaService
         powerService: powerService
         systemService: systemService
+        niriService: niriService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -442,6 +447,7 @@ ShellRoot {
     SystemPopup {
         id: systemPopup
         systemService: systemService
+        niriService: niriService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
