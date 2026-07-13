@@ -476,12 +476,12 @@ check_legacy_runtime_regressions() {
   printf 'noctalia-started\n' > "$bar_state"
   printf 'noctalia\n' > "$notification_state"
   run_legacy_transition invalid-startup startup
-  assert_eq missing "$(cat "$profiles/active")" \
-    "invalid startup fallback preserves the active preference"
-  assert_eq light "$(cat "$profiles/active-variant")" \
-    "invalid startup fallback preserves the global variant preference"
-  assert_eq light "$(cat "$profiles/variant-noctalia")" \
-    "invalid startup fallback preserves the Noctalia variant preference"
+  assert_eq noctalia "$(cat "$profiles/active")" \
+    "invalid startup fallback repairs the active preference"
+  assert_eq dark "$(cat "$profiles/active-variant")" \
+    "invalid startup fallback repairs the global variant preference"
+  assert_eq dark "$(cat "$profiles/variant-noctalia")" \
+    "invalid startup fallback repairs the Noctalia variant preference"
   assert_eq "$profiles/noctalia/niri-overrides.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
     "invalid startup falls back to Noctalia runtime"
@@ -759,7 +759,15 @@ EOF
 cat > "$bin_dir/quickshell" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
-printf 'quickshell %s active=%s\n' "$*" "$active" >> "$COMMAND_LOG"
+active_variant=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active-variant" 2>/dev/null || echo dark)
+theme_profile=${DESKTOP_PROFILE_TRANSITION_TARGET:-$active}
+theme_variant=${DESKTOP_PROFILE_TRANSITION_VARIANT:-$active_variant}
+printf 'quickshell %s active=%s active_variant=%s theme=%s theme_variant=%s\n' \
+  "$*" "$active" "$active_variant" "$theme_profile" "$theme_variant" >> "$COMMAND_LOG"
+if [ -n "${START_COUNT_FILE:-}" ]; then
+  count=$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)
+  printf '%s\n' "$((count + 1))" > "$START_COUNT_FILE"
+fi
 child_file=""
 if [ -n "${PROFILE_TRANSITION_TEST_POST_COMMIT:-}" ] \
   && [ -n "${FIXTURE_ADAPTER_CHILD_DIR:-}" ]; then
@@ -1286,6 +1294,46 @@ HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   "$REPO_ROOT/home/scripts/profile-transition" switch qs
 assert_eq quickshell "$(cat "$notification_state")" \
   "Quickshell starts only after Mako releases notification ownership"
+assert_log_contains \
+  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=old active_variant=dark theme=qs theme_variant=dark" \
+  "Quickshell consumes the pending target before profile commit"
+
+printf 'qs\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'dark\n' > "$profiles/variant-qs"
+ln -sfn "$profiles/qs/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'quickshell-started\n' > "$bar_state"
+printf 'quickshell\n' > "$notification_state"
+: > "$log"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  "$REPO_ROOT/home/scripts/profile-transition" variant light
+assert_log_contains \
+  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=qs active_variant=dark theme=qs theme_variant=light" \
+  "Quickshell consumes the pending variant before variant commit"
+
+printf 'dark\n' > "$profiles/active-variant"
+printf 'dark\n' > "$profiles/variant-qs"
+printf 'quickshell-started\n' > "$bar_state"
+printf 'quickshell\n' > "$notification_state"
+printf '0\n' > "$tmpdir/start-count"
+: > "$log"
+if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  START_COUNT_FILE="$tmpdir/start-count" FAIL_FIRST_BAR_START=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" variant light >/dev/null 2>&1; then
+  printf 'FAIL: Quickshell variant transition committed despite readiness failure\n' >&2
+  exit 1
+fi
+assert_eq qs "$(cat "$profiles/active")" \
+  "Quickshell rollback preserves the old active profile"
+assert_eq dark "$(cat "$profiles/active-variant")" \
+  "Quickshell rollback preserves the old active variant"
+assert_log_contains \
+  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=qs active_variant=dark theme=qs theme_variant=dark" \
+  "Quickshell rollback restarts the old runtime theme"
 
 # A Waybar-to-Waybar transition must wait for the old Mako process to disappear
 # before deciding whether to launch its replacement. A stale owner string is not

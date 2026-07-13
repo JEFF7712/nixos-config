@@ -95,7 +95,7 @@ stop_all_bars() {
 }
 
 start_bar() {
-  local bar="$1"
+  local bar="$1" theme_profile="$2" theme_variant="$3"
   case "$bar" in
     noctalia)
       stop_mako
@@ -118,7 +118,9 @@ start_bar() {
       systemctl --user start awww >/dev/null 2>&1 || true
       stop_mako
       wait_for_mako_shutdown
-      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 9>&- >/dev/null 2>&1 &
+      DESKTOP_PROFILE_TRANSITION_TARGET="$theme_profile" \
+        DESKTOP_PROFILE_TRANSITION_VARIANT="$theme_variant" \
+        quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 9>&- >/dev/null 2>&1 &
       ;;
   esac
 }
@@ -454,6 +456,7 @@ case "$MODE" in
     if [ ! -d "$PROFILES_DIR/$TARGET" ]; then
       TARGET="noctalia"
       TARGET_VARIANT="dark"
+      WRITE_PREFERENCE=1
     fi
     ;;
 esac
@@ -616,7 +619,7 @@ rollback() {
   rollback_try "snapshot restore" restore_snapshot
   rollback_try "Niri reload" niri msg action load-config-file
   if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
-    rollback_try "previous bar restart" start_bar "$CURRENT_BAR"
+    rollback_try "previous bar restart" start_bar "$CURRENT_BAR" "$OLD_ACTIVE" "$OLD_VARIANT"
     rollback_try "previous bar verification" verify_bar "$CURRENT_BAR"
   fi
   rollback_try "snapshot cleanup" rm -rf "$TRANSACTION_DIR"
@@ -710,7 +713,7 @@ if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]
 fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
 niri msg action load-config-file >/dev/null 2>&1
-start_bar "$TARGET_BAR"
+start_bar "$TARGET_BAR" "$TARGET" "$TARGET_VARIANT"
 verify_bar "$TARGET_BAR"
 
 commit_transaction
