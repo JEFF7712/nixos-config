@@ -144,7 +144,13 @@ check_laptop_build_caps() {
 check_flake_update_pipeline_wiring() {
   local module=${AUTO_UPDATE_MODULE:-modules/nixos/auto-update.nix}
   local pipeline=${FLAKE_UPDATE_PIPELINE:-home/scripts/nixos-flake-update}
+  local reference_count
   local service
+
+  reference_count=$( (rg -o 'nixos-flake-update' "$module" || true) | wc -l)
+  if [ "$reference_count" -ne 2 ]; then
+    fail "auto-update module must reference nixos-flake-update exactly twice"
+  fi
 
   for service in nixos-auto-update nixos-ai-tools-auto-update; do
     if ! rg -q "^[[:space:]]*systemd\\.services\\.$service = mkUpdateService \\{" "$module"; then

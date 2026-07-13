@@ -84,6 +84,21 @@ assert_auto_update_wiring_rejected nixos-auto-update '# deleted weekly service w
 assert_auto_update_wiring_rejected nixos-ai-tools-auto-update \
   'systemd.services.nixos-ai-tools-auto-update = {'
 
+pipeline_count_fixture=$(mktemp)
+cp modules/nixos/auto-update.nix "$pipeline_count_fixture"
+printf '\n# nixos-flake-update\n' >>"$pipeline_count_fixture"
+if count_output=$(AUTO_UPDATE_MODULE="$pipeline_count_fixture" bash checks/agent-invariants.bash 2>&1); then
+  rm -f "$pipeline_count_fixture"
+  echo "agent invariants accepted more than two nixos-flake-update references" >&2
+  exit 1
+fi
+rm -f "$pipeline_count_fixture"
+if ! grep -Fq 'reference nixos-flake-update exactly twice' <<<"$count_output"; then
+  echo "agent invariants rejected pipeline reference count for an unexpected reason:" >&2
+  printf '%s\n' "$count_output" >&2
+  exit 1
+fi
+
 self_improve_output=$(home/scripts/agent-self-improve --check)
 for expected in \
   'Self-improvement check' \
