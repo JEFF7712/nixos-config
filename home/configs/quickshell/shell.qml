@@ -145,6 +145,13 @@ ShellRoot {
             root.pillBorder = theme.pillBorder;
     }
 
+    property bool themeLoaded: false
+
+    function reloadTheme() {
+        themeLoader.running = false;
+        themeLoader.running = true;
+    }
+
     Process {
         id: themeLoader
         running: true
@@ -156,11 +163,19 @@ ShellRoot {
                     return;
                 try {
                     root.applyTheme(JSON.parse(txt));
+                    root.themeLoaded = true;
                 } catch (e) {
                     console.warn("quickshell-theme.json parse failed:", e);
                 }
             }
         }
+    }
+
+    FileView {
+        path: Quickshell.env("HOME") + "/.config/desktop-profiles/quickshell-theme-reload"
+        watchChanges: true
+        onLoaded: if (root.themeLoaded)
+            root.reloadTheme()
     }
 
     readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active
