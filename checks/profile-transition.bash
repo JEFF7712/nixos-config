@@ -608,9 +608,16 @@ check_legacy_runtime_regressions() {
   assert_log_contains_eventually \
     "matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c $home/.config/matugen/config-new.toml active=new" \
     "wallpaper-themed profile dispatches its runtime palette adapter after commit"
-  assert_log_contains \
-    "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=new" \
-    "wallpaper theme waits for its post-commit Quickshell relaunch"
+  assert_log_not_contains \
+    "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml active=new" \
+    "wallpaper theme does not kill Quickshell to repaint"
+  # After switch from waybar→quickshell there is exactly one topbar launch from start_bar;
+  # wallpaper theming must not launch shell.qml again.
+  launch_count=$(grep -c "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml " "$log" || true)
+  assert_eq "1" "$launch_count" \
+    "wallpaper theme does not relaunch Quickshell after start_bar"
+  [ -s "$profiles/quickshell-theme-reload" ] \
+    || { printf 'FAIL: missing quickshell-theme-reload stamp after wallpaper theme\n' >&2; exit 1; }
   assert_eq "$previous_digest" "$(sha256sum "$previous_log")" \
     "final completed legacy scenario log remains immutable"
   log="$suite_log"

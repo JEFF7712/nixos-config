@@ -28,6 +28,15 @@ write_profile_value_atomic() {
   mv "$tmp" "$path"
 }
 
+# nudge_quickshell_theme_reload
+# Bump a stamp FileView'd by Quickshell so it re-runs select-quickshell-theme
+# and applyTheme() without killing the process.
+nudge_quickshell_theme_reload() {
+  local stamp="$PROFILES_DIR/quickshell-theme-reload"
+  mkdir -p "$PROFILES_DIR"
+  write_profile_value_atomic "$stamp" "$(date +%s%N 2>/dev/null || date +%s)"
+}
+
 firefox_chrome_dir() {
   local d
   for d in "$HOME/.mozilla/firefox/"*.default-release; do
@@ -328,20 +337,9 @@ apply_wallpaper_theme() {
     disown
   fi
 
-  # The topbar reads its theme JSON only at startup; restart it to repaint.
-  # This runs late in the (backgrounded) theme job, after the switch's trailing
-  # notify-send. That notify-send can dbus-activate mako in the brief window the
-  # topbar is down, and mako then squats org.freedesktop.Notifications. Kill it
-  # before relaunching quickshell so the shell reclaims the bus as it starts.
+  # Quickshell watches quickshell-theme-reload and hot-applies select-quickshell-theme.
   if [ "$(profile_bar "$profile")" = "quickshell" ]; then
-    stop_mako
-    pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
-    if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1
-    else
-      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
-      disown
-    fi
+    nudge_quickshell_theme_reload
   fi
 
   # Wallpaper-driven niri focus-ring colour. niri reliably re-reads the
