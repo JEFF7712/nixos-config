@@ -590,7 +590,7 @@ stage_profile_core_files() {
   for relative in "${mutable[@]}"; do
     source="$HOME/$relative"
     destination="$stage_home/$relative"
-    if [ -f "$source" ]; then
+    if [ -f "$source" ] && [ ! -f "$destination" ]; then
       mkdir -p "$(dirname "$destination")"
       install -m 644 "$source" "$destination"
     fi

@@ -407,6 +407,11 @@ assert_eq "$profiles/new/niri-overrides.kdl" \
   "Niri override points to the target profile"
 assert_log_contains "verify-waybar active=old" \
   "post-start target bar readiness is verified before active profile commit"
+assert_eq '* { color: new-light; }' "$(cat "$home/.config/waybar/style.css")" \
+  "old-to-new Waybar switch installs the target variant style"
+assert_eq 'font=Fixture UI 12
+profile=new-light' "$(cat "$home/.config/mako/config")" \
+  "old-to-new Waybar switch transforms the target Mako config"
 
 printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
