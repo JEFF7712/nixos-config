@@ -1032,7 +1032,7 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
   PROFILE_TRANSITION_VERIFY_ATTEMPTS=5 \
   START_COUNT_FILE="$tmpdir/start-count" FAIL_FIRST_BAR_START=1 \
-  NIRI_COUNT_FILE="$tmpdir/niri-count" FAIL_SECOND_NIRI=1 \
+  NIRI_COUNT_FILE="$tmpdir/niri-count" FAIL_FIRST_NIRI=1 \
   "$REPO_ROOT/home/scripts/profile-transition" switch new >"$rollback_output" 2>&1; then
   printf 'FAIL: transition succeeded despite target bar readiness failure\n' >&2
   exit 1
@@ -1048,7 +1048,7 @@ assert_eq '* { color: old-dark; }' "$(cat "$home/.config/waybar/style.css")" \
   "rollback restores the previous Waybar style exactly"
 assert_eq "2" "$(cat "$tmpdir/start-count")" \
   "rollback stops the target and restarts the previous bar"
-assert_eq "2" "$(grep -Fc 'niri msg action load-config-file' "$log")" \
+assert_eq "1" "$(grep -Fc 'niri msg action load-config-file' "$log")" \
   "rollback reloads Niri after restoring the previous override"
 assert_log_contains "verify-waybar active=old" "rollback verifies the previous bar"
 if ! grep -Fq 'rollback: Niri reload failed' "$rollback_output"; then
