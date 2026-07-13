@@ -222,18 +222,20 @@ in
 
       # Apply the active desktop profile's spicetify pick (theme/scheme/js) so a
       # rebuild or Spotify update doesn't leave Spotify on a stale/default theme
-      # until the next manual profile switch. Falls back to Comfy. Tolerates the
-      # old string-form runtime.json via `objects`.
+      # until the next manual profile switch. Falls back to Comfy.
       sp_active=$(cat "$HOME/.config/desktop-profiles/active" 2>/dev/null || echo "")
       sp_variant=$(cat "$HOME/.config/desktop-profiles/active-variant" 2>/dev/null || echo "dark")
-      sp_rt="$HOME/.config/desktop-profiles/$sp_active/runtime.json"
       sp_theme=Comfy
       sp_scheme=Comfy
       sp_js=0
-      if [ -n "$sp_active" ] && [ -f "$sp_rt" ]; then
-        sp_theme=$(${pkgs.jq}/bin/jq -r --arg v "$sp_variant" '((.spicetify[$v] // .spicetify.dark) | objects | .theme) // "Comfy"' "$sp_rt" 2>/dev/null || echo Comfy)
-        sp_scheme=$(${pkgs.jq}/bin/jq -r --arg v "$sp_variant" '((.spicetify[$v] // .spicetify.dark) | objects | .scheme) // "Comfy"' "$sp_rt" 2>/dev/null || echo Comfy)
-        sp_js=$(${pkgs.jq}/bin/jq -r --arg v "$sp_variant" '((.spicetify[$v] // .spicetify.dark) | objects | .js) // 0' "$sp_rt" 2>/dev/null || echo 0)
+      if [ -n "$sp_active" ]; then
+        sp_pick=$(${config.repoPath}/home/scripts/profile-manifest adapter \
+          "$sp_active" "$sp_variant" spicetify 2>/dev/null || true)
+        if [ -n "$sp_pick" ]; then
+          sp_theme=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.theme // "Comfy"')
+          sp_scheme=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.scheme // "Comfy"')
+          sp_js=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.js // 0')
+        fi
       fi
       run ${spicetifyBin} config current_theme "$sp_theme" color_scheme "$sp_scheme" inject_theme_js "$sp_js" > /dev/null 2>&1 || true
 

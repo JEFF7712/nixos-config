@@ -164,6 +164,9 @@ in
         name="$(basename "$dir")"
         if ! is_valid_profile "$name"; then
           $DRY_RUN_CMD rm -rf "$dir"
+        else
+          $DRY_RUN_CMD rm -f "$dir/meta.json" "$dir/runtime.json" \
+            "$dir/wallpaper-dir" "$dir/wallpaper-dir-light"
         fi
       done
 

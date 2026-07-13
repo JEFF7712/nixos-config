@@ -118,6 +118,18 @@ check_disabled_nix_services() {
   )
 }
 
+check_profile_artifact_contract() {
+  local entry
+  while IFS= read -r entry; do
+    fail "legacy desktop profile artifact reference: $entry"
+  done < <(
+    rg -n 'meta\.json|runtime\.json|wallpaper-dir-light|wallpaper-dir' \
+      home/scripts modules/home-manager lib/desktop-profiles \
+      --glob '!profile-manifest' \
+      --glob '!desktop-profiles.nix' || true
+  )
+}
+
 check_laptop_build_caps() {
   local module=${AUTO_UPDATE_MODULE:-modules/nixos/auto-update.nix}
   local pipeline=${FLAKE_UPDATE_PIPELINE:-home/scripts/nixos-flake-update}
@@ -186,6 +198,7 @@ check_module_options
 check_wallpaper_dirs
 check_script_refs
 check_disabled_nix_services
+check_profile_artifact_contract
 check_laptop_build_caps
 check_flake_update_pipeline_wiring
 
