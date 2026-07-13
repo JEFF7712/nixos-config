@@ -88,6 +88,30 @@ EOF
   done
 }
 
+check_snapshot_failure() {
+  local failure="$1" expected_status="$2" before after status runtime_dir
+  runtime_dir="$tmpdir/runtime-$failure"
+  mkdir -p "$runtime_dir"
+  printf 'started\n' > "$bar_state"
+  : > "$log"
+  before=$(tar -C "$home" -cf - . | sha256sum)
+  set +e
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$runtime_dir" \
+    PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+    BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    PROFILE_TRANSITION_FAIL_SNAPSHOT="$failure" \
+    "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1
+  status=$?
+  set -e
+  assert_eq "$expected_status" "$status" "$failure snapshot failure is propagated"
+  after=$(tar -C "$home" -cf - . | sha256sum)
+  assert_eq "$before" "$after" "$failure snapshot failure occurs before mutation"
+  if find "$runtime_dir" -mindepth 1 -print -quit | grep -q .; then
+    printf 'FAIL: %s snapshot failure left a transaction directory behind\n' "$failure" >&2
+    exit 1
+  fi
+}
+
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar"
 
 for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
@@ -251,6 +275,9 @@ EOF
 find "$bin_dir" -maxdepth 1 -type f -exec chmod +x {} +
 check_waybar_readiness_fake
 : > "$log"
+
+check_snapshot_failure payload 23
+check_snapshot_failure manifest 24
 
 # Public mutation interfaces that later compatibility tests must enforce.
 COMPATIBILITY_MAPPINGS=(

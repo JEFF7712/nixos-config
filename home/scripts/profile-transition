@@ -211,10 +211,12 @@ snapshot_path() {
   payload="$SNAPSHOT_COUNT"
   if [ -L "$path" ]; then
     kind=symlink
-    readlink "$path" > "$TRANSACTION_DIR/$payload"
+    [ "${PROFILE_TRANSITION_FAIL_SNAPSHOT:-}" != payload ] || return 23
+    readlink "$path" > "$TRANSACTION_DIR/$payload" || return $?
   elif [ -f "$path" ]; then
     kind=file
-    cp -p -- "$path" "$TRANSACTION_DIR/$payload"
+    [ "${PROFILE_TRANSITION_FAIL_SNAPSHOT:-}" != payload ] || return 23
+    cp -p -- "$path" "$TRANSACTION_DIR/$payload" || return $?
   elif [ ! -e "$path" ]; then
     kind=missing
     payload=-
@@ -222,14 +224,18 @@ snapshot_path() {
     echo "Error: cannot snapshot unsupported path: $path" >&2
     return 1
   fi
-  printf '%s\t%s\t%s\n' "$kind" "$payload" "$path" >> "$SNAPSHOT_MANIFEST"
+  [ "${PROFILE_TRANSITION_FAIL_SNAPSHOT:-}" != manifest ] || return 24
+  printf '%s\t%s\t%s\n' "$kind" "$payload" "$path" >> "$SNAPSHOT_MANIFEST" || return $?
 }
 
 snapshot_or_abort() {
   local status
-  snapshot_path "$1" && return 0
+  set +e
+  snapshot_path "$1"
   status=$?
-  rm -rf "$TRANSACTION_DIR"
+  set -e
+  [ "$status" -ne 0 ] || return 0
+  rm -rf "$TRANSACTION_DIR" || true
   exit "$status"
 }
 
