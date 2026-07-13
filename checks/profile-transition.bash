@@ -30,6 +30,25 @@ assert_log_contains() {
   fi
 }
 
+assert_log_not_contains() {
+  local pattern="$1" label="$2"
+
+  if grep -Fq -- "$pattern" "$log"; then
+    printf 'FAIL: %s\nunexpected log entry: %s\n' "$label" "$pattern" >&2
+    exit 1
+  fi
+}
+
+assert_log_contains_eventually() {
+  local pattern="$1" label="$2"
+  for _ in $(seq 1 20); do
+    grep -Fq -- "$pattern" "$log" && return 0
+    sleep 0.05
+  done
+  printf 'FAIL: %s\nmissing log entry: %s\n' "$label" "$pattern" >&2
+  exit 1
+}
+
 assert_mode() {
   local expected="$1" path="$2" label="$3"
   assert_eq "$expected" "$(stat -c '%a' "$path")" "$label"
@@ -100,9 +119,13 @@ check_snapshot_failure() {
     PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
     BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
     PROFILE_TRANSITION_FAIL_SNAPSHOT="$failure" \
-    "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1
+    "$REPO_ROOT/home/scripts/profile-transition" switch new >"$runtime_dir/output" 2>&1
   status=$?
   set -e
+  if [ "$expected_status" != "$status" ]; then
+    cat "$runtime_dir/output" >&2
+  fi
+  rm -f "$runtime_dir/output"
   assert_eq "$expected_status" "$status" "$failure snapshot failure is propagated"
   after=$(tar -C "$home" -cf - . | sha256sum)
   assert_eq "$before" "$after" "$failure snapshot failure occurs before mutation"
@@ -178,13 +201,29 @@ for profile in old new; do
   printf '{}\n' > "$profile_dir/runtime.json"
   printf 'old-or-new-dark\n' > "$profile_dir/kitty-colors.conf"
   printf 'old-or-new-light\n' > "$profile_dir/kitty-colors-light.conf"
+  printf 'gtk-%s-dark\n' "$profile" > "$profile_dir/gtk-3.0.css"
+  printf 'gtk-%s-light\n' "$profile" > "$profile_dir/gtk-3.0-light.css"
+  printf 'gtk4-%s-dark\n' "$profile" > "$profile_dir/gtk-4.0.css"
+  printf 'gtk4-%s-light\n' "$profile" > "$profile_dir/gtk-4.0-light.css"
+  printf 'qt-%s-dark\n' "$profile" > "$profile_dir/qt6ct.conf"
+  printf 'qt-%s-light\n' "$profile" > "$profile_dir/qt6ct-light.conf"
   printf 'layout { gaps 8; }\n' > "$profile_dir/niri-overrides.kdl"
   printf '{"profile":"%s"}\n' "$profile" > "$profile_dir/waybar-config.jsonc"
   printf '* { color: %s-dark; }\n' "$profile" > "$profile_dir/waybar-style.css"
   printf '* { color: %s-light; }\n' "$profile" > "$profile_dir/waybar-style-light.css"
+  printf 'font=old 8\nprofile=%s-dark\n' "$profile" > "$profile_dir/mako-config"
+  printf 'font=old 8\nprofile=%s-light\n' "$profile" > "$profile_dir/mako-config-light"
   printf '%s\n' "$wallpaper_dir" > "$profile_dir/wallpaper-dir"
   printf '%s\n' "$wallpaper_dir" > "$profile_dir/wallpaper-dir-light"
   touch "$wallpaper_dir/wallpaper.png"
+done
+
+for profile in old new; do
+  "$real_jq" '.fonts = {ui: {family: "Fixture UI", size: 12}, mono: {family: "Fixture Mono", size: 15}}
+    | .appearance = {gtkTheme: "fixture-dark", gtkThemeLight: "fixture-light", iconTheme: "fixture-icons-dark", iconThemeLight: "fixture-icons-light", kittyOpacity: 0.8}
+    | .cursor = "fixture-cursor" | .cursorSize = 28' \
+    "$profiles/$profile/meta.json" > "$profiles/$profile/meta.json.tmp"
+  mv "$profiles/$profile/meta.json.tmp" "$profiles/$profile/meta.json"
 done
 
 cp -a "$profiles/old" "$profiles/qs"
@@ -194,8 +233,17 @@ cp -a "$profiles/old" "$profiles/noc"
 printf '{"bar":"noctalia","selfThemed":true,"hasLightVariant":false,"cursor":"default","cursorSize":24}\n' \
   > "$profiles/noc/meta.json"
 
+mkdir -p "$home/.config/gtk-3.0" "$home/.config/gtk-4.0" \
+  "$home/.config/qt5ct/colors" "$home/.config/qt6ct/colors" "$home/.config/kitty" \
+  "$home/.config/mako"
+printf '[Settings]\ngtk-font-name=Old 9\ngtk-theme-name=old-theme\ngtk-cursor-theme-name=old-cursor\n' \
+  > "$home/.config/gtk-3.0/settings.ini"
+cp "$home/.config/gtk-3.0/settings.ini" "$home/.config/gtk-4.0/settings.ini"
+printf 'font_family family="Old Mono"\nfont_size 9\nbackground_opacity 1.0\n' \
+  > "$home/.config/kitty/kitty.conf"
 cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
 cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
+cp "$profiles/old/mako-config" "$home/.config/mako/config"
 chmod 640 "$home/.config/waybar/config.jsonc"
 
 printf 'old\n' > "$profiles/active"
@@ -204,7 +252,7 @@ printf 'dark\n' > "$profiles/variant-old"
 printf 'light\n' > "$profiles/variant-new"
 ln -s "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 
-for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper makoctl tmux kitty magick; do
+for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper mako makoctl tmux kitty magick; do
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$COMMAND_LOG"
@@ -301,10 +349,12 @@ if [ -n "${FAIL_FIRST_BAR_START:-}" ] && [ "$(cat "$START_COUNT_FILE" 2>/dev/nul
 fi
 case " $* :$state" in
   *" waybar "*:started)
+    printf 'pgrep %s\n' "$*" >> "$COMMAND_LOG"
     printf 'verify-waybar active=%s\n' "$active" >> "$COMMAND_LOG"
     exit 0
     ;;
   *" quickshell"*"quickshell/shell.qml"*:quickshell-started)
+    printf 'pgrep %s\n' "$*" >> "$COMMAND_LOG"
     printf 'verify-quickshell active=%s\n' "$active" >> "$COMMAND_LOG"
     exit 0
     ;;
@@ -468,7 +518,8 @@ assert_mode 600 "$home/.config/waybar/config.jsonc" "staging rollback restores f
   printf 'FAIL: staging rollback restores a missing path\n' >&2
   exit 1
 }
-assert_log_contains "verify-waybar active=old" "staging rollback recovers the previous bar"
+assert_log_not_contains "pkill -f waybar" "staging failure occurs before old Waybar shutdown"
+assert_log_not_contains "verify-waybar active=old" "staging failure needs no bar recovery"
 if find "$tmpdir/runtime" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
   printf 'FAIL: staging rollback left a transaction directory behind\n' >&2
   exit 1
@@ -489,7 +540,7 @@ set +e
 HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$tmpdir/runtime" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-  PROFILE_TRANSITION_FAIL_STAGE_PATH="$home/.config/waybar/style.css" \
+  PROFILE_TRANSITION_FAIL_INSTALL_PATH="$home/.config/waybar/style.css" \
   PROFILE_TRANSITION_FAIL_RESTORE_PATH="$home/.config/waybar/config.jsonc" \
   PROFILE_TRANSITION_FAILURE_STATUS=42 \
   "$REPO_ROOT/home/scripts/profile-transition" switch new >"$secondary_output" 2>&1
@@ -636,6 +687,73 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
 fi
 assert_eq "noc" "$(cat "$profiles/active")" "Noctalia shutdown failure aborts before commit"
 assert_log_contains "verify-noctalia active=noc" "rollback verifies restarted Noctalia"
+
+# Every previous/target bar pairing follows one bar policy. Target readiness is
+# checked before preferences commit, and notification/wallpaper ownership tracks
+# the target rather than the previous bar.
+printf 'on\n' > "$profiles/focus"
+for previous in old qs noc; do
+  case "$previous" in
+    old) previous_state=started ;;
+    qs) previous_state=quickshell-started ;;
+    noc) previous_state=noctalia-started ;;
+  esac
+  for target in old qs noc; do
+    printf '%s\n' "$previous" > "$profiles/active"
+    printf 'dark\n' > "$profiles/active-variant"
+    printf 'dark\n' > "$profiles/variant-$target"
+    ln -sfn "$profiles/$previous/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+    printf '%s\n' "$previous_state" > "$bar_state"
+    : > "$log"
+    HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+      PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+      BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+      "$REPO_ROOT/home/scripts/profile-transition" switch "$target"
+
+    case "$previous" in
+      old) assert_log_contains 'pkill -f waybar' "Waybar is stopped from $previous to $target" ;;
+      qs) assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+        "Quickshell exact topbar is stopped from $previous to $target" ;;
+      noc) assert_log_contains 'systemctl --user stop noctalia-shell' \
+        "Noctalia is stopped from $previous to $target" ;;
+    esac
+    case "$target" in
+      old)
+        assert_log_contains 'pgrep -f waybar' "Waybar readiness uses pgrep from $previous"
+        assert_log_contains 'systemctl --user start awww' "Waybar starts awww from $previous"
+        assert_log_contains_eventually 'mako ' "Waybar starts Mako from $previous"
+        assert_log_contains 'makoctl mode -a dnd' "Waybar rearms focus DND from $previous"
+        ;;
+      qs)
+        assert_log_contains "pgrep -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+          "Quickshell readiness uses the exact topbar from $previous"
+        assert_log_contains 'systemctl --user start awww' "Quickshell starts awww from $previous"
+        assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Quickshell stops Mako from $previous"
+        assert_log_not_contains 'makoctl mode -a dnd' "Quickshell does not rearm focus DND from $previous"
+        ;;
+      noc)
+        assert_log_contains 'systemctl --user is-active --quiet noctalia-shell' \
+          "Noctalia readiness uses systemctl from $previous"
+        assert_log_contains 'systemctl --user stop awww' "Noctalia stops awww from $previous"
+        assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Noctalia stops Mako from $previous"
+        assert_log_not_contains 'makoctl mode -a dnd' "Noctalia does not rearm focus DND from $previous"
+        ;;
+    esac
+  done
+done
+
+assert_eq '{"profile":"old"}' "$(cat "$home/.config/waybar/config.jsonc")" \
+  "Waybar config is installed as a writable target file"
+assert_eq '* { color: old-dark; }' "$(cat "$home/.config/waybar/style.css")" \
+  "Waybar style is installed as a writable target file"
+assert_eq 'profile=old-dark' "$(tail -n 1 "$home/.config/mako/config")" \
+  "Waybar Mako config is installed transactionally"
+assert_mode 644 "$home/.config/waybar/config.jsonc" "Waybar config remains writable"
+assert_mode 644 "$home/.config/waybar/style.css" "Waybar style remains writable"
+assert_mode 644 "$home/.config/mako/config" "Mako config remains writable"
+assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
+  "core GTK color file is installed"
+assert_log_not_contains 'apply_vicinae' "core staging excludes best-effort application adapters"
 
 if [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "delegation" ] \
   || [ "${PROFILE_TRANSITION_TEST_SCOPE:-core}" = "full" ]; then

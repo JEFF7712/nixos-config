@@ -36,7 +36,9 @@ has_light_variant() {
 }
 
 stop_bar() {
-  case "$1" in
+  local bar="$1" quickshell_pattern
+  quickshell_pattern="quickshell.*$REPO_HOME/configs/quickshell/shell.qml"
+  case "$bar" in
     noctalia)
       if ! systemctl --user stop noctalia-shell >/dev/null 2>&1; then
         echo "Error: failed to stop noctalia-shell." >&2
@@ -61,49 +63,68 @@ stop_bar() {
         echo "Error: waybar did not stop." >&2
         return 1
       fi
+      stop_mako
       ;;
     quickshell)
-      pkill -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 || true
+      pkill -f "$quickshell_pattern" >/dev/null 2>&1 || true
       for _ in $(seq 1 20); do
-        pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 || break
+        pgrep -f "$quickshell_pattern" >/dev/null 2>&1 || break
         sleep 0.1
       done
-      if pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1; then
+      if pgrep -f "$quickshell_pattern" >/dev/null 2>&1; then
         echo "Error: quickshell did not stop." >&2
         return 1
       fi
+      stop_mako
       ;;
-  esac
-}
-
-start_bar_process() {
-  case "$1" in
-    noctalia) systemctl --user start noctalia-shell >/dev/null 2>&1 ;;
-    waybar) waybar >/dev/null 2>&1 & ;;
-    quickshell) quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 & ;;
   esac
 }
 
 start_bar() {
-  local profile="$1" variant="$2" bar="$3" dir style
-  dir="$PROFILES_DIR/$profile"
+  local bar="$1"
   case "$bar" in
-    noctalia) start_bar_process "$bar" ;;
-    waybar)
-      if [ -s "$dir/waybar-config.jsonc" ]; then
-        mkdir -p "$CONFIG_HOME/waybar"
-        install -m 644 "$dir/waybar-config.jsonc" "$CONFIG_HOME/waybar/config.jsonc"
-        maybe_fail_stage "$CONFIG_HOME/waybar/config.jsonc"
-        style=$(pick_variant_file "$variant" "$dir/waybar-style.css" "$dir/waybar-style-light.css")
-        if [ -s "$style" ]; then
-          install -m 644 "$style" "$CONFIG_HOME/waybar/style.css"
-          maybe_fail_stage "$CONFIG_HOME/waybar/style.css"
-        fi
-      fi
-      start_bar_process "$bar"
+    noctalia)
+      stop_mako
+      systemctl --user stop awww >/dev/null 2>&1 || true
+      systemctl --user start noctalia-shell >/dev/null 2>&1
       ;;
-    quickshell) start_bar_process "$bar" ;;
+    waybar)
+      systemctl --user start awww >/dev/null 2>&1 || true
+      waybar >/dev/null 2>&1 &
+      start_mako
+      if [ "$(read_state "$FOCUS_FILE" off)" = on ]; then
+        for _ in $(seq 1 15); do
+          makoctl mode -a dnd >/dev/null 2>&1 && break
+          sleep 0.1
+        done
+      fi
+      ;;
+    quickshell)
+      systemctl --user start awww >/dev/null 2>&1 || true
+      stop_mako
+      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
+      ;;
   esac
+}
+
+stage_bar_files() {
+  local bar="$1" profile_dir="$2" variant="$3" stage_dir="$4"
+  local stage_config="$stage_dir/home/.config" style mako_config
+  [ "$bar" = waybar ] || return 0
+  mkdir -p "$stage_config/waybar" "$stage_config/mako"
+  if [ -s "$profile_dir/waybar-config.jsonc" ]; then
+    install -m 644 "$profile_dir/waybar-config.jsonc" "$stage_config/waybar/config.jsonc"
+  fi
+  style=$(pick_variant_file "$variant" \
+    "$profile_dir/waybar-style.css" "$profile_dir/waybar-style-light.css")
+  if [ -s "$style" ]; then
+    install -m 644 "$style" "$stage_config/waybar/style.css"
+  fi
+  mako_config=$(pick_variant_file "$variant" \
+    "$profile_dir/mako-config" "$profile_dir/mako-config-light")
+  if [ -s "$mako_config" ]; then
+    install -m 644 "$mako_config" "$stage_config/mako/config"
+  fi
 }
 
 maybe_fail_stage() {
@@ -114,12 +135,13 @@ maybe_fail_stage() {
 }
 
 verify_bar() {
-  local bar="$1"
+  local bar="$1" quickshell_pattern
+  quickshell_pattern="quickshell.*$REPO_HOME/configs/quickshell/shell.qml"
   for _ in $(seq 1 20); do
     case "$bar" in
       noctalia) systemctl --user is-active --quiet noctalia-shell >/dev/null 2>&1 && return 0 ;;
       waybar) pgrep -f waybar >/dev/null 2>&1 && return 0 ;;
-      quickshell) pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 && return 0 ;;
+      quickshell) pgrep -f "$quickshell_pattern" >/dev/null 2>&1 && return 0 ;;
     esac
     sleep 0.1
   done
@@ -215,9 +237,13 @@ SNAPSHOT_COUNT=0
 declare -a SNAPSHOT_KINDS=()
 declare -a SNAPSHOT_PATHS=()
 declare -a SNAPSHOT_PAYLOADS=()
+declare -A SNAPSHOT_ENROLLED=()
+declare -a STAGED_SOURCES=()
+declare -a STAGED_DESTINATIONS=()
 
 snapshot_path() {
   local path="$1" kind payload=""
+  [ -z "${SNAPSHOT_ENROLLED[$path]:-}" ] || return 0
   SNAPSHOT_COUNT=$((SNAPSHOT_COUNT + 1))
   if [ -L "$path" ]; then
     kind=symlink
@@ -238,9 +264,30 @@ snapshot_path() {
   SNAPSHOT_KINDS+=("$kind")
   SNAPSHOT_PATHS+=("$path")
   SNAPSHOT_PAYLOADS+=("$payload")
+  SNAPSHOT_ENROLLED["$path"]=1
   if [ -n "${PROFILE_TRANSITION_SIGNAL_DURING_SNAPSHOT:-}" ]; then
     kill -s "$PROFILE_TRANSITION_SIGNAL_DURING_SNAPSHOT" "$$"
   fi
+}
+
+snapshot_destination() {
+  local path="$1" parent missing
+  local -a missing_parents=()
+  parent=$(dirname "$path")
+  while [ ! -d "$parent" ]; do
+    missing_parents+=("$parent")
+    [ "$parent" != / ] || break
+    parent=$(dirname "$parent")
+  done
+  for ((missing=${#missing_parents[@]} - 1; missing >= 0; missing--)); do
+    parent="${missing_parents[$missing]}"
+    [ -z "${SNAPSHOT_ENROLLED[$parent]:-}" ] || continue
+    SNAPSHOT_KINDS+=(missing-directory)
+    SNAPSHOT_PATHS+=("$parent")
+    SNAPSHOT_PAYLOADS+=("")
+    SNAPSHOT_ENROLLED["$parent"]=1
+  done
+  snapshot_or_abort "$path"
 }
 
 snapshot_or_abort() {
@@ -269,6 +316,9 @@ restore_snapshot() {
     case "$kind" in
       missing)
         rm -f -- "$path" || restore_errors=1
+        ;;
+      missing-directory)
+        rmdir -- "$path" 2>/dev/null || restore_errors=1
         ;;
       file)
         mkdir -p "$(dirname "$path")" || { restore_errors=1; continue; }
@@ -306,12 +356,41 @@ rollback() {
   rollback_try "snapshot restore" restore_snapshot
   rollback_try "Niri reload" niri msg action load-config-file
   if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
-    rollback_try "previous bar restart" start_bar_process "$CURRENT_BAR"
+    rollback_try "previous bar restart" start_bar "$CURRENT_BAR"
     rollback_try "previous bar verification" verify_bar "$CURRENT_BAR"
   fi
   rollback_try "snapshot cleanup" rm -rf "$TRANSACTION_DIR"
   [ "$rollback_errors" -eq 0 ] || echo "rollback: one or more recovery operations failed" >&2
   exit "$status"
+}
+
+collect_staged_files() {
+  local source relative destination
+  while IFS= read -r -d '' source; do
+    relative=${source#"$TRANSACTION_DIR/home/"}
+    destination="$HOME/$relative"
+    maybe_fail_stage "$destination"
+    STAGED_SOURCES+=("$source")
+    STAGED_DESTINATIONS+=("$destination")
+  done < <(find "$TRANSACTION_DIR/home" -type f -print0 | sort -z)
+}
+
+install_staged_files() {
+  local index source destination temporary
+  for ((index=0; index<${#STAGED_SOURCES[@]}; index++)); do
+    source="${STAGED_SOURCES[$index]}"
+    destination="${STAGED_DESTINATIONS[$index]}"
+    if [ "${PROFILE_TRANSITION_FAIL_INSTALL_PATH:-}" = "$destination" ]; then
+      echo "Error: injected install failure for $destination" >&2
+      return "${PROFILE_TRANSITION_FAILURE_STATUS:-1}"
+    fi
+    mkdir -p "$(dirname "$destination")"
+    temporary=$(mktemp "$(dirname "$destination")/.profile-transition.XXXXXX")
+    if ! install -m 644 "$source" "$temporary" || ! mv -f "$temporary" "$destination"; then
+      rm -f "$temporary"
+      return 1
+    fi
+  done
 }
 
 commit_transaction() {
@@ -331,20 +410,19 @@ commit_transaction() {
   trap - EXIT INT TERM HUP
 }
 
+stage_bar_files "$TARGET_BAR" "$PROFILES_DIR/$TARGET" "$TARGET_VARIANT" "$TRANSACTION_DIR"
+stage_profile_core_files "$PROFILES_DIR/$TARGET" "$TARGET_VARIANT" "$TRANSACTION_DIR"
+collect_staged_files
+
 if [ "$WRITE_PREFERENCE" -eq 1 ]; then
   snapshot_or_abort "$ACTIVE_FILE"
   snapshot_or_abort "$VARIANT_FILE"
   snapshot_or_abort "$PROFILES_DIR/variant-$TARGET"
 fi
 snapshot_or_abort "$ACTIVE_LINK"
-if [ "$TARGET_BAR" = waybar ] && [ -s "$PROFILES_DIR/$TARGET/waybar-config.jsonc" ]; then
-  snapshot_or_abort "$CONFIG_HOME/waybar/config.jsonc"
-  if [ -s "$(pick_variant_file "$TARGET_VARIANT" \
-    "$PROFILES_DIR/$TARGET/waybar-style.css" \
-    "$PROFILES_DIR/$TARGET/waybar-style-light.css")" ]; then
-    snapshot_or_abort "$CONFIG_HOME/waybar/style.css"
-  fi
-fi
+for destination in "${STAGED_DESTINATIONS[@]}"; do
+  snapshot_destination "$destination"
+done
 if [ -n "${PROFILE_TRANSITION_TEST_FILE_PATH:-}" ]; then
   snapshot_or_abort "$PROFILE_TRANSITION_TEST_FILE_PATH"
 fi
@@ -361,13 +439,14 @@ if [ -n "${PROFILE_TRANSITION_TEST_MUTATE_SNAPSHOTS:-}" ]; then
 fi
 
 stop_bar "$CURRENT_BAR"
+install_staged_files
 NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides.kdl"
 if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
   NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides-focus.kdl"
 fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
 niri msg action load-config-file >/dev/null 2>&1
-start_bar "$TARGET" "$TARGET_VARIANT" "$TARGET_BAR"
+start_bar "$TARGET_BAR"
 verify_bar "$TARGET_BAR"
 
 commit_transaction

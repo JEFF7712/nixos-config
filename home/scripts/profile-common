@@ -466,6 +466,20 @@ apply_profile_fonts() {
   gsettings set org.gnome.desktop.interface document-font-name "$ui_font $ui_size" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface monospace-font-name "$mono_font $mono_size" 2>/dev/null || true
 
+  apply_profile_font_files "$config_root" "$meta_file"
+}
+
+apply_profile_font_files() {
+  local config_root="$1"
+  local meta_file="$2"
+  [ -f "$meta_file" ] || return 0
+
+  local ui_font ui_size mono_font mono_size
+  IFS=$'\t' read -r ui_font ui_size mono_font mono_size < <(
+    jq -r '[.fonts.ui.family // "JetBrainsMono Nerd Font", .fonts.ui.size // 11,
+            .fonts.mono.family // "JetBrainsMono Nerd Font", .fonts.mono.size // 14] | @tsv' "$meta_file"
+  )
+
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-font-name "$ui_font $ui_size"
   set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-font-name "$ui_font $ui_size"
 
@@ -489,15 +503,15 @@ apply_profile_fonts() {
       "$config_root/rofi/profile-switcher.rasi"
   fi
 
-  if [ -f "$HOME/.config/waybar/style.css" ]; then
+  if [ -f "$config_root/waybar/style.css" ]; then
     sed -i -E \
       -e "s|font-family: [^;]+;|font-family: \"$ui_font\", \"Symbols Nerd Font\";|g" \
       -e "s|font-size: [0-9]+px;|font-size: ${ui_size}px;|g" \
-      "$HOME/.config/waybar/style.css"
+      "$config_root/waybar/style.css"
   fi
 
-  if [ -f "$HOME/.config/mako/config" ]; then
-    sed -i "s|^font=.*|font=$ui_font $ui_size|" "$HOME/.config/mako/config"
+  if [ -f "$config_root/mako/config" ]; then
+    sed -i "s|^font=.*|font=$ui_font $ui_size|" "$config_root/mako/config"
   fi
 }
 
@@ -518,6 +532,23 @@ apply_profile_appearance() {
   gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
 
+  apply_profile_appearance_files "$config_root" "$meta_file" "$variant"
+}
+
+apply_profile_appearance_files() {
+  local config_root="$1"
+  local meta_file="$2"
+  local variant="${3:-dark}"
+  [ -f "$meta_file" ] || return 0
+
+  local gtk_theme icon_theme kitty_opacity
+  IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity < <(
+    jq -r --arg variant "$variant" '
+      [ (if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end),
+        (if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end),
+        (.appearance.kittyOpacity // 1.0) ] | @tsv' "$meta_file"
+  )
+
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-icon-theme-name "$icon_theme"
   set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-theme-name "$gtk_theme"
@@ -526,6 +557,74 @@ apply_profile_appearance() {
   if [ -f "$config_root/kitty/kitty.conf" ]; then
     sed -i "s|^background_opacity .*|background_opacity $kitty_opacity|" "$config_root/kitty/kitty.conf"
   fi
+}
+
+apply_profile_cursor_files() {
+  local config_root="$1" meta_file="$2" cursor cursor_size
+  [ -f "$meta_file" ] || return 0
+  IFS=$'\t' read -r cursor cursor_size < <(
+    jq -r '[.cursor // "default", .cursorSize // 24] | @tsv' "$meta_file"
+  )
+  set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-cursor-theme-name "$cursor"
+  set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-cursor-theme-size "$cursor_size"
+  set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-cursor-theme-name "$cursor"
+  set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-cursor-theme-size "$cursor_size"
+}
+
+stage_profile_core_files() {
+  local profile_dir="$1" variant="$2" stage_dir="$3"
+  local stage_home="$stage_dir/home" stage_config
+  stage_config="$stage_home/.config"
+  local relative source destination self_themed
+  local -a mutable=(
+    .config/gtk-3.0/settings.ini
+    .config/gtk-4.0/settings.ini
+    .config/qt5ct/qt5ct.conf
+    .config/qt6ct/qt6ct.conf
+    .config/kitty/kitty.conf
+    .config/rofi/profile-switcher.rasi
+    .config/waybar/style.css
+    .config/mako/config
+  )
+
+  for relative in "${mutable[@]}"; do
+    source="$HOME/$relative"
+    destination="$stage_home/$relative"
+    if [ -f "$source" ]; then
+      mkdir -p "$(dirname "$destination")"
+      install -m 644 "$source" "$destination"
+    fi
+  done
+
+  self_themed=$(jq -r '.selfThemed // false' "$profile_dir/meta.json" 2>/dev/null || echo false)
+  if [ "$self_themed" != true ]; then
+    local gtk3 gtk4 qt6 kitty rofi fish starship
+    gtk3=$(pick_variant_file "$variant" "$profile_dir/gtk-3.0.css" "$profile_dir/gtk-3.0-light.css")
+    gtk4=$(pick_variant_file "$variant" "$profile_dir/gtk-4.0.css" "$profile_dir/gtk-4.0-light.css")
+    qt6=$(pick_variant_file "$variant" "$profile_dir/qt6ct.conf" "$profile_dir/qt6ct-light.conf")
+    kitty=$(pick_variant_file "$variant" "$profile_dir/kitty-colors.conf" "$profile_dir/kitty-colors-light.conf")
+    rofi=$(pick_variant_file "$variant" "$profile_dir/rofi-theme.rasi" "$profile_dir/rofi-theme-light.rasi")
+    fish=$(pick_variant_file "$variant" "$profile_dir/fish-theme.fish" "$profile_dir/fish-theme-light.fish")
+    starship=$(pick_variant_file "$variant" "$profile_dir/starship.toml" "$profile_dir/starship-light.toml")
+    while IFS=$'\t' read -r source destination; do
+      [ -s "$source" ] || continue
+      mkdir -p "$(dirname "$destination")"
+      install -m 644 "$source" "$destination"
+    done <<EOF
+$gtk3	$stage_config/gtk-3.0/noctalia.css
+$gtk4	$stage_config/gtk-4.0/noctalia.css
+$qt6	$stage_config/qt6ct/colors/noctalia.conf
+$qt6	$stage_config/qt5ct/colors/noctalia.conf
+$kitty	$stage_config/kitty/colors.conf
+$rofi	$stage_config/rofi/profile-switcher.rasi
+$fish	$stage_config/fish/conf.d/matugen_theme.fish
+$starship	$stage_config/starship_matugen.toml
+EOF
+  fi
+
+  apply_profile_cursor_files "$stage_config" "$profile_dir/meta.json"
+  apply_profile_font_files "$stage_config" "$profile_dir/meta.json"
+  apply_profile_appearance_files "$stage_config" "$profile_dir/meta.json" "$variant"
 }
 
 # nudge_gtk_reload
