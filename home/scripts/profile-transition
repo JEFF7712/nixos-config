@@ -681,7 +681,7 @@ else
 fi
 install_staged_files
 NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides.kdl"
-if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = on ] && [ "$TARGET" != noctalia ]; then
+if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
   NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides-focus.kdl"
 fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"

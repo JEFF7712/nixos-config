@@ -427,7 +427,7 @@ check_unusual_snapshot_paths() {
 }
 
 check_legacy_runtime_regressions() {
-  local output="$tmpdir/legacy-runtime.out"
+  local active_stat variant_stat preference_stat output="$tmpdir/legacy-runtime.out"
 
   printf 'missing\n' > "$profiles/active"
   printf 'light\n' > "$profiles/active-variant"
@@ -453,6 +453,9 @@ check_legacy_runtime_regressions() {
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
   printf 'started\n' > "$bar_state"
   printf 'mako\n' > "$notification_state"
+  active_stat=$(stat -c '%i:%Y' "$profiles/active")
+  variant_stat=$(stat -c '%i:%Y' "$profiles/active-variant")
+  preference_stat=$(stat -c '%i:%Y' "$profiles/variant-old")
   : > "$log"
   run_fixture_transition startup >"$output" 2>&1
   assert_eq '* { color: old-light; }' "$(cat "$home/.config/waybar/style.css")" \
@@ -463,6 +466,12 @@ check_legacy_runtime_regressions() {
     "valid startup preserves the global variant preference"
   assert_eq dark "$(cat "$profiles/variant-old")" \
     "valid startup does not rewrite the per-profile preference"
+  assert_eq "$active_stat" "$(stat -c '%i:%Y' "$profiles/active")" \
+    "valid startup does not replace the active preference file"
+  assert_eq "$variant_stat" "$(stat -c '%i:%Y' "$profiles/active-variant")" \
+    "valid startup does not replace the global variant preference file"
+  assert_eq "$preference_stat" "$(stat -c '%i:%Y' "$profiles/variant-old")" \
+    "valid startup does not replace the per-profile preference file"
 
   printf 'quickshell\n' > "$profiles/bar-old"
   printf 'old\n' > "$profiles/active"
@@ -508,6 +517,9 @@ check_legacy_runtime_regressions() {
   printf 'dark\n' > "$profiles/variant-old"
   : > "$log"
   run_fixture_transition switch old >"$output" 2>&1
+  assert_eq "$profiles/old/niri-overrides.kdl" \
+    "$(readlink "$profiles/active-niri-overrides.kdl")" \
+    "non-Noctalia target uses its normal override outside focus mode"
   assert_log_contains_eventually \
     "awww img $profiles/old/wallpapers/wallpaper.png --transition-type fade --transition-duration 1 active=old" \
     "static profile selects a wallpaper after commit"
