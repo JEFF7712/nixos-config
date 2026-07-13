@@ -151,9 +151,12 @@ maybe_fail_stage() {
 }
 
 verify_bar() {
-  local bar="$1" quickshell_pattern
+  local bar="$1" quickshell_pattern attempts
   quickshell_pattern="quickshell.*$REPO_HOME/configs/quickshell/shell.qml"
-  for _ in $(seq 1 20); do
+  # Cold Quickshell starts (and notification-bus claim) often need >2s; keep this
+  # overrideable so fixtures can stay fast.
+  attempts="${PROFILE_TRANSITION_VERIFY_ATTEMPTS:-50}"
+  for _ in $(seq 1 "$attempts"); do
     case "$bar" in
       noctalia)
         systemctl --user is-active --quiet noctalia-shell >/dev/null 2>&1 \
@@ -739,7 +742,10 @@ fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
 niri msg action load-config-file >/dev/null 2>&1
 if [ "$SAME_QUICKSHELL" -eq 1 ]; then
+  # Process may be up but not ready (e.g. lost notification bus). Never launch a
+  # second Quickshell beside a live one — stop first, then restart cleanly.
   if ! verify_bar quickshell; then
+    stop_bar quickshell
     start_bar quickshell "$TARGET" "$TARGET_VARIANT"
     verify_bar quickshell
   fi

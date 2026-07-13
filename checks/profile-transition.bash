@@ -1030,6 +1030,7 @@ rollback_output="$tmpdir/rollback.out"
 if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_VERIFY_ATTEMPTS=5 \
   START_COUNT_FILE="$tmpdir/start-count" FAIL_FIRST_BAR_START=1 \
   NIRI_COUNT_FILE="$tmpdir/niri-count" FAIL_SECOND_NIRI=1 \
   "$REPO_ROOT/home/scripts/profile-transition" switch new >"$rollback_output" 2>&1; then
@@ -1495,6 +1496,7 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" NOTIFICATION_STATE="$notification_state" \
   REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_VERIFY_ATTEMPTS=5 \
   START_COUNT_FILE="$tmpdir/start-count" FAIL_FIRST_BAR_START=1 \
   "$REPO_ROOT/home/scripts/profile-transition" variant light >/dev/null 2>&1; then
   printf 'FAIL: Quickshell variant transition committed despite readiness failure\n' >&2
@@ -1504,6 +1506,8 @@ assert_eq qs "$(cat "$profiles/active")" \
   "Quickshell rollback preserves the old active profile"
 assert_eq dark "$(cat "$profiles/active-variant")" \
   "Quickshell rollback preserves the old active variant"
+assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+  "unhealthy same-bar Quickshell is stopped before restart fallback"
 assert_log_contains \
   "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=qs active_variant=dark theme=qs theme_variant=dark selected={\"payload\":\"qs-runtime-dark\"}" \
   "Quickshell rollback restarts the old dark runtime theme"
@@ -1545,7 +1549,8 @@ printf 'noctalia\n' > "$notification_state"
 : > "$log"
 if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" FAIL_NOTIFICATION_OWNER=1 \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_VERIFY_ATTEMPTS=5 FAIL_NOTIFICATION_OWNER=1 \
   "$REPO_ROOT/home/scripts/profile-transition" switch old >/dev/null 2>&1; then
   printf 'FAIL: transition committed Waybar without its notification owner\n' >&2
   exit 1
