@@ -134,9 +134,35 @@ check_laptop_build_caps() {
   if ! rg -q 'OnCalendar = "hourly"' modules/nixos/auto-update.nix; then
     fail "nixos-ai-tools-auto-update timer must stay hourly"
   fi
-  if ! rg -q 'skipping rebuild' modules/nixos/auto-update.nix; then
-    fail "auto-update must skip rebuild when flake.lock is unchanged"
+  if ! rg -q 'skipping rebuild' home/scripts/nixos-flake-update; then
+    fail "nixos-flake-update must skip rebuild when flake.lock is unchanged"
   fi
+}
+
+check_flake_update_pipeline_wiring() {
+  local module=modules/nixos/auto-update.nix
+  local pipeline=home/scripts/nixos-flake-update
+  local invocation_count
+
+  invocation_count=$( (rg -o 'nixos-flake-update' "$module" || true) | wc -l)
+  if [ "${invocation_count:-0}" -ne 2 ]; then
+    fail "auto-update module must reference nixos-flake-update exactly twice"
+  fi
+
+  local operation pattern
+  while IFS='|' read -r operation pattern; do
+    if ! rg -q "$pattern" "$pipeline"; then
+      fail "nixos-flake-update must own the $operation operation"
+    fi
+    if rg -q "$pattern" "$module"; then
+      fail "auto-update module must not inline the $operation operation"
+    fi
+  done <<'EOF'
+eval|nix eval
+cascade|nix-cascade-guard
+commit|git .*commit
+rebuild|nixos[_-]rebuild.*switch
+EOF
 }
 
 check_hardcoded_repo_paths
@@ -146,6 +172,7 @@ check_wallpaper_dirs
 check_script_refs
 check_disabled_nix_services
 check_laptop_build_caps
+check_flake_update_pipeline_wiring
 
 if [ "$failures" -gt 0 ]; then
   exit 1
