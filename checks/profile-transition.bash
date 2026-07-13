@@ -30,6 +30,11 @@ assert_log_contains() {
   fi
 }
 
+assert_mode() {
+  local expected="$1" path="$2" label="$3"
+  assert_eq "$expected" "$(stat -c '%a' "$path")" "$label"
+}
+
 check_waybar_readiness_fake() {
   printf 'stopped\n' > "$bar_state"
   : > "$log"
@@ -118,6 +123,7 @@ printf '{"bar":"noctalia","selfThemed":true,"hasLightVariant":false,"cursor":"de
 
 cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
 cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
+chmod 640 "$home/.config/waybar/config.jsonc"
 
 printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
@@ -142,6 +148,9 @@ if [ -n "${NIRI_COUNT_FILE:-}" ]; then
   count=$(cat "$NIRI_COUNT_FILE" 2>/dev/null || echo 0)
   count=$((count + 1))
   printf '%s\n' "$count" > "$NIRI_COUNT_FILE"
+  if [ -n "${FAIL_FIRST_NIRI:-}" ] && [ "$count" -eq 1 ]; then
+    exit 17
+  fi
   if [ -n "${FAIL_SECOND_NIRI:-}" ] && [ "$count" -eq 2 ]; then
     exit 1
   fi
@@ -276,6 +285,7 @@ printf 'dark\n' > "$profiles/active-variant"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
 cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
+chmod 640 "$home/.config/waybar/config.jsonc"
 printf '0\n' > "$tmpdir/start-count"
 printf '0\n' > "$tmpdir/niri-count"
 : > "$log"
@@ -308,6 +318,147 @@ if ! grep -Fq 'rollback: Niri reload failed' "$rollback_output"; then
   cat "$rollback_output" >&2
   exit 1
 fi
+assert_mode 640 "$home/.config/waybar/config.jsonc" \
+  "rollback restores the previous Waybar config mode"
+assert_eq "light" "$(cat "$profiles/variant-new")" \
+  "rollback restores the target per-profile preference"
+
+# Failure of the target Niri reload occurs after the link changes, so it must
+# restore the link before reloading and restarting the old runtime.
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'light\n' > "$profiles/variant-new"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
+cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
+printf 'started\n' > "$bar_state"
+printf '0\n' > "$tmpdir/niri-count"
+: > "$log"
+set +e
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  NIRI_COUNT_FILE="$tmpdir/niri-count" FAIL_FIRST_NIRI=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1
+niri_status=$?
+set -e
+assert_eq 17 "$niri_status" "Niri failure preserves its original status"
+assert_eq old "$(cat "$profiles/active")" "Niri rollback restores active profile"
+assert_eq dark "$(cat "$profiles/active-variant")" "Niri rollback restores active variant"
+assert_eq light "$(cat "$profiles/variant-new")" "Niri rollback restores target preference"
+assert_eq "$profiles/old/niri-overrides.kdl" \
+  "$(readlink "$profiles/active-niri-overrides.kdl")" \
+  "Niri rollback restores the previous override"
+assert_eq 2 "$(cat "$tmpdir/niri-count")" "Niri rollback reloads the restored override"
+assert_log_contains "verify-waybar active=old" "Niri rollback recovers the previous bar"
+
+# A staging failure must restore every snapshotted path and recover the old runtime.
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'light\n' > "$profiles/variant-new"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf '{"profile":"old-stage"}\n' > "$home/.config/waybar/config.jsonc"
+chmod 600 "$home/.config/waybar/config.jsonc"
+rm -f "$home/.config/waybar/style.css"
+printf 'started\n' > "$bar_state"
+printf '0\n' > "$tmpdir/start-count"
+: > "$log"
+stage_output="$tmpdir/stage.out"
+set +e
+HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$tmpdir/runtime" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_FAIL_STAGE_PATH="$home/.config/waybar/style.css" \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new >"$stage_output" 2>&1
+stage_status=$?
+set -e
+if [ "$stage_status" -eq 0 ]; then
+  printf 'FAIL: transition succeeded despite injected staging failure\n' >&2
+  exit 1
+fi
+assert_eq 1 "$stage_status" "staging failure preserves original status"
+assert_eq old "$(cat "$profiles/active")" "staging rollback restores active profile"
+assert_eq dark "$(cat "$profiles/active-variant")" "staging rollback restores active variant"
+assert_eq light "$(cat "$profiles/variant-new")" "staging rollback restores target preference"
+assert_eq "$profiles/old/niri-overrides.kdl" \
+  "$(readlink "$profiles/active-niri-overrides.kdl")" \
+  "staging rollback restores the Niri symlink"
+assert_eq '{"profile":"old-stage"}' "$(cat "$home/.config/waybar/config.jsonc")" \
+  "staging rollback restores file bytes"
+assert_mode 600 "$home/.config/waybar/config.jsonc" "staging rollback restores file mode"
+[ ! -e "$home/.config/waybar/style.css" ] || {
+  printf 'FAIL: staging rollback restores a missing path\n' >&2
+  exit 1
+}
+assert_log_contains "verify-waybar active=old" "staging rollback recovers the previous bar"
+if find "$tmpdir/runtime" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
+  printf 'FAIL: staging rollback left a transaction directory behind\n' >&2
+  exit 1
+fi
+
+# A restoration failure is secondary: later restores and runtime recovery continue,
+# and rollback exits with the transition's original status.
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'light\n' > "$profiles/variant-new"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf '{"profile":"old-secondary"}\n' > "$home/.config/waybar/config.jsonc"
+printf '* { color: old-secondary; }\n' > "$home/.config/waybar/style.css"
+printf 'started\n' > "$bar_state"
+: > "$log"
+secondary_output="$tmpdir/secondary.out"
+set +e
+HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$tmpdir/runtime" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_FAIL_STAGE_PATH="$home/.config/waybar/style.css" \
+  PROFILE_TRANSITION_FAIL_RESTORE_PATH="$home/.config/waybar/config.jsonc" \
+  PROFILE_TRANSITION_FAILURE_STATUS=42 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new >"$secondary_output" 2>&1
+secondary_status=$?
+set -e
+assert_eq 42 "$secondary_status" "secondary restore failure preserves original status"
+assert_eq old "$(cat "$profiles/active")" "later active restore still runs"
+assert_eq dark "$(cat "$profiles/active-variant")" "later variant restore still runs"
+assert_eq light "$(cat "$profiles/variant-new")" "later preference restore still runs"
+assert_eq "$profiles/old/niri-overrides.kdl" \
+  "$(readlink "$profiles/active-niri-overrides.kdl")" \
+  "later Niri symlink restore still runs"
+assert_eq '* { color: old-secondary; }' "$(cat "$home/.config/waybar/style.css")" \
+  "later file restore still runs"
+assert_log_contains "niri msg action load-config-file" "Niri recovery continues after restore failure"
+assert_log_contains "verify-waybar active=old" "bar recovery continues after restore failure"
+grep -Fq "rollback: restore $home/.config/waybar/config.jsonc failed" "$secondary_output" || {
+  printf 'FAIL: secondary restoration failure was not diagnosed\n' >&2
+  cat "$secondary_output" >&2
+  exit 1
+}
+
+# A partially written commit is still covered until all preferences are durable.
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'dark\n' > "$profiles/variant-new"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
+cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
+printf 'started\n' > "$bar_state"
+: > "$log"
+set +e
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_FAIL_COMMIT_AFTER=variant \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1
+commit_status=$?
+set -e
+assert_eq 1 "$commit_status" "partial commit failure preserves original status"
+assert_eq old "$(cat "$profiles/active")" "partial commit restores active profile"
+assert_eq dark "$(cat "$profiles/active-variant")" "partial commit restores active variant"
+assert_eq dark "$(cat "$profiles/variant-new")" "partial commit restores target preference"
+assert_eq "$profiles/old/niri-overrides.kdl" \
+  "$(readlink "$profiles/active-niri-overrides.kdl")" \
+  "partial commit restores Niri override"
+assert_log_contains "verify-waybar active=old" "partial commit recovers the previous bar"
 
 printf 'new\n' > "$profiles/active"
 printf 'light\n' > "$profiles/active-variant"
