@@ -220,7 +220,7 @@ check_engine_variant_noops() {
 }
 
 check_variant_resolves_after_lock() {
-  local pid status output="$tmpdir/variant-after-lock.out"
+  local pid output="$tmpdir/variant-after-lock.out" hook="$tmpdir/variant-after-lock-hook"
 
   printf 'old\n' > "$profiles/active"
   printf 'dark\n' > "$profiles/active-variant"
@@ -230,15 +230,18 @@ check_variant_resolves_after_lock() {
   printf 'mako\n' > "$notification_state"
   : > "$log"
 
-  exec 8>"$tmpdir/profile.lock"
-  flock 8
-  run_fixture_transition variant toggle 8>&- >"$output" 2>&1 &
+  mkdir -p "$hook"
+  PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR="$hook" \
+    run_fixture_transition variant toggle >"$output" 2>&1 &
   pid=$!
-  sleep 0.1
-  if ! kill -0 "$pid" 2>/dev/null; then
-    wait "$pid" || status=$?
-    printf 'FAIL: queued variant request exited before the lock was released (%s)\n' \
-      "${status:-0}" >&2
+  for _ in $(seq 1 50); do
+    [ -e "$hook/acquired" ] && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.02
+  done
+  if [ ! -e "$hook/acquired" ]; then
+    wait "$pid" || true
+    printf 'FAIL: variant request did not expose the post-lock test hook\n' >&2
     cat "$output" >&2
     exit 1
   fi
@@ -247,8 +250,7 @@ check_variant_resolves_after_lock() {
   printf 'light\n' > "$profiles/active-variant"
   printf 'light\n' > "$profiles/variant-new"
   ln -sfn "$profiles/new/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  flock -u 8
-  exec 8>&-
+  touch "$hook/release"
   wait "$pid"
 
   assert_eq new "$(cat "$profiles/active")" \
@@ -262,8 +264,9 @@ check_variant_resolves_after_lock() {
     "queued toggle applies the post-lock profile override"
 }
 
-check_two_queued_toggles() {
-  local first_pid second_pid
+check_lock_contention_is_nonblocking() {
+  local first_pid contender_status
+  local hook="$tmpdir/contention-hook" contender_output="$tmpdir/contention.out"
 
   printf 'old\n' > "$profiles/active"
   printf 'dark\n' > "$profiles/active-variant"
@@ -272,28 +275,42 @@ check_two_queued_toggles() {
   printf 'started\n' > "$bar_state"
   printf 'mako\n' > "$notification_state"
 
-  exec 8>"$tmpdir/profile.lock"
-  flock 8
-  run_fixture_transition variant toggle 8>&- >"$tmpdir/queued-toggle-first.out" 2>&1 &
+  mkdir -p "$hook"
+  PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR="$hook" \
+    run_fixture_transition variant toggle >"$tmpdir/contention-owner.out" 2>&1 &
   first_pid=$!
-  run_fixture_transition variant toggle 8>&- >"$tmpdir/queued-toggle-second.out" 2>&1 &
-  second_pid=$!
-  sleep 0.1
-  kill -0 "$first_pid" 2>/dev/null && kill -0 "$second_pid" 2>/dev/null || {
-    printf 'FAIL: both toggle requests did not queue behind the lock\n' >&2
+  for _ in $(seq 1 50); do
+    [ -e "$hook/acquired" ] && break
+    kill -0 "$first_pid" 2>/dev/null || break
+    sleep 0.02
+  done
+  [ -e "$hook/acquired" ] || {
+    wait "$first_pid" || true
+    printf 'FAIL: contention owner did not acquire the lock\n' >&2
     exit 1
   }
-  flock -u 8
-  exec 8>&-
+
+  set +e
+  run_fixture_transition variant toggle >"$contender_output" 2>&1
+  contender_status=$?
+  set -e
+  assert_eq 75 "$contender_status" "lock contender fails with the contention status"
+  if ! grep -Fq "another profile transition is in progress: $tmpdir/profile.lock" \
+    "$contender_output"; then
+    printf 'FAIL: lock contention message does not name the lock path\n' >&2
+    cat "$contender_output" >&2
+    exit 1
+  fi
+
+  touch "$hook/release"
   wait "$first_pid"
-  wait "$second_pid"
 
   assert_eq old "$(cat "$profiles/active")" \
-    "two queued toggles preserve the active profile"
-  assert_eq dark "$(cat "$profiles/active-variant")" \
-    "two queued toggles serialize to the original variant"
-  assert_eq dark "$(cat "$profiles/variant-old")" \
-    "two queued toggles serialize the profile preference"
+    "contention owner preserves the active profile"
+  assert_eq light "$(cat "$profiles/active-variant")" \
+    "only the lock owner applies its toggle"
+  assert_eq light "$(cat "$profiles/variant-old")" \
+    "the failed contender does not apply a second toggle"
 }
 
 check_post_commit_adapter_isolation() {
@@ -1182,5 +1199,5 @@ stop_persistent_children
 check_post_commit_adapter_isolation
 check_engine_variant_noops
 check_variant_resolves_after_lock
-check_two_queued_toggles
+check_lock_contention_is_nonblocking
 check_public_delegation

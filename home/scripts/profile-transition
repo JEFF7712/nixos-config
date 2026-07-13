@@ -361,7 +361,17 @@ esac
 LOCK_PATH="${PROFILE_TRANSITION_LOCK:-$HOME/.local/state/desktop-profiles/transition.lock}"
 mkdir -p "$(dirname "$LOCK_PATH")"
 exec 9>"$LOCK_PATH"
-flock 9 || { echo "Error: failed to acquire the profile transition lock." >&2; exit 75; }
+flock -n 9 || {
+  echo "Error: another profile transition is in progress: $LOCK_PATH" >&2
+  exit 75
+}
+
+if [ -n "${PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR:-}" ]; then
+  touch "$PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR/acquired"
+  while [ ! -e "$PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR/release" ]; do
+    sleep 0.01
+  done
+fi
 
 CURRENT=$(read_state "$ACTIVE_FILE" "")
 CURRENT_VARIANT=$(read_state "$VARIANT_FILE" "dark")
