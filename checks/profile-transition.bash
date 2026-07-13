@@ -10,6 +10,7 @@ profiles="$home/.config/desktop-profiles"
 bin_dir="$tmpdir/bin"
 log="$tmpdir/commands.log"
 real_jq="$(command -v jq)"
+bar_state="$tmpdir/waybar.state"
 
 assert_eq() {
   local expected="$1" actual="$2" label="$3"
@@ -31,7 +32,7 @@ assert_log_contains() {
 
 check_public_delegation() {
   local adapter_dir="$tmpdir/public-adapters"
-  local mapping public_invocation engine_invocation public_command
+  local mapping public_invocation engine_invocation public_command before after diagnostics
 
   mkdir -p "$adapter_dir"
   cp "$REPO_ROOT/home/scripts/switch-profile" "$adapter_dir/switch-profile"
@@ -47,14 +48,28 @@ EOF
     IFS='|' read -r public_invocation engine_invocation <<< "$mapping"
     read -r -a public_command <<< "$public_invocation"
     : > "$log"
-    HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
-      "$adapter_dir/${public_command[0]}" "${public_command[@]:1}" >/dev/null 2>&1 || true
+    diagnostics="$tmpdir/public-command.out"
+    before=$(tar -C "$home" -cf - . | sha256sum)
+    if ! HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" PATH="$bin_dir" \
+      "$adapter_dir/${public_command[0]}" "${public_command[@]:1}" >"$diagnostics" 2>&1; then
+      printf 'FAIL: %s exited nonzero\n' "$public_invocation" >&2
+      cat "$diagnostics" >&2
+      exit 1
+    fi
     assert_eq "$engine_invocation" "$(cat "$log")" \
       "$public_invocation delegates its mutation to the transition engine"
+    after=$(tar -C "$home" -cf - . | sha256sum)
+    assert_eq "$before" "$after" "$public_invocation performs no mutation outside the engine"
   done
 }
 
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar"
+
+for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
+  mktemp mv readlink rm sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
+  utility_path=$(command -v "$utility")
+  ln -s "$utility_path" "$bin_dir/$utility"
+done
 
 for profile in old new; do
   profile_dir="$profiles/$profile"
@@ -80,7 +95,7 @@ printf 'dark\n' > "$profiles/variant-old"
 printf 'light\n' > "$profiles/variant-new"
 ln -s "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 
-for command in systemctl niri pkill quickshell waybar gsettings notify-send busctl; do
+for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper makoctl tmux kitty magick; do
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$COMMAND_LOG"
@@ -90,11 +105,35 @@ esac
 EOF
 done
 
+cat > "$bin_dir/pkill" <<'EOF'
+#!/usr/bin/env bash
+printf 'pkill %s\n' "$*" >> "$COMMAND_LOG"
+case " $* " in
+  *" waybar "*) printf 'stopped\n' > "$BAR_STATE" ;;
+esac
+EOF
+
+cat > "$bin_dir/waybar" <<'EOF'
+#!/usr/bin/env bash
+printf 'started\n' > "$BAR_STATE"
+active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
+printf 'waybar start active=%s\n' "$active" >> "$COMMAND_LOG"
+EOF
+
 cat > "$bin_dir/pgrep" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
-printf 'pgrep %s active=%s\n' "$*" "$active" >> "$COMMAND_LOG"
-exit 0
+state=$(cat "$BAR_STATE")
+case " $*:$state" in
+  *" waybar "*:started)
+    printf 'verify-waybar active=%s\n' "$active" >> "$COMMAND_LOG"
+    exit 0
+    ;;
+  *)
+    printf 'pgrep %s active=%s state=%s\n' "$*" "$active" "$state" >> "$COMMAND_LOG"
+    exit 1
+    ;;
+esac
 EOF
 
 cat > "$bin_dir/jq" <<'EOF'
@@ -103,8 +142,9 @@ printf 'jq %s\n' "$*" >> "$COMMAND_LOG"
 exec "$REAL_JQ" "$@"
 EOF
 
-chmod +x "$bin_dir"/*
+find "$bin_dir" -maxdepth 1 -type f -exec chmod +x {} +
 : > "$log"
+printf 'started\n' > "$bar_state"
 
 # Public mutation interfaces that later compatibility tests must enforce.
 COMPATIBILITY_MAPPINGS=(
@@ -120,8 +160,9 @@ HOME="$home" \
 XDG_CONFIG_HOME="$home/.config" \
 PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" \
 COMMAND_LOG="$log" \
+BAR_STATE="$bar_state" \
 REAL_JQ="$real_jq" \
-PATH="$bin_dir:$PATH" \
+PATH="$bin_dir" \
   "$REPO_ROOT/home/scripts/profile-transition" switch new
 
 assert_eq "new" "$(cat "$profiles/active")" "target profile is committed"
@@ -130,5 +171,6 @@ assert_eq "light" "$(cat "$profiles/variant-new")" "target variant preference is
 assert_eq "$profiles/new/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "Niri override points to the target profile"
-assert_log_contains "pgrep -f waybar active=old" "target bar is verified before active profile commit"
+assert_log_contains "verify-waybar active=old" \
+  "post-start target bar readiness is verified before active profile commit"
 check_public_delegation
