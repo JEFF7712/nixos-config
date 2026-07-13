@@ -1467,23 +1467,34 @@ ln -sfn "$profiles/qs/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 printf 'quickshell-started\n' > "$bar_state"
 printf 'quickshell\n' > "$notification_state"
 : > "$log"
+rm -f "$profiles/quickshell-theme-reload"
 HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  BAR_STATE="$bar_state" NOTIFICATION_STATE="$notification_state" \
+  REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
   "$REPO_ROOT/home/scripts/profile-transition" variant light
-assert_log_contains \
-  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=qs active_variant=dark theme=qs theme_variant=light selected={\"payload\":\"qs-light\"}" \
-  "Quickshell consumes the pending variant before variant commit"
+assert_eq light "$(cat "$profiles/active-variant")" \
+  "Quickshell variant toggle commits light"
+assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+  "Quickshell variant toggle does not kill the topbar"
+assert_log_not_contains \
+  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml" \
+  "Quickshell variant toggle does not relaunch via start_bar"
+[ -s "$profiles/quickshell-theme-reload" ] \
+  || { printf 'FAIL: variant toggle did not nudge quickshell-theme-reload\n' >&2; exit 1; }
 
 printf 'dark\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-qs"
 printf 'quickshell-started\n' > "$bar_state"
-printf 'quickshell\n' > "$notification_state"
+printf 'mako\n' > "$notification_state"
 printf '0\n' > "$tmpdir/start-count"
+rm -f "$profiles/quickshell-theme-reload"
 : > "$log"
 if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  BAR_STATE="$bar_state" NOTIFICATION_STATE="$notification_state" \
+  REAL_JQ="$real_jq" PATH="$bin_dir" \
   START_COUNT_FILE="$tmpdir/start-count" FAIL_FIRST_BAR_START=1 \
   "$REPO_ROOT/home/scripts/profile-transition" variant light >/dev/null 2>&1; then
   printf 'FAIL: Quickshell variant transition committed despite readiness failure\n' >&2

@@ -711,7 +711,8 @@ fi
 trap 'rollback $?' EXIT
 
 SAME_QUICKSHELL=0
-if [ "$MODE" = switch ] \
+if [ "$MODE" != reapply ] \
+  && [ "$MODE" != startup ] \
   && [ "$CURRENT_BAR" = quickshell ] \
   && [ "$TARGET_BAR" = quickshell ] \
   && pgrep -f "quickshell.*$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1; then
