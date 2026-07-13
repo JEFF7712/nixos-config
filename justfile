@@ -45,6 +45,9 @@ qml-lint:
     --max-warnings 0 \
     $(git ls-files '*.qml')
 
+quickshell-test:
+  QT_QPA_PLATFORM=offscreen nix shell nixpkgs#qt6.qtdeclarative -c bash checks/quickshell-services.bash
+
 eval target="laptop":
   nix eval --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.toplevel.drvPath"
 
@@ -74,6 +77,8 @@ check:
   just fmt-check
   just shell-check
   just wallpaper-script-check
+  just qml-lint
+  just quickshell-test
   just flake-check
   just eval-all
   just check-profiles

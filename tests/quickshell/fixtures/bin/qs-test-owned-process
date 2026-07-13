@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}"
+
+label=${1:-unlabelled}
+process_dir="${QS_TEST_STATE_DIR}/processes"
+lifecycle_log="${QS_TEST_STATE_DIR}/lifecycle.log"
+mkdir -p "$process_dir"
+
+start_time() {
+  awk '{ print $22 }' "/proc/$1/stat"
+}
+
+command_signature() {
+  sha256sum "/proc/$1/cmdline" | awk '{ print $1 }'
+}
+
+is_recorded_process_alive() {
+  local record=$1 prefix=$2 pid recorded_start recorded_signature current_start current_signature
+  pid=$(awk -F= -v key="${prefix}pid" '$1 == key { print substr($0, length(key) + 2); exit }' "$record")
+  recorded_start=$(awk -F= -v key="${prefix}start_time" '$1 == key { print substr($0, length(key) + 2); exit }' "$record")
+  recorded_signature=$(awk -F= -v key="${prefix}command_signature" '$1 == key { print substr($0, length(key) + 2); exit }' "$record")
+  [ "$pid" != "$$" ] || return 1
+  [ -r "/proc/${pid}/stat" ] || return 1
+  current_start=$(start_time "$pid" 2>/dev/null) || return 1
+  [ "$current_start" = "$recorded_start" ] || return 1
+  current_signature=$(command_signature "$pid" 2>/dev/null) || return 1
+  [ "$current_signature" = "$recorded_signature" ]
+}
+
+overlap_found=0
+for record in "$process_dir"/*.record; do
+  [ -e "$record" ] || continue
+  for prefix in '' child_; do
+    if is_recorded_process_alive "$record" "$prefix"; then
+      identity=${prefix%_}
+      [ -n "$identity" ] || identity=direct
+      printf '%s overlap-%s %s %s\n' "$(date +%s%N)" "$identity" "$$" "$record" >>"$lifecycle_log"
+      overlap_found=1
+    fi
+  done
+done
+((overlap_found == 0)) || exit 1
+
+parent_pid=$$
+owner_pid=${QS_TEST_OWNER_PID:-$PPID}
+bash -c '
+  set -euo pipefail
+  parent_pid=$1
+  owner_pid=$2
+  lifecycle_log=$3
+  while kill -0 "$parent_pid" 2>/dev/null && kill -0 "$owner_pid" 2>/dev/null; do
+    sleep 0.05
+  done
+  printf "%s child-owner-gone %s %s %s\n" "$(date +%s%N)" "$$" "$parent_pid" "$owner_pid" >>"$lifecycle_log"
+' _ "$parent_pid" "$owner_pid" "$lifecycle_log" &
+child_pid=$!
+
+if [ -n "${QS_TEST_RECORD_DELAY:-}" ]; then
+  sleep "$QS_TEST_RECORD_DELAY"
+fi
+
+record="${process_dir}/${parent_pid}.record"
+record_tmp="${process_dir}/.${parent_pid}.record.tmp"
+{
+  printf 'pid=%s\n' "$parent_pid"
+  printf 'ppid=%s\n' "$PPID"
+  printf 'start_time=%s\n' "$(start_time "$parent_pid")"
+  printf 'command_signature=%s\n' "$(command_signature "$parent_pid")"
+  printf 'child_pid=%s\n' "$child_pid"
+  printf 'child_start_time=%s\n' "$(start_time "$child_pid")"
+  printf 'child_command_signature=%s\n' "$(command_signature "$child_pid")"
+  printf 'label=%s\n' "$label"
+} >"$record_tmp"
+mv -f "$record_tmp" "$record"
+
+printf '%s started %s %s %s\n' "$(date +%s%N)" "$parent_pid" "$child_pid" "$label" >>"$lifecycle_log"
+printf 'ready\n' >"${QS_TEST_STATE_DIR}/ready.${parent_pid}"
+
+cleanup() {
+  local reason=$1
+  trap - EXIT TERM INT
+  printf '%s stopping %s %s\n' "$(date +%s%N)" "$parent_pid" "$reason" >>"$lifecycle_log"
+  kill -TERM "$child_pid" 2>/dev/null || true
+  wait "$child_pid" 2>/dev/null || true
+  printf '%s stopped %s %s\n' "$(date +%s%N)" "$parent_pid" "$reason" >>"$lifecycle_log"
+}
+
+trap 'cleanup TERM; exit 0' TERM INT
+trap 'cleanup EXIT' EXIT
+wait "$child_pid"
