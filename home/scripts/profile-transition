@@ -371,6 +371,9 @@ dispatch_post_commit_adapters() {
     summary=$(paste -sd, "$ADAPTER_FAILURE_LOG")
     echo "Warning: post-commit adapters failed: $summary" >&2
   fi
+  if [ "$TARGET_BAR" = quickshell ] && [ "$MODE" != startup ]; then
+    nudge_quickshell_theme_reload
+  fi
   rm -f "$ADAPTER_FAILURE_LOG"
   trap - EXIT INT TERM HUP
   if [ -n "${PROFILE_TRANSITION_TEST_COMPLETION_FILE:-}" ]; then
@@ -707,6 +710,14 @@ if [ -n "${PROFILE_TRANSITION_TEST_SYMLINK_PATH:-}" ]; then
 fi
 trap 'rollback $?' EXIT
 
+SAME_QUICKSHELL=0
+if [ "$MODE" = switch ] \
+  && [ "$CURRENT_BAR" = quickshell ] \
+  && [ "$TARGET_BAR" = quickshell ] \
+  && pgrep -f "quickshell.*$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1; then
+  SAME_QUICKSHELL=1
+fi
+
 if [ -n "${PROFILE_TRANSITION_TEST_MUTATE_SNAPSHOTS:-}" ]; then
   printf 'mutated\n' > "$PROFILE_TRANSITION_TEST_FILE_PATH"
   rm -f -- "$PROFILE_TRANSITION_TEST_SYMLINK_PATH"
@@ -716,7 +727,7 @@ fi
 
 if [ "$MODE" = reapply ]; then
   stop_all_bars
-else
+elif [ "$SAME_QUICKSHELL" -eq 0 ]; then
   stop_bar "$CURRENT_BAR"
 fi
 install_staged_files
@@ -726,8 +737,15 @@ if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]
 fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
 niri msg action load-config-file >/dev/null 2>&1
-start_bar "$TARGET_BAR" "$TARGET" "$TARGET_VARIANT"
-verify_bar "$TARGET_BAR"
+if [ "$SAME_QUICKSHELL" -eq 1 ]; then
+  if ! verify_bar quickshell; then
+    start_bar quickshell "$TARGET" "$TARGET_VARIANT"
+    verify_bar quickshell
+  fi
+else
+  start_bar "$TARGET_BAR" "$TARGET" "$TARGET_VARIANT"
+  verify_bar "$TARGET_BAR"
+fi
 
 commit_transaction
 flock -u 9

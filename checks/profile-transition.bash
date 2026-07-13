@@ -625,7 +625,7 @@ check_legacy_runtime_regressions() {
 
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar" "$persistent_pid_dir"
 
-for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
+for utility in awk bash basename cat chmod cp cut date dirname env find flock grep head install ln mkdir \
   mktemp mv paste readlink realpath rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
   utility_path=$(command -v "$utility")
   ln -s "$utility_path" "$bin_dir/$utility"
@@ -1301,6 +1301,7 @@ assert_log_contains "verify-noctalia active=noc" "rollback verifies restarted No
 # checked before preferences commit, and notification/wallpaper ownership tracks
 # the target rather than the previous bar.
 printf 'on\n' > "$profiles/focus"
+qs_wallpaper_backups=()
 for previous in old qs noc; do
   case "$previous" in
     old) previous_state=started ;;
@@ -1313,16 +1314,45 @@ for previous in old qs noc; do
     printf 'dark\n' > "$profiles/variant-$target"
     ln -sfn "$profiles/$previous/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
     printf '%s\n' "$previous_state" > "$bar_state"
+    case "$previous" in
+      old) printf 'mako\n' > "$notification_state" ;;
+      qs) printf 'quickshell\n' > "$notification_state" ;;
+      noc) printf 'noctalia\n' > "$notification_state" ;;
+    esac
+    if [ "$previous" = qs ] && [ "$target" = qs ]; then
+      for wp_dir in "$profiles/qs/wallpapers" "$profiles/old/wallpapers"; do
+        if [ -d "$wp_dir" ]; then
+          wp_bak="$tmpdir/$(echo "$wp_dir" | tr '/' '-').bak"
+          mv "$wp_dir" "$wp_bak"
+          qs_wallpaper_backups+=("$wp_dir:$wp_bak")
+        fi
+      done
+    fi
     : > "$log"
     HOME="$home" XDG_CONFIG_HOME="$home/.config" \
       PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
       BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
       "$REPO_ROOT/home/scripts/profile-transition" switch "$target"
+    if [ "$previous" = qs ] && [ "$target" = qs ]; then
+      for entry in "${qs_wallpaper_backups[@]}"; do
+        wp_dir=${entry%%:*}
+        wp_bak=${entry#*:}
+        mv "$wp_bak" "$wp_dir"
+      done
+      qs_wallpaper_backups=()
+    fi
 
     case "$previous" in
       old) assert_log_contains 'pkill -f waybar' "Waybar is stopped from $previous to $target" ;;
-      qs) assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
-        "Quickshell exact topbar is stopped from $previous to $target" ;;
+      qs)
+        if [ "$target" = qs ]; then
+          assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+            "same-bar Quickshell switch leaves the topbar process running"
+        else
+          assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+            "Quickshell exact topbar is stopped from $previous to $target"
+        fi
+        ;;
       noc) assert_log_contains 'systemctl --user stop noctalia-shell' \
         "Noctalia is stopped from $previous to $target" ;;
     esac
@@ -1338,11 +1368,18 @@ for previous in old qs noc; do
       qs)
         assert_log_contains "pgrep -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
           "Quickshell readiness uses the exact topbar from $previous"
-        assert_log_contains 'systemctl --user start awww' "Quickshell starts awww from $previous"
-        assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Quickshell stops Mako from $previous"
-        assert_log_not_contains 'makoctl mode -a dnd' "Quickshell does not rearm focus DND from $previous"
-        assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
-          "Quickshell verifies notification ownership from $previous"
+        if [ "$previous" = qs ]; then
+          assert_log_not_contains 'systemctl --user start awww' \
+            "same-bar Quickshell does not re-run start_bar awww from $previous"
+          assert_log_not_contains "pkill -x \\.?mako(-wrapped)?" \
+            "same-bar Quickshell does not stop Mako via start_bar from $previous"
+        else
+          assert_log_contains 'systemctl --user start awww' "Quickshell starts awww from $previous"
+          assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Quickshell stops Mako from $previous"
+          assert_log_not_contains 'makoctl mode -a dnd' "Quickshell does not rearm focus DND from $previous"
+          assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
+            "Quickshell verifies notification ownership from $previous"
+        fi
         ;;
       noc)
         assert_log_contains 'systemctl --user is-active --quiet noctalia-shell' \
@@ -1356,6 +1393,30 @@ for previous in old qs noc; do
     esac
   done
 done
+
+cp -a "$profiles/qs" "$profiles/qs2"
+"$real_jq" '.name = "qs2"' "$profiles/qs2/manifest.json" \
+  > "$profiles/qs2/manifest.json.tmp"
+mv "$profiles/qs2/manifest.json.tmp" "$profiles/qs2/manifest.json"
+printf 'qs\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'dark\n' > "$profiles/variant-qs2"
+ln -sfn "$profiles/qs/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'quickshell-started\n' > "$bar_state"
+printf 'quickshell\n' > "$notification_state"
+: > "$log"
+rm -f "$profiles/quickshell-theme-reload"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" NOTIFICATION_STATE="$notification_state" \
+  REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch qs2
+assert_eq "qs2" "$(cat "$profiles/active")" "same-bar switch commits qs2"
+assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+  "qs→qs2 does not kill Quickshell"
+[ -s "$profiles/quickshell-theme-reload" ] \
+  || { printf 'FAIL: same-bar switch did not nudge quickshell-theme-reload\n' >&2; exit 1; }
 
 assert_eq '{"profile":"old"}' "$(cat "$home/.config/waybar/config.jsonc")" \
   "Waybar config is installed as a writable target file"
