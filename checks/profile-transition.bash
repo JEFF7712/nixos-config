@@ -193,4 +193,6 @@ assert_eq "$profiles/new/niri-overrides.kdl" \
   "Niri override points to the target profile"
 assert_log_contains "verify-waybar active=old" \
   "post-start target bar readiness is verified before active profile commit"
-check_public_delegation
+if [ "${PROFILE_TRANSITION_TEST_SCOPE:-full}" != "core" ]; then
+  check_public_delegation
+fi

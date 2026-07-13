@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/profile-common"
+
+usage() {
+  echo "Usage: profile-transition switch NAME | variant dark|light|toggle | reapply | startup [NAME]" >&2
+  exit 2
+}
+
+write_atomic() {
+  local path="$1" value="$2" tmp
+  mkdir -p "$(dirname "$path")"
+  tmp=$(mktemp "${path}.XXXXXX")
+  printf '%s\n' "$value" > "$tmp"
+  mv "$tmp" "$path"
+}
+
+link_atomic() {
+  local path="$1" target="$2" tmp
+  mkdir -p "$(dirname "$path")"
+  tmp=$(mktemp -u "${path}.XXXXXX")
+  ln -s "$target" "$tmp"
+  mv "$tmp" "$path"
+}
+
+read_state() {
+  local path="$1" fallback="$2"
+  cat "$path" 2>/dev/null || printf '%s\n' "$fallback"
+}
+
+has_light_variant() {
+  [ "$(jq -r '.hasLightVariant // false' "$PROFILES_DIR/$1/meta.json" 2>/dev/null)" = "true" ]
+}
+
+stop_bar() {
+  case "$1" in
+    noctalia) systemctl --user stop noctalia-shell >/dev/null 2>&1 || true ;;
+    waybar)
+      pkill -f waybar >/dev/null 2>&1 || true
+      for _ in $(seq 1 20); do
+        pgrep -f waybar >/dev/null 2>&1 || break
+        sleep 0.1
+      done
+      ;;
+    quickshell) pkill -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 || true ;;
+  esac
+}
+
+start_bar() {
+  local profile="$1" variant="$2" bar="$3" dir style
+  dir="$PROFILES_DIR/$profile"
+  case "$bar" in
+    noctalia) systemctl --user start noctalia-shell >/dev/null 2>&1 ;;
+    waybar)
+      if [ -s "$dir/waybar-config.jsonc" ]; then
+        mkdir -p "$CONFIG_HOME/waybar"
+        install -m 644 "$dir/waybar-config.jsonc" "$CONFIG_HOME/waybar/config.jsonc"
+        style=$(pick_variant_file "$variant" "$dir/waybar-style.css" "$dir/waybar-style-light.css")
+        [ ! -s "$style" ] || install -m 644 "$style" "$CONFIG_HOME/waybar/style.css"
+      fi
+      waybar >/dev/null 2>&1 &
+      ;;
+    quickshell) quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 & ;;
+  esac
+}
+
+verify_bar() {
+  local bar="$1"
+  for _ in $(seq 1 20); do
+    case "$bar" in
+      noctalia) systemctl --user is-active --quiet noctalia-shell >/dev/null 2>&1 && return 0 ;;
+      waybar) pgrep -f waybar >/dev/null 2>&1 && return 0 ;;
+      quickshell) pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 && return 0 ;;
+    esac
+    sleep 0.1
+  done
+  echo "Error: $bar failed to become ready." >&2
+  return 1
+}
+
+[ $# -ge 1 ] || usage
+MODE="$1"
+shift
+
+CURRENT=$(read_state "$ACTIVE_FILE" "")
+CURRENT_VARIANT=$(read_state "$VARIANT_FILE" "dark")
+
+case "$MODE" in
+  switch)
+    [ $# -eq 1 ] || usage
+    TARGET="$1"
+    TARGET_VARIANT=$(read_state "$PROFILES_DIR/variant-$TARGET" "dark")
+    WRITE_PREFERENCE=1
+    ;;
+  variant)
+    [ $# -eq 1 ] || usage
+    [ -n "$CURRENT" ] || { echo "Error: no active profile." >&2; exit 1; }
+    TARGET="$CURRENT"
+    case "$1" in
+      dark | light) TARGET_VARIANT="$1" ;;
+      toggle)
+        if [ "$CURRENT_VARIANT" = "dark" ]; then TARGET_VARIANT="light"; else TARGET_VARIANT="dark"; fi
+        ;;
+      *) usage ;;
+    esac
+    WRITE_PREFERENCE=1
+    ;;
+  reapply)
+    [ $# -eq 0 ] || usage
+    [ -n "$CURRENT" ] || { echo "Error: no active profile to reapply." >&2; exit 1; }
+    TARGET="$CURRENT"
+    TARGET_VARIANT="$CURRENT_VARIANT"
+    WRITE_PREFERENCE=1
+    ;;
+  startup)
+    [ $# -le 1 ] || usage
+    TARGET="${1:-${CURRENT:-noctalia}}"
+    TARGET_VARIANT="$CURRENT_VARIANT"
+    WRITE_PREFERENCE=0
+    if [ ! -d "$PROFILES_DIR/$TARGET" ]; then
+      TARGET="noctalia"
+      TARGET_VARIANT="dark"
+    fi
+    ;;
+  *) usage ;;
+esac
+
+[ -d "$PROFILES_DIR/$TARGET" ] || { echo "Error: profile '$TARGET' not found." >&2; exit 1; }
+if [ "$TARGET_VARIANT" = "light" ] && ! has_light_variant "$TARGET"; then
+  echo "Error: profile '$TARGET' has no light variant." >&2
+  exit 1
+fi
+
+LOCK_PATH="${PROFILE_TRANSITION_LOCK:-$HOME/.local/state/desktop-profiles/transition.lock}"
+mkdir -p "$(dirname "$LOCK_PATH")"
+exec 9>"$LOCK_PATH"
+flock -n 9 || { echo "Error: another profile transition is in progress." >&2; exit 75; }
+
+OLD_ACTIVE_EXISTS=0
+OLD_VARIANT_EXISTS=0
+OLD_LINK_EXISTS=0
+[ -f "$ACTIVE_FILE" ] && OLD_ACTIVE_EXISTS=1
+[ -f "$VARIANT_FILE" ] && OLD_VARIANT_EXISTS=1
+[ -L "$ACTIVE_LINK" ] && OLD_LINK_EXISTS=1
+OLD_ACTIVE=$(read_state "$ACTIVE_FILE" "")
+OLD_VARIANT=$(read_state "$VARIANT_FILE" "dark")
+OLD_LINK=$(readlink "$ACTIVE_LINK" 2>/dev/null || true)
+CURRENT_BAR="noctalia"
+if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
+  CURRENT_BAR=$(profile_bar "$OLD_ACTIVE")
+fi
+TARGET_BAR=$(profile_bar "$TARGET")
+
+rollback() {
+  local status=$?
+  trap - EXIT
+  if [ "$OLD_ACTIVE_EXISTS" -eq 1 ]; then write_atomic "$ACTIVE_FILE" "$OLD_ACTIVE"; else rm -f "$ACTIVE_FILE"; fi
+  if [ "$OLD_VARIANT_EXISTS" -eq 1 ]; then write_atomic "$VARIANT_FILE" "$OLD_VARIANT"; else rm -f "$VARIANT_FILE"; fi
+  if [ "$OLD_LINK_EXISTS" -eq 1 ]; then link_atomic "$ACTIVE_LINK" "$OLD_LINK"; else rm -f "$ACTIVE_LINK"; fi
+  exit "$status"
+}
+trap rollback EXIT
+
+stop_bar "$CURRENT_BAR"
+NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides.kdl"
+if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
+  NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides-focus.kdl"
+fi
+link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
+niri msg action load-config-file >/dev/null 2>&1
+start_bar "$TARGET" "$TARGET_VARIANT" "$TARGET_BAR"
+verify_bar "$TARGET_BAR"
+
+if [ "$WRITE_PREFERENCE" -eq 1 ]; then
+  write_atomic "$ACTIVE_FILE" "$TARGET"
+  write_atomic "$VARIANT_FILE" "$TARGET_VARIANT"
+  write_atomic "$PROFILES_DIR/variant-$TARGET" "$TARGET_VARIANT"
+fi
+
+trap - EXIT
