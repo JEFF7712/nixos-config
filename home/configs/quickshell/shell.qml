@@ -28,6 +28,11 @@ ShellRoot {
         detailedMonitoring: batteryPopup.shown
     }
 
+    Services.SystemService {
+        id: systemService
+        detailedMonitoring: systemPopup.shown
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -68,7 +73,49 @@ ShellRoot {
 
     readonly property int popupTopMargin: barMarginTop + barHeight + (popupAttachToBar ? 0 : 10)
 
+    // Profile theme JSON is sparse — omitted keys must fall back to these defaults
+    // (same values as the property initializers), not the previous profile's values.
+    function resetThemeDefaults() {
+        root.themeFg = "#ffffff";
+        root.themeBg = "#662a2a2a";
+        root.popupBg = "#cc2a2a2a";
+        root.themeRawBg = "#141414";
+        root.themeAccent = "#ffffff";
+        root.themeSecond = "#e8e8e8";
+        root.themeWarm = "#e6dcc6";
+        root.themeFresh = "#d6eadc";
+        root.barRadius = 15;
+        root.barHeight = 44;
+        root.barMargin = 10;
+        root.barMarginTop = 10;
+        root.exclusiveZoneOffset = 0;
+        root.showWorkspaces = true;
+        root.showClock = true;
+        root.showClockDate = true;
+        root.showWorkspaceNumbers = true;
+        root.showActiveWindow = false;
+        root.showMedia = true;
+        root.showVolume = true;
+        root.showNetwork = true;
+        root.showBluetooth = true;
+        root.showBattery = true;
+        root.showNotifications = true;
+        root.showSystem = true;
+        root.barFont = "JetBrainsMono Nerd Font";
+        root.flatMode = false;
+        root.showBarDividers = true;
+        root.moduleAnimationStyle = "fade";
+        root.popupAttachToBar = false;
+        root.popupAnimationStyle = "softPop";
+        root.dividerColor = "#1affffff";
+        root.barBorderColor = "#3dffffff";
+        root.barInnerHighlight = "#0fffffff";
+        root.pillBg = "#0affffff";
+        root.pillBorder = "#14ffffff";
+    }
+
     function applyTheme(theme) {
+        root.resetThemeDefaults();
         if (!theme)
             return;
         if (theme.fg)
@@ -147,9 +194,17 @@ ShellRoot {
 
     property bool themeLoaded: false
 
+    // Restart via Timer so running false→true is not coalesced in one frame.
+    Timer {
+        id: themeReloadTimer
+        interval: 1
+        repeat: false
+        onTriggered: themeLoader.running = true
+    }
+
     function reloadTheme() {
         themeLoader.running = false;
-        themeLoader.running = true;
+        themeReloadTimer.restart();
     }
 
     Process {
@@ -174,6 +229,9 @@ ShellRoot {
     FileView {
         path: Quickshell.env("HOME") + "/.config/desktop-profiles/quickshell-theme-reload"
         watchChanges: true
+        // watchChanges emits fileChanged on stamp bumps; onLoaded alone is not reliable.
+        onFileChanged: if (root.themeLoaded)
+            root.reloadTheme()
         onLoaded: if (root.themeLoaded)
             root.reloadTheme()
     }
@@ -206,6 +264,7 @@ ShellRoot {
         mediaService: mediaService
         cavaService: cavaService
         powerService: powerService
+        systemService: systemService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -357,6 +416,7 @@ ShellRoot {
 
     SystemPopup {
         id: systemPopup
+        systemService: systemService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
@@ -371,9 +431,6 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
-        cpuUsage: topbar.cpuUsage
-        ramUsage: topbar.ramUsage
-        diskUsage: topbar.diskUsage
     }
 
     MediaPopup {
