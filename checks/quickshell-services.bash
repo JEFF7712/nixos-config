@@ -255,6 +255,46 @@ wait_for_process() {
   return "$rc"
 }
 
+write_process_identity_record() {
+  local pid=$1 record=$2
+  {
+    printf 'pid=%s\n' "$pid"
+    printf 'start_time=%s\n' "$(process_start_time "$pid")"
+    printf 'command_signature=%s\n' "$(process_signature "$pid")"
+  } >"$record"
+}
+
+wait_for_recorded_process() {
+  local record=$1 prefix=$2 timeout_seconds=$3 pid started rc=0
+  pid=$(record_value "${prefix}pid" "$record")
+  started=$SECONDS
+  while recorded_pid_matches "$record" "$prefix"; do
+    if ((SECONDS - started >= timeout_seconds)); then
+      return 124
+    fi
+    sleep 0.05
+  done
+  wait "$pid" 2>/dev/null || rc=$?
+  return "$rc"
+}
+
+stop_and_reap_recorded_process() {
+  local record=$1 prefix=$2 pid rc=0
+  pid=$(record_value "${prefix}pid" "$record")
+  if recorded_pid_matches "$record" "$prefix"; then
+    kill -TERM "$pid" 2>/dev/null || true
+  fi
+  wait_for_recorded_process "$record" "$prefix" 2 || rc=$?
+  if ((rc == 124)); then
+    if recorded_pid_matches "$record" "$prefix"; then
+      kill -KILL "$pid" 2>/dev/null || true
+    fi
+    rc=0
+    wait_for_recorded_process "$record" "$prefix" 2 >/dev/null 2>&1 || rc=$?
+    ((rc != 124)) || return 1
+  fi
+}
+
 assert_no_fixture_survivors() {
   local state_dir=$1 started record prefix pid survivor=0
   started=$SECONDS
@@ -331,11 +371,105 @@ run_failure_cleanup_probe() {
   rm -rf -- "$state_dir"
 }
 
+run_overlap_timeout_rejection_probe() {
+  local state_dir rc=0
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-services-overlap-timeout.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  QS_TEST_OVERLAP_TIMEOUT_PROBE_CHILD=1 QS_TEST_STALL_AFTER_OVERLAP=1 TMPDIR="$state_dir" \
+    timeout --signal=TERM --kill-after=2 8 bash "${BASH_SOURCE[0]}" \
+    >"$state_dir/probe.log" 2>&1 || rc=$?
+  ((rc == 1)) || fail "forced overlap timeout probe was not rejected exactly (rc=${rc})"
+  rg -q 'owned-process overlap probe timed out after recording overlap' "$state_dir/probe.log" \
+    || fail 'forced overlap timeout probe lacked the expected timeout diagnostic'
+  assert_probe_tree_has_no_survivors "$state_dir" \
+    || fail 'forced overlap timeout probe left fixture survivors'
+}
+
+assert_probe_tree_has_no_survivors() {
+  local state_dir=$1 record prefix pid survivor=0
+  local -a records
+  shopt -s nullglob
+  records=(
+    "$state_dir"/quickshell-services.*/*.record
+    "$state_dir"/quickshell-services.*/processes/*.record
+  )
+  shopt -u nullglob
+  for record in "${records[@]}"; do
+    for prefix in '' child_; do
+      if recorded_pid_matches "$record" "$prefix"; then
+        pid=$(record_value "${prefix}pid" "$record")
+        printf 'quickshell-services: probe survivor pid=%s record=%s\n' "$pid" "$record" >&2
+        survivor=1
+      fi
+    done
+  done
+  ((survivor == 0))
+}
+
+cleanup_probe_tree_processes() {
+  local state_dir=$1 record prefix
+  local -a records
+  shopt -s nullglob
+  records=(
+    "$state_dir"/quickshell-services.*/*.record
+    "$state_dir"/quickshell-services.*/processes/*.record
+  )
+  shopt -u nullglob
+  for record in "${records[@]}"; do
+    for prefix in '' child_; do
+      recorded_pid_matches "$record" "$prefix" || continue
+      stop_and_reap_recorded_process "$record" "$prefix" || true
+    done
+  done
+}
+
+run_stubborn_prior_cleanup_probe() {
+  local state_dir rc=0
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-services-stubborn-prior.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  QS_TEST_OVERLAP_TIMEOUT_PROBE_CHILD=1 QS_TEST_PRIOR_IGNORES_TERM=1 TMPDIR="$state_dir" \
+    timeout --signal=TERM --kill-after=2 8 bash "${BASH_SOURCE[0]}" \
+    >"$state_dir/probe.log" 2>&1 || rc=$?
+  if ((rc != 0)); then
+    cleanup_probe_tree_processes "$state_dir"
+  fi
+  ((rc == 0)) || fail "stubborn prior descendant cleanup was not bounded exactly (rc=${rc})"
+  rg -q 'prior descendant ignored TERM and was reaped after escalation' "$state_dir/probe.log" \
+    || fail 'stubborn prior descendant cleanup lacked the expected escalation diagnostic'
+  assert_probe_tree_has_no_survivors "$state_dir" \
+    || fail 'stubborn prior descendant cleanup left fixture survivors'
+}
+
+run_transient_timeout_cleanup_probe() {
+  local state_dir rc=0
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-services-transient-timeout.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  QS_TEST_TRANSIENT_TIMEOUT_PROBE_CHILD=1 QS_TEST_SUPPRESS_READY=1 TMPDIR="$state_dir" \
+    timeout --signal=TERM --kill-after=2 8 bash "${BASH_SOURCE[0]}" \
+    >"$state_dir/probe.log" 2>&1 || rc=$?
+  ((rc == 1)) || fail "forced transient readiness timeout was not bounded exactly (rc=${rc})"
+  rg -q 'owned-process overlap probe timed out waiting for transient helper readiness' "$state_dir/probe.log" \
+    || fail 'forced transient readiness timeout lacked the expected diagnostic'
+  assert_probe_tree_has_no_survivors "$state_dir" \
+    || fail 'forced transient readiness timeout left fixture survivors'
+}
+
 run_overlap_descendant_probe() {
-  local state_dir prior_child fake_pid rc=0 record
+  local state_dir prior_child fake_pid rc=0 record fake_record prior_term_marker cleanup_failed=0
   new_fixture_state
   state_dir=$fixture_state
-  sleep 30 &
+  prior_term_marker="$state_dir/prior-term-observed"
+  if [ "${QS_TEST_PRIOR_IGNORES_TERM:-0}" = 1 ]; then
+    bash -c '
+      set -euo pipefail
+      trap '\''printf "observed\n" >"$1"'\'' TERM
+      while :; do
+        sleep 0.05
+      done
+    ' _ "$prior_term_marker" &
+  else
+    sleep 30 &
+  fi
   prior_child=$!
   record="$state_dir/processes/prior.record"
   mkdir -p "$state_dir/processes"
@@ -351,16 +485,91 @@ run_overlap_descendant_probe() {
   } >"$record"
   QS_TEST_STATE_DIR="$state_dir" "$fixture_bin" overlap-probe &
   fake_pid=$!
-  sleep 0.2
-  if kill -0 "$fake_pid" 2>/dev/null; then
-    kill -TERM "$fake_pid" 2>/dev/null || true
+  fake_record="$state_dir/overlap-helper.record"
+  write_process_identity_record "$fake_pid" "$fake_record"
+  wait_for_recorded_process "$fake_record" '' 3 || rc=$?
+  if ((rc == 124)); then
+    stop_and_reap_recorded_process "$fake_record" '' || cleanup_failed=1
   fi
-  wait "$fake_pid" || rc=$?
-  kill -TERM "$prior_child" 2>/dev/null || true
-  wait "$prior_child" 2>/dev/null || true
-  ((rc != 0)) || fail 'owned-process overlap probe accepted a live prior descendant with a dead parent'
-  rg -q ' overlap-child ' "$state_dir/lifecycle.log" \
-    || fail 'owned-process overlap probe did not record the live prior descendant'
+  stop_and_reap_recorded_process "$record" child_ || cleanup_failed=1
+  ((cleanup_failed == 0)) || fail 'owned-process overlap probe could not reap its recorded processes'
+  if [ "${QS_TEST_PRIOR_IGNORES_TERM:-0}" = 1 ]; then
+    [ -e "$prior_term_marker" ] \
+      || fail 'stubborn prior descendant did not observe TERM before escalation'
+    printf 'quickshell-services: prior descendant ignored TERM and was reaped after escalation\n' >&2
+  fi
+  case $rc in
+    1)
+      rg -q ' overlap-child ' "$state_dir/lifecycle.log" \
+        || fail 'owned-process overlap probe did not record the live prior descendant'
+      ;;
+    124)
+      fail 'owned-process overlap probe timed out after recording overlap'
+      ;;
+    0)
+      fail 'owned-process overlap probe accepted a live prior descendant with a dead parent'
+      ;;
+    *)
+      fail "owned-process overlap probe exited unexpectedly (rc=${rc})"
+      ;;
+  esac
+}
+
+run_transient_descendant_probe() {
+  local state_dir prior_child fake_pid record fake_record observed_marker release_marker cleanup_failed
+  new_fixture_state
+  state_dir=$fixture_state
+  observed_marker="$state_dir/overlap-observed"
+  release_marker="$state_dir/release-transient"
+  bash -c '
+    set -euo pipefail
+    until [ -e "$1" ]; do
+      sleep 0.01
+    done
+  ' _ "$release_marker" &
+  prior_child=$!
+  record="$state_dir/processes/prior.record"
+  mkdir -p "$state_dir/processes"
+  {
+    printf 'pid=99999999\n'
+    printf 'ppid=1\n'
+    printf 'start_time=0\n'
+    printf 'command_signature=dead\n'
+    printf 'child_pid=%s\n' "$prior_child"
+    printf 'child_start_time=%s\n' "$(process_start_time "$prior_child")"
+    printf 'child_command_signature=%s\n' "$(process_signature "$prior_child")"
+    printf 'label=prior-transient-descendant\n'
+  } >"$record"
+  QS_TEST_STATE_DIR="$state_dir" QS_TEST_OVERLAP_OBSERVED_MARKER="$observed_marker" \
+    "$fixture_bin" transient-probe &
+  fake_pid=$!
+  fake_record="$state_dir/transient-helper.record"
+  write_process_identity_record "$fake_pid" "$fake_record"
+  if ! wait_for_path "$observed_marker" 2; then
+    cleanup_failed=0
+    stop_and_reap_recorded_process "$fake_record" '' || cleanup_failed=1
+    printf 'release\n' >"$release_marker"
+    stop_and_reap_recorded_process "$record" child_ || cleanup_failed=1
+    ((cleanup_failed == 0)) \
+      || fail 'owned-process overlap probe could not clean up after missing live descendant observation'
+    fail 'owned-process overlap probe did not report its first live descendant observation'
+  fi
+  printf 'release\n' >"$release_marker"
+  if ! wait_for_path "$state_dir/ready.${fake_pid}" 2; then
+    cleanup_failed=0
+    stop_and_reap_recorded_process "$fake_record" '' || cleanup_failed=1
+    stop_and_reap_recorded_process "$record" child_ || cleanup_failed=1
+    ((cleanup_failed == 0)) \
+      || fail 'owned-process overlap probe could not clean up after transient helper readiness timeout'
+    fail 'owned-process overlap probe timed out waiting for transient helper readiness'
+  fi
+  cleanup_failed=0
+  stop_and_reap_recorded_process "$fake_record" '' || cleanup_failed=1
+  stop_and_reap_recorded_process "$record" child_ || cleanup_failed=1
+  ((cleanup_failed == 0)) || fail 'owned-process overlap probe could not clean up transient processes'
+  if rg -q ' overlap-child ' "$state_dir/lifecycle.log"; then
+    fail 'owned-process overlap probe recorded a descendant completing teardown as overlap'
+  fi
 }
 
 run_unit_tests() {
@@ -452,8 +661,12 @@ run_process_cleanup_fixture() {
   [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
   if [ "${QS_TEST_SKIP_FAILURE_CLEANUP_PROBE:-0}" != 1 ]; then
     run_failure_cleanup_probe
+    run_overlap_timeout_rejection_probe
+    run_stubborn_prior_cleanup_probe
+    run_transient_timeout_cleanup_probe
   fi
   run_overlap_descendant_probe
+  run_transient_descendant_probe
   run_normal_fixture
   run_term_fixture
 }
@@ -597,6 +810,16 @@ assert_no_view_processes_for_migrated_domains() {
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
   run_forced_failure_child "${QS_TEST_PROBE_STATE_DIR:?QS_TEST_PROBE_STATE_DIR is required}"
+fi
+
+if [ "${QS_TEST_OVERLAP_TIMEOUT_PROBE_CHILD:-0}" = 1 ]; then
+  run_overlap_descendant_probe
+  exit 0
+fi
+
+if [ "${QS_TEST_TRANSIENT_TIMEOUT_PROBE_CHILD:-0}" = 1 ]; then
+  run_transient_descendant_probe
+  exit 0
 fi
 
 assert_native_probe_has_no_wpctl_dependency

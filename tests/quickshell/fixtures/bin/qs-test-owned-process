@@ -29,11 +29,23 @@ is_recorded_process_alive() {
   [ "$current_signature" = "$recorded_signature" ]
 }
 
+is_recorded_process_alive_after_grace() {
+  local record=$1 prefix=$2 attempt
+  is_recorded_process_alive "$record" "$prefix" || return 1
+  if [ "$prefix" = child_ ] && [ -n "${QS_TEST_OVERLAP_OBSERVED_MARKER:-}" ]; then
+    printf 'observed\n' >"$QS_TEST_OVERLAP_OBSERVED_MARKER"
+  fi
+  for attempt in {1..20}; do
+    sleep 0.05
+    is_recorded_process_alive "$record" "$prefix" || return 1
+  done
+}
+
 overlap_found=0
 for record in "$process_dir"/*.record; do
   [ -e "$record" ] || continue
   for prefix in '' child_; do
-    if is_recorded_process_alive "$record" "$prefix"; then
+    if is_recorded_process_alive_after_grace "$record" "$prefix"; then
       identity=${prefix%_}
       [ -n "$identity" ] || identity=direct
       printf '%s overlap-%s %s %s\n' "$(date +%s%N)" "$identity" "$$" "$record" >>"$lifecycle_log"
@@ -41,7 +53,14 @@ for record in "$process_dir"/*.record; do
     fi
   done
 done
-((overlap_found == 0)) || exit 1
+if ((overlap_found != 0)); then
+  if [ "${QS_TEST_STALL_AFTER_OVERLAP:-0}" = 1 ]; then
+    while :; do
+      sleep 1
+    done
+  fi
+  exit 1
+fi
 
 parent_pid=$$
 owner_pid=${QS_TEST_OWNER_PID:-$PPID}
@@ -76,7 +95,9 @@ record_tmp="${process_dir}/.${parent_pid}.record.tmp"
 mv -f "$record_tmp" "$record"
 
 printf '%s started %s %s %s\n' "$(date +%s%N)" "$parent_pid" "$child_pid" "$label" >>"$lifecycle_log"
-printf 'ready\n' >"${QS_TEST_STATE_DIR}/ready.${parent_pid}"
+if [ "${QS_TEST_SUPPRESS_READY:-0}" != 1 ]; then
+  printf 'ready\n' >"${QS_TEST_STATE_DIR}/ready.${parent_pid}"
+fi
 
 cleanup() {
   local reason=$1
