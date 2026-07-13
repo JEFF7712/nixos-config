@@ -80,7 +80,15 @@ stop_persistent_children() {
   rm -rf "$persistent_pid_dir"
 }
 
-trap 'stop_persistent_children; rm -rf "$tmpdir"' EXIT
+stop_fixture_jobs() {
+  local pid
+  while IFS= read -r pid; do
+    kill "$pid" 2>/dev/null || true
+  done < <(jobs -pr)
+  wait 2>/dev/null || true
+}
+
+trap 'stop_fixture_jobs; stop_persistent_children; rm -rf "$tmpdir"' EXIT
 
 check_waybar_readiness_fake() {
   printf 'stopped\n' > "$bar_state"
@@ -428,6 +436,29 @@ check_unusual_snapshot_paths() {
 
 check_legacy_runtime_regressions() {
   local active_stat variant_stat preference_stat output="$tmpdir/legacy-runtime.out"
+  local previous_digest="" previous_log="" suite_log="$log"
+
+  run_legacy_transition() {
+    local name="$1" completion
+    shift
+    if [ -n "$previous_log" ]; then
+      assert_eq "$previous_digest" "$(sha256sum "$previous_log")" \
+        "completed legacy scenario log remains immutable"
+    fi
+    log="$tmpdir/legacy-$name.log"
+    completion="$tmpdir/legacy-$name.complete"
+    : > "$log"
+    rm -f "$completion"
+    PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
+      PROFILE_TRANSITION_TEST_COMPLETION_FILE="$completion" \
+      run_fixture_transition "$@" >"$output" 2>&1
+    [ -e "$completion" ] || {
+      printf 'FAIL: legacy scenario %s did not signal adapter completion\n' "$name" >&2
+      exit 1
+    }
+    previous_log="$log"
+    previous_digest=$(sha256sum "$previous_log")
+  }
 
   printf 'missing\n' > "$profiles/active"
   printf 'light\n' > "$profiles/active-variant"
@@ -435,8 +466,7 @@ check_legacy_runtime_regressions() {
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
   printf 'noctalia-started\n' > "$bar_state"
   printf 'noctalia\n' > "$notification_state"
-  : > "$log"
-  run_fixture_transition startup >"$output" 2>&1
+  run_legacy_transition invalid-startup startup
   assert_eq missing "$(cat "$profiles/active")" \
     "invalid startup fallback preserves the active preference"
   assert_eq light "$(cat "$profiles/active-variant")" \
@@ -456,8 +486,7 @@ check_legacy_runtime_regressions() {
   active_stat=$(stat -c '%i:%Y' "$profiles/active")
   variant_stat=$(stat -c '%i:%Y' "$profiles/active-variant")
   preference_stat=$(stat -c '%i:%Y' "$profiles/variant-old")
-  : > "$log"
-  run_fixture_transition startup >"$output" 2>&1
+  run_legacy_transition valid-startup startup
   assert_eq '* { color: old-light; }' "$(cat "$home/.config/waybar/style.css")" \
     "startup reapplies the valid active variant"
   assert_eq old "$(cat "$profiles/active")" \
@@ -480,8 +509,7 @@ check_legacy_runtime_regressions() {
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
   printf 'started\n' > "$bar_state"
   printf 'mako\n' > "$notification_state"
-  : > "$log"
-  run_fixture_transition reapply >"$output" 2>&1
+  run_legacy_transition reapply-override reapply
   assert_log_contains 'systemctl --user stop noctalia-shell' \
     "reapply stops Noctalia when a bar override may have changed"
   assert_log_contains 'pkill -f waybar' \
@@ -497,15 +525,13 @@ check_legacy_runtime_regressions() {
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
   printf 'started\n' > "$bar_state"
   printf 'mako\n' > "$notification_state"
-  : > "$log"
-  run_fixture_transition switch new >"$output" 2>&1
+  run_legacy_transition focus-on switch new
   assert_eq "$profiles/new/niri-overrides-focus.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
     "focus mode selects the target focus override"
 
   printf 'dark\n' > "$profiles/variant-noctalia"
-  : > "$log"
-  run_fixture_transition switch noctalia >"$output" 2>&1
+  run_legacy_transition focus-noctalia switch noctalia
   assert_eq "$profiles/noctalia/niri-overrides.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
     "focus mode keeps Noctalia on its normal override"
@@ -515,8 +541,7 @@ check_legacy_runtime_regressions() {
 
   printf 'off\n' > "$profiles/focus"
   printf 'dark\n' > "$profiles/variant-old"
-  : > "$log"
-  run_fixture_transition switch old >"$output" 2>&1
+  run_legacy_transition focus-off-static switch old
   assert_eq "$profiles/old/niri-overrides.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
     "non-Noctalia target uses its normal override outside focus mode"
@@ -533,13 +558,13 @@ check_legacy_runtime_regressions() {
   mkdir -p "$home/.config/matugen"
   printf 'fixture\n' > "$home/.config/matugen/config-new.toml"
   printf 'light\n' > "$profiles/variant-new"
-  : > "$log"
-  run_fixture_transition switch new >"$output" 2>&1
+  run_legacy_transition wallpaper-themed switch new
   assert_log_contains_eventually \
     "matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c $home/.config/matugen/config-new.toml active=new" \
     "wallpaper-themed profile dispatches its runtime palette adapter after commit"
-  # Noctalia intentionally delays template dispatch for four seconds.
-  sleep 4.1
+  assert_eq "$previous_digest" "$(sha256sum "$previous_log")" \
+    "final completed legacy scenario log remains immutable"
+  log="$suite_log"
 }
 
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar" "$persistent_pid_dir"

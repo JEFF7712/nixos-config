@@ -95,8 +95,12 @@ set_wallpaper() {
   # multi-megapixel image (magick) then reloads every colour consumer, so keep
   # it off the critical path: the wallpaper is already up, the palette settles a
   # beat later (same async philosophy as the per-app theme tail).
-  (apply_wallpaper_theme "$wallpaper") &
-  disown
+  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+    apply_wallpaper_theme "$wallpaper"
+  else
+    (apply_wallpaper_theme "$wallpaper") &
+    disown
+  fi
 }
 
 # profile_wallpaper_theming <profile>
@@ -302,8 +306,12 @@ apply_wallpaper_theme() {
   # path. On a profile switch this is the only spicetify apply (the switch tail
   # skips it for wallpaper-theming profiles); on a standalone wallpaper change
   # it runs here alone.
-  (apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant") &
-  disown
+  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+    apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant"
+  else
+    (apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant") &
+    disown
+  fi
 
   # The topbar reads its theme JSON only at startup; restart it to repaint.
   # This runs late in the (backgrounded) theme job, after the switch's trailing
