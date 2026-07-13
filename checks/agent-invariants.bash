@@ -119,6 +119,8 @@ check_disabled_nix_services() {
 }
 
 check_laptop_build_caps() {
+  local module=${AUTO_UPDATE_MODULE:-modules/nixos/auto-update.nix}
+  local pipeline=${FLAKE_UPDATE_PIPELINE:-home/scripts/nixos-flake-update}
   local settings
   settings=$(
     rg -U --multiline -n 'nix\s*=\s*\{[\s\S]*?settings\s*=\s*\{[\s\S]*?\};' \
@@ -131,22 +133,29 @@ check_laptop_build_caps() {
   if printf '%s\n' "$settings" | rg -q 'cores\s*=\s*0\s*;'; then
     fail "hosts/laptop/base.nix must not set nix.settings.cores = 0 (uses all CPUs per job)"
   fi
-  if ! rg -q 'OnCalendar = "hourly"' modules/nixos/auto-update.nix; then
+  if ! rg -q 'OnCalendar = "hourly"' "$module"; then
     fail "nixos-ai-tools-auto-update timer must stay hourly"
   fi
-  if ! rg -q 'skipping rebuild' home/scripts/nixos-flake-update; then
+  if ! rg -q 'skipping rebuild' "$pipeline"; then
     fail "nixos-flake-update must skip rebuild when flake.lock is unchanged"
   fi
 }
 
 check_flake_update_pipeline_wiring() {
-  local module=modules/nixos/auto-update.nix
-  local pipeline=home/scripts/nixos-flake-update
-  local invocation_count
+  local module=${AUTO_UPDATE_MODULE:-modules/nixos/auto-update.nix}
+  local pipeline=${FLAKE_UPDATE_PIPELINE:-home/scripts/nixos-flake-update}
+  local service
 
-  invocation_count=$( (rg -o 'nixos-flake-update' "$module" || true) | wc -l)
-  if [ "${invocation_count:-0}" -ne 2 ]; then
-    fail "auto-update module must reference nixos-flake-update exactly twice"
+  for service in nixos-auto-update nixos-ai-tools-auto-update; do
+    if ! rg -q "^[[:space:]]*systemd\\.services\\.$service = mkUpdateService \\{" "$module"; then
+      fail "$service must use mkUpdateService"
+    fi
+  done
+
+  if ! rg -q '^[[:space:]]*name = "nixos-flake-update";' "$module" \
+    || ! rg -q '^[[:space:]]*text = builtins\.readFile ../../home/scripts/nixos-flake-update;' "$module" \
+    || ! rg -q '^[[:space:]]*exec \$\{lib\.getExe updatePipeline\}' "$module"; then
+    fail "mkUpdateService must invoke the packaged nixos-flake-update pipeline"
   fi
 
   local operation pattern
@@ -158,10 +167,10 @@ check_flake_update_pipeline_wiring() {
       fail "auto-update module must not inline the $operation operation"
     fi
   done <<'EOF'
-eval|nix eval
-cascade|nix-cascade-guard
-commit|git .*commit
-rebuild|nixos[_-]rebuild.*switch
+eval|^[[:space:]]*if ! runuser .* -- nix eval
+cascade|^[[:space:]]*runuser .* -- "\$cascade_guard"
+commit|^[[:space:]]*runuser .* -- git .* commit
+rebuild|^[[:space:]]*"\$nixos_rebuild" switch
 EOF
 }
 

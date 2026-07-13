@@ -56,6 +56,34 @@ if ! grep -Fq "$invariant_fixture" <<<"$fixture_output"; then
   exit 1
 fi
 
+assert_auto_update_wiring_rejected() {
+  local service=$1
+  local replacement=$2
+  local fixture expected output
+  fixture=$(mktemp)
+  expected="$service must use mkUpdateService"
+  cp modules/nixos/auto-update.nix "$fixture"
+  perl -0pi -e \
+    "s/systemd\\.services\\.$service = mkUpdateService \\{/$replacement/" \
+    "$fixture"
+
+  if output=$(AUTO_UPDATE_MODULE="$fixture" bash checks/agent-invariants.bash 2>&1); then
+    rm -f "$fixture"
+    echo "agent invariants accepted missing or substituted $service wiring" >&2
+    exit 1
+  fi
+  rm -f "$fixture"
+  if ! grep -Fq "$expected" <<<"$output"; then
+    echo "agent invariants rejected $service wiring for an unexpected reason:" >&2
+    printf '%s\n' "$output" >&2
+    exit 1
+  fi
+}
+
+assert_auto_update_wiring_rejected nixos-auto-update '# deleted weekly service wiring'
+assert_auto_update_wiring_rejected nixos-ai-tools-auto-update \
+  'systemd.services.nixos-ai-tools-auto-update = {'
+
 self_improve_output=$(home/scripts/agent-self-improve --check)
 for expected in \
   'Self-improvement check' \
