@@ -121,6 +121,7 @@ check_public_delegation() {
   cp "$REPO_ROOT/home/scripts/switch-profile" "$adapter_dir/switch-profile"
   cp "$REPO_ROOT/home/scripts/toggle-variant" "$adapter_dir/toggle-variant"
   cp "$REPO_ROOT/home/scripts/profile-common" "$adapter_dir/profile-common"
+  cp "$REPO_ROOT/home/scripts/profile-manifest" "$adapter_dir/profile-manifest"
   cat > "$adapter_dir/profile-transition" <<'EOF'
 #!/usr/bin/env bash
 printf 'profile-transition %s\n' "$*" >> "$ENGINE_LOG"
@@ -562,9 +563,9 @@ check_legacy_runtime_regressions() {
     "quickshell -p $REPO_ROOT/home/configs/quickshell-switcher/shell.qml active=old" \
     "transition starts the profile switcher popup"
 
-  "$real_jq" '.wallpaperTheming = true' "$profiles/new/meta.json" \
-    > "$profiles/new/meta.json.tmp"
-  mv "$profiles/new/meta.json.tmp" "$profiles/new/meta.json"
+  "$real_jq" '.capabilities.wallpaperTheming = true' "$profiles/new/manifest.json" \
+    > "$profiles/new/manifest.json.tmp"
+  mv "$profiles/new/manifest.json.tmp" "$profiles/new/manifest.json"
   mkdir -p "$home/.config/matugen"
   printf 'fixture\n' > "$home/.config/matugen/config-new.toml"
   printf 'light\n' > "$profiles/variant-new"
@@ -584,7 +585,7 @@ check_legacy_runtime_regressions() {
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar" "$persistent_pid_dir"
 
 for utility in awk bash basename cat chmod cp cut dirname env find flock grep head install ln mkdir \
-  mktemp mv paste readlink rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
+  mktemp mv paste readlink realpath rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
   utility_path=$(command -v "$utility")
   ln -s "$utility_path" "$bin_dir/$utility"
 done
@@ -604,6 +605,12 @@ for profile in old new; do
   printf 'gtk4-%s-light\n' "$profile" > "$profile_dir/gtk-4.0-light.css"
   printf 'qt-%s-dark\n' "$profile" > "$profile_dir/qt6ct.conf"
   printf 'qt-%s-light\n' "$profile" > "$profile_dir/qt6ct-light.conf"
+  printf 'rofi-%s-dark\n' "$profile" > "$profile_dir/rofi-theme.rasi"
+  printf 'rofi-%s-light\n' "$profile" > "$profile_dir/rofi-theme-light.rasi"
+  printf 'fish-%s-dark\n' "$profile" > "$profile_dir/fish-theme.fish"
+  printf 'fish-%s-light\n' "$profile" > "$profile_dir/fish-theme-light.fish"
+  printf 'starship-%s-dark\n' "$profile" > "$profile_dir/starship.toml"
+  printf 'starship-%s-light\n' "$profile" > "$profile_dir/starship-light.toml"
   printf 'layout { gaps 8; }\n' > "$profile_dir/niri-overrides.kdl"
   printf '{"profile":"%s"}\n' "$profile" > "$profile_dir/waybar-config.jsonc"
   printf '* { color: %s-dark; }\n' "$profile" > "$profile_dir/waybar-style.css"
@@ -621,19 +628,54 @@ for profile in old new; do
     | .cursor = "fixture-cursor" | .cursorSize = 28' \
     "$profiles/$profile/meta.json" > "$profiles/$profile/meta.json.tmp"
   mv "$profiles/$profile/meta.json.tmp" "$profiles/$profile/meta.json"
+  wallpaper_dir="$profiles/$profile/wallpapers"
+  "$real_jq" -n --arg name "$profile" --arg wallpaper "$wallpaper_dir" '
+    {
+      schemaVersion: 1,
+      name: $name,
+      capabilities: {
+        selfThemed: false, wallpaperTheming: false, colorEngine: "matugen",
+        matugenScheme: "scheme-tonal-spot", wallpaperAccentVivid: false,
+        obsidianWallpaperTheme: false
+      },
+      transition: {
+        defaultBar: "waybar",
+        cursor: {theme: "fixture-cursor", size: 28},
+        fonts: {ui: {family: "Fixture UI", size: 12}, mono: {family: "Fixture Mono", size: 15}},
+        appearance: {gtkTheme: "fixture-dark", gtkThemeLight: "fixture-light", iconTheme: "fixture-icons-dark", iconThemeLight: "fixture-icons-light", kittyOpacity: 0.8}
+      },
+      variants: {
+        dark: {wallpaperDirectory: $wallpaper, adapters: {}, artifacts: {kitty: "kitty-colors.conf", gtk3: "gtk-3.0.css", gtk4: "gtk-4.0.css", qt6: "qt6ct.conf", rofi: "rofi-theme.rasi", fish: "fish-theme.fish", starship: "starship.toml"}},
+        light: {wallpaperDirectory: $wallpaper, adapters: {}, artifacts: {kitty: "kitty-colors-light.conf", gtk3: "gtk-3.0-light.css", gtk4: "gtk-4.0-light.css", qt6: "qt6ct-light.conf", rofi: "rofi-theme-light.rasi", fish: "fish-theme-light.fish", starship: "starship-light.toml"}}
+      },
+      artifacts: {
+        niri: {default: "niri-overrides.kdl", focus: "niri-overrides-focus.kdl"},
+        waybar: {config: "waybar-config.jsonc", dark: "waybar-style.css", light: "waybar-style-light.css"},
+        mako: {dark: "mako-config", light: "mako-config-light"}
+      }
+    }' > "$profiles/$profile/manifest.json"
+  rm "$profiles/$profile/meta.json" "$profiles/$profile/runtime.json" \
+    "$profiles/$profile/wallpaper-dir" "$profiles/$profile/wallpaper-dir-light"
 done
 
 cp -a "$profiles/old" "$profiles/qs"
-printf '{"bar":"quickshell","selfThemed":false,"hasLightVariant":true,"cursor":"default","cursorSize":24}\n' \
-  > "$profiles/qs/meta.json"
+"$real_jq" '.name = "qs" | .transition.defaultBar = "quickshell"
+  | .artifacts.quickshell = {dark: "quickshell-theme.json", light: "quickshell-theme-light.json"}' \
+  "$profiles/qs/manifest.json" > "$profiles/qs/manifest.json.tmp"
+mv "$profiles/qs/manifest.json.tmp" "$profiles/qs/manifest.json"
 printf '{"payload":"qs-dark"}\n' > "$profiles/qs/quickshell-theme.json"
 printf '{"payload":"qs-light"}\n' > "$profiles/qs/quickshell-theme-light.json"
 cp -a "$profiles/old" "$profiles/noc"
-printf '{"bar":"noctalia","selfThemed":true,"hasLightVariant":false,"cursor":"default","cursorSize":24}\n' \
-  > "$profiles/noc/meta.json"
+"$real_jq" '.name = "noc" | .transition.defaultBar = "noctalia"
+  | .capabilities.selfThemed = true | del(.variants.light)' \
+  "$profiles/noc/manifest.json" > "$profiles/noc/manifest.json.tmp"
+mv "$profiles/noc/manifest.json.tmp" "$profiles/noc/manifest.json"
 cp -a "$profiles/noc" "$profiles/noctalia"
+"$real_jq" '.name = "noctalia"' "$profiles/noctalia/manifest.json" \
+  > "$profiles/noctalia/manifest.json.tmp"
+mv "$profiles/noctalia/manifest.json.tmp" "$profiles/noctalia/manifest.json"
 printf 'layout { gaps 4; }\n' > "$profiles/noctalia/niri-overrides-focus.kdl"
-for profile in old new; do
+for profile in old new qs noc; do
   printf 'layout { gaps 4; }\n' > "$profiles/$profile/niri-overrides-focus.kdl"
 done
 

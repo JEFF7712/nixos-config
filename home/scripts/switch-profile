@@ -32,7 +32,7 @@ mark() {
 }
 
 profile_status() {
-  local active variant meta bar self link_target expected_target wallpaper_dir
+  local active variant bar self link_target expected_target wallpaper_dir
 
   active=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
   variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
@@ -41,9 +41,9 @@ profile_status() {
     return 1
   fi
 
-  meta="$PROFILES_DIR/$active/meta.json"
+  profile_manifest_validate "$active" "$variant"
   bar=$(profile_bar "$active")
-  self=$(jq -r '.selfThemed // false' "$meta" 2>/dev/null || echo "false")
+  self=$(profile_manifest_capability "$active" selfThemed)
 
   bar_note=""
   [ -s "$PROFILES_DIR/bar-$active" ] && bar_note=" [override]"
@@ -81,9 +81,9 @@ profile_status() {
 
   link_target=$(readlink "$ACTIVE_LINK" 2>/dev/null || echo "")
   if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$active" != "noctalia" ]; then
-    expected_target="$PROFILES_DIR/$active/niri-overrides-focus.kdl"
+    expected_target=$(profile_manifest_artifact "$active" "$variant" niri.focus)
   else
-    expected_target="$PROFILES_DIR/$active/niri-overrides.kdl"
+    expected_target=$(profile_manifest_artifact "$active" "$variant" niri.default)
   fi
   if [ "$link_target" = "$expected_target" ]; then
     mark ok "niri overrides symlink$([ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && echo ' [focus]')"
@@ -91,9 +91,7 @@ profile_status() {
     mark fail "niri overrides symlink (-> ${link_target:-none})"
   fi
 
-  wallpaper_dir=$(cat "$(pick_variant_file "$variant" \
-    "$PROFILES_DIR/$active/wallpaper-dir" \
-    "$PROFILES_DIR/$active/wallpaper-dir-light")" 2>/dev/null || echo "")
+  wallpaper_dir=$(profile_manifest_wallpaper_dir "$active" "$variant")
   if [ "$self" = "true" ] || [ -d "$wallpaper_dir" ]; then
     mark ok "wallpaper dir"
   else

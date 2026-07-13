@@ -10,11 +10,11 @@ profile_manifest_path() {
 _profile_manifest_jq() {
   local profile="$1"
   shift
-  jq -er "$@" "$(profile_manifest_path "$profile")"
+  jq -r "$@" "$(profile_manifest_path "$profile")"
 }
 
 profile_manifest_has_variant() {
-  _profile_manifest_jq "$1" --arg variant "$2" '.variants | has($variant)' >/dev/null
+  jq -e --arg variant "$2" '.variants | has($variant)' "$(profile_manifest_path "$1")" >/dev/null
 }
 
 profile_manifest_validate() {
@@ -83,10 +83,10 @@ profile_manifest_wallpaper_dir() {
 
 profile_manifest_artifact() {
   local profile="$1" variant="$2" key="$3" relative
-  relative=$(_profile_manifest_jq "$profile" --arg variant "$variant" --arg key "$key" '
+  relative=$(jq -er --arg variant "$variant" --arg key "$key" '
     (.variants[$variant].artifacts | getpath($key | split(".")))
     // (.artifacts | getpath($key | split(".")))
-  ')
+  ' "$(profile_manifest_path "$profile")")
   printf '%s/%s/%s\n' "$PROFILES_DIR" "$profile" "$relative"
 }
 

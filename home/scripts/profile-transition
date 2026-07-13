@@ -32,7 +32,7 @@ read_state() {
 }
 
 has_light_variant() {
-  [ "$(jq -r '.hasLightVariant // false' "$PROFILES_DIR/$1/meta.json" 2>/dev/null)" = "true" ]
+  profile_manifest_has_variant "$1" light
 }
 
 stop_bar() {
@@ -127,19 +127,17 @@ start_bar() {
 
 stage_bar_files() {
   local bar="$1" profile_dir="$2" variant="$3" stage_dir="$4"
-  local stage_config="$stage_dir/home/.config" style mako_config
+  local stage_config="$stage_dir/home/.config" style mako_config profile
   [ "$bar" = waybar ] || return 0
+  profile=$(basename "$profile_dir")
   mkdir -p "$stage_config/waybar" "$stage_config/mako"
-  if [ -s "$profile_dir/waybar-config.jsonc" ]; then
-    install -m 644 "$profile_dir/waybar-config.jsonc" "$stage_config/waybar/config.jsonc"
-  fi
-  style=$(pick_variant_file "$variant" \
-    "$profile_dir/waybar-style.css" "$profile_dir/waybar-style-light.css")
+  install -m 644 "$(profile_manifest_artifact "$profile" "$variant" waybar.config)" \
+    "$stage_config/waybar/config.jsonc"
+  style=$(profile_manifest_artifact "$profile" "$variant" "waybar.$variant")
   if [ -s "$style" ]; then
     install -m 644 "$style" "$stage_config/waybar/style.css"
   fi
-  mako_config=$(pick_variant_file "$variant" \
-    "$profile_dir/mako-config" "$profile_dir/mako-config-light")
+  mako_config=$(profile_manifest_artifact "$profile" "$variant" "mako.$variant")
   if [ -s "$mako_config" ]; then
     install -m 644 "$mako_config" "$stage_config/mako/config"
   fi
@@ -184,10 +182,10 @@ apply_system_preferences() {
   local cursor cursor_size gtk_theme icon_theme color_scheme failed=0
   IFS=$'\t' read -r cursor cursor_size gtk_theme icon_theme < <(
     jq -r --arg variant "$TARGET_VARIANT" '
-      [(.cursor // "default"), (.cursorSize // 24),
-       (if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end),
-       (if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end)] | @tsv' \
-      "$TARGET_DIR/meta.json"
+      [.transition.cursor.theme, .transition.cursor.size,
+       (if $variant == "light" then (.transition.appearance.gtkThemeLight // .transition.appearance.gtkTheme) else .transition.appearance.gtkTheme end),
+       (if $variant == "light" then (.transition.appearance.iconThemeLight // .transition.appearance.iconTheme) else .transition.appearance.iconTheme end)] | @tsv' \
+      "$TARGET_DIR/manifest.json"
   )
   color_scheme=prefer-dark
   [ "$TARGET_VARIANT" != light ] || color_scheme=prefer-light
@@ -462,22 +460,21 @@ case "$MODE" in
 esac
 
 [ -d "$PROFILES_DIR/$TARGET" ] || { echo "Error: profile '$TARGET' not found." >&2; exit 1; }
+profile_manifest_validate "$TARGET" "$TARGET_VARIANT"
 if [ "$TARGET_VARIANT" = "light" ] && ! has_light_variant "$TARGET"; then
   echo "Error: profile '$TARGET' has no light variant." >&2
   exit 1
 fi
 
 TARGET_DIR="$PROFILES_DIR/$TARGET"
-TARGET_RUNTIME="$TARGET_DIR/runtime.json"
-TARGET_SELF_THEMED=$(jq -r '.selfThemed // false' "$TARGET_DIR/meta.json" 2>/dev/null || echo false)
-TARGET_WALLPAPER_DIR_FILE=$(pick_variant_file "$TARGET_VARIANT" \
-  "$TARGET_DIR/wallpaper-dir" "$TARGET_DIR/wallpaper-dir-light")
-TARGET_WALLPAPER_DIR=$(cat "$TARGET_WALLPAPER_DIR_FILE" 2>/dev/null || echo "")
+TARGET_RUNTIME="$TARGET_DIR/manifest.json"
+TARGET_SELF_THEMED=$(profile_manifest_capability "$TARGET" selfThemed)
+TARGET_WALLPAPER_DIR=$(profile_manifest_wallpaper_dir "$TARGET" "$TARGET_VARIANT")
 
 OLD_ACTIVE=$(read_state "$ACTIVE_FILE" "")
 OLD_VARIANT=$(read_state "$VARIANT_FILE" "dark")
 CURRENT_BAR="noctalia"
-if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
+if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/manifest.json" ]; then
   CURRENT_BAR=$(profile_bar "$OLD_ACTIVE")
 fi
 TARGET_BAR=$(profile_bar "$TARGET")
@@ -618,7 +615,7 @@ rollback() {
   rollback_try "target bar stop" stop_bar "$TARGET_BAR"
   rollback_try "snapshot restore" restore_snapshot
   rollback_try "Niri reload" niri msg action load-config-file
-  if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
+  if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/manifest.json" ]; then
     rollback_try "previous bar restart" start_bar "$CURRENT_BAR" "$OLD_ACTIVE" "$OLD_VARIANT"
     rollback_try "previous bar verification" verify_bar "$CURRENT_BAR"
   fi
@@ -707,9 +704,9 @@ else
   stop_bar "$CURRENT_BAR"
 fi
 install_staged_files
-NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides.kdl"
+NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.default)
 if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
-  NIRI_OVERRIDE="$PROFILES_DIR/$TARGET/niri-overrides-focus.kdl"
+  NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.focus)
 fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
 niri msg action load-config-file >/dev/null 2>&1

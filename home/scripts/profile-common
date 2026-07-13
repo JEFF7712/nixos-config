@@ -12,7 +12,7 @@ REPO_HOME="$(dirname "$(dirname "$PROFILE_COMMON_PATH")")"
 ASSETS_HOME="${ASSETS_HOME:-$HOME/nixos-assets}"
 
 PROFILES_DIR="$HOME/.config/desktop-profiles"
-. "$REPO_HOME/scripts/profile-manifest"
+. "$(dirname "$PROFILE_COMMON_PATH")/profile-manifest"
 ACTIVE_FILE="$PROFILES_DIR/active"
 VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
@@ -114,7 +114,7 @@ set_wallpaper() {
 # profile_wallpaper_theming <profile>
 # True when the profile opts into runtime matugen re-theming.
 profile_wallpaper_theming() {
-  [ "$(jq -r '.wallpaperTheming // false' "$PROFILES_DIR/$1/meta.json" 2>/dev/null)" = "true" ]
+  [ "$(profile_manifest_capability "$1" wallpaperTheming)" = "true" ]
 }
 
 # Accent colors are a pure function of the wallpaper, but computing one means
@@ -247,7 +247,7 @@ apply_wallpaper_theme() {
   mode="dark"
   [ "$variant" = "light" ] && mode="light"
 
-  engine=$(jq -r '.colorEngine // "matugen"' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)
+  engine=$(profile_manifest_capability "$profile" colorEngine)
   [ -n "$engine" ] && [ "$engine" != "null" ] || engine="matugen"
 
   # The engines overwrite whole files; make sure the destinations exist.
@@ -275,12 +275,12 @@ apply_wallpaper_theme() {
     cfg="$CONFIG_HOME/matugen/config-$profile.toml"
     [ -f "$cfg" ] || cfg="$CONFIG_HOME/matugen/config.toml"
     [ -f "$cfg" ] || return 0
-    if [ "$(jq -r '.wallpaperAccentVivid // false' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)" = "true" ]; then
+    if [ "$(profile_manifest_capability "$profile" wallpaperAccentVivid)" = "true" ]; then
       color=$(matugen_vivid_color "$frame")
     else
       color=$(matugen_source_color "$frame")
     fi
-    scheme=$(jq -r '.matugenScheme // "scheme-tonal-spot"' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)
+    scheme=$(profile_manifest_capability "$profile" matugenScheme)
     [ -n "$scheme" ] && [ "$scheme" != "null" ] || scheme="scheme-tonal-spot"
     matugen color hex "$color" --mode "$mode" --type "$scheme" -c "$cfg" >/dev/null 2>&1 || return 0
     # The matugen templates surface the seed verbatim as {{colors.source_color}},
@@ -288,7 +288,7 @@ apply_wallpaper_theme() {
     accent="$color"
     # Optionally re-theme the Obsidian vault: fixed greys, accent = wallpaper
     # (matugen can't merge appearance.json, so this is a separate step).
-    if [ "$(jq -r '.obsidianWallpaperTheme // false' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)" = "true" ]; then
+    if [ "$(profile_manifest_capability "$profile" obsidianWallpaperTheme)" = "true" ]; then
       apply_obsidian_sharp "$variant" "$accent"
     fi
     # Sharp (and any matugen profile that stages a Comfy scheme body) merges into
@@ -322,9 +322,9 @@ apply_wallpaper_theme() {
   # skips it for wallpaper-theming profiles); on a standalone wallpaper change
   # it runs here alone.
   if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant"
+    apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant"
   else
-    (apply_spicetify_theme "$PROFILES_DIR/$profile/runtime.json" "$variant") &
+    (apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant") &
     disown
   fi
 
@@ -394,7 +394,7 @@ profile_bar() {
   if [ -s "$ov" ]; then
     cat "$ov"
   else
-    jq -r '.bar // "noctalia"' "$PROFILES_DIR/$name/meta.json" 2>/dev/null || echo "noctalia"
+    profile_manifest_bar "$name"
   fi
 }
 
@@ -491,8 +491,8 @@ apply_profile_fonts() {
 
   local ui_font ui_size mono_font mono_size
   IFS=$'\t' read -r ui_font ui_size mono_font mono_size < <(
-    jq -r '[.fonts.ui.family // "JetBrainsMono Nerd Font", .fonts.ui.size // 11,
-            .fonts.mono.family // "JetBrainsMono Nerd Font", .fonts.mono.size // 14] | @tsv' "$meta_file"
+    jq -r '[.transition.fonts.ui.family, .transition.fonts.ui.size,
+            .transition.fonts.mono.family, .transition.fonts.mono.size] | @tsv' "$meta_file"
   )
 
   gsettings set org.gnome.desktop.interface font-name "$ui_font $ui_size" 2>/dev/null || true
@@ -509,8 +509,8 @@ apply_profile_font_files() {
 
   local ui_font ui_size mono_font mono_size
   IFS=$'\t' read -r ui_font ui_size mono_font mono_size < <(
-    jq -r '[.fonts.ui.family // "JetBrainsMono Nerd Font", .fonts.ui.size // 11,
-            .fonts.mono.family // "JetBrainsMono Nerd Font", .fonts.mono.size // 14] | @tsv' "$meta_file"
+    jq -r '[.transition.fonts.ui.family, .transition.fonts.ui.size,
+            .transition.fonts.mono.family, .transition.fonts.mono.size] | @tsv' "$meta_file"
   )
 
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-font-name "$ui_font $ui_size"
@@ -557,9 +557,9 @@ apply_profile_appearance() {
   local gtk_theme icon_theme kitty_opacity
   IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity < <(
     jq -r --arg variant "$variant" '
-      [ (if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end),
-        (if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end),
-        (.appearance.kittyOpacity // 1.0) ] | @tsv' "$meta_file"
+      [ (if $variant == "light" then (.transition.appearance.gtkThemeLight // .transition.appearance.gtkTheme) else .transition.appearance.gtkTheme end),
+        (if $variant == "light" then (.transition.appearance.iconThemeLight // .transition.appearance.iconTheme) else .transition.appearance.iconTheme end),
+        .transition.appearance.kittyOpacity ] | @tsv' "$meta_file"
   )
 
   gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
@@ -577,9 +577,9 @@ apply_profile_appearance_files() {
   local gtk_theme icon_theme kitty_opacity
   IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity < <(
     jq -r --arg variant "$variant" '
-      [ (if $variant == "light" then (.appearance.gtkThemeLight // .appearance.gtkTheme // "adw-gtk3") else (.appearance.gtkTheme // "adw-gtk3-dark") end),
-        (if $variant == "light" then (.appearance.iconThemeLight // .appearance.iconTheme // "Papirus-Light") else (.appearance.iconTheme // "Papirus-Dark") end),
-        (.appearance.kittyOpacity // 1.0) ] | @tsv' "$meta_file"
+      [ (if $variant == "light" then (.transition.appearance.gtkThemeLight // .transition.appearance.gtkTheme) else .transition.appearance.gtkTheme end),
+        (if $variant == "light" then (.transition.appearance.iconThemeLight // .transition.appearance.iconTheme) else .transition.appearance.iconTheme end),
+        .transition.appearance.kittyOpacity ] | @tsv' "$meta_file"
   )
 
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
@@ -596,7 +596,7 @@ apply_profile_cursor_files() {
   local config_root="$1" meta_file="$2" cursor cursor_size
   [ -f "$meta_file" ] || return 0
   IFS=$'\t' read -r cursor cursor_size < <(
-    jq -r '[.cursor // "default", .cursorSize // 24] | @tsv' "$meta_file"
+    jq -r '[.transition.cursor.theme, .transition.cursor.size] | @tsv' "$meta_file"
   )
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-cursor-theme-name "$cursor"
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-cursor-theme-size "$cursor_size"
@@ -608,7 +608,7 @@ stage_profile_core_files() {
   local profile_dir="$1" variant="$2" stage_dir="$3"
   local stage_home="$stage_dir/home" stage_config
   stage_config="$stage_home/.config"
-  local relative source destination self_themed
+  local relative source destination self_themed profile
   local -a mutable=(
     .config/gtk-3.0/settings.ini
     .config/gtk-4.0/settings.ini
@@ -629,16 +629,17 @@ stage_profile_core_files() {
     fi
   done
 
-  self_themed=$(jq -r '.selfThemed // false' "$profile_dir/meta.json" 2>/dev/null || echo false)
+  profile=$(basename "$profile_dir")
+  self_themed=$(profile_manifest_capability "$profile" selfThemed)
   if [ "$self_themed" != true ]; then
     local gtk3 gtk4 qt6 kitty rofi fish starship
-    gtk3=$(pick_variant_file "$variant" "$profile_dir/gtk-3.0.css" "$profile_dir/gtk-3.0-light.css")
-    gtk4=$(pick_variant_file "$variant" "$profile_dir/gtk-4.0.css" "$profile_dir/gtk-4.0-light.css")
-    qt6=$(pick_variant_file "$variant" "$profile_dir/qt6ct.conf" "$profile_dir/qt6ct-light.conf")
-    kitty=$(pick_variant_file "$variant" "$profile_dir/kitty-colors.conf" "$profile_dir/kitty-colors-light.conf")
-    rofi=$(pick_variant_file "$variant" "$profile_dir/rofi-theme.rasi" "$profile_dir/rofi-theme-light.rasi")
-    fish=$(pick_variant_file "$variant" "$profile_dir/fish-theme.fish" "$profile_dir/fish-theme-light.fish")
-    starship=$(pick_variant_file "$variant" "$profile_dir/starship.toml" "$profile_dir/starship-light.toml")
+    gtk3=$(profile_manifest_artifact "$profile" "$variant" gtk3)
+    gtk4=$(profile_manifest_artifact "$profile" "$variant" gtk4)
+    qt6=$(profile_manifest_artifact "$profile" "$variant" qt6)
+    kitty=$(profile_manifest_artifact "$profile" "$variant" kitty)
+    rofi=$(profile_manifest_artifact "$profile" "$variant" rofi)
+    fish=$(profile_manifest_artifact "$profile" "$variant" fish)
+    starship=$(profile_manifest_artifact "$profile" "$variant" starship)
     while IFS=$'\t' read -r source destination; do
       [ -s "$source" ] || continue
       mkdir -p "$(dirname "$destination")"
@@ -655,9 +656,9 @@ $starship	$stage_config/starship_matugen.toml
 EOF
   fi
 
-  apply_profile_cursor_files "$stage_config" "$profile_dir/meta.json"
-  apply_profile_font_files "$stage_config" "$profile_dir/meta.json"
-  apply_profile_appearance_files "$stage_config" "$profile_dir/meta.json" "$variant"
+  apply_profile_cursor_files "$stage_config" "$profile_dir/manifest.json"
+  apply_profile_font_files "$stage_config" "$profile_dir/manifest.json"
+  apply_profile_appearance_files "$stage_config" "$profile_dir/manifest.json" "$variant"
 }
 
 # nudge_gtk_reload
