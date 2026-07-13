@@ -117,11 +117,14 @@
         done
         runuser -u rupan -- nix flake update --flake "path:$repo" \
           claude-code-nix codex-cli-nix code-cursor-nix
+        # Upstream AI flakes sometimes ship a version bump before hashes land
+        # (e.g. codex-cli code-mode-host). Soft-defer like cascade-guard so the
+        # hourly timer doesn't spam failure notifications; retry next hour.
         if ! runuser -u rupan -- nix eval --no-write-lock-file \
             "path:$repo#nixosConfigurations.laptop.config.system.build.toplevel.drvPath" >/dev/null; then
           runuser -u rupan -- git -C "$repo" checkout -- flake.lock
-          echo "updated AI tool inputs fail eval; flake.lock reverted" >&2
-          exit 1
+          echo "deferred: updated AI tool inputs fail eval; flake.lock reverted, will retry next run" >&2
+          exit 0
         fi
         if runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock; then
           echo "AI tool flake.lock unchanged; skipping rebuild"
