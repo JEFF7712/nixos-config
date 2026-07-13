@@ -321,8 +321,12 @@ apply_wallpaper_theme() {
   if [ "$(profile_bar "$profile")" = "quickshell" ]; then
     stop_mako
     pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
-    quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
-    disown
+    if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1
+    else
+      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
+      disown
+    fi
   fi
 
   # Wallpaper-driven niri focus-ring colour. niri reliably re-reads the

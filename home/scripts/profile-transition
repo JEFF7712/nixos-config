@@ -223,7 +223,7 @@ apply_noctalia_wallpaper() {
     | sed 's/^Output ".*" (\(.*\))/\1/')
 
   run_noctalia_wallpaper_job() {
-    local first=1 screen shell_path shell_base scripts
+    local first=1 screen shell_path shell_base scripts template_delay=4
     while IFS= read -r screen; do
       [ -n "$screen" ] || continue
       if [ "$first" -eq 1 ]; then
@@ -236,7 +236,8 @@ apply_noctalia_wallpaper() {
         noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
       fi
     done <<< "$screens"
-    sleep 4
+    [ -z "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ] || template_delay=0
+    sleep "$template_delay"
     shell_path=$(readlink -f "$(command -v noctalia-shell)")
     shell_base="${shell_path%/bin/noctalia-shell}"
     scripts="$shell_base/share/noctalia-shell/Scripts/python/src/theming"
@@ -293,8 +294,12 @@ restart_swayosd() {
 start_profile_switcher() {
   local switcher_path="$REPO_HOME/configs/quickshell-switcher/shell.qml"
   pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1 && return 0
-  quickshell -p "$switcher_path" 9>&- >/dev/null 2>&1 &
-  disown
+  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+    quickshell -p "$switcher_path" 9>&- >/dev/null 2>&1
+  else
+    quickshell -p "$switcher_path" 9>&- >/dev/null 2>&1 &
+    disown
+  fi
 }
 
 reload_kitty() {
@@ -711,5 +716,8 @@ verify_bar "$TARGET_BAR"
 commit_transaction
 flock -u 9
 exec 9>&-
+if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+  export PROFILE_TRANSITION_TEST_POST_COMMIT=1
+fi
 dispatch_post_commit_adapters
 exit 0

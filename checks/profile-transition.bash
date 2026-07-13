@@ -437,6 +437,9 @@ check_unusual_snapshot_paths() {
 check_legacy_runtime_regressions() {
   local active_stat variant_stat preference_stat output="$tmpdir/legacy-runtime.out"
   local previous_digest="" previous_log="" suite_log="$log"
+  local adapter_children="$tmpdir/legacy-adapter-children"
+
+  mkdir -p "$adapter_children"
 
   run_legacy_transition() {
     local name="$1" completion
@@ -451,11 +454,17 @@ check_legacy_runtime_regressions() {
     rm -f "$completion"
     PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
       PROFILE_TRANSITION_TEST_COMPLETION_FILE="$completion" \
+      FIXTURE_ADAPTER_CHILD_DIR="$adapter_children" \
       run_fixture_transition "$@" >"$output" 2>&1
     [ -e "$completion" ] || {
       printf 'FAIL: legacy scenario %s did not signal adapter completion\n' "$name" >&2
       exit 1
     }
+    if find "$adapter_children" -mindepth 1 -print -quit | grep -q .; then
+      printf 'FAIL: legacy scenario %s completed with a post-commit child running\n' \
+        "$name" >&2
+      exit 1
+    fi
     previous_log="$log"
     previous_digest=$(sha256sum "$previous_log")
   }
@@ -558,10 +567,14 @@ check_legacy_runtime_regressions() {
   mkdir -p "$home/.config/matugen"
   printf 'fixture\n' > "$home/.config/matugen/config-new.toml"
   printf 'light\n' > "$profiles/variant-new"
+  printf 'quickshell\n' > "$profiles/bar-new"
   run_legacy_transition wallpaper-themed switch new
   assert_log_contains_eventually \
     "matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c $home/.config/matugen/config-new.toml active=new" \
     "wallpaper-themed profile dispatches its runtime palette adapter after commit"
+  assert_log_contains \
+    "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=new" \
+    "wallpaper theme waits for its post-commit Quickshell relaunch"
   assert_eq "$previous_digest" "$(sha256sum "$previous_log")" \
     "final completed legacy scenario log remains immutable"
   log="$suite_log"
@@ -747,6 +760,15 @@ cat > "$bin_dir/quickshell" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf 'quickshell %s active=%s\n' "$*" "$active" >> "$COMMAND_LOG"
+child_file=""
+if [ -n "${PROFILE_TRANSITION_TEST_POST_COMMIT:-}" ] \
+  && [ -n "${FIXTURE_ADAPTER_CHILD_DIR:-}" ]; then
+  mkdir -p "$FIXTURE_ADAPTER_CHILD_DIR"
+  child_file="$FIXTURE_ADAPTER_CHILD_DIR/$$"
+  printf '%s\n' "$*" > "$child_file"
+  trap 'rm -f "$child_file"' EXIT
+  sleep 0.1
+fi
 case "$*" in
   *quickshell-switcher/shell.qml*) exit 0 ;;
 esac
