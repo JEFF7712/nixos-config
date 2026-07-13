@@ -142,13 +142,19 @@ ShellRoot {
                 root.themeWarm = theme.warm;
             if (theme.fresh)
                 root.themeFresh = theme.fresh;
-            if (theme.barRadius)
+            if (theme.barRadius !== undefined && theme.barRadius !== "")
                 root.barRadius = parseInt(theme.barRadius);
-            if (theme.barHeight)
+            if (theme.barHeight !== undefined && theme.barHeight !== "")
                 root.barHeight = parseInt(theme.barHeight);
-            if (theme.barMargin)
+            if (theme.barMargin !== undefined && theme.barMargin !== "") {
                 root.barMargin = parseInt(theme.barMargin);
-            if (theme.barMarginTop !== undefined)
+                // Themes often set barMargin alone (nord/sharp flush). Keep top
+                // in sync unless they override barMarginTop explicitly — reset
+                // breaks the QML binding of barMarginTop to barMargin.
+                if (theme.barMarginTop === undefined)
+                    root.barMarginTop = root.barMargin;
+            }
+            if (theme.barMarginTop !== undefined && theme.barMarginTop !== "")
                 root.barMarginTop = parseInt(theme.barMarginTop);
             if (theme.exclusiveZoneOffset !== undefined)
                 root.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset);
