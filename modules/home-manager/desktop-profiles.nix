@@ -11,6 +11,9 @@ let
   profileFiles = import ../../lib/desktop-profiles/files.nix {
     inherit lib runtimeDefaults;
   };
+  profileArtifact = import ../../lib/desktop-profiles/artifact.nix {
+    inherit lib profileFiles;
+  };
   profileGsettings =
     pkgs.runCommand "desktop-profile-gsettings" { nativeBuildInputs = [ pkgs.makeWrapper ]; }
       ''
@@ -137,7 +140,7 @@ in
       );
 
     home.file = lib.mkMerge (
-      lib.mapAttrsToList profileFiles.generateProfileFiles config.desktopProfiles.profiles
+      lib.mapAttrsToList profileArtifact.compile config.desktopProfiles.profiles
     );
 
     home.activation.initDesktopProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

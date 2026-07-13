@@ -253,30 +253,10 @@ let
       }
     );
 
-  generateProfileFiles =
+  renderProfileFiles =
     name: profile:
     let
       base = {
-        ".config/desktop-profiles/${name}/meta.json".text = builtins.toJSON {
-          inherit (profile)
-            bar
-            selfThemed
-            wallpaperTheming
-            colorEngine
-            matugenScheme
-            wallpaperAccentVivid
-            obsidianWallpaperTheme
-            ;
-          cursor = profile.cursor.theme;
-          cursorSize = profile.cursor.size;
-          inherit (profile) fonts;
-          inherit (profile) appearance;
-          hasLightVariant = hasLight profile;
-        };
-        ".config/desktop-profiles/${name}/runtime.json".text = builtins.toJSON (runtimeFor name profile);
-        ".config/desktop-profiles/${name}/wallpaper-dir".text = profile.wallpaperDir;
-        ".config/desktop-profiles/${name}/wallpaper-dir-light".text =
-          if profile.wallpaperDirLight != null then profile.wallpaperDirLight else profile.wallpaperDir;
         ".config/desktop-profiles/${name}/gtk-3.0.css".text = orEmpty profile.colors.gtk3;
         ".config/desktop-profiles/${name}/gtk-4.0.css".text = orEmpty profile.colors.gtk4;
         ".config/desktop-profiles/${name}/qt6ct.conf".text = orEmpty profile.colors.qt6;
@@ -350,8 +330,8 @@ in
 {
   inherit
     generateNiriOverrides
-    generateProfileFiles
     hasLight
+    renderProfileFiles
     runtimeFor
     ;
 }

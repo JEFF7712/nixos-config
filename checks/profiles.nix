@@ -68,8 +68,34 @@ let
   checkProfile =
     name: pf:
     let
-      meta = builtins.fromJSON (pf."meta.json" or "null");
-      self = meta.selfThemed or false;
+      stringsOf =
+        value:
+        if builtins.isString value then
+          [ value ]
+        else if builtins.isAttrs value then
+          builtins.concatLists (map stringsOf (builtins.attrValues value))
+        else
+          [ ];
+      manifestText =
+        pf."manifest.json" or (builtins.throw "profile '${name}': no manifest.json rendered");
+      manifest = builtins.fromJSON manifestText;
+      self = manifest.capabilities.selfThemed or false;
+      variants = manifest.variants or { };
+      artifactRefs =
+        stringsOf (manifest.artifacts or { })
+        ++ builtins.concatLists (
+          map (variant: stringsOf (variant.artifacts or { })) (builtins.attrValues variants)
+        );
+      unsafeArtifacts = builtins.filter (
+        path: builtins.substring 0 1 path == "/" || builtins.match "(^|.*/)\.\.(/.*|$)" path != null
+      ) artifactRefs;
+      missingArtifacts = builtins.filter (path: !(pf ? ${path})) artifactRefs;
+      legacy = builtins.filter (file: pf ? ${file}) [
+        "meta.json"
+        "runtime.json"
+        "wallpaper-dir"
+        "wallpaper-dir-light"
+      ];
       empties = builtins.filter (f: (pf ? ${f}) && (builtins.stringLength pf.${f} == 0)) colorFiles;
       missingVicinaeThemes = builtins.filter (f: !(pf ? ${f})) vicinaeThemeFiles;
       vicinaeThemeBad =
@@ -81,8 +107,30 @@ let
       niriOverrides = pf."niri-overrides.kdl" or "";
       niriFocus = pf."niri-overrides-focus.kdl" or "";
     in
-    if pf ? "meta.json" == false then
-      builtins.throw "profile '${name}': no meta.json rendered"
+    if manifest.schemaVersion or null != 1 then
+      builtins.throw "profile '${name}': unsupported manifest schema version"
+    else if manifest.name or null != name then
+      builtins.throw "profile '${name}': manifest name mismatch"
+    else if !(builtins.isAttrs (manifest.capabilities or null)) then
+      builtins.throw "profile '${name}': manifest capabilities must be an object"
+    else if !(builtins.isAttrs (manifest.transition or null)) then
+      builtins.throw "profile '${name}': manifest transition must be an object"
+    else if !(builtins.isAttrs variants) || !(variants ? dark) then
+      builtins.throw "profile '${name}': manifest has no dark variant"
+    else if unsafeArtifacts != [ ] then
+      builtins.throw "profile '${name}': unsafe artifact paths: ${builtins.concatStringsSep ", " unsafeArtifacts}"
+    else if missingArtifacts != [ ] then
+      builtins.throw "profile '${name}': missing artifact files: ${builtins.concatStringsSep ", " missingArtifacts}"
+    else if
+      manifest.transition.defaultBar or null == "quickshell" && !(manifest.artifacts ? quickshell.dark)
+    then
+      builtins.throw "profile '${name}': quickshell bar has no dark theme artifact"
+    else if
+      manifest.transition.defaultBar or null == "waybar" && !(manifest.artifacts ? waybar.config)
+    then
+      builtins.throw "profile '${name}': waybar has no config artifact"
+    else if legacy != [ ] then
+      builtins.throw "profile '${name}': legacy artifacts rendered: ${builtins.concatStringsSep ", " legacy}"
     else if !(builtins.match ".*animations[[:space:]]*\\{.*" niriOverrides != null) then
       builtins.throw "profile '${name}': niri-overrides.kdl has no animations block"
     else if !(builtins.match ".*animations[[:space:]]*\\{[[:space:]]*off.*" niriFocus != null) then
