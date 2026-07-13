@@ -104,35 +104,72 @@ check_waybar_readiness_fake() {
 
 check_public_delegation() {
   local adapter_dir="$tmpdir/public-adapters"
-  local mapping public_invocation engine_invocation public_command before after diagnostics
+  local engine_log="$tmpdir/public-engine.log"
+  local mapping public_invocation engine_invocation public_command before after diagnostics invocation
+  local -a variant_args=()
 
   mkdir -p "$adapter_dir"
   cp "$REPO_ROOT/home/scripts/switch-profile" "$adapter_dir/switch-profile"
   cp "$REPO_ROOT/home/scripts/toggle-variant" "$adapter_dir/toggle-variant"
-  : > "$adapter_dir/profile-common"
+  cp "$REPO_ROOT/home/scripts/profile-common" "$adapter_dir/profile-common"
   cat > "$adapter_dir/profile-transition" <<'EOF'
 #!/usr/bin/env bash
-printf 'profile-transition %s\n' "$*" >> "$COMMAND_LOG"
+printf 'profile-transition %s\n' "$*" >> "$ENGINE_LOG"
 EOF
   chmod +x "$adapter_dir/profile-transition"
 
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
   for mapping in "${COMPATIBILITY_MAPPINGS[@]}"; do
     IFS='|' read -r public_invocation engine_invocation <<< "$mapping"
     read -r -a public_command <<< "$public_invocation"
     : > "$log"
+    : > "$engine_log"
     diagnostics="$tmpdir/public-command.out"
     before=$(tar -C "$home" -cf - . | sha256sum)
-    if ! HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" PATH="$bin_dir" \
+    if ! HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
+      ENGINE_LOG="$engine_log" REAL_JQ="$real_jq" PATH="$bin_dir" \
       "$adapter_dir/${public_command[0]}" "${public_command[@]:1}" >"$diagnostics" 2>&1; then
       printf 'FAIL: %s exited nonzero\n' "$public_invocation" >&2
       cat "$diagnostics" >&2
       exit 1
     fi
-    assert_eq "$engine_invocation" "$(cat "$log")" \
+    assert_eq "$engine_invocation" "$(cat "$engine_log")" \
       "$public_invocation delegates its mutation to the transition engine"
     after=$(tar -C "$home" -cf - . | sha256sum)
     assert_eq "$before" "$after" "$public_invocation performs no mutation outside the engine"
   done
+
+  printf 'noc\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  for invocation in '' light; do
+    : > "$log"
+    : > "$engine_log"
+    variant_args=()
+    [ -z "$invocation" ] || variant_args+=("$invocation")
+    before=$(tar -C "$home" -cf - . | sha256sum)
+    HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
+      ENGINE_LOG="$engine_log" REAL_JQ="$real_jq" PATH="$bin_dir" \
+      "$adapter_dir/toggle-variant" "${variant_args[@]}" >"$diagnostics" 2>&1
+    assert_eq "" "$(cat "$engine_log")" \
+      "no-light profile variant invocation does not delegate"
+    after=$(tar -C "$home" -cf - . | sha256sum)
+    assert_eq "$before" "$after" \
+      "no-light profile variant invocation leaves state untouched"
+  done
+
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  : > "$log"
+  : > "$engine_log"
+  before=$(tar -C "$home" -cf - . | sha256sum)
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
+    ENGINE_LOG="$engine_log" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    "$adapter_dir/toggle-variant" dark >"$diagnostics" 2>&1
+  assert_eq "" "$(cat "$engine_log")" \
+    "explicit current variant does not delegate"
+  after=$(tar -C "$home" -cf - . | sha256sum)
+  assert_eq "$before" "$after" "explicit current variant leaves state untouched"
 }
 
 check_post_commit_adapter_isolation() {
