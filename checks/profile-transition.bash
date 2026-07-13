@@ -366,6 +366,33 @@ check_post_commit_adapter_isolation() {
   }
 }
 
+check_status_accepts_runtime_niri() {
+  local output="$tmpdir/profile-status.out"
+
+  printf 'qs\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'off\n' > "$profiles/focus"
+  "$real_jq" '.capabilities.wallpaperTheming = true' "$profiles/qs/manifest.json" \
+    > "$profiles/qs/manifest.json.tmp"
+  mv "$profiles/qs/manifest.json.tmp" "$profiles/qs/manifest.json"
+  cp "$profiles/qs/niri-overrides.kdl" "$profiles/runtime-niri-active.kdl"
+  ln -sfn "$profiles/runtime-niri-active.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
+
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
+    BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    "$REPO_ROOT/home/scripts/switch-profile" --status > "$output" 2>&1 || true
+  "$real_jq" '.capabilities.wallpaperTheming = false' "$profiles/qs/manifest.json" \
+    > "$profiles/qs/manifest.json.tmp"
+  mv "$profiles/qs/manifest.json.tmp" "$profiles/qs/manifest.json"
+  if ! grep -Fq '[ok]      niri overrides symlink' "$output"; then
+    printf 'FAIL: status rejected the wallpaper-generated Niri override\n' >&2
+    cat "$output" >&2
+    exit 1
+  fi
+}
+
 check_snapshot_failure() {
   local failure="$1" expected_status="$2" before after status runtime_dir
   runtime_dir="$tmpdir/runtime-$failure"
@@ -1497,6 +1524,7 @@ fi
 stop_persistent_children
 
 check_post_commit_adapter_isolation
+check_status_accepts_runtime_niri
 check_engine_variant_noops
 check_variant_resolves_after_lock
 check_lock_contention_is_nonblocking
