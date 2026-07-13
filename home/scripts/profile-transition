@@ -44,8 +44,30 @@ stop_bar() {
         pgrep -f waybar >/dev/null 2>&1 || break
         sleep 0.1
       done
+      if pgrep -f waybar >/dev/null 2>&1; then
+        echo "Error: waybar did not stop." >&2
+        return 1
+      fi
       ;;
-    quickshell) pkill -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 || true ;;
+    quickshell)
+      pkill -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 || true
+      for _ in $(seq 1 20); do
+        pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 || break
+        sleep 0.1
+      done
+      if pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1; then
+        echo "Error: quickshell did not stop." >&2
+        return 1
+      fi
+      ;;
+  esac
+}
+
+start_bar_process() {
+  case "$1" in
+    noctalia) systemctl --user start noctalia-shell >/dev/null 2>&1 ;;
+    waybar) waybar >/dev/null 2>&1 & ;;
+    quickshell) quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 & ;;
   esac
 }
 
@@ -53,7 +75,7 @@ start_bar() {
   local profile="$1" variant="$2" bar="$3" dir style
   dir="$PROFILES_DIR/$profile"
   case "$bar" in
-    noctalia) systemctl --user start noctalia-shell >/dev/null 2>&1 ;;
+    noctalia) start_bar_process "$bar" ;;
     waybar)
       if [ -s "$dir/waybar-config.jsonc" ]; then
         mkdir -p "$CONFIG_HOME/waybar"
@@ -61,9 +83,9 @@ start_bar() {
         style=$(pick_variant_file "$variant" "$dir/waybar-style.css" "$dir/waybar-style-light.css")
         [ ! -s "$style" ] || install -m 644 "$style" "$CONFIG_HOME/waybar/style.css"
       fi
-      waybar >/dev/null 2>&1 &
+      start_bar_process "$bar"
       ;;
-    quickshell) quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 & ;;
+    quickshell) start_bar_process "$bar" ;;
   esac
 }
 
@@ -143,6 +165,19 @@ mkdir -p "$(dirname "$LOCK_PATH")"
 exec 9>"$LOCK_PATH"
 flock -n 9 || { echo "Error: another profile transition is in progress." >&2; exit 75; }
 
+SNAPSHOT_DIR=$(mktemp -d "$PROFILES_DIR/.transition-snapshot.XXXXXX")
+for snapshot_name in waybar-config waybar-style; do
+  case "$snapshot_name" in
+    waybar-config) snapshot_path="$CONFIG_HOME/waybar/config.jsonc" ;;
+    waybar-style) snapshot_path="$CONFIG_HOME/waybar/style.css" ;;
+  esac
+  if [ -f "$snapshot_path" ]; then
+    cp -p "$snapshot_path" "$SNAPSHOT_DIR/$snapshot_name"
+  else
+    touch "$SNAPSHOT_DIR/$snapshot_name.absent"
+  fi
+done
+
 OLD_ACTIVE_EXISTS=0
 OLD_VARIANT_EXISTS=0
 OLD_LINK_EXISTS=0
@@ -159,17 +194,54 @@ fi
 TARGET_BAR=$(profile_bar "$TARGET")
 
 rollback() {
-  local status=$?
+  local status=$? rollback_errors=0
   trap - EXIT
-  stop_bar "$TARGET_BAR"
-  if [ "$OLD_ACTIVE_EXISTS" -eq 1 ]; then write_atomic "$ACTIVE_FILE" "$OLD_ACTIVE"; else rm -f "$ACTIVE_FILE"; fi
-  if [ "$OLD_VARIANT_EXISTS" -eq 1 ]; then write_atomic "$VARIANT_FILE" "$OLD_VARIANT"; else rm -f "$VARIANT_FILE"; fi
-  if [ "$OLD_LINK_EXISTS" -eq 1 ]; then link_atomic "$ACTIVE_LINK" "$OLD_LINK"; else rm -f "$ACTIVE_LINK"; fi
-  niri msg action load-config-file >/dev/null 2>&1 || true
-  if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
-    start_bar "$OLD_ACTIVE" "$OLD_VARIANT" "$CURRENT_BAR" || true
-    verify_bar "$CURRENT_BAR" || true
+  set +e
+  rollback_try() {
+    local label="$1"
+    shift
+    if ! "$@"; then
+      echo "rollback: $label failed" >&2
+      rollback_errors=1
+    fi
+  }
+  restore_file() {
+    local name="$1" path="$2" tmp
+    if [ -f "$SNAPSHOT_DIR/$name.absent" ]; then
+      rm -f "$path"
+    else
+      mkdir -p "$(dirname "$path")" || return 1
+      tmp=$(mktemp "${path}.XXXXXX") || return 1
+      cp -p "$SNAPSHOT_DIR/$name" "$tmp" || { rm -f "$tmp"; return 1; }
+      mv "$tmp" "$path"
+    fi
+  }
+
+  rollback_try "target bar stop" stop_bar "$TARGET_BAR"
+  if [ "$OLD_ACTIVE_EXISTS" -eq 1 ]; then
+    rollback_try "active profile restore" write_atomic "$ACTIVE_FILE" "$OLD_ACTIVE"
+  else
+    rollback_try "active profile removal" rm -f "$ACTIVE_FILE"
   fi
+  if [ "$OLD_VARIANT_EXISTS" -eq 1 ]; then
+    rollback_try "active variant restore" write_atomic "$VARIANT_FILE" "$OLD_VARIANT"
+  else
+    rollback_try "active variant removal" rm -f "$VARIANT_FILE"
+  fi
+  if [ "$OLD_LINK_EXISTS" -eq 1 ]; then
+    rollback_try "Niri link restore" link_atomic "$ACTIVE_LINK" "$OLD_LINK"
+  else
+    rollback_try "Niri link removal" rm -f "$ACTIVE_LINK"
+  fi
+  rollback_try "Waybar config restore" restore_file waybar-config "$CONFIG_HOME/waybar/config.jsonc"
+  rollback_try "Waybar style restore" restore_file waybar-style "$CONFIG_HOME/waybar/style.css"
+  rollback_try "Niri reload" niri msg action load-config-file
+  if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/meta.json" ]; then
+    rollback_try "previous bar restart" start_bar_process "$CURRENT_BAR"
+    rollback_try "previous bar verification" verify_bar "$CURRENT_BAR"
+  fi
+  rollback_try "snapshot cleanup" rm -rf "$SNAPSHOT_DIR"
+  [ "$rollback_errors" -eq 0 ] || echo "rollback: one or more recovery operations failed" >&2
   exit "$status"
 }
 trap rollback EXIT
@@ -191,3 +263,4 @@ if [ "$WRITE_PREFERENCE" -eq 1 ]; then
 fi
 
 trap - EXIT
+rm -rf "$SNAPSHOT_DIR"
