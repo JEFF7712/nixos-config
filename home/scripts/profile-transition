@@ -179,13 +179,14 @@ notification_owner_is() {
 }
 
 apply_system_preferences() {
-  local cursor cursor_size gtk_theme icon_theme color_scheme failed=0
+  local cursor cursor_size gtk_theme icon_theme color_scheme failed=0 cursor_json appearance
+  cursor_json=$(profile_manifest_transition_json "$TARGET" cursor)
+  appearance=$(profile_manifest_transition_json "$TARGET" appearance)
   IFS=$'\t' read -r cursor cursor_size gtk_theme icon_theme < <(
-    jq -r --arg variant "$TARGET_VARIANT" '
-      [.transition.cursor.theme, .transition.cursor.size,
-       (if $variant == "light" then (.transition.appearance.gtkThemeLight // .transition.appearance.gtkTheme) else .transition.appearance.gtkTheme end),
-       (if $variant == "light" then (.transition.appearance.iconThemeLight // .transition.appearance.iconTheme) else .transition.appearance.iconTheme end)] | @tsv' \
-      "$TARGET_DIR/manifest.json"
+    jq -nr --arg variant "$TARGET_VARIANT" --argjson cursor "$cursor_json" --argjson appearance "$appearance" '
+      [$cursor.theme, $cursor.size,
+       (if $variant == "light" then ($appearance.gtkThemeLight // $appearance.gtkTheme) else $appearance.gtkTheme end),
+       (if $variant == "light" then ($appearance.iconThemeLight // $appearance.iconTheme) else $appearance.iconTheme end)] | @tsv'
   )
   color_scheme=prefer-dark
   [ "$TARGET_VARIANT" != light ] || color_scheme=prefer-light

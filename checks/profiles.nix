@@ -1,7 +1,7 @@
 # Desktop-profile render validator. Applied to a home-manager `home.file`
 # attrset (`nix eval ... --apply 'import ./checks/profiles.nix'`). For every
 # `.config/desktop-profiles/<name>/` file it:
-#   - parses meta.json (fromJSON throws on malformed JSON),
+#   - parses and validates manifest.json,
 #   - for non-self-themed profiles, fails if any rendered color file is empty
 #     (an empty file means a palette role resolved to null — a broken profile).
 # Returns a JSON summary on success; throws with the offending profile on
