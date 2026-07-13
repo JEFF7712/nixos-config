@@ -290,6 +290,12 @@ apply_wallpaper_theme() {
     if [ "$(jq -r '.obsidianWallpaperTheme // false' "$PROFILES_DIR/$profile/meta.json" 2>/dev/null)" = "true" ]; then
       apply_obsidian_sharp "$variant" "$accent"
     fi
+    # Sharp (and any matugen profile that stages a Comfy scheme body) merges into
+    # Comfy color.ini as [sharp] without wiping other schemes. apply_spicetify_theme
+    # below then selects Comfy/sharp.
+    if [ -s "$PROFILES_DIR/runtime-spicetify-comfy.ini" ]; then
+      merge_spicetify_comfy_scheme sharp "$PROFILES_DIR/runtime-spicetify-comfy.ini"
+    fi
   fi
 
   # Tag the runtime quickshell override so the topbar only adopts it for the
@@ -1232,6 +1238,21 @@ restore_window_focus() {
   [ -n "$id" ] || return 0
   command -v niri >/dev/null 2>&1 || return 0
   niri msg action focus-window --id "$id" >/dev/null 2>&1 || true
+}
+
+# merge_spicetify_comfy_scheme <section> <body-file>
+# Upserts a Comfy color.ini section from a staged scheme body (no [header]).
+# Used by sharp's matugen wallpaper path so [Nord]/[tinted]/… stay intact.
+merge_spicetify_comfy_scheme() {
+  local section="$1" body_file="$2"
+  local color_ini merge_bin
+  [ -n "$section" ] || return 0
+  [ -s "$body_file" ] || return 0
+  color_ini="$CONFIG_HOME/spicetify/Themes/Comfy/color.ini"
+  merge_bin="$REPO_HOME/scripts/merge-ini-section"
+  [ -f "$merge_bin" ] || return 0
+  mkdir -p "$(dirname "$color_ini")"
+  python3 "$merge_bin" "$color_ini" "$section" "$body_file" 2>/dev/null || true
 }
 
 # apply_spicetify_theme <runtime-file> <variant>

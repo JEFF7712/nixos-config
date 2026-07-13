@@ -185,8 +185,10 @@ in
     vesktop.dark = "sharp.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
     obsidian.light = "minimal-flexoki-light";
-    spicetify.dark = spice "Sleek" "VantaBlack" 0;
-    spicetify.light = spice "Comfy" "Hikari" 0;
+    # Wallpaper-driven via matugen → runtime-spicetify-comfy.ini → [sharp]
+    # in Comfy color.ini (apply_wallpaper_theme).
+    spicetify.dark = spice "Comfy" "sharp" 0;
+    spicetify.light = spice "Comfy" "sharp" 0;
   };
 
   clean = {

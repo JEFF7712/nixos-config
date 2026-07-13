@@ -59,3 +59,9 @@ output_path = "~/.config/hypr/profile-colors.conf"
 [templates.tmux]
 input_path = "~/.config/matugen/templates-sharp/tmux-colors.conf"
 output_path = "~/.config/tmux/profile-colors.conf"
+
+# Staging body only — apply_wallpaper_theme merges this into Comfy color.ini
+# as [sharp] so other schemes (Nord, tinted, …) stay intact.
+[templates.spicetify]
+input_path = "~/.config/matugen/templates-sharp/spicetify-comfy.ini"
+output_path = "~/.config/desktop-profiles/runtime-spicetify-comfy.ini"
