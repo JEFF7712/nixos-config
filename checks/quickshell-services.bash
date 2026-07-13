@@ -6,6 +6,7 @@ fixture_qml="${repo_root}/tests/quickshell/integration/process-cleanup"
 fixture_bin="${repo_root}/tests/quickshell/fixtures/bin/qs-test-owned-process"
 audio_native_fixture_qml="${repo_root}/tests/quickshell/integration/audio-native"
 media_fixture_qml="${repo_root}/tests/quickshell/integration/media-service"
+cava_fixture_qml="${repo_root}/tests/quickshell/integration/cava-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -804,6 +805,89 @@ run_media_service_probe() {
   jq -c . "$state_dir/result.json"
 }
 
+run_cava_service_probe() {
+  local mode state_dir qs_pid rc=0 record pid expected_config fixture_path tool
+  printf 'quickshell-services: run_cava_service_probe\n'
+  for mode in normal destruction failed-start failed-start-cancel failed-start-destruction; do
+    state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-cava-service.XXXXXX")
+    fixture_state_dirs+=("$state_dir")
+    mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal" "$state_dir/processes"
+    ln -s "$audio_fixture_bin/cava" "$state_dir/fixture-bin/cava"
+    fixture_path="$state_dir/fixture-bin:$PATH"
+    if [[ "$mode" == failed-start* ]]; then
+      for tool in bash cat date mkdir rmdir sleep; do
+        ln -s "$(command -v "$tool")" "$state_dir/fixture-bin/$tool"
+      done
+      fixture_path="$state_dir/fixture-bin"
+    fi
+    cp "$cava_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+    cp "$repo_root/home/configs/quickshell/cava-bar.conf" "$state_dir/config/cava-bar.conf"
+    cp "$repo_root/home/configs/quickshell/services/CavaService.qml" "$state_dir/config/services/CavaService.qml"
+    cp "$repo_root/home/configs/quickshell/services/internal/CavaParser.js" "$state_dir/config/services/internal/CavaParser.js"
+    mkfifo "$state_dir/cava.fifo"
+    : >"$state_dir/cava-lifecycle.log"
+    expected_config="$state_dir/config/cava-bar.conf"
+
+    PATH="$fixture_path" QS_TEST_STATE_DIR="$state_dir" \
+      QS_TEST_EXPECTED_CONFIG="$expected_config" QS_TEST_MODE="$mode" QT_QPA_PLATFORM=offscreen \
+      "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+    qs_pid=$!
+    register_fixture_qs "$qs_pid"
+
+    if [ "$mode" = normal ]; then
+      wait_for_process "$qs_pid" 20 || rc=$?
+      ((rc == 0)) || {
+        sed -n '1,240p' "$state_dir/quickshell.log" >&2
+        fail "cava fixture exited unsuccessfully or timed out (rc=${rc})"
+      }
+      jq -e '.passed == true and .initialDemandPassed == true and
+        .parsingPassed == true and .retryPassed == true and
+        .recoveryPassed == true and .stopPassed == true and
+        .restartPassed == true and .rapidDemandPassed == true and
+        .canceledDemandPassed == true and .starts == 7' "$state_dir/result.json" >/dev/null \
+        || fail 'cava fixture reported invalid parsing, demand, retry, or cleanup behavior'
+    elif [ "$mode" = destruction ]; then
+      wait_for_path "$state_dir/ready" 10 || fail 'cava destruction fixture did not become ready'
+      kill -TERM "$qs_pid"
+      wait_for_process "$qs_pid" 5 || true
+    elif [ "$mode" = failed-start-destruction ]; then
+      wait_for_path "$state_dir/ready" 10 || fail 'cava failed-start destruction fixture did not become ready'
+      kill -TERM "$qs_pid"
+      wait_for_process "$qs_pid" 5 || true
+      ln -s "$(command -v setpriv)" "$state_dir/fixture-bin/setpriv"
+      sleep 0.4
+      [ ! -s "$state_dir/cava-lifecycle.log" ] \
+        || fail 'cava retry survived shell destruction after FailedToStart'
+    elif [ "$mode" = failed-start ]; then
+      wait_for_path "$state_dir/ready" 10 || fail 'cava failed-start fixture did not request executable restoration'
+      ln -s "$(command -v setpriv)" "$state_dir/fixture-bin/setpriv"
+      wait_for_process "$qs_pid" 20 || rc=$?
+      ((rc == 0)) || fail "cava failed-start fixture exited unsuccessfully or timed out (rc=${rc})"
+      jq -e '.passed == true and .failedStartRecoveryPassed == true and .starts == 1' \
+        "$state_dir/result.json" >/dev/null \
+        || fail 'cava failed-start fixture did not recover through exactly one bounded retry'
+    else
+      wait_for_process "$qs_pid" 20 || rc=$?
+      ((rc == 0)) || fail "cava failed-start cancellation fixture exited unsuccessfully or timed out (rc=${rc})"
+      jq -e '.passed == true and .failedStartCancelPassed == true and .starts == 0' \
+        "$state_dir/result.json" >/dev/null \
+        || fail 'cava demand drop did not cancel failed-start retries'
+    fi
+
+    ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+      || fail 'cava fixture logged a binding or construction error'
+    [ ! -s "$state_dir/cava-overlap.log" ] \
+      || fail 'cava fixture observed overlapping instances'
+    [ ! -d "$state_dir/cava.active" ] \
+      || fail 'cava active marker survived fixture exit'
+    for record in "$state_dir"/processes/cava.*.record; do
+      [ -e "$record" ] || continue
+      pid=$(record_value pid "$record")
+      ! kill -0 "$pid" 2>/dev/null || fail 'cava process survived fixture exit'
+    done
+  done
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -847,6 +931,7 @@ assert_no_view_processes_for_migrated_domains() {
   local media_service="$production_dir/services/MediaService.qml"
   local media_model="$production_dir/services/internal/MediaModel.qml"
   local media_popup="$production_dir/MediaPopup.qml"
+  local cava_service="$production_dir/services/CavaService.qml"
   local view
 
   rg -q '^import Quickshell\.Services\.Pipewire$' "$audio_backend" \
@@ -933,6 +1018,35 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'production shell.qml does not wire MediaService directly to MediaPopup'
   ! rg -n 'status:[[:space:]]*topbar\.media|track:[[:space:]]*topbar\.media|artist:[[:space:]]*topbar\.media|album:[[:space:]]*topbar\.media|artUrl:[[:space:]]*topbar\.media' "$shell" \
     || fail 'MediaPopup still receives media state through Topbar'
+
+  [ -f "$cava_service" ] || fail 'CavaService.qml is missing'
+  [ "$(rg '^[[:space:]]*property' "$cava_service" | rg -v 'readonly property|property[^:]* _' | sed 's/^[[:space:]]*//' | sort)" = $'property bool playing: false\nproperty bool requested: false' ] \
+    || fail 'CavaService.qml public demand contract or private state changed unexpectedly'
+  rg -q 'readonly property list<int> values:' "$cava_service" \
+    || fail 'CavaService.qml must expose typed readonly values'
+  if ! rg -q '^bars = 12$' "$production_dir/cava-bar.conf" \
+    || ! rg -q '^var barCount = 12;$' "$production_dir/services/internal/CavaParser.js"; then
+    fail 'Cava parser width must match cava-bar.conf'
+  fi
+  rg -U -q 'command:[[:space:]]*\["setpriv",[[:space:]]*"--pdeathsig",[[:space:]]*"TERM",[[:space:]]*"--",[[:space:]]*"cava",[[:space:]]*"-p",[[:space:]]*root\._configPath\]' "$cava_service" \
+    || fail 'CavaService.qml must own the parent-death-protected Cava command'
+  [ "$(rg -o 'Services\.CavaService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one CavaService'
+  rg -U -q 'Services\.CavaService[[:space:]]*\{[^}]*playing:[[:space:]]*mediaService\.playing[^}]*requested:[[:space:]]*topbar\.cavaRequested[[:space:]]*\|\|[[:space:]]*mediaPopup\.active' "$shell" \
+    || fail 'production shell.qml must bind exact media, bar, and popup Cava demand'
+  rg -q 'required property Services\.CavaService cavaService' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must require CavaService'
+  rg -q 'readonly property bool cavaRequested:[[:space:]]*mediaPill\.visible' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml Cava demand must exactly follow mediaPill.visible'
+  rg -q 'required property Services\.CavaService cavaService' "$media_popup" \
+    || fail 'MediaPopup.qml must require CavaService'
+  ! rg -n 'cavaConfigPath|cavaProc|property var cavaValues|setpriv[^\n]*cava|command:[^\n]*cava' \
+    "$production_dir/Topbar.qml" "$media_popup" \
+    || fail 'Cava process, parsing, or writable values remain in presentation files'
+  rg -q 'model:[[:space:]]*topbarWindow\.cavaService\.values' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must render CavaService values directly'
+  rg -q 'model:[[:space:]]*root\.cavaService\.values' "$media_popup" \
+    || fail 'MediaPopup.qml must render CavaService values directly'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -955,4 +1069,5 @@ run_unit_tests
 run_process_cleanup_fixture
 run_native_construction_probes
 run_media_service_probe
+run_cava_service_probe
 assert_no_view_processes_for_migrated_domains

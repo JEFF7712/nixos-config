@@ -10,8 +10,7 @@ InfoPopup {
     implicitWidth: 330
 
     required property Services.MediaService mediaService
-
-    property var cavaValues: []
+    required property Services.CavaService cavaService
 
     property bool seeking: false
     property real seekPosition: 0
@@ -167,14 +166,14 @@ InfoPopup {
     Item {
         width: parent.width
         height: 22
-        visible: root.mediaService.playing && root.cavaValues.length > 0
+        visible: root.mediaService.playing && root.cavaService.values.length > 0
 
         Row {
             anchors.centerIn: parent
             height: 20
             spacing: 3
             Repeater {
-                model: root.cavaValues
+                model: root.cavaService.values
                 delegate: Rectangle {
                     width: 3
                     radius: 1.5

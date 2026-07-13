@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+fifo="$state_dir/cava.fifo"
+
+if [ "${1-}" = --fixture-write ]; then
+  shift
+  printf '%s\n' "$@" >"$fifo"
+  exit 0
+fi
+
+[ "$#" -eq 2 ] && [ "$1" = -p ] || exit 64
+[ "$2" = "$QS_TEST_EXPECTED_CONFIG" ] || exit 65
+
+if ! mkdir "$state_dir/cava.active" 2>/dev/null; then
+  printf 'overlap %s\n' "$$" >>"$state_dir/cava-overlap.log"
+  exit 75
+fi
+
+generation_file="$state_dir/generation"
+generation=1
+if [ -f "$generation_file" ]; then
+  generation=$(( $(cat "$generation_file") + 1 ))
+fi
+printf '%s\n' "$generation" >"$generation_file"
+mkdir -p "$state_dir/processes"
+record="$state_dir/processes/cava.$$.record"
+printf 'pid=%s\nppid=%s\n' "$$" "$PPID" >"$record"
+printf 'start %s %s %s\n' "$generation" "$$" "$(date +%s%3N)" >>"$state_dir/cava-lifecycle.log"
+
+cleanup() {
+  trap '' TERM INT
+  printf 'exit %s %s %s\n' "$generation" "$$" "$(date +%s%3N)" >>"$state_dir/cava-lifecycle.log"
+  rmdir "$state_dir/cava.active" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+handle_term() {
+  trap '' TERM INT
+  if [ -f "$state_dir/delay-term.$generation" ]; then
+    printf 'term-wait %s %s %s\n' "$generation" "$$" "$(date +%s%3N)" >>"$state_dir/cava-lifecycle.log"
+    while [ ! -f "$state_dir/release-term.$generation" ]; do
+      sleep 0.01
+    done
+  fi
+  exit 0
+}
+trap handle_term TERM INT
+
+if [ -f "$state_dir/auto-crash.$generation" ]; then
+  exit 42
+fi
+
+while true; do
+  while IFS= read -r command; do
+    case "$command" in
+      partial:*) printf '%s' "${command#partial:}" ;;
+      line:*) printf '%s\n' "${command#line:}" ;;
+      crlf:*) printf '%s\r\n' "${command#crlf:}" ;;
+      crash) exit 42 ;;
+      *) exit 66 ;;
+    esac
+  done <"$fifo"
+done

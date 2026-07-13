@@ -10,6 +10,7 @@ PanelWindow {
 
     required property Services.AudioService audioService
     required property Services.MediaService mediaService
+    required property Services.CavaService cavaService
 
     property color themeFg
     property color themeBg
@@ -55,8 +56,7 @@ PanelWindow {
     property string powerProfile: "balanced"
     property string activeTitle: "no active window"
     property int notificationCount: 0
-    property var cavaValues: []
-    property bool cavaRequested: false
+    readonly property bool cavaRequested: mediaPill.visible
     property int activeWorkspace: 1
     property var occupiedWorkspaces: ({})
     property var workspaceList: []
@@ -150,37 +150,6 @@ PanelWindow {
         repeat: true
         triggeredOnStart: true
         onTriggered: statsProc.running = true
-    }
-
-    // cava raw-output visualizer feeding the centered media module. Only runs
-    // while media is actually playing to avoid idle CPU. setpriv --pdeathsig so
-    // it dies with quickshell rather than orphaning on pkill/profile-switch.
-    readonly property string cavaConfigPath: Qt.resolvedUrl("cava-bar.conf").toString().replace("file://", "")
-    Process {
-        id: cavaProc
-        running: topbarWindow.mediaService.playing && (topbarWindow.showMedia || topbarWindow.cavaRequested)
-        command: ["setpriv", "--pdeathsig", "TERM", "--", "cava", "-p", topbarWindow.cavaConfigPath]
-        stdout: SplitParser {
-            onRead: data => {
-                if (!data)
-                    return;
-                const parts = data.split(";");
-                const vals = [];
-                for (let i = 0; i < parts.length; i++) {
-                    if (parts[i] === "")
-                        continue;
-                    const n = parseInt(parts[i]);
-                    if (!isNaN(n))
-                        vals.push(n);
-                }
-                if (vals.length > 0)
-                    topbarWindow.cavaValues = vals;
-            }
-        }
-        onRunningChanged: {
-            if (!running)
-                topbarWindow.cavaValues = [];
-        }
     }
 
     Process {
@@ -471,7 +440,7 @@ PanelWindow {
         }
 
         Item {
-            id: mediaModule
+            id: mediaPill
             visible: topbarWindow.showMedia && topbarWindow.mediaService.available && topbarWindow.mediaService.status !== "Stopped"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
@@ -493,7 +462,7 @@ PanelWindow {
 
             Rectangle {
                 anchors.fill: parent
-                radius: mediaModule.flat ? 0 : 10
+                radius: mediaPill.flat ? 0 : 10
                 color: mediaMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : mediaMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : topbarWindow.pillBg
                 Behavior on color {
                     ColorAnimation {
@@ -502,8 +471,8 @@ PanelWindow {
                     }
                 }
 
-                border.width: mediaModule.flat ? 0 : 1
-                border.color: mediaMouse.containsMouse ? Qt.rgba(mediaModule.tint.r, mediaModule.tint.g, mediaModule.tint.b, 0.55) : topbarWindow.pillBorder
+                border.width: mediaPill.flat ? 0 : 1
+                border.color: mediaMouse.containsMouse ? Qt.rgba(mediaPill.tint.r, mediaPill.tint.g, mediaPill.tint.b, 0.55) : topbarWindow.pillBorder
                 Behavior on border.color {
                     ColorAnimation {
                         duration: 240
@@ -511,7 +480,7 @@ PanelWindow {
                     }
                 }
 
-                scale: mediaModule.flat ? 1.0 : (mediaMouse.pressed ? 0.94 : 1.0)
+                scale: mediaPill.flat ? 1.0 : (mediaMouse.pressed ? 0.94 : 1.0)
                 Behavior on scale {
                     SpringAnimation {
                         spring: 3
@@ -523,7 +492,7 @@ PanelWindow {
                 Rectangle {
                     anchors.fill: parent
                     radius: parent.radius
-                    color: mediaModule.tint
+                    color: mediaPill.tint
                     opacity: mediaMouse.containsMouse ? 0.18 : 0.0
                     Behavior on opacity {
                         NumberAnimation {
@@ -539,8 +508,8 @@ PanelWindow {
                     spacing: 8
 
                     Text {
-                        text: mediaModule.playing ? "󰏤" : "󰐊"
-                        color: mediaMouse.containsMouse ? mediaModule.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
+                        text: mediaPill.playing ? "󰏤" : "󰐊"
+                        color: mediaMouse.containsMouse ? mediaPill.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
                         font {
                             family: topbarWindow.barFont
                             pixelSize: 12
@@ -571,16 +540,16 @@ PanelWindow {
                         Layout.alignment: Qt.AlignVCenter
                         height: 14
                         spacing: 2
-                        visible: mediaModule.playing && topbarWindow.cavaValues.length > 0
+                        visible: mediaPill.playing && topbarWindow.cavaService.values.length > 0
 
                         Repeater {
-                            model: topbarWindow.cavaValues
+                            model: topbarWindow.cavaService.values
                             delegate: Rectangle {
                                 width: 2
                                 radius: 1
                                 anchors.bottom: parent.bottom
                                 height: Math.max(2, Math.min(14, (modelData / 100) * 14))
-                                color: mediaModule.tint
+                                color: mediaPill.tint
                                 Behavior on height {
                                     NumberAnimation {
                                         duration: 80

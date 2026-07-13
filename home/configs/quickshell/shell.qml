@@ -17,6 +17,12 @@ ShellRoot {
         detailedMonitoring: mediaPopup.shown
     }
 
+    Services.CavaService {
+        id: cavaService
+        playing: mediaService.playing
+        requested: topbar.cavaRequested || mediaPopup.active
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -178,6 +184,7 @@ ShellRoot {
         id: topbar
         audioService: audioService
         mediaService: mediaService
+        cavaService: cavaService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -212,8 +219,6 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         notificationCount: notificationsPopup.unreadCount
-        cavaRequested: mediaPopup.active
-
         onVolumeClicked: root.showOnly(volumePopup)
         onWifiClicked: root.showOnly(wifiPopup)
         onBluetoothClicked: root.showOnly(bluetoothPopup)
@@ -354,6 +359,7 @@ ShellRoot {
     MediaPopup {
         id: mediaPopup
         mediaService: mediaService
+        cavaService: cavaService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
@@ -367,7 +373,6 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
-        cavaValues: topbar.cavaValues
     }
 
     NotificationToasts {
