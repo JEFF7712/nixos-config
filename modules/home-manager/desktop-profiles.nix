@@ -11,6 +11,13 @@ let
   profileFiles = import ../../lib/desktop-profiles/files.nix {
     inherit lib runtimeDefaults;
   };
+  profileGsettings =
+    pkgs.runCommand "desktop-profile-gsettings" { nativeBuildInputs = [ pkgs.makeWrapper ]; }
+      ''
+        mkdir -p "$out/bin"
+        makeWrapper ${lib.getExe' pkgs.glib "gsettings"} "$out/bin/gsettings" \
+          --prefix XDG_DATA_DIRS : ${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}
+      '';
   profileNames = lib.attrNames config.desktopProfiles.profiles;
   profileNameArgs = lib.escapeShellArgs profileNames;
 in
@@ -121,6 +128,7 @@ in
         matugen
         imagemagick
         iris-python # numpy+pillow python for the iris color engine (tinted)
+        profileGsettings
       ])
       ++ lib.flatten (
         lib.mapAttrsToList (

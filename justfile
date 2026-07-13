@@ -16,6 +16,7 @@ wallpaper-script-check:
   bash checks/merge-ini-section.bash
   bash checks/spicetify-theme.bash
   bash checks/profile-transition.bash
+  bash checks/profile-gsettings.bash
 
 check-local-bin:
   bash checks/local-bin-rot.bash
