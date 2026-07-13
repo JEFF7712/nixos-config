@@ -113,17 +113,25 @@ assert_log_lacks() {
 }
 
 assert_one_update() {
-  local expected="$1" name="$2" count
-  count=$(grep -F 'nix flake update' "$COMMAND_LOG" | grep -Fv 'runuser ' | wc -l)
+  local expected="$1" name="$2" count=0 line
+  while IFS= read -r line; do
+    if [[ $line == *'nix flake update'* && $line != *'runuser '* ]]; then
+      ((count += 1))
+    fi
+  done < "$COMMAND_LOG"
   [[ $count -eq 1 ]] || fail "$name expected one update invocation, got $count"
   assert_log_has "$expected" "$name"
 }
 
 assert_before() {
-  local first="$1" second="$2" name="$3" first_line second_line
-  first_line=$(grep -Fnx -- "$first" "$COMMAND_LOG" | cut -d: -f1)
-  second_line=$(grep -Fnx -- "$second" "$COMMAND_LOG" | cut -d: -f1)
-  [[ -n $first_line && -n $second_line && $first_line -lt $second_line ]] ||
+  local first="$1" second="$2" name="$3" line
+  local first_line=0 second_line=0 line_number=0
+  while IFS= read -r line; do
+    ((line_number += 1))
+    [[ $line == "$first" ]] && first_line=$line_number
+    [[ $line == "$second" ]] && second_line=$line_number
+  done < "$COMMAND_LOG"
+  [[ $first_line -gt 0 && $second_line -gt 0 && $first_line -lt $second_line ]] ||
     fail "$name expected ordered lines: $first before $second"
 }
 
@@ -159,7 +167,7 @@ setup_case() {
   COMMAND_LOG="$CASE_DIR/commands.log"
   mkdir -p "$CASE_DIR"
   : > "$COMMAND_LOG"
-  unset TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
+  unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
   unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
 }
 
