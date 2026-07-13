@@ -18,6 +18,9 @@ wallpaper-script-check:
 check-local-bin:
   bash checks/local-bin-rot.bash
 
+check-flake-update:
+  bash checks/flake-update.bash
+
 check-agent-docs:
   bash checks/agent-docs.bash
 
@@ -63,6 +66,7 @@ check:
   just check-agent-workflows
   just check-laptop-safety
   just check-local-bin
+  just check-flake-update
   just fmt-check
   just shell-check
   just wallpaper-script-check

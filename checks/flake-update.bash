@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+repo="$tmpdir/repo"
+bin_dir="$tmpdir/bin"
+command_log="$tmpdir/commands.log"
+mkdir -p "$repo" "$bin_dir"
+: > "$command_log"
+: > "$repo/flake.nix"
+: > "$repo/flake.lock"
+
+make_fake() {
+  local name="$1"
+  shift
+  cat > "$bin_dir/$name"
+  chmod +x "$bin_dir/$name"
+}
+
+make_fake runuser <<'EOF'
+#!/usr/bin/env bash
+printf 'runuser %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+while [[ $# -gt 0 && "$1" != -- ]]; do shift; done
+shift
+exec "$@"
+EOF
+
+make_fake nix <<'EOF'
+#!/usr/bin/env bash
+printf 'nix %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+EOF
+
+make_fake git <<'EOF'
+#!/usr/bin/env bash
+printf 'git %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+case " $* " in
+  *' rev-parse --show-toplevel '*) printf '%s\n' "$TEST_REPO" ;;
+  *' diff --quiet '*|*' diff --exit-code '*) exit 0 ;;
+  *' status --porcelain '*) exit 0 ;;
+esac
+EOF
+
+make_fake getent <<'EOF'
+#!/usr/bin/env bash
+printf 'getent %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+if [[ "$1" == passwd ]]; then
+  printf 'rupan:x:1000:1000:Rupan:%s:/bin/bash\n' "$TEST_REPO"
+fi
+EOF
+
+make_fake flock <<'EOF'
+#!/usr/bin/env bash
+printf 'flock %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+while [[ $# -gt 0 && "$1" == -* ]]; do shift; done
+shift
+exec "$@"
+EOF
+
+for command in nix-cascade-guard nixos-rebuild; do
+  make_fake "$command" <<'EOF'
+#!/usr/bin/env bash
+printf '%s' "${0##*/}" >> "$COMMAND_LOG"
+printf ' %q' "$@" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+EOF
+done
+
+set +e
+PATH="$bin_dir:$PATH" \
+  COMMAND_LOG="$command_log" \
+  TEST_REPO="$repo" \
+  UPDATE_LOCK="$tmpdir/update.lock" \
+  DNS_RETRIES=1 \
+  DNS_RETRY_DELAY=0 \
+  CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
+  NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
+  home/scripts/nixos-flake-update \
+    --label weekly \
+    --repo "$repo" \
+    --target "path:$repo#laptop" \
+    --commit-message "flake.lock: weekly auto-update"
+status=$?
+set -e
+
+if [[ $status -ne 0 ]]; then
+  printf 'expected unchanged update pipeline to exit 0, got %d\n' "$status" >&2
+  exit 1
+fi
+
+update_count=$(grep -Ec '^nix (flake update|--extra-experimental-features .* flake update)( |$)' "$command_log" || true)
+if [[ $update_count -ne 1 ]]; then
+  printf 'expected exactly one full flake update, got %d\n' "$update_count" >&2
+  cat "$command_log" >&2
+  exit 1
+fi
+
+if grep -Eq '^(nix-cascade-guard|nixos-rebuild)( |$)|^git .*commit( |$)' "$command_log"; then
+  printf 'unchanged lock file unexpectedly triggered cascade guard, commit, or rebuild\n' >&2
+  cat "$command_log" >&2
+  exit 1
+fi
