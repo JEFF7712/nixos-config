@@ -29,6 +29,31 @@ assert_log_contains() {
   fi
 }
 
+check_public_delegation() {
+  local adapter_dir="$tmpdir/public-adapters"
+  local mapping public_invocation engine_invocation public_command
+
+  mkdir -p "$adapter_dir"
+  cp "$REPO_ROOT/home/scripts/switch-profile" "$adapter_dir/switch-profile"
+  cp "$REPO_ROOT/home/scripts/toggle-variant" "$adapter_dir/toggle-variant"
+  : > "$adapter_dir/profile-common"
+  cat > "$adapter_dir/profile-transition" <<'EOF'
+#!/usr/bin/env bash
+printf 'profile-transition %s\n' "$*" >> "$COMMAND_LOG"
+EOF
+  chmod +x "$adapter_dir/profile-transition"
+
+  for mapping in "${COMPATIBILITY_MAPPINGS[@]}"; do
+    IFS='|' read -r public_invocation engine_invocation <<< "$mapping"
+    read -r -a public_command <<< "$public_invocation"
+    : > "$log"
+    HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
+      "$adapter_dir/${public_command[0]}" "${public_command[@]:1}" >/dev/null 2>&1 || true
+    assert_eq "$engine_invocation" "$(cat "$log")" \
+      "$public_invocation delegates its mutation to the transition engine"
+  done
+}
+
 mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar"
 
 for profile in old new; do
@@ -106,3 +131,4 @@ assert_eq "$profiles/new/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "Niri override points to the target profile"
 assert_log_contains "pgrep -f waybar active=old" "target bar is verified before active profile commit"
+check_public_delegation
