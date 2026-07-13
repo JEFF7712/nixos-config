@@ -30,6 +30,26 @@ assert_log_contains() {
   fi
 }
 
+check_waybar_readiness_fake() {
+  printf 'stopped\n' > "$bar_state"
+  : > "$log"
+  if COMMAND_LOG="$log" BAR_STATE="$bar_state" XDG_CONFIG_HOME="$home/.config" PATH="$bin_dir" \
+    "$bin_dir/pgrep" -f waybar; then
+    printf 'FAIL: stopped Waybar reported ready\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'verify-waybar' "$log"; then
+    printf 'FAIL: stopped Waybar emitted a readiness verification\n' >&2
+    exit 1
+  fi
+
+  printf 'started\n' > "$bar_state"
+  COMMAND_LOG="$log" BAR_STATE="$bar_state" XDG_CONFIG_HOME="$home/.config" PATH="$bin_dir" \
+    "$bin_dir/pgrep" -f waybar
+  assert_eq "verify-waybar active=old" "$(tail -n 1 "$log")" \
+    "started Waybar emits the unique readiness verification"
+}
+
 check_public_delegation() {
   local adapter_dir="$tmpdir/public-adapters"
   local mapping public_invocation engine_invocation public_command before after diagnostics
@@ -124,7 +144,7 @@ cat > "$bin_dir/pgrep" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 state=$(cat "$BAR_STATE")
-case " $*:$state" in
+case " $* :$state" in
   *" waybar "*:started)
     printf 'verify-waybar active=%s\n' "$active" >> "$COMMAND_LOG"
     exit 0
@@ -143,8 +163,8 @@ exec "$REAL_JQ" "$@"
 EOF
 
 find "$bin_dir" -maxdepth 1 -type f -exec chmod +x {} +
+check_waybar_readiness_fake
 : > "$log"
-printf 'started\n' > "$bar_state"
 
 # Public mutation interfaces that later compatibility tests must enforce.
 COMPATIBILITY_MAPPINGS=(
