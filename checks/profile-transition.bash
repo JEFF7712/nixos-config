@@ -538,6 +538,39 @@ assert_eq "$profiles/old/niri-overrides.kdl" \
   "partial commit restores Niri override"
 assert_log_contains "verify-waybar active=old" "partial commit recovers the previous bar"
 
+# Once all preferences are durable, a signal may clean transaction storage but
+# must not roll the committed state or runtime back.
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+printf 'light\n' > "$profiles/variant-new"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
+cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
+printf 'started\n' > "$bar_state"
+printf '0\n' > "$tmpdir/start-count"
+: > "$log"
+set +e
+HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$tmpdir/runtime-commit" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  START_COUNT_FILE="$tmpdir/start-count" PROFILE_TRANSITION_SIGNAL_AFTER_COMMIT=TERM \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1
+committed_signal_status=$?
+set -e
+assert_eq 143 "$committed_signal_status" "committed cleanup signal preserves status"
+assert_eq new "$(cat "$profiles/active")" "committed cleanup signal preserves active profile"
+assert_eq light "$(cat "$profiles/active-variant")" "committed cleanup signal preserves variant"
+assert_eq light "$(cat "$profiles/variant-new")" "committed cleanup signal preserves preference"
+assert_eq "$profiles/new/niri-overrides.kdl" \
+  "$(readlink "$profiles/active-niri-overrides.kdl")" \
+  "committed cleanup signal preserves Niri override"
+assert_eq 1 "$(cat "$tmpdir/start-count")" \
+  "committed cleanup signal does not restart the old runtime"
+if find "$tmpdir/runtime-commit" -mindepth 1 -print -quit | grep -q .; then
+  printf 'FAIL: committed cleanup signal left a transaction directory behind\n' >&2
+  exit 1
+fi
+
 printf 'new\n' > "$profiles/active"
 printf 'light\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-old"

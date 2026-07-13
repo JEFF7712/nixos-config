@@ -323,6 +323,10 @@ commit_transaction() {
     write_atomic "$PROFILES_DIR/variant-$TARGET" "$TARGET_VARIANT"
     [ "${PROFILE_TRANSITION_FAIL_COMMIT_AFTER:-}" != preference ] || return 1
   fi
+  trap 'cleanup_transaction $?' EXIT
+  if [ -n "${PROFILE_TRANSITION_SIGNAL_AFTER_COMMIT:-}" ]; then
+    kill -s "$PROFILE_TRANSITION_SIGNAL_AFTER_COMMIT" "$$"
+  fi
   rm -rf "$TRANSACTION_DIR"
   trap - EXIT INT TERM HUP
 }
