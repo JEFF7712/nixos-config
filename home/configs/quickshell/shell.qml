@@ -105,8 +105,10 @@ ShellRoot {
         root.flatMode = false;
         root.showBarDividers = true;
         root.moduleAnimationStyle = "fade";
-        root.popupAttachToBar = false;
-        root.popupAnimationStyle = "softPop";
+        // popupAttachToBar / popupAnimationStyle are applied at the end of
+        // applyTheme only when they actually change — resetting them here would
+        // flip false→true on every sharp wallpaper retheme and prewarm-flash
+        // every InfoPopup (see InfoPopup.onPopupAttachToBarChanged).
         root.dividerColor = "#1affffff";
         root.barBorderColor = "#3dffffff";
         root.barInnerHighlight = "#0fffffff";
@@ -176,10 +178,6 @@ ShellRoot {
             root.showBarDividers = theme.showBarDividers === "true";
         if (theme.moduleAnimationStyle)
             root.moduleAnimationStyle = theme.moduleAnimationStyle;
-        if (theme.popupAttachToBar)
-            root.popupAttachToBar = theme.popupAttachToBar === "true";
-        if (theme.popupAnimationStyle)
-            root.popupAnimationStyle = theme.popupAnimationStyle;
         if (theme.dividerColor)
             root.dividerColor = theme.dividerColor;
         if (theme.barBorder)
@@ -190,6 +188,15 @@ ShellRoot {
             root.pillBg = theme.pillBg;
         if (theme.pillBorder)
             root.pillBorder = theme.pillBorder;
+
+        // Only assign when the value changes so wallpaper rethemes (same sharp
+        // layout, new colors) do not trip InfoPopup's attach/style prewarm flash.
+        const nextAttach = theme.popupAttachToBar !== undefined ? theme.popupAttachToBar === "true" : false;
+        const nextAnim = theme.popupAnimationStyle !== undefined ? theme.popupAnimationStyle : "softPop";
+        if (root.popupAttachToBar !== nextAttach)
+            root.popupAttachToBar = nextAttach;
+        if (root.popupAnimationStyle !== nextAnim)
+            root.popupAnimationStyle = nextAnim;
     }
 
     property bool themeLoaded: false
