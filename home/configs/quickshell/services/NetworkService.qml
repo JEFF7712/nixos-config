@@ -28,8 +28,13 @@ Scope {
         model.openSettings();
     }
 
+    Internal.NetworkBackend {
+        id: backend
+    }
+
     Internal.NetworkModel {
         id: model
+        backend: backend
         scanningRequested: root.scanningRequested
     }
 }

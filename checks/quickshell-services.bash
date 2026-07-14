@@ -12,6 +12,7 @@ power_native_fixture_qml="${repo_root}/tests/quickshell/integration/power-native
 system_fixture_qml="${repo_root}/tests/quickshell/integration/system-service"
 niri_fixture_qml="${repo_root}/tests/quickshell/integration/niri-service"
 network_fixture_qml="${repo_root}/tests/quickshell/integration/network-service"
+network_native_fixture_qml="${repo_root}/tests/quickshell/integration/network-native"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -1177,51 +1178,65 @@ run_niri_service_probe() {
   jq -c . "$state_dir/result.json"
 }
 
-run_network_service_probe() {
+run_network_native_construction_probe() {
   local state_dir qs_pid rc=0
-  printf 'quickshell-services: run_network_service_probe\n'
+  printf 'quickshell-services: run_network_native_construction_probe\n'
   [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
 
-  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-network-service.XXXXXX")
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-network-native.XXXXXX")
   fixture_state_dirs+=("$state_dir")
-  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal" "$state_dir/network"
-  ln -s "$audio_fixture_bin/nmcli" "$state_dir/fixture-bin/nmcli"
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal"
   ln -s "$audio_fixture_bin/kitty" "$state_dir/fixture-bin/kitty"
-  cp "$network_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$network_native_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
   cp "$repo_root/home/configs/quickshell/services/NetworkService.qml" "$state_dir/config/services/NetworkService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/NetworkBackend.qml" "$state_dir/config/services/internal/NetworkBackend.qml"
   cp "$repo_root/home/configs/quickshell/services/internal/NetworkModel.qml" "$state_dir/config/services/internal/NetworkModel.qml"
   cp "$repo_root/home/configs/quickshell/services/internal/NetworkParser.js" "$state_dir/config/services/internal/NetworkParser.js"
   cp "$repo_root/home/configs/quickshell/services/internal/NetworkReducer.js" "$state_dir/config/services/internal/NetworkReducer.js"
-  printf 'enabled\n' >"$state_dir/network/radio"
-  printf 'connected\n' >"$state_dir/network/general"
-  printf 'Home:802-11-wireless\nWork:802-3-ethernet\n' >"$state_dir/network/connections"
-  printf '*:Home:80:WPA2\n:Guest:40:--\n' >"$state_dir/network/wifi-list"
   : >"$state_dir/kitty-calls.log"
 
   PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
     "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
   qs_pid=$!
   register_fixture_qs "$qs_pid"
-  wait_for_path "$state_dir/ready" 10 || fail 'network fixture did not become ready'
-  wait_for_process "$qs_pid" 35 || rc=$?
-  if ((rc != 0)); then
+
+  if ! wait_for_path "$state_dir/ready" 10; then
+    kill -TERM "$qs_pid" 2>/dev/null || true
     sed -n '1,240p' "$state_dir/quickshell.log" >&2
-    fail "network fixture exited unsuccessfully or timed out (rc=${rc})"
+    fail 'native network fixture did not become ready within ten seconds'
   fi
-  jq -e '.passed == true and .busyObserved == true and
-    .diagnostics.available == true and .diagnostics.wifiEnabled == true and
-    .diagnostics.connected == true and .diagnostics.activeSsid == "Home" and
-    .diagnostics.activeSignal == 80 and .diagnostics.activeSecurity == "WPA2" and
-    .diagnostics.networkCount == 2' \
+  wait_for_process "$qs_pid" 10 || rc=$?
+  if ((rc != 0)); then
+    kill -TERM "$qs_pid" 2>/dev/null || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "native network fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and
+    (.diagnostics.available | type == "boolean") and
+    (.diagnostics.skipped | type == "boolean") and
+    (.diagnostics.wifiEnabled | type == "boolean") and
+    (.diagnostics.connected | type == "boolean") and
+    (.diagnostics.activeSsid | type == "string") and
+    (.diagnostics.activeSignal | type == "number") and
+    (.diagnostics.activeSecurity | type == "string") and
+    (.diagnostics.networkCount | type == "number") and
+    .diagnostics.networkCount >= 0 and .diagnostics.networkCount <= 8 and
+    if .diagnostics.skipped == true then
+      .diagnostics.available == false
+    else
+      .diagnostics.available == true
+    end' \
     "$state_dir/result.json" >/dev/null || {
     jq . "$state_dir/result.json" >&2 || true
-    fail 'network fixture reported invalid state or action behavior'
+    fail 'native network fixture reported invalid construction diagnostics'
   }
   ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
     || {
       sed -n '1,240p' "$state_dir/quickshell.log" >&2
-      fail 'network fixture logged a binding or construction error'
+      fail 'native network fixture logged a binding or construction error'
     }
+  [ "$(wc -l <"$state_dir/kitty-calls.log")" -eq 1 ] \
+    || fail 'native network fixture did not record exactly one detached settings launch'
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
@@ -1239,6 +1254,8 @@ assert_native_fixture_always_validates_public_contract() {
     || fail 'native audio fixture lets skipped backends bypass public contract validation'
   rg -q 'passed:[[:space:]]*validTypes && validRange' "$power_native_fixture_qml/shell.qml" \
     || fail 'native power fixture lets skipped backends bypass public contract validation'
+  rg -q 'passed:[[:space:]]*validTypes && validRange' "$network_native_fixture_qml/shell.qml" \
+    || fail 'native network fixture lets skipped backends bypass public contract validation'
 }
 
 assert_no_view_processes_for_migrated_domains() {
@@ -1573,20 +1590,32 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'SystemPopup.qml logout must call niriService.quitSession()'
 
   local network_service="$production_dir/services/NetworkService.qml"
+  local network_backend="$production_dir/services/internal/NetworkBackend.qml"
   local network_model="$production_dir/services/internal/NetworkModel.qml"
   local network_parser="$production_dir/services/internal/NetworkParser.js"
   local network_reducer="$production_dir/services/internal/NetworkReducer.js"
   local wifi_popup="$production_dir/WifiPopup.qml"
   [ -f "$network_service" ] || fail 'NetworkService.qml is missing'
+  [ -f "$network_backend" ] || fail 'NetworkBackend.qml is missing'
   [ -f "$network_model" ] || fail 'NetworkModel.qml is missing'
   [ -f "$network_parser" ] || fail 'NetworkParser.js is missing'
   [ -f "$network_reducer" ] || fail 'NetworkReducer.js is missing'
+  rg -q '^import Quickshell\.Networking$' "$network_backend" \
+    || fail 'NetworkBackend.qml must import Quickshell.Networking'
+  rg -q 'Networking\.(backend|wifiEnabled|connectivity|devices)' "$network_backend" \
+    || fail 'NetworkBackend.qml must read native Networking singleton state'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"nmcli"' "$network_backend" \
+    || fail 'NetworkBackend.qml must not own processes, timers, or nmcli'
+  rg -q 'Internal\.NetworkBackend[[:space:]]*\{' "$network_service" \
+    || fail 'NetworkService.qml must compose the native NetworkBackend'
   rg -q 'Internal\.NetworkModel[[:space:]]*\{' "$network_service" \
     || fail 'NetworkService.qml must compose the deep internal NetworkModel'
   [ "$(rg '^[[:space:]]*property' "$network_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = 'property bool scanningRequested: false' ] \
     || fail 'NetworkService.qml must expose only the narrow scanning-demand input'
-  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"nmcli"' "$network_service" \
-    || fail 'NetworkService.qml must stay a thin facade with no owned processes or command literals'
+  ! rg -n 'Quickshell\.Networking|property[^:]*\b(backend|wifiDevice|native)\b|(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"nmcli"' "$network_service" \
+    || fail 'NetworkService.qml must stay a thin facade with no native objects, processes, or nmcli'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"nmcli"|Quickshell\.Networking' "$network_model" \
+    || fail 'NetworkModel.qml must stay backend-free of Process/Timer/nmcli/Networking imports'
   for public_property in available wifiEnabled connected activeSsid activeSignal activeSecurity networks; do
     rg -q "readonly property [^:]* ${public_property}:" "$network_service" \
       || fail "NetworkService.qml is missing readonly public property: $public_property"
@@ -1599,12 +1628,10 @@ assert_no_view_processes_for_migrated_domains() {
     rg -F -q "$signature" "$network_service" \
       || fail "NetworkService.qml is missing typed action signature: $signature"
   done
-  rg -q '"nmcli"' "$network_parser" \
-    || fail 'NetworkParser.js must own the nmcli command construction'
-  rg -q 'NetworkParser\.(FETCH_COMMAND|GENERAL_COMMAND|radioToggleCommand|connectKnownCommand)' "$network_model" \
-    || fail 'NetworkModel.qml must drive nmcli commands through NetworkParser'
-  ! rg -n -i -g '*.qml' -g '*.js' -g '!NetworkParser.js' 'nmcli' "$production_dir" \
-    || fail 'nmcli command construction exists outside the NetworkService implementation'
+  rg -q 'interactiveConnectArgv|settingsArgv' "$network_parser" \
+    || fail 'NetworkParser.js must own the kitty interactive/settings argv helpers'
+  ! rg -n -i -g '*.qml' -g '*.js' 'nmcli' "$production_dir" \
+    || fail 'nmcli command construction remains in production Quickshell code'
   [ "$(rg -o 'Services\.NetworkService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
     || fail 'production shell.qml must instantiate exactly one Services.NetworkService'
   rg -q 'id:[[:space:]]*networkService' "$shell" \
@@ -1662,5 +1689,5 @@ run_power_destruction_probe action
 run_power_native_construction_probe
 run_system_service_probe
 run_niri_service_probe
-run_network_service_probe
+run_network_native_construction_probe
 assert_no_view_processes_for_migrated_domains

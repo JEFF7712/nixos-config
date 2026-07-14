@@ -1,12 +1,12 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import "NetworkParser.js" as NetworkParser
 import "NetworkReducer.js" as NetworkReducer
 
 Scope {
     id: root
 
+    required property var backend
     property bool scanningRequested: false
 
     property bool _available: false
@@ -16,6 +16,11 @@ Scope {
     property int _activeSignal: 0
     property string _activeSecurity: ""
     property string _busySsid: ""
+    // Frozen native-shaped discovery entries (ssid/signal/security/secure/known);
+    // only replaced while scanningRequested, so the popup's AP list survives
+    // scanner-off gaps instead of shrinking as native entries expire.
+    property var _discovery: []
+    property var _nativeBySsid: ({})
 
     readonly property bool available: _available
     readonly property bool wifiEnabled: _wifiEnabled
@@ -29,58 +34,64 @@ Scope {
         id: networksModel
     }
 
-    function _networksArray(): var {
-        const out = [];
-        for (let i = 0; i < networksModel.count; i++)
-            out.push(networksModel.get(i));
-        return out;
-    }
-
-    function _stateObject(): var {
-        return {
-            available: root._available,
-            wifiEnabled: root._wifiEnabled,
-            connected: root._connected,
-            activeSsid: root._activeSsid,
-            activeSignal: root._activeSignal,
-            activeSecurity: root._activeSecurity,
-            networks: root._networksArray(),
-            busySsid: root._busySsid
-        };
-    }
-
     function _applyNetworksModel(list): void {
         networksModel.clear();
         for (const network of list)
             networksModel.append(network);
     }
 
-    function _applyFetch(state): void {
-        root._available = state.available;
-        root._wifiEnabled = state.wifiEnabled;
-        root._activeSsid = state.activeSsid;
-        root._activeSignal = state.activeSignal;
-        root._activeSecurity = state.activeSecurity;
-        root._busySsid = NetworkReducer.reconcileBusy(root._busySsid, state.activeSsid, state.networks);
-        root._applyNetworksModel(NetworkReducer.applyBusyRole(state.networks, root._busySsid));
+    function _renderDiscovery(): void {
+        const list = NetworkReducer.buildNetworkListFromNativeSnapshot(root._discovery, root._activeSsid);
+        root._applyNetworksModel(NetworkReducer.applyBusyRole(list, root._busySsid));
     }
 
-    function _applyGeneral(state): void {
-        root._connected = state.connected;
+    function _reconcile(): void {
+        const observation = root.backend ? root.backend.observation : null;
+        root._available = !!(observation && observation.present);
+        if (!root._available)
+            return; // retain previously observed wifiEnabled/active/discovery fields
+
+        root._wifiEnabled = observation.wifiEnabled;
+        root._connected = observation.connected;
+
+        const liveEntries = observation.networks || [];
+        root._nativeBySsid = {};
+        for (const entry of liveEntries)
+            root._nativeBySsid[entry.ssid] = entry.native;
+
+        const activeEntry = liveEntries.find(entry => entry.active);
+        root._activeSsid = activeEntry ? activeEntry.ssid : "";
+        root._activeSignal = activeEntry ? activeEntry.signal : 0;
+        root._activeSecurity = activeEntry ? activeEntry.security : "";
+
+        root._busySsid = NetworkReducer.reconcileBusy(root._busySsid, root._activeSsid, liveEntries);
+
+        if (root.scanningRequested || root._discovery.length === 0) {
+            root._discovery = liveEntries.map(entry => ({
+                    ssid: entry.ssid,
+                    signal: entry.signal,
+                    security: entry.security,
+                    secure: entry.secure,
+                    known: entry.known
+                }));
+        }
+        root._renderDiscovery();
     }
 
     function setWifiEnabled(enabled: bool): void {
-        toggleProcess.command = NetworkParser.radioToggleCommand(enabled);
-        toggleProcess.running = true;
+        if (root.backend)
+            root.backend.setWifiEnabled(enabled);
     }
 
     function connectKnown(ssid: string): void {
-        if (!ssid || ssid === root._busySsid)
+        if (!ssid || ssid === root._busySsid || !root.backend)
+            return;
+        const native = root._nativeBySsid[ssid];
+        if (!native)
             return;
         root._busySsid = ssid;
-        root._applyNetworksModel(NetworkReducer.applyBusyRole(root._networksArray(), root._busySsid));
-        connectProcess.command = NetworkParser.connectKnownCommand(ssid);
-        connectProcess.running = true;
+        root._renderDiscovery();
+        root.backend.connectNetwork(native);
     }
 
     function connectInteractive(ssid: string): void {
@@ -93,72 +104,31 @@ Scope {
         Quickshell.execDetached(NetworkParser.settingsArgv());
     }
 
-    function _requestFetch(): void {
-        fetchProcess.running = true;
-    }
-
-    function _requestGeneral(): void {
-        generalProcess.running = true;
-    }
-
-    Component.onCompleted: {
-        root._requestFetch();
-        root._requestGeneral();
-    }
     onScanningRequestedChanged: {
-        fetchTimer.restart();
-        root._requestFetch();
+        if (root.backend)
+            root.backend.scanningRequested = root.scanningRequested;
     }
-    Component.onDestruction: {
-        fetchTimer.stop();
-        generalTimer.stop();
-        fetchProcess.running = false;
-        generalProcess.running = false;
-        toggleProcess.running = false;
-        connectProcess.running = false;
+    onBackendChanged: {
+        if (root.backend)
+            root.backend.scanningRequested = root.scanningRequested;
+        root._reconcile();
     }
+    Component.onCompleted: root._reconcile()
 
-    Process {
-        id: fetchProcess
-        command: ["sh", "-c", NetworkParser.FETCH_COMMAND]
-        stdout: StdioCollector {}
-        onExited: (exitCode, exitStatus) => {
-            root._applyFetch(NetworkReducer.reduceFetch(root._stateObject(), NetworkParser.parseFetchOutput(stdout.text), exitCode));
+    property Connections _backendConnections: Connections {
+        target: root.backend
+
+        function onObservationChanged(): void {
+            root._reconcile();
         }
-    }
 
-    Process {
-        id: generalProcess
-        command: ["sh", "-c", NetworkParser.GENERAL_COMMAND]
-        stdout: StdioCollector {}
-        onExited: (exitCode, exitStatus) => {
-            root._applyGeneral(NetworkReducer.reduceGeneral(root._stateObject(), NetworkParser.parseGeneralOutput(stdout.text), exitCode));
+        function onConnectionFailed(ssid, noSecrets): void {
+            if (ssid && ssid === root._busySsid) {
+                root._busySsid = "";
+                root._renderDiscovery();
+            }
+            if (noSecrets && ssid)
+                root.connectInteractive(ssid);
         }
-    }
-
-    Process {
-        id: toggleProcess
-        onExited: root._requestFetch()
-    }
-
-    Process {
-        id: connectProcess
-        onExited: root._requestFetch()
-    }
-
-    Timer {
-        id: fetchTimer
-        interval: root.scanningRequested ? 5000 : 20000
-        running: true
-        repeat: true
-        onTriggered: root._requestFetch()
-    }
-
-    Timer {
-        id: generalTimer
-        interval: 3000
-        running: true
-        repeat: true
-        onTriggered: root._requestGeneral()
     }
 }

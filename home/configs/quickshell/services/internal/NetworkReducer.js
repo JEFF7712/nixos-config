@@ -1,18 +1,5 @@
 .pragma library
 
-function initialState() {
-    return {
-        available: false,
-        wifiEnabled: false,
-        connected: false,
-        activeSsid: "",
-        activeSignal: 0,
-        activeSecurity: "",
-        networks: [],
-        busySsid: ""
-    };
-}
-
 function copyNetwork(network) {
     return {
         ssid: network.ssid,
@@ -25,25 +12,11 @@ function copyNetwork(network) {
     };
 }
 
-function copyState(previous) {
-    var base = previous || initialState();
-    return {
-        available: base.available,
-        wifiEnabled: base.wifiEnabled,
-        connected: base.connected,
-        activeSsid: base.activeSsid,
-        activeSignal: base.activeSignal,
-        activeSecurity: base.activeSecurity,
-        networks: (base.networks || []).map(copyNetwork),
-        busySsid: base.busySsid || ""
-    };
-}
-
 // Dedups by strongest signal per SSID, sorts descending, and caps the
-// result at eight entries — the exact WifiPopup fetchProc behavior this
-// service centralizes. `saved` is a plain ssid->true lookup (802-11-wireless
-// connection names); a network counts as known if it has a saved connection
-// or is the currently active SSID (mirrors the pre-migration "saved" role).
+// result at eight entries — the exact discovery-list behavior this service
+// has always centralized. `saved` is a plain ssid->true lookup; a network
+// counts as known if it has a saved connection or is the currently active
+// SSID (mirrors the pre-native "saved" role).
 function buildNetworkList(rawNetworks, saved, activeSsid) {
     var withRoles = (rawNetworks || []).map(function (entry) {
         return {
@@ -73,34 +46,25 @@ function buildNetworkList(rawNetworks, saved, activeSsid) {
     return deduped;
 }
 
-// A failed or malformed fetch (networking daemon absent, non-zero exit)
-// preserves the last known list/active-network fields instead of blanking
-// them, and marks `available` false so views can distinguish "no data yet"
-// from "no networks in range". Recovery happens through the next successful
-// poll on the normal cadence — no separate reload/backoff machinery.
-function reduceFetch(previous, parsed, exitCode) {
-    var next = copyState(previous);
-    if ((exitCode || 0) !== 0 || !parsed || !parsed.radioPresent) {
-        next.available = false;
-        return next;
-    }
-    next.available = true;
-    next.wifiEnabled = parsed.radioEnabled;
-    next.activeSsid = parsed.activeSsid;
-    next.activeSignal = parsed.activeSignal;
-    next.activeSecurity = parsed.activeSecurity;
-    next.networks = buildNetworkList(parsed.rawNetworks, parsed.saved, parsed.activeSsid);
-    return next;
-}
-
-// The bar connectivity probe is independent of the AP-scan cadence and
-// fails/succeeds on its own; a failed read leaves the last known value.
-function reduceGeneral(previous, parsed, exitCode) {
-    var next = copyState(previous);
-    if ((exitCode || 0) !== 0 || !parsed || !parsed.present)
-        return next;
-    next.connected = parsed.connected;
-    return next;
+// Adapts a native-shaped snapshot (each entry already carrying its own
+// `known` flag straight from the native Network object, rather than a
+// separate saved-connections lookup) into the same dedup/sort/cap pipeline
+// buildNetworkList has always owned, so both backends share one reducer.
+function buildNetworkListFromNativeSnapshot(snapshot, activeSsid) {
+    var raw = (snapshot || []).map(function (entry) {
+        return {
+            ssid: entry.ssid,
+            signal: entry.signal,
+            security: entry.security,
+            secure: entry.secure
+        };
+    });
+    var saved = {};
+    (snapshot || []).forEach(function (entry) {
+        if (entry.known)
+            saved[entry.ssid] = true;
+    });
+    return buildNetworkList(raw, saved, activeSsid);
 }
 
 // A busy SSID clears once it becomes the active connection or disappears
