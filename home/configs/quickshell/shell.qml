@@ -340,7 +340,7 @@ ShellRoot {
         barInnerHighlight: root.barInnerHighlight
         pillBg: root.pillBg
         pillBorder: root.pillBorder
-        notificationCount: notificationsPopup.unreadCount
+        notificationCount: NotifService.count
         onVolumeClicked: root.showOnly(volumePopup)
         onWifiClicked: root.showOnly(wifiPopup)
         onBluetoothClicked: root.showOnly(bluetoothPopup)

@@ -71,10 +71,6 @@ PanelWindow {
     signal systemClicked
     signal mediaClicked
 
-    function run(cmd) {
-        Quickshell.execDetached(["sh", "-c", cmd]);
-    }
-
     function networkIcon() {
         return topbarWindow.networkService.connected ? "󰖩" : "󰖪";
     }

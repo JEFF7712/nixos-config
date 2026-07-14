@@ -1449,6 +1449,16 @@ assert_eq '{"payload":"qs-dark"}' \
     DESKTOP_PROFILE_TRANSITION_TARGET=qs DESKTOP_PROFILE_TRANSITION_VARIANT=dark \
     "$PROFILE_THEME_SELECTOR")" \
   "an untagged legacy runtime override falls back to the baked dark theme"
+# Task 12 presentation-split contract: pending/runtime Quickshell theme selection
+# and InfoPopup lifecycle semantics stay the source of truth (do not edit InfoPopup).
+rg -q 'runtime-quickshell-theme.json' "$REPO_ROOT/home/scripts/select-quickshell-theme" \
+  || { printf 'FAIL: select-quickshell-theme lost runtime theme preference\n' >&2; exit 1; }
+rg -q 'DESKTOP_PROFILE_TRANSITION_TARGET' "$REPO_ROOT/home/scripts/select-quickshell-theme" \
+  || { printf 'FAIL: select-quickshell-theme lost pending transition target preference\n' >&2; exit 1; }
+for lifecycle in 'property bool shown: false' 'readonly property bool active:' 'readonly property bool mapped:' 'property bool warming: false' 'property bool ready: false'; do
+  rg -F -q "$lifecycle" "$REPO_ROOT/home/configs/quickshell/InfoPopup.qml" \
+    || { printf 'FAIL: InfoPopup.qml missing lifecycle contract: %s\n' "$lifecycle" >&2; exit 1; }
+done
 printf 'dark\n' > "$profiles/runtime-theme-variant"
 : > "$log"
 HOME="$home" XDG_CONFIG_HOME="$home/.config" \

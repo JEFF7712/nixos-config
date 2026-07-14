@@ -15,6 +15,7 @@ network_fixture_qml="${repo_root}/tests/quickshell/integration/network-service"
 network_native_fixture_qml="${repo_root}/tests/quickshell/integration/network-native"
 bluetooth_fixture_qml="${repo_root}/tests/quickshell/integration/bluetooth-service"
 bluetooth_native_fixture_qml="${repo_root}/tests/quickshell/integration/bluetooth-native"
+popup_only_fixture_qml="${repo_root}/tests/quickshell/integration/popup-only"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -1303,6 +1304,69 @@ run_bluetooth_native_construction_probe() {
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
+run_popup_only_composition_probe() {
+  local state_dir qs_pid rc=0
+  printf 'quickshell-services: run_popup_only_composition_probe\n'
+  [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
+  [ -n "${WAYLAND_DISPLAY:-}" ] || fail 'popup-only fixture requires WAYLAND_DISPLAY (PanelWindow has no offscreen backend)'
+
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-popup-only.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config"
+  cp -a "$repo_root/home/configs/quickshell/." "$state_dir/config/"
+  cp "$popup_only_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  ln -s "$audio_fixture_bin/lock-screen" "$state_dir/fixture-bin/lock-screen"
+  ln -s "$audio_fixture_bin/blueman-manager" "$state_dir/fixture-bin/blueman-manager"
+  ln -s "$audio_fixture_bin/niri" "$state_dir/fixture-bin/niri"
+  ln -s "$audio_fixture_bin/playerctl" "$state_dir/fixture-bin/playerctl"
+  ln -s "$audio_fixture_bin/cava" "$state_dir/fixture-bin/cava"
+  ln -s "$audio_fixture_bin/systemctl" "$state_dir/fixture-bin/systemctl"
+  : >"$state_dir/actions.log"
+  : >"$state_dir/blueman-calls.log"
+
+  # PanelWindow needs a Wayland backend; offscreen cannot load InfoPopup.
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=wayland \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+
+  if ! wait_for_path "$state_dir/ready" 15; then
+    kill -TERM "$qs_pid" 2>/dev/null || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail 'popup-only fixture did not become ready within fifteen seconds'
+  fi
+  wait_for_process "$qs_pid" 15 || rc=$?
+  if ((rc != 0)); then
+    kill -TERM "$qs_pid" 2>/dev/null || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "popup-only fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and
+    .diagnostics.audioOk == true and
+    .diagnostics.networkOk == true and
+    .diagnostics.bluetoothOk == true and
+    .diagnostics.powerOk == true and
+    .diagnostics.systemOk == true and
+    .diagnostics.mediaOk == true' \
+    "$state_dir/result.json" >/dev/null || {
+    jq . "$state_dir/result.json" >&2 || true
+    fail 'popup-only fixture reported invalid composition diagnostics'
+  }
+  ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+    || {
+      sed -n '1,240p' "$state_dir/quickshell.log" >&2
+      fail 'popup-only fixture logged a binding or construction error'
+    }
+  [ "$(wc -l <"$state_dir/actions.log")" -eq 1 ] \
+    || fail 'popup-only fixture did not record exactly one lock-screen launch'
+  [ "$(wc -l <"$state_dir/blueman-calls.log")" -eq 1 ] \
+    || fail 'popup-only fixture did not record exactly one blueman-manager launch'
+  ! rg -n 'Topbar|NotifService|NotificationServer|NotificationsPopup|NotificationToasts' \
+    "$popup_only_fixture_qml/shell.qml" \
+    || fail 'popup-only fixture must not reference Topbar or the notification server'
+  jq -c '.diagnostics' "$state_dir/result.json"
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -1788,6 +1852,68 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'BluetoothPopup.qml adapter toggle must call bluetoothService.setEnabled'
   rg -q 'bluetoothService\.toggleDevice\(' "$bluetooth_popup" \
     || fail 'BluetoothPopup.qml device click must call bluetoothService.toggleDevice'
+
+  # Final presentation-split invariants (Task 12).
+  local migrated_view
+  for migrated_view in Topbar.qml VolumePopup.qml WifiPopup.qml BluetoothPopup.qml BatteryPopup.qml SystemPopup.qml MediaPopup.qml; do
+    ! rg -n '(^|[[:space:]])Process[[:space:]]*\{' "$production_dir/$migrated_view" \
+      || fail "$migrated_view still owns a Process block"
+    ! rg -n 'Quickshell\.execDetached|execDetached\(' "$production_dir/$migrated_view" \
+      || fail "$migrated_view still constructs detached domain commands"
+  done
+  ! rg -n -i 'wpctl|nmcli|busctl|bluetoothctl|playerctl|upower' \
+    "$production_dir/Topbar.qml" \
+    "$production_dir/VolumePopup.qml" \
+    "$production_dir/WifiPopup.qml" \
+    "$production_dir/BluetoothPopup.qml" \
+    "$production_dir/BatteryPopup.qml" \
+    "$production_dir/SystemPopup.qml" \
+    "$production_dir/MediaPopup.qml" \
+    || fail 'migrated views still contain domain command literals'
+  ! rg -n 'topbar\.' \
+    "$production_dir"/VolumePopup.qml \
+    "$production_dir"/WifiPopup.qml \
+    "$production_dir"/BluetoothPopup.qml \
+    "$production_dir"/BatteryPopup.qml \
+    "$production_dir"/SystemPopup.qml \
+    "$production_dir"/MediaPopup.qml \
+    "$production_dir"/NotificationsPopup.qml \
+    "$production_dir"/CalendarPopup.qml \
+    "$production_dir"/services/*.qml \
+    "$production_dir"/services/internal/*.qml \
+    || fail 'popups or services still reference the topbar id'
+  topbar_type_refs=$(rg -n '\bTopbar\b' "$shell" || true)
+  [ "$(printf '%s\n' "$topbar_type_refs" | sed '/^$/d' | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must reference the Topbar type only in its presentation instantiation'
+  rg -q 'notificationCount:[[:space:]]*NotifService\.count' "$shell" \
+    || fail 'production shell.qml must bind Topbar notificationCount from NotifService.count'
+  ! rg -n 'notificationsPopup\.unreadCount' "$shell" \
+    || fail 'production shell.qml still routes notification count through NotificationsPopup'
+  ! rg -n 'function[[:space:]]+run\(' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml still exposes the obsolete run() helper'
+  ! rg -n -i 'statsProc|statsTimer|volumeProbe|volumeDebounce|volumeSubscribeProc' \
+    "$production_dir/Topbar.qml" "$shell" \
+    || fail 'old composite stats command residue remains in Topbar or shell'
+  rg -q 'property bool shown: false' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must keep the shown lifecycle property'
+  rg -q 'readonly property bool active:' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must keep the active lifecycle property'
+  rg -q 'readonly property bool mapped:' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must keep the mapped lifecycle property'
+  rg -q 'property bool warming: false' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must keep the warming lifecycle property'
+  rg -q 'property bool ready: false' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must keep the startup ready gate'
+  # Documented presentation timers: clock tick in Topbar, InfoPopup open/close/warm/ready,
+  # shell themeReloadTimer. Migrated domain views must not grow new poll timers.
+  ! rg -n '(^|[[:space:]])Timer[[:space:]]*\{' \
+    "$production_dir/VolumePopup.qml" \
+    "$production_dir/WifiPopup.qml" \
+    "$production_dir/BluetoothPopup.qml" \
+    "$production_dir/BatteryPopup.qml" \
+    "$production_dir/SystemPopup.qml" \
+    "$production_dir/MediaPopup.qml" \
+    || fail 'migrated popups still own presentation-adjacent Timer blocks'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -1819,4 +1945,5 @@ run_system_service_probe
 run_niri_service_probe
 run_network_native_construction_probe
 run_bluetooth_native_construction_probe
+run_popup_only_composition_probe
 assert_no_view_processes_for_migrated_domains
