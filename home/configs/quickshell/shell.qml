@@ -42,6 +42,11 @@ ShellRoot {
         scanningRequested: wifiPopup.shown
     }
 
+    Services.BluetoothService {
+        id: bluetoothService
+        detailedMonitoring: bluetoothPopup.shown
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -301,6 +306,7 @@ ShellRoot {
         systemService: systemService
         niriService: niriService
         networkService: networkService
+        bluetoothService: bluetoothService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -383,6 +389,7 @@ ShellRoot {
 
     BluetoothPopup {
         id: bluetoothPopup
+        bluetoothService: bluetoothService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent

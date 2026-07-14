@@ -13,6 +13,7 @@ system_fixture_qml="${repo_root}/tests/quickshell/integration/system-service"
 niri_fixture_qml="${repo_root}/tests/quickshell/integration/niri-service"
 network_fixture_qml="${repo_root}/tests/quickshell/integration/network-service"
 network_native_fixture_qml="${repo_root}/tests/quickshell/integration/network-native"
+bluetooth_fixture_qml="${repo_root}/tests/quickshell/integration/bluetooth-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -1240,6 +1241,57 @@ run_network_native_construction_probe() {
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
+run_bluetooth_service_probe() {
+  local state_dir qs_pid rc=0
+  printf 'quickshell-services: run_bluetooth_service_probe\n'
+  [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
+
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-bluetooth-service.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal" "$state_dir/bluetooth"
+  ln -s "$audio_fixture_bin/busctl" "$state_dir/fixture-bin/busctl"
+  ln -s "$audio_fixture_bin/blueman-manager" "$state_dir/fixture-bin/blueman-manager"
+  cp "$bluetooth_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$repo_root/home/configs/quickshell/services/BluetoothService.qml" "$state_dir/config/services/BluetoothService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/BluetoothModel.qml" "$state_dir/config/services/internal/BluetoothModel.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/BluetoothParser.js" "$state_dir/config/services/internal/BluetoothParser.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/BluetoothReducer.js" "$state_dir/config/services/internal/BluetoothReducer.js"
+  printf '/org/bluez/hci0\n' >"$state_dir/bluetooth/adapter"
+  printf 'true\n' >"$state_dir/bluetooth/powered"
+  printf '/org/bluez/hci0\n/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF\n/org/bluez/hci0/dev_11_22_33_44_55_66\n' >"$state_dir/bluetooth/tree"
+  printf '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF\n/org/bluez/hci0/dev_11_22_33_44_55_66\n' >"$state_dir/bluetooth/paired"
+  printf '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF\n' >"$state_dir/bluetooth/connected"
+  printf '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF|Buds\n/org/bluez/hci0/dev_11_22_33_44_55_66|Keyboard\n' >"$state_dir/bluetooth/names"
+  : >"$state_dir/busctl-calls.log"
+  : >"$state_dir/blueman-calls.log"
+
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+  wait_for_path "$state_dir/ready" 10 || fail 'bluetooth fixture did not become ready'
+  wait_for_process "$qs_pid" 30 || rc=$?
+  if ((rc != 0)); then
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "bluetooth fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and .busyObserved == true and
+    .diagnostics.available == true and .diagnostics.enabled == true and
+    .diagnostics.deviceCount == 2' \
+    "$state_dir/result.json" >/dev/null || {
+    jq . "$state_dir/result.json" >&2 || true
+    fail 'bluetooth fixture reported invalid state or action behavior'
+  }
+  ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+    || {
+      sed -n '1,240p' "$state_dir/quickshell.log" >&2
+      fail 'bluetooth fixture logged a binding or construction error'
+    }
+  [ "$(wc -l <"$state_dir/blueman-calls.log")" -eq 1 ] \
+    || fail 'bluetooth fixture did not launch blueman-manager exactly once'
+  jq -c '.diagnostics' "$state_dir/result.json"
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -1660,6 +1712,57 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'WifiPopup.qml unknown-network click must call networkService.connectInteractive'
   rg -q 'model:[[:space:]]*root\.networkService\.wifiEnabled[[:space:]]*\?[[:space:]]*root\.networkService\.networks' "$wifi_popup" \
     || fail 'WifiPopup.qml must render NetworkService networks directly'
+
+  local bluetooth_service="$production_dir/services/BluetoothService.qml"
+  local bluetooth_model="$production_dir/services/internal/BluetoothModel.qml"
+  local bluetooth_parser="$production_dir/services/internal/BluetoothParser.js"
+  local bluetooth_reducer="$production_dir/services/internal/BluetoothReducer.js"
+  local bluetooth_popup="$production_dir/BluetoothPopup.qml"
+  [ -f "$bluetooth_service" ] || fail 'BluetoothService.qml is missing'
+  [ -f "$bluetooth_model" ] || fail 'BluetoothModel.qml is missing'
+  [ -f "$bluetooth_parser" ] || fail 'BluetoothParser.js is missing'
+  [ -f "$bluetooth_reducer" ] || fail 'BluetoothReducer.js is missing'
+  rg -q 'Internal\.BluetoothModel[[:space:]]*\{' "$bluetooth_service" \
+    || fail 'BluetoothService.qml must compose the deep internal BluetoothModel'
+  [ "$(rg '^[[:space:]]*property' "$bluetooth_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = 'property bool detailedMonitoring: false' ] \
+    || fail 'BluetoothService.qml must expose only the narrow detailed-monitoring demand input'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"busctl"' "$bluetooth_service" \
+    || fail 'BluetoothService.qml must stay a thin facade with no owned processes or command literals'
+  for public_property in available enabled connectedCount devices; do
+    rg -q "readonly property [^:]* ${public_property}:" "$bluetooth_service" \
+      || fail "BluetoothService.qml is missing readonly public property: $public_property"
+  done
+  for signature in \
+    'function setEnabled(enabled: bool): void' \
+    'function toggleDevice(id: string): void' \
+    'function openManager(): void'; do
+    rg -F -q "$signature" "$bluetooth_service" \
+      || fail "BluetoothService.qml is missing typed action signature: $signature"
+  done
+  rg -q 'busctl' "$bluetooth_parser" \
+    || fail 'BluetoothParser.js must own the busctl command construction'
+  ! rg -n -i -g '*.qml' -g '*.js' -g '!BluetoothParser.js' -g '!BluetoothModel.qml' 'busctl|blueman-manager' "$production_dir" \
+    || fail 'bluetooth command construction exists outside the BluetoothService implementation'
+  [ "$(rg -o 'Services\.BluetoothService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one Services.BluetoothService'
+  rg -U -q 'Services\.BluetoothService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*bluetoothPopup\.shown' "$shell" \
+    || fail 'production shell.qml must bind bluetooth cadence demand to BluetoothPopup shown state'
+  for view in Topbar BluetoothPopup; do
+    rg -U -q "${view}[[:space:]]*\{[^}]*bluetoothService:[[:space:]]*bluetoothService" "$shell" \
+      || fail "production shell.qml does not wire bluetoothService directly to $view"
+  done
+  rg -q 'required property Services\.BluetoothService bluetoothService' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must require BluetoothService'
+  rg -q 'required property Services\.BluetoothService bluetoothService' "$bluetooth_popup" \
+    || fail 'BluetoothPopup.qml must require BluetoothService'
+  ! rg -n -i '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|busctl|blueman' "$bluetooth_popup" \
+    || fail 'BluetoothPopup.qml still owns bluetooth processes, timers, or command construction'
+  rg -q 'bluetoothService\.openManager\(\)' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml right-click manager must call bluetoothService.openManager()'
+  rg -q 'bluetoothService\.setEnabled\(' "$bluetooth_popup" \
+    || fail 'BluetoothPopup.qml adapter toggle must call bluetoothService.setEnabled'
+  rg -q 'bluetoothService\.toggleDevice\(' "$bluetooth_popup" \
+    || fail 'BluetoothPopup.qml device click must call bluetoothService.toggleDevice'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -1690,4 +1793,5 @@ run_power_native_construction_probe
 run_system_service_probe
 run_niri_service_probe
 run_network_native_construction_probe
+run_bluetooth_service_probe
 assert_no_view_processes_for_migrated_domains

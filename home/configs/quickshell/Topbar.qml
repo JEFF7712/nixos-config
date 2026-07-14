@@ -14,6 +14,7 @@ PanelWindow {
     required property Services.SystemService systemService
     required property Services.NiriService niriService
     required property Services.NetworkService networkService
+    required property Services.BluetoothService bluetoothService
 
     property color themeFg
     property color themeBg
@@ -214,7 +215,7 @@ PanelWindow {
                 value: ""
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.bluetoothClicked()
-                onRightClicked: topbarWindow.run("blueman-manager")
+                onRightClicked: topbarWindow.bluetoothService.openManager()
             }
             StatPill {
                 visible: topbarWindow.showBattery

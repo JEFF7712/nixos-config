@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+log="$state_dir/busctl-calls.log"
+printf '%q ' "$@" >>"$log"
+printf '\n' >>"$log"
+
+# Accept only the owned BlueZ shapes used by BluetoothService.
+if [ "${1-}" = --system ] && [ "${2-}" = tree ] && [ "${3-}" = org.bluez ]; then
+  cat "$state_dir/bluetooth/tree"
+  exit 0
+fi
+
+if [ "${1-}" = --system ] && [ "${2-}" = get-property ] && [ "${3-}" = org.bluez ]; then
+  adapter=$(cat "$state_dir/bluetooth/adapter")
+  path=$4
+  iface=$5
+  prop=$6
+  if [ "$path" = "$adapter" ] && [ "$iface" = org.bluez.Adapter1 ] && [ "$prop" = Powered ]; then
+    printf 'b %s\n' "$(cat "$state_dir/bluetooth/powered")"
+    exit 0
+  fi
+  if [ "$iface" = org.bluez.Device1 ]; then
+    case "$prop" in
+      Paired)
+        grep -F "$path" "$state_dir/bluetooth/paired" >/dev/null && printf 'b true\n' || printf 'b false\n'
+        exit 0
+        ;;
+      Connected)
+        grep -F "$path" "$state_dir/bluetooth/connected" >/dev/null && printf 'b true\n' || printf 'b false\n'
+        exit 0
+        ;;
+      Alias)
+        name=$(awk -F'|' -v p="$path" '$1==p{print $2; exit}' "$state_dir/bluetooth/names")
+        printf 's "%s"\n' "${name:-Unknown}"
+        exit 0
+        ;;
+    esac
+  fi
+  exit 1
+fi
+
+if [ "${1-}" = --system ] && [ "${2-}" = set-property ] && [ "${3-}" = org.bluez ]; then
+  # busctl --system set-property org.bluez <adapter> org.bluez.Adapter1 Powered b true|false
+  printf '%s\n' "${8-}" >"$state_dir/bluetooth/powered"
+  exit 0
+fi
+
+if [ "${1-}" = --system ] && [ "${2-}" = call ] && [ "${3-}" = org.bluez ]; then
+  path=$4
+  method=$6
+  connected="$state_dir/bluetooth/connected"
+  if [ "$method" = Connect ]; then
+    grep -Fqx "$path" "$connected" 2>/dev/null || printf '%s\n' "$path" >>"$connected"
+  elif [ "$method" = Disconnect ]; then
+    tmp=$(mktemp)
+    grep -Fxv "$path" "$connected" >"$tmp" || true
+    mv "$tmp" "$connected"
+  else
+    exit 64
+  fi
+  exit 0
+fi
+
+exit 64

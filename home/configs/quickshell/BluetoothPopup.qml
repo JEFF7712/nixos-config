@@ -1,35 +1,30 @@
 import QtQuick
-import Quickshell.Io
+import "services" as Services
 
 InfoPopup {
     id: root
     title: "BLUETOOTH"
 
-    property string adapter: ""
-    property bool btEnabled: false
-    property string busyPath: ""
-    property var devices: []
-
-    readonly property int connectedCount: root.devices.filter(d => d.connected).length
+    required property Services.BluetoothService bluetoothService
 
     function statusLabel() {
-        if (!root.adapter)
+        if (!root.bluetoothService.available)
             return "no adapter";
-        if (!root.btEnabled)
+        if (!root.bluetoothService.enabled)
             return "bluetooth disabled";
-        if (root.connectedCount > 0)
-            return root.connectedCount + " connected";
+        if (root.bluetoothService.connectedCount > 0)
+            return root.bluetoothService.connectedCount + " connected";
         return "not connected";
     }
 
     function statusMeta() {
-        if (!root.adapter)
+        if (!root.bluetoothService.available)
             return "bluez adapter unavailable";
-        if (!root.btEnabled)
+        if (!root.bluetoothService.enabled)
             return "";
-        if (root.devices.length === 0)
+        if (root.bluetoothService.devices.count === 0)
             return "no paired devices";
-        return root.devices.length + " paired";
+        return root.bluetoothService.devices.count + " paired";
     }
 
     function deviceMeta(device) {
@@ -55,7 +50,7 @@ InfoPopup {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - toggleRow.width - 10
             text: root.statusLabel()
-            color: root.btEnabled && root.adapter !== "" ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.48)
+            color: root.bluetoothService.enabled && root.bluetoothService.available ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.48)
             font {
                 family: "JetBrainsMono Nerd Font"
                 pixelSize: 11
@@ -73,16 +68,15 @@ InfoPopup {
             InfoToggle {
                 width: 32
                 label: ""
-                checked: root.btEnabled
+                checked: root.bluetoothService.enabled
                 themeFg: root.themeFg
                 themeAccent: root.themeAccent
                 themeRawBg: root.themeRawBg
                 dividerColor: root.dividerColor
                 onToggled: {
-                    if (!root.adapter)
+                    if (!root.bluetoothService.available)
                         return;
-                    toggleProc.target = root.btEnabled ? "false" : "true";
-                    toggleProc.running = true;
+                    root.bluetoothService.setEnabled(!root.bluetoothService.enabled);
                 }
             }
         }
@@ -103,11 +97,11 @@ InfoPopup {
         width: parent.width
         height: 1
         color: root.dividerColor
-        visible: root.btEnabled
+        visible: root.bluetoothService.enabled
     }
 
     Repeater {
-        model: root.btEnabled ? root.devices : []
+        model: root.bluetoothService.enabled ? root.bluetoothService.devices : 0
 
         delegate: Item {
             id: deviceRow
@@ -131,8 +125,8 @@ InfoPopup {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: 6
-                text: modelData.connected ? "󰂱" : "󰂯"
-                color: modelData.connected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
+                text: model.connected ? "󰂱" : "󰂯"
+                color: model.connected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
                 font {
                     family: "JetBrainsMono Nerd Font"
                     pixelSize: 12
@@ -149,19 +143,19 @@ InfoPopup {
 
                 Text {
                     width: parent.width
-                    text: modelData.name
-                    color: modelData.connected ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
+                    text: model.name
+                    color: model.connected ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
                     font {
                         family: "JetBrainsMono Nerd Font"
                         pixelSize: 10
-                        weight: modelData.connected ? Font.Medium : Font.Normal
+                        weight: model.connected ? Font.Medium : Font.Normal
                     }
                     elide: Text.ElideRight
                 }
 
                 Text {
                     width: parent.width
-                    text: root.deviceMeta(modelData)
+                    text: root.deviceMeta(model)
                     color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
                     font {
                         family: "JetBrainsMono Nerd Font"
@@ -176,8 +170,8 @@ InfoPopup {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.rightMargin: 6
-                text: modelData.path === root.busyPath ? "..." : (modelData.connected ? "on" : "")
-                color: modelData.connected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.46)
+                text: model.busy ? "..." : (model.connected ? "on" : "")
+                color: model.connected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.46)
                 font {
                     family: "JetBrainsMono Nerd Font"
                     pixelSize: 9
@@ -189,14 +183,11 @@ InfoPopup {
                 id: rowMouse
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: modelData.path === root.busyPath ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                cursorShape: model.busy ? Qt.ForbiddenCursor : Qt.PointingHandCursor
                 onClicked: {
-                    if (modelData.path === root.busyPath)
+                    if (model.busy)
                         return;
-                    root.busyPath = modelData.path;
-                    actionProc.target = modelData.path;
-                    actionProc.method = modelData.connected ? "Disconnect" : "Connect";
-                    actionProc.running = true;
+                    root.bluetoothService.toggleDevice(model.id);
                 }
             }
         }
@@ -205,7 +196,7 @@ InfoPopup {
     Text {
         width: parent.width
         text: "no paired devices"
-        visible: root.btEnabled && root.devices.length === 0
+        visible: root.bluetoothService.enabled && root.bluetoothService.devices.count === 0
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.36)
         font {
             family: "JetBrainsMono Nerd Font"
@@ -215,77 +206,5 @@ InfoPopup {
         horizontalAlignment: Text.AlignHCenter
         topPadding: 8
         bottomPadding: 8
-    }
-
-    Process {
-        id: fetchProc
-        command: ["sh", "-c", "a=$(busctl --system tree org.bluez 2>/dev/null | grep -oE '/org/bluez/hci[0-9]+' | head -1);" + "echo \"adapter|$a\";" + "[ -z \"$a\" ] && exit 0;" + "echo \"powered|$(busctl --system get-property org.bluez \"$a\" org.bluez.Adapter1 Powered 2>/dev/null | awk '{print $2}')\";" + "busctl --system tree org.bluez 2>/dev/null | grep -oE \"$a/dev_[A-F0-9_]+\" | sort -u | while read dev; do" + "  paired=$(busctl --system get-property org.bluez \"$dev\" org.bluez.Device1 Paired 2>/dev/null | awk '{print $2}');" + "  [ \"$paired\" != 'true' ] && continue;" + "  conn=$(busctl --system get-property org.bluez \"$dev\" org.bluez.Device1 Connected 2>/dev/null | awk '{print $2}');" + "  name=$(busctl --system get-property org.bluez \"$dev\" org.bluez.Device1 Alias 2>/dev/null | sed -E 's/^s \"(.*)\"$/\\1/');" + "  echo \"dev|$dev|$conn|$name\";" + "done"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = this.text.split("\n");
-                const devs = [];
-                let adapter = "";
-                let powered = false;
-                for (const raw of lines) {
-                    const l = raw.trim();
-                    if (!l)
-                        continue;
-                    if (l.startsWith("adapter|")) {
-                        adapter = l.substring(8);
-                    } else if (l.startsWith("powered|")) {
-                        powered = l.substring(8) === "true";
-                    } else if (l.startsWith("dev|")) {
-                        const f = l.substring(4).split("|");
-                        devs.push({
-                            path: f[0],
-                            connected: f[1] === "true",
-                            name: f[2] || "Unknown"
-                        });
-                    }
-                }
-                devs.sort((a, b) => {
-                    if (a.connected !== b.connected)
-                        return b.connected - a.connected;
-                    return a.name.localeCompare(b.name);
-                });
-                root.adapter = adapter;
-                root.btEnabled = powered;
-                root.devices = devs;
-                if (root.busyPath && !devs.some(d => d.path === root.busyPath)) {
-                    root.busyPath = "";
-                }
-            }
-        }
-    }
-
-    Process {
-        id: toggleProc
-        property string target: "true"
-        command: ["busctl", "--system", "set-property", "org.bluez", root.adapter, "org.bluez.Adapter1", "Powered", "b", toggleProc.target]
-        onExited: fetchProc.running = true
-    }
-
-    Process {
-        id: actionProc
-        property string target: ""
-        property string method: "Connect"
-        command: ["busctl", "--system", "call", "org.bluez", actionProc.target, "org.bluez.Device1", actionProc.method]
-        onExited: {
-            root.busyPath = "";
-            fetchProc.running = true;
-        }
-    }
-
-    onShownChanged: {
-        if (shown)
-            fetchProc.running = true;
-    }
-
-    Timer {
-        running: true
-        interval: root.shown ? 4000 : 20000
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: fetchProc.running = true
     }
 }

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+printf 'blueman-manager\n' >>"$state_dir/blueman-calls.log"
