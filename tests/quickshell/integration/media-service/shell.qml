@@ -32,8 +32,12 @@ ShellRoot {
     property bool queuedInvalidationPassed: false
     property bool actionOrderPassed: false
     property bool delayedActionPassed: false
-    property QtObject consumerOne: QtObject { property var service: mediaService }
-    property QtObject consumerTwo: QtObject { property var service: mediaService }
+    property QtObject consumerOne: QtObject {
+        property var service: mediaService
+    }
+    property QtObject consumerTwo: QtObject {
+        property var service: mediaService
+    }
 
     Services.AudioService {
         id: audioService
@@ -225,8 +229,7 @@ ShellRoot {
             const multiExpected = root.policy.scenarios.multipleDefaultPaused.expected;
             const recoveryExpected = root.policy.scenarios.recovery.expected;
 
-            if (root.phase === 0 && mediaService.available
-                    && mediaService.title === oneExpected.title && mediaService.status === oneExpected.status) {
+            if (root.phase === 0 && mediaService.available && mediaService.title === oneExpected.title && mediaService.status === oneExpected.status) {
                 if (root.consumerOne.service !== root.consumerTwo.service)
                     return root.finish(false, "consumers do not share service identity");
                 mediaService.togglePlaying();
@@ -241,9 +244,7 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 1 && mediaService.status === "Paused" && mediaService.shuffleEnabled
-                    && mediaService.loopMode === "Playlist" && Math.abs(mediaService.effectiveVolume - 0.42) < 0.001
-                    && Math.abs(mediaService.positionSeconds - 25) < 0.01) {
+            if (root.phase === 1 && mediaService.status === "Paused" && mediaService.shuffleEnabled && mediaService.loopMode === "Playlist" && Math.abs(mediaService.effectiveVolume - 0.42) < 0.001 && Math.abs(mediaService.positionSeconds - 25) < 0.01) {
                 root.stableState = root.scalarState();
                 malformedFile.setText("malformed\n");
                 root.requestSnapshot();
@@ -274,8 +275,7 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 4 && mediaService.available && mediaService.title === multiExpected.title
-                    && mediaService.status === multiExpected.status) {
+            if (root.phase === 4 && mediaService.available && mediaService.title === multiExpected.title && mediaService.status === multiExpected.status) {
                 root.bareDefaultPassed = true;
                 mediaService.togglePlaying();
                 root.phase = 5;
@@ -291,8 +291,7 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 6 && mediaService.available && mediaService.title === recoveryExpected.title
-                    && mediaService.status === recoveryExpected.status) {
+            if (root.phase === 6 && mediaService.available && mediaService.title === recoveryExpected.title && mediaService.status === recoveryExpected.status) {
                 root.recoveryPassed = true;
                 mediaService.detailedMonitoring = false;
                 root.phase = 7;
@@ -354,8 +353,7 @@ ShellRoot {
             }
 
             if (root.phase === 13 && elapsed >= 1700) {
-                root.cadencePassed = root.immediatePollPassed && root.periodicPollPassed
-                    && root.interpolationPassed && root.positionCallCount() === root.stoppedBaseline;
+                root.cadencePassed = root.immediatePollPassed && root.periodicPollPassed && root.interpolationPassed && root.positionCallCount() === root.stoppedBaseline;
                 if (!root.cadencePassed)
                     return root.finish(false, "detailed monitoring cadence or interpolation failed");
                 const followed = root.policy.scenarios.recovery.state;
@@ -453,8 +451,7 @@ ShellRoot {
             }
 
             if (root.phase === 22 && elapsed >= 2400) {
-                root.actionOrderPassed = mediaService.status === "Playing"
-                    && root.positionCallCount() === root.followBaseline + 2;
+                root.actionOrderPassed = mediaService.status === "Playing" && root.positionCallCount() === root.followBaseline + 2;
                 if (!root.actionOrderPassed)
                     return root.finish(false, "A,S,B ordering did not reconcile exactly once after action B");
                 root.followBaseline = root.positionCallCount();
@@ -466,8 +463,7 @@ ShellRoot {
             }
 
             if (root.phase === 23 && elapsed >= 700) {
-                root.delayedActionPassed = mediaService.status === "Paused"
-                    && root.positionCallCount() === root.followBaseline + 1;
+                root.delayedActionPassed = mediaService.status === "Paused" && root.positionCallCount() === root.followBaseline + 1;
                 if (!root.delayedActionPassed)
                     return root.finish(false, "delayed action settlement did not coalesce to one final snapshot");
                 root.finish(true, "");

@@ -16,12 +16,7 @@ Scope {
         const sinkPresent = root.sink !== null && root.sink !== undefined;
         const audioPresent = root.sinkAudio !== null && root.sinkAudio !== undefined;
         const volume = audioPresent ? root.sinkAudio.volume : NaN;
-        const valid = Pipewire.ready
-            && sinkPresent
-            && root.sink.ready
-            && audioPresent
-            && typeof volume === "number"
-            && isFinite(volume);
+        const valid = Pipewire.ready && sinkPresent && root.sink.ready && audioPresent && typeof volume === "number" && isFinite(volume);
 
         if (!valid) {
             state.available = false;

@@ -40,7 +40,9 @@ TestCase {
 
     function test_preservesArbitraryMetadata() {
         const title = "before@@@after\nslash\\snowman ☃ 音楽";
-        const parsed = MediaParser.parseSnapshot(complete({title: title}));
+        const parsed = MediaParser.parseSnapshot(complete({
+            title: title
+        }));
         compare(parsed.title, title);
     }
 
@@ -48,7 +50,9 @@ TestCase {
         const missing = JSON.parse(complete());
         delete missing.album;
         compare(MediaParser.parseSnapshot(JSON.stringify(missing)), null);
-        verify(MediaParser.parseSnapshot(complete({extra: "ignored"})) !== null);
+        verify(MediaParser.parseSnapshot(complete({
+            extra: "ignored"
+        })) !== null);
     }
 
     function test_rejectsEmptyMalformedAndTruncatedJson() {
@@ -59,7 +63,9 @@ TestCase {
 
     function test_nonzeroAndNoRecordAreUnavailable() {
         compare(MediaParser.parseSnapshot(complete(), 1), null);
-        compare(MediaParser.parseSnapshot(complete({record: false})), null);
+        compare(MediaParser.parseSnapshot(complete({
+            record: false
+        })), null);
     }
 
     function test_normalizesNumbersBooleansLoopAndStatus() {
@@ -83,7 +89,9 @@ TestCase {
     }
 
     function test_unknownStatusNormalizesToStopped() {
-        const parsed = MediaParser.parseSnapshot(complete({status: "surprise"}));
+        const parsed = MediaParser.parseSnapshot(complete({
+            status: "surprise"
+        }));
         compare(parsed.status, "Stopped");
         verify(!parsed.playing);
     }

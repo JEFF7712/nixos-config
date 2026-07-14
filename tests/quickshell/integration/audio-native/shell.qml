@@ -14,12 +14,8 @@ ShellRoot {
 
     function finish() {
         const available = audioService.available;
-        const validTypes = typeof audioService.available === "boolean"
-            && typeof audioService.volumePercent === "number"
-            && typeof audioService.muted === "boolean";
-        const validRange = Number.isInteger(audioService.volumePercent)
-            && audioService.volumePercent >= 0
-            && audioService.volumePercent <= 100;
+        const validTypes = typeof audioService.available === "boolean" && typeof audioService.volumePercent === "number" && typeof audioService.muted === "boolean";
+        const validRange = Number.isInteger(audioService.volumePercent) && audioService.volumePercent >= 0 && audioService.volumePercent <= 100;
         audioService.openMixer();
         resultFile.setText(JSON.stringify({
             passed: validTypes && validRange,
@@ -64,7 +60,9 @@ ShellRoot {
         onTriggered: {
             resultFile.setText(JSON.stringify({
                 passed: false,
-                diagnostics: {error: "native audio construction timed out"}
+                diagnostics: {
+                    error: "native audio construction timed out"
+                }
             }) + "\n");
             Qt.quit();
         }

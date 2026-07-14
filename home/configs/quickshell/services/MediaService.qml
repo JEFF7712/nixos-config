@@ -29,13 +29,27 @@ Scope {
     readonly property bool canLoop: model.canLoop
     readonly property bool canSetPlayerVolume: model.canSetPlayerVolume
 
-    function togglePlaying(): void { model.togglePlaying(); }
-    function next(): void { model.next(); }
-    function previous(): void { model.previous(); }
-    function seek(seconds: real): void { model.seek(seconds); }
-    function toggleShuffle(): void { model.toggleShuffle(); }
-    function cycleLoop(): void { model.cycleLoop(); }
-    function setEffectiveVolume(value: real): void { model.setEffectiveVolume(value); }
+    function togglePlaying(): void {
+        model.togglePlaying();
+    }
+    function next(): void {
+        model.next();
+    }
+    function previous(): void {
+        model.previous();
+    }
+    function seek(seconds: real): void {
+        model.seek(seconds);
+    }
+    function toggleShuffle(): void {
+        model.toggleShuffle();
+    }
+    function cycleLoop(): void {
+        model.cycleLoop();
+    }
+    function setEffectiveVolume(value: real): void {
+        model.setEffectiveVolume(value);
+    }
 
     Internal.MediaModel {
         id: model

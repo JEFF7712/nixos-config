@@ -116,8 +116,7 @@ ShellRoot {
     function observeLoaderDestruction() {
         lifecycleFile.reload();
         const lifecycle = lifecycleFile.text();
-        const directExitObserved = lifecycle.includes(" child-owner-gone ")
-            && lifecycle.includes(" " + initialProcessId + " ");
+        const directExitObserved = lifecycle.includes(" child-owner-gone ") && lifecycle.includes(" " + initialProcessId + " ");
 
         if (!destructionObserved) {
             if (!directExitObserved)
@@ -136,7 +135,9 @@ ShellRoot {
         if (!noRestartObserved) {
             resultFile.setText(JSON.stringify({
                 passed: false,
-                diagnostics: {error: "process restarted after Loader destruction"}
+                diagnostics: {
+                    error: "process restarted after Loader destruction"
+                }
             }) + "\n");
             Qt.quit();
             return;
@@ -152,12 +153,7 @@ ShellRoot {
 
         if (lifecycleStage === "hard") {
             const policy = JSON.parse(diagnosticsFile.text());
-            const passed = policy.overlapSuppressed === 2
-                && policy.retryRequests === 4
-                && policy.retryAttempts === 2
-                && policy.retryCoalesced === 2
-                && policy.intentionalStarts === 2
-                && policy.noRestartAfterDestruction;
+            const passed = policy.overlapSuppressed === 2 && policy.retryRequests === 4 && policy.retryAttempts === 2 && policy.retryCoalesced === 2 && policy.intentionalStarts === 2 && policy.noRestartAfterDestruction;
             resultFile.setText(JSON.stringify({
                 passed: passed,
                 diagnostics: {
@@ -183,7 +179,9 @@ ShellRoot {
                 id: ownedProcess
                 running: true
                 command: [root.stateDir + "/fixture-bin/qs-test-owned-process", root.lifecycleStage]
-                environment: ({QS_TEST_OWNER_PID: Quickshell.processId.toString()})
+                environment: ({
+                        QS_TEST_OWNER_PID: Quickshell.processId.toString()
+                    })
                 onStarted: root.handleStarted()
                 onExited: root.handleExited()
             }

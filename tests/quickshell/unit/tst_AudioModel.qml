@@ -12,11 +12,21 @@ TestCase {
         property var actions: []
 
         function setVolume(percent) {
-            actions = actions.concat([{name: "setVolume", value: percent}]);
+            actions = actions.concat([
+                {
+                    name: "setVolume",
+                    value: percent
+                }
+            ]);
         }
 
         function setMuted(value) {
-            actions = actions.concat([{name: "setMuted", value: value}]);
+            actions = actions.concat([
+                {
+                    name: "setMuted",
+                    value: value
+                }
+            ]);
         }
     }
 

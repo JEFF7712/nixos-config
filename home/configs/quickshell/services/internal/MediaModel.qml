@@ -51,7 +51,13 @@ Scope {
     readonly property var _snapshotCommand: ["sh", "-c", "playerctl status >/dev/null 2>&1 || { jq -cn '{record:false}'; exit 0; }; nl=$(printf '\\nx'); nl=${nl%x}; status=$(playerctl status 2>/dev/null; printf x); status=${status%x}; status=${status%\"$nl\"}; title=$(playerctl metadata xesam:title 2>/dev/null || true; printf x); title=${title%x}; title=${title%\"$nl\"}; artist=$(playerctl metadata xesam:artist 2>/dev/null || true; printf x); artist=${artist%x}; artist=${artist%\"$nl\"}; album=$(playerctl metadata xesam:album 2>/dev/null || true; printf x); album=${album%x}; album=${album%\"$nl\"}; art=$(playerctl metadata mpris:artUrl 2>/dev/null || true; printf x); art=${art%x}; art=${art%\"$nl\"}; length=$(playerctl metadata mpris:length 2>/dev/null || true); position=$(playerctl position 2>/dev/null || true); shuffle=$(playerctl shuffle 2>/dev/null || true); loop=$(playerctl loop 2>/dev/null || true); if volume=$(playerctl volume 2>/dev/null); then volume_supported=true; else volume=0; volume_supported=false; fi; jq -cn --arg status \"$status\" --arg title \"$title\" --arg artist \"$artist\" --arg album \"$album\" --arg artUrl \"$art\" --arg position \"$position\" --arg length \"$length\" --arg shuffle \"$shuffle\" --arg loop \"$loop\" --arg volume \"$volume\" --argjson volumeSupported \"$volume_supported\" '{record:true,status:$status,title:$title,artist:$artist,album:$album,artUrl:$artUrl,position:$position,length:$length,shuffle:$shuffle,loop:$loop,volume:$volume,volumeSupported:$volumeSupported}'"]
 
     function _enqueue(command, snapshot, reconcileAfter) {
-        _queue = _queue.concat([{command: command, snapshot: snapshot, reconcileAfter: reconcileAfter || false}]);
+        _queue = _queue.concat([
+            {
+                command: command,
+                snapshot: snapshot,
+                reconcileAfter: reconcileAfter || false
+            }
+        ]);
         _startNext();
     }
 
@@ -95,8 +101,7 @@ Scope {
                 const envelope = JSON.parse(text);
                 if (envelope && envelope.record === false)
                     _available = false;
-            } catch (error) {
-            }
+            } catch (error) {}
             return;
         }
         _available = true;
@@ -113,9 +118,15 @@ Scope {
         _volumeIsPlayer = parsed.volumeIsPlayer;
     }
 
-    function togglePlaying(): void { _action(["play-pause"]); }
-    function next(): void { _action(["next"]); }
-    function previous(): void { _action(["previous"]); }
+    function togglePlaying(): void {
+        _action(["play-pause"]);
+    }
+    function next(): void {
+        _action(["next"]);
+    }
+    function previous(): void {
+        _action(["previous"]);
+    }
     function seek(seconds: real): void {
         if (canSeek) {
             const target = Math.max(0, Math.min(_lengthSeconds, seconds));
@@ -123,7 +134,10 @@ Scope {
             _action(["position", target.toFixed(2)]);
         }
     }
-    function toggleShuffle(): void { if (canShuffle) _action(["shuffle", "Toggle"]); }
+    function toggleShuffle(): void {
+        if (canShuffle)
+            _action(["shuffle", "Toggle"]);
+    }
     function cycleLoop(): void {
         if (canLoop) {
             const nextMode = _loopMode === "None" ? "Playlist" : _loopMode === "Playlist" ? "Track" : "None";
