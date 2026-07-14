@@ -15,9 +15,7 @@ QtObject {
     // connection so wired-only sessions still show as connected.
     readonly property bool connected: {
         const connectivity = Networking.connectivity;
-        if (connectivity === NetworkConnectivity.Full
-            || connectivity === NetworkConnectivity.Limited
-            || connectivity === NetworkConnectivity.Portal)
+        if (connectivity === NetworkConnectivity.Full || connectivity === NetworkConnectivity.Limited || connectivity === NetworkConnectivity.Portal)
             return true;
         const values = (Networking.devices && Networking.devices.values) || [];
         return values.some(device => device && device.connected === true);

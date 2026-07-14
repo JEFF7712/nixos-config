@@ -14,6 +14,7 @@ Scope {
     property bool _enabled: false
     property string _adapter: ""
     property string _busyId: ""
+    property var _busyWantConnected: undefined
     property var _nativeById: ({})
 
     readonly property bool available: _available
@@ -37,6 +38,8 @@ Scope {
         root._enabled = state.enabled;
         root._adapter = state.adapter || "";
         root._busyId = state.busyId || "";
+        if (!root._busyId)
+            root._busyWantConnected = undefined;
         devicesModel.clear();
         for (const device of state.devices || [])
             devicesModel.append(device);
@@ -55,7 +58,7 @@ Scope {
             adapter: root._adapter,
             busyId: root._busyId,
             devices: root._deviceList()
-        }, observation);
+        }, observation, root._busyWantConnected);
         root._apply(next);
     }
 
@@ -70,14 +73,22 @@ Scope {
         const native = root._nativeById[id];
         if (!native)
             return;
+        let connected = false;
+        for (let i = 0; i < devicesModel.count; i++) {
+            if (devicesModel.get(i).id === id) {
+                connected = devicesModel.get(i).connected;
+                break;
+            }
+        }
         root._busyId = id;
+        root._busyWantConnected = !connected;
         root._apply(BluetoothReducer.reduceObservation({
-                available: root._available,
-                enabled: root._enabled,
-                adapter: root._adapter,
-                busyId: root._busyId,
-                devices: root._deviceList()
-            }, root.backend.observation));
+            available: root._available,
+            enabled: root._enabled,
+            adapter: root._adapter,
+            busyId: root._busyId,
+            devices: root._deviceList()
+        }, root.backend.observation, root._busyWantConnected));
         root.backend.toggleDevice(native);
     }
 

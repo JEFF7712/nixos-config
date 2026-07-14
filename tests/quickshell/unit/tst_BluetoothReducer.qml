@@ -109,12 +109,39 @@ TestCase {
                     busy: false
                 }
             ]
-        });
+        }, true);
         compare(previous.busyId, "AA:BB");
         verify(previous.devices[0].busy || previous.devices[1].busy);
         compare(previous.devices.map(d => d.name), ["Keyboard", "Buds"]);
 
-        var terminal = BluetoothReducer.reduceObservation(previous, {
+        var optimistic = BluetoothReducer.reduceObservation({
+            available: true,
+            enabled: true,
+            adapter: "hci0",
+            busyId: "AA:BB",
+            devices: previous.devices
+        }, {
+            present: true,
+            enabled: true,
+            adapter: "hci0",
+            devices: [
+                {
+                    id: "AA:BB",
+                    name: "Buds",
+                    connected: false,
+                    busy: false
+                },
+                {
+                    id: "CC:DD",
+                    name: "Keyboard",
+                    connected: true,
+                    busy: false
+                }
+            ]
+        }, true);
+        compare(optimistic.busyId, "AA:BB");
+
+        var terminal = BluetoothReducer.reduceObservation(optimistic, {
             present: true,
             enabled: true,
             adapter: "hci0",
@@ -132,8 +159,16 @@ TestCase {
                     busy: false
                 }
             ]
-        });
+        }, true);
         compare(terminal.busyId, "");
+
+        var emptyPresent = BluetoothReducer.reduceObservation(terminal, {
+            present: true,
+            enabled: true,
+            adapter: "hci0",
+            devices: []
+        });
+        compare(emptyPresent.devices.length, 2);
 
         var churn = BluetoothReducer.reduceObservation(terminal, {
             present: false,

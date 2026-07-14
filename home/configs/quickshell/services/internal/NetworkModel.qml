@@ -68,12 +68,12 @@ Scope {
 
         if (root.scanningRequested || root._discovery.length === 0) {
             root._discovery = liveEntries.map(entry => ({
-                    ssid: entry.ssid,
-                    signal: entry.signal,
-                    security: entry.security,
-                    secure: entry.secure,
-                    known: entry.known
-                }));
+                        ssid: entry.ssid,
+                        signal: entry.signal,
+                        security: entry.security,
+                        secure: entry.secure,
+                        known: entry.known
+                    }));
         }
         root._renderDiscovery();
     }

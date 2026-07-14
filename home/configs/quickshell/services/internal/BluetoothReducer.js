@@ -81,9 +81,14 @@ function reduceFetch(previous, parsed, exitCode) {
     };
 }
 
-// Prefer native Connecting/Disconnecting flags; otherwise clear an optimistic
-// busyId once the device reaches a terminal state or disappears.
-function reconcileNativeBusy(previousBusyId, devices) {
+// Prefer native Connecting/Disconnecting flags. Keep an optimistic busyId
+// while the device remains listed and has not yet reached the requested
+// connected state; clear on disappearance or when the target state sticks.
+function reconcileNativeBusy(previousBusyId, devices, wantConnected) {
+    var byId = {};
+    (devices || []).forEach(function (device) {
+        byId[device.id] = device;
+    });
     var nativeBusyId = "";
     (devices || []).forEach(function (device) {
         if (device.busy)
@@ -91,13 +96,17 @@ function reconcileNativeBusy(previousBusyId, devices) {
     });
     if (nativeBusyId)
         return nativeBusyId;
-    // Optimistic or stale busy clears once native state is terminal (or the
-    // device disappeared) — do not keep previousBusyId just because the row
-    // is still listed.
-    return "";
+    if (!previousBusyId)
+        return "";
+    var current = byId[previousBusyId];
+    if (!current)
+        return "";
+    if (typeof wantConnected === "boolean" && current.connected === wantConnected && !current.busy)
+        return "";
+    return previousBusyId;
 }
 
-function reduceObservation(previous, observation) {
+function reduceObservation(previous, observation, wantConnected) {
     var prev = previous || {
         available: false,
         enabled: false,
@@ -114,8 +123,13 @@ function reduceObservation(previous, observation) {
             adapter: prev.adapter || ""
         };
     }
-    var devices = sortDevices(observation.devices || []);
-    var busyId = reconcileNativeBusy(prev.busyId || "", devices);
+    var incoming = observation.devices || [];
+    // Retain the last paired list through transient empty churn while the
+    // adapter stays present (mirrors Network discovery retention).
+    var devices = (incoming.length === 0 && (prev.devices || []).length > 0)
+        ? (prev.devices || []).map(copyDevice)
+        : sortDevices(incoming);
+    var busyId = reconcileNativeBusy(prev.busyId || "", devices, wantConnected);
     return {
         available: true,
         enabled: !!observation.enabled,

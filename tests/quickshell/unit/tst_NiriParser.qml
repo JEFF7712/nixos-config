@@ -136,9 +136,11 @@ TestCase {
     }
 
     function test_partialWorkspacesJsonIgnoresEntriesMissingAnIdentifier() {
-        const text = JSON.stringify([{
+        const text = JSON.stringify([
+            {
                 is_active: true
-            }, workspace({
+            },
+            workspace({
                 idx: 2
             })]);
         const state = NiriParser.reduceWorkspacesSnapshot(NiriParser.initialState(), text, 0);
