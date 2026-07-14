@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
+net_dir="$state_dir/network"
+mkdir -p "$net_dir"
+printf '%q ' "$@" >>"$net_dir/calls.log"
+printf '\n' >>"$net_dir/calls.log"
+
+read_default() {
+  if [ -f "$1" ]; then cat "$1"; else printf '%s\n' "$2"; fi
+}
+
+read_optional() {
+  [ -f "$1" ] && cat "$1"
+  true
+}
+
+if [ "$#" -eq 2 ] && [ "$1" = radio ] && [ "$2" = wifi ]; then
+  [ ! -f "$net_dir/fail-radio" ] || exit 1
+  read_default "$net_dir/radio" enabled
+  exit 0
+fi
+
+if [ "$#" -eq 3 ] && [ "$1" = radio ] && [ "$2" = wifi ] && { [ "$3" = on ] || [ "$3" = off ]; }; then
+  [ ! -f "$net_dir/fail-toggle" ] || exit 1
+  if [ "$3" = on ]; then
+    printf 'enabled\n' >"$net_dir/radio"
+  else
+    printf 'disabled\n' >"$net_dir/radio"
+  fi
+  printf '%s\n' "$3" >>"$net_dir/toggle-calls.log"
+  exit 0
+fi
+
+if [ "$#" -eq 4 ] && [ "$1" = -t ] && [ "$2" = -f ] && [ "$3" = STATE ] && [ "$4" = general ]; then
+  [ ! -f "$net_dir/fail-general" ] || exit 1
+  read_default "$net_dir/general" connected
+  exit 0
+fi
+
+if [ "$#" -eq 5 ] && [ "$1" = -t ] && [ "$2" = -f ] && [ "$3" = NAME,TYPE ] && [ "$4" = connection ] && [ "$5" = show ]; then
+  [ ! -f "$net_dir/fail-connections" ] || exit 1
+  read_optional "$net_dir/connections"
+  exit 0
+fi
+
+if [ "$#" -eq 5 ] && [ "$1" = -t ] && [ "$2" = -f ] && [ "$3" = IN-USE,SSID,SIGNAL,SECURITY ] && [ "$4" = dev ] && [ "$5" = wifi ]; then
+  [ ! -f "$net_dir/fail-wifi-list" ] || exit 1
+  read_optional "$net_dir/wifi-list"
+  exit 0
+fi
+
+if [ "$#" -eq 4 ] && [ "$1" = dev ] && [ "$2" = wifi ] && [ "$3" = connect ]; then
+  ssid=$4
+  printf '%s\n' "$ssid" >>"$net_dir/connect-calls.log"
+  [ ! -f "$net_dir/fail-connect" ] || exit 1
+  exit 0
+fi
+
+printf 'nmcli: unsupported argv:' >&2
+printf ' %q' "$@" >&2
+printf '\n' >&2
+exit 64

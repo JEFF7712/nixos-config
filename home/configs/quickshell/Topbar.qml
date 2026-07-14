@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 import "services" as Services
 
@@ -14,6 +13,7 @@ PanelWindow {
     required property Services.PowerService powerService
     required property Services.SystemService systemService
     required property Services.NiriService niriService
+    required property Services.NetworkService networkService
 
     property color themeFg
     property color themeBg
@@ -50,7 +50,6 @@ PanelWindow {
     property color pillBg: "#0affffff"
     property color pillBorder: "#14ffffff"
 
-    property string networkIcon: "󰖪"
     property int notificationCount: 0
     readonly property bool cavaRequested: mediaPill.visible
     readonly property string activeTitle: topbarWindow.niriService.focusedTitle || topbarWindow.niriService.focusedAppId || "no active window"
@@ -73,6 +72,10 @@ PanelWindow {
 
     function run(cmd) {
         Quickshell.execDetached(["sh", "-c", cmd]);
+    }
+
+    function networkIcon() {
+        return topbarWindow.networkService.connected ? "󰖩" : "󰖪";
     }
 
     function volumeIcon() {
@@ -120,29 +123,6 @@ PanelWindow {
     implicitHeight: topbarWindow.barHeight
     exclusiveZone: topbarWindow.barHeight + (topbarWindow.barMarginTop > 0 ? topbarWindow.barMarginTop : 0) + topbarWindow.exclusiveZoneOffset
     color: "transparent"
-
-    // Network connectivity stays a Topbar-owned residual probe until Task 10
-    // migrates it into NetworkService; cpu/mem/disk now come from SystemService.
-    Process {
-        id: networkProc
-        command: ["sh", "-c", "nmcli -t -f STATE general 2>/dev/null"]
-        property string buffer: ""
-        stdout: SplitParser {
-            onRead: data => networkProc.buffer += data
-        }
-        onExited: {
-            topbarWindow.networkIcon = networkProc.buffer.trim() === "connected" ? "󰖩" : "󰖪";
-            networkProc.buffer = "";
-        }
-    }
-
-    Timer {
-        interval: 3000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: networkProc.running = true
-    }
 
     Rectangle {
         anchors.fill: parent
@@ -222,11 +202,11 @@ PanelWindow {
             }
             StatPill {
                 visible: topbarWindow.showNetwork
-                icon: topbarWindow.networkIcon
+                icon: topbarWindow.networkIcon()
                 value: ""
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.wifiClicked()
-                onRightClicked: topbarWindow.run("kitty -e sudo nmtui")
+                onRightClicked: topbarWindow.networkService.openSettings()
             }
             StatPill {
                 visible: topbarWindow.showBluetooth

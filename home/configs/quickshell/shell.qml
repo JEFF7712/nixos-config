@@ -37,6 +37,11 @@ ShellRoot {
         id: niriService
     }
 
+    Services.NetworkService {
+        id: networkService
+        scanningRequested: wifiPopup.shown
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -295,6 +300,7 @@ ShellRoot {
         powerService: powerService
         systemService: systemService
         niriService: niriService
+        networkService: networkService
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg
@@ -359,6 +365,7 @@ ShellRoot {
 
     WifiPopup {
         id: wifiPopup
+        networkService: networkService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent

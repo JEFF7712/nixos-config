@@ -11,6 +11,7 @@ power_fixture_qml="${repo_root}/tests/quickshell/integration/power-service"
 power_native_fixture_qml="${repo_root}/tests/quickshell/integration/power-native"
 system_fixture_qml="${repo_root}/tests/quickshell/integration/system-service"
 niri_fixture_qml="${repo_root}/tests/quickshell/integration/niri-service"
+network_fixture_qml="${repo_root}/tests/quickshell/integration/network-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -1176,6 +1177,54 @@ run_niri_service_probe() {
   jq -c . "$state_dir/result.json"
 }
 
+run_network_service_probe() {
+  local state_dir qs_pid rc=0
+  printf 'quickshell-services: run_network_service_probe\n'
+  [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
+
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-network-service.XXXXXX")
+  fixture_state_dirs+=("$state_dir")
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal" "$state_dir/network"
+  ln -s "$audio_fixture_bin/nmcli" "$state_dir/fixture-bin/nmcli"
+  ln -s "$audio_fixture_bin/kitty" "$state_dir/fixture-bin/kitty"
+  cp "$network_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$repo_root/home/configs/quickshell/services/NetworkService.qml" "$state_dir/config/services/NetworkService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/NetworkModel.qml" "$state_dir/config/services/internal/NetworkModel.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/NetworkParser.js" "$state_dir/config/services/internal/NetworkParser.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/NetworkReducer.js" "$state_dir/config/services/internal/NetworkReducer.js"
+  printf 'enabled\n' >"$state_dir/network/radio"
+  printf 'connected\n' >"$state_dir/network/general"
+  printf 'Home:802-11-wireless\nWork:802-3-ethernet\n' >"$state_dir/network/connections"
+  printf '*:Home:80:WPA2\n:Guest:40:--\n' >"$state_dir/network/wifi-list"
+  : >"$state_dir/kitty-calls.log"
+
+  PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
+    "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
+  qs_pid=$!
+  register_fixture_qs "$qs_pid"
+  wait_for_path "$state_dir/ready" 10 || fail 'network fixture did not become ready'
+  wait_for_process "$qs_pid" 35 || rc=$?
+  if ((rc != 0)); then
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "network fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and .busyObserved == true and
+    .diagnostics.available == true and .diagnostics.wifiEnabled == true and
+    .diagnostics.connected == true and .diagnostics.activeSsid == "Home" and
+    .diagnostics.activeSignal == 80 and .diagnostics.activeSecurity == "WPA2" and
+    .diagnostics.networkCount == 2' \
+    "$state_dir/result.json" >/dev/null || {
+    jq . "$state_dir/result.json" >&2 || true
+    fail 'network fixture reported invalid state or action behavior'
+  }
+  ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
+    || {
+      sed -n '1,240p' "$state_dir/quickshell.log" >&2
+      fail 'network fixture logged a binding or construction error'
+    }
+  jq -c '.diagnostics' "$state_dir/result.json"
+}
+
 assert_native_probe_has_no_wpctl_dependency() {
   local probe_body
   printf 'quickshell-services: assert_native_probe_has_no_wpctl_dependency\n'
@@ -1522,6 +1571,68 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'Topbar.qml workspace wheel must call niriService.focusAdjacent'
   rg -q 'niriService\.quitSession\(\)' "$system_popup" \
     || fail 'SystemPopup.qml logout must call niriService.quitSession()'
+
+  local network_service="$production_dir/services/NetworkService.qml"
+  local network_model="$production_dir/services/internal/NetworkModel.qml"
+  local network_parser="$production_dir/services/internal/NetworkParser.js"
+  local network_reducer="$production_dir/services/internal/NetworkReducer.js"
+  local wifi_popup="$production_dir/WifiPopup.qml"
+  [ -f "$network_service" ] || fail 'NetworkService.qml is missing'
+  [ -f "$network_model" ] || fail 'NetworkModel.qml is missing'
+  [ -f "$network_parser" ] || fail 'NetworkParser.js is missing'
+  [ -f "$network_reducer" ] || fail 'NetworkReducer.js is missing'
+  rg -q 'Internal\.NetworkModel[[:space:]]*\{' "$network_service" \
+    || fail 'NetworkService.qml must compose the deep internal NetworkModel'
+  [ "$(rg '^[[:space:]]*property' "$network_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = 'property bool scanningRequested: false' ] \
+    || fail 'NetworkService.qml must expose only the narrow scanning-demand input'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"nmcli"' "$network_service" \
+    || fail 'NetworkService.qml must stay a thin facade with no owned processes or command literals'
+  for public_property in available wifiEnabled connected activeSsid activeSignal activeSecurity networks; do
+    rg -q "readonly property [^:]* ${public_property}:" "$network_service" \
+      || fail "NetworkService.qml is missing readonly public property: $public_property"
+  done
+  for signature in \
+    'function setWifiEnabled(enabled: bool): void' \
+    'function connectKnown(ssid: string): void' \
+    'function connectInteractive(ssid: string): void' \
+    'function openSettings(): void'; do
+    rg -F -q "$signature" "$network_service" \
+      || fail "NetworkService.qml is missing typed action signature: $signature"
+  done
+  rg -q '"nmcli"' "$network_parser" \
+    || fail 'NetworkParser.js must own the nmcli command construction'
+  rg -q 'NetworkParser\.(FETCH_COMMAND|GENERAL_COMMAND|radioToggleCommand|connectKnownCommand)' "$network_model" \
+    || fail 'NetworkModel.qml must drive nmcli commands through NetworkParser'
+  ! rg -n -i -g '*.qml' -g '*.js' -g '!NetworkParser.js' 'nmcli' "$production_dir" \
+    || fail 'nmcli command construction exists outside the NetworkService implementation'
+  [ "$(rg -o 'Services\.NetworkService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one Services.NetworkService'
+  rg -q 'id:[[:space:]]*networkService' "$shell" \
+    || fail 'production shell.qml must name the NetworkService networkService'
+  rg -U -q 'Services\.NetworkService[[:space:]]*\{[^}]*scanningRequested:[[:space:]]*wifiPopup\.shown' "$shell" \
+    || fail 'production shell.qml must bind scanningRequested directly to WifiPopup shown state'
+  for view in Topbar WifiPopup; do
+    rg -U -q "${view}[[:space:]]*\{[^}]*networkService:[[:space:]]*networkService" "$shell" \
+      || fail "production shell.qml does not wire networkService directly to $view"
+  done
+  rg -q 'required property Services\.NetworkService networkService' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must require NetworkService'
+  rg -q 'required property Services\.NetworkService networkService' "$wifi_popup" \
+    || fail 'WifiPopup.qml must require NetworkService'
+  ! rg -n -i 'networkProc|nmcli|networkIcon:[[:space:]]*"' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml still owns network connectivity state, the residual nmcli probe, or nmcli command construction'
+  ! rg -n -i '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|nmcli' "$wifi_popup" \
+    || fail 'WifiPopup.qml still owns network processes, timers, or nmcli command construction'
+  rg -q 'networkService\.openSettings\(\)' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml right-click settings must call networkService.openSettings()'
+  rg -q 'networkService\.setWifiEnabled\(' "$wifi_popup" \
+    || fail 'WifiPopup.qml radio toggle must call networkService.setWifiEnabled'
+  rg -q 'networkService\.connectKnown\(' "$wifi_popup" \
+    || fail 'WifiPopup.qml known-network click must call networkService.connectKnown'
+  rg -q 'networkService\.connectInteractive\(' "$wifi_popup" \
+    || fail 'WifiPopup.qml unknown-network click must call networkService.connectInteractive'
+  rg -q 'model:[[:space:]]*root\.networkService\.wifiEnabled[[:space:]]*\?[[:space:]]*root\.networkService\.networks' "$wifi_popup" \
+    || fail 'WifiPopup.qml must render NetworkService networks directly'
 }
 
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
@@ -1551,4 +1662,5 @@ run_power_destruction_probe action
 run_power_native_construction_probe
 run_system_service_probe
 run_niri_service_probe
+run_network_service_probe
 assert_no_view_processes_for_migrated_domains
