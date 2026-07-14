@@ -22,8 +22,13 @@ Scope {
         model.openManager();
     }
 
+    Internal.BluetoothBackend {
+        id: backend
+    }
+
     Internal.BluetoothModel {
         id: model
+        backend: backend
         detailedMonitoring: root.detailedMonitoring
     }
 }

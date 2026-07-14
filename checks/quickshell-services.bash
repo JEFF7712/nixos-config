@@ -14,6 +14,7 @@ niri_fixture_qml="${repo_root}/tests/quickshell/integration/niri-service"
 network_fixture_qml="${repo_root}/tests/quickshell/integration/network-service"
 network_native_fixture_qml="${repo_root}/tests/quickshell/integration/network-native"
 bluetooth_fixture_qml="${repo_root}/tests/quickshell/integration/bluetooth-service"
+bluetooth_native_fixture_qml="${repo_root}/tests/quickshell/integration/bluetooth-native"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()
@@ -1241,54 +1242,64 @@ run_network_native_construction_probe() {
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
-run_bluetooth_service_probe() {
+run_bluetooth_native_construction_probe() {
   local state_dir qs_pid rc=0
-  printf 'quickshell-services: run_bluetooth_service_probe\n'
+  printf 'quickshell-services: run_bluetooth_native_construction_probe\n'
   [ -n "$quickshell_bin" ] || fail 'host quickshell is absent; expected quickshell 0.3.0 or newer on PATH'
 
-  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-bluetooth-service.XXXXXX")
+  state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-bluetooth-native.XXXXXX")
   fixture_state_dirs+=("$state_dir")
-  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal" "$state_dir/bluetooth"
-  ln -s "$audio_fixture_bin/busctl" "$state_dir/fixture-bin/busctl"
+  mkdir -p "$state_dir/fixture-bin" "$state_dir/config/services/internal"
   ln -s "$audio_fixture_bin/blueman-manager" "$state_dir/fixture-bin/blueman-manager"
-  cp "$bluetooth_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
+  cp "$bluetooth_native_fixture_qml/shell.qml" "$state_dir/config/shell.qml"
   cp "$repo_root/home/configs/quickshell/services/BluetoothService.qml" "$state_dir/config/services/BluetoothService.qml"
+  cp "$repo_root/home/configs/quickshell/services/internal/BluetoothBackend.qml" "$state_dir/config/services/internal/BluetoothBackend.qml"
   cp "$repo_root/home/configs/quickshell/services/internal/BluetoothModel.qml" "$state_dir/config/services/internal/BluetoothModel.qml"
   cp "$repo_root/home/configs/quickshell/services/internal/BluetoothParser.js" "$state_dir/config/services/internal/BluetoothParser.js"
   cp "$repo_root/home/configs/quickshell/services/internal/BluetoothReducer.js" "$state_dir/config/services/internal/BluetoothReducer.js"
-  printf '/org/bluez/hci0\n' >"$state_dir/bluetooth/adapter"
-  printf 'true\n' >"$state_dir/bluetooth/powered"
-  printf '/org/bluez/hci0\n/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF\n/org/bluez/hci0/dev_11_22_33_44_55_66\n' >"$state_dir/bluetooth/tree"
-  printf '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF\n/org/bluez/hci0/dev_11_22_33_44_55_66\n' >"$state_dir/bluetooth/paired"
-  printf '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF\n' >"$state_dir/bluetooth/connected"
-  printf '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF|Buds\n/org/bluez/hci0/dev_11_22_33_44_55_66|Keyboard\n' >"$state_dir/bluetooth/names"
-  : >"$state_dir/busctl-calls.log"
   : >"$state_dir/blueman-calls.log"
 
   PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
     "$quickshell_bin" --no-color -p "$state_dir/config" >"$state_dir/quickshell.log" 2>&1 &
   qs_pid=$!
   register_fixture_qs "$qs_pid"
-  wait_for_path "$state_dir/ready" 10 || fail 'bluetooth fixture did not become ready'
-  wait_for_process "$qs_pid" 30 || rc=$?
-  if ((rc != 0)); then
+
+  if ! wait_for_path "$state_dir/ready" 10; then
+    kill -TERM "$qs_pid" 2>/dev/null || true
     sed -n '1,240p' "$state_dir/quickshell.log" >&2
-    fail "bluetooth fixture exited unsuccessfully or timed out (rc=${rc})"
+    fail 'native bluetooth fixture did not become ready within ten seconds'
   fi
-  jq -e '.passed == true and .busyObserved == true and
-    .diagnostics.available == true and .diagnostics.enabled == true and
-    .diagnostics.deviceCount == 2' \
+  wait_for_process "$qs_pid" 10 || rc=$?
+  if ((rc != 0)); then
+    kill -TERM "$qs_pid" 2>/dev/null || true
+    sed -n '1,240p' "$state_dir/quickshell.log" >&2
+    fail "native bluetooth fixture exited unsuccessfully or timed out (rc=${rc})"
+  fi
+  jq -e '.passed == true and
+    (.diagnostics.available | type == "boolean") and
+    (.diagnostics.skipped | type == "boolean") and
+    (.diagnostics.enabled | type == "boolean") and
+    (.diagnostics.connectedCount | type == "number") and
+    (.diagnostics.deviceCount | type == "number") and
+    .diagnostics.connectedCount >= 0 and
+    .diagnostics.deviceCount >= 0 and
+    .diagnostics.connectedCount <= .diagnostics.deviceCount and
+    if .diagnostics.skipped == true then
+      .diagnostics.available == false
+    else
+      .diagnostics.available == true
+    end' \
     "$state_dir/result.json" >/dev/null || {
     jq . "$state_dir/result.json" >&2 || true
-    fail 'bluetooth fixture reported invalid state or action behavior'
+    fail 'native bluetooth fixture reported invalid construction diagnostics'
   }
   ! rg -n 'TypeError|ReferenceError|Failed to load configuration|ERROR:' "$state_dir/quickshell.log" \
     || {
       sed -n '1,240p' "$state_dir/quickshell.log" >&2
-      fail 'bluetooth fixture logged a binding or construction error'
+      fail 'native bluetooth fixture logged a binding or construction error'
     }
   [ "$(wc -l <"$state_dir/blueman-calls.log")" -eq 1 ] \
-    || fail 'bluetooth fixture did not launch blueman-manager exactly once'
+    || fail 'native bluetooth fixture did not record exactly one detached manager launch'
   jq -c '.diagnostics' "$state_dir/result.json"
 }
 
@@ -1308,6 +1319,8 @@ assert_native_fixture_always_validates_public_contract() {
     || fail 'native power fixture lets skipped backends bypass public contract validation'
   rg -q 'passed:[[:space:]]*validTypes && validRange' "$network_native_fixture_qml/shell.qml" \
     || fail 'native network fixture lets skipped backends bypass public contract validation'
+  rg -q 'passed:[[:space:]]*validTypes && validRange' "$bluetooth_native_fixture_qml/shell.qml" \
+    || fail 'native bluetooth fixture lets skipped backends bypass public contract validation'
 }
 
 assert_no_view_processes_for_migrated_domains() {
@@ -1714,20 +1727,32 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'WifiPopup.qml must render NetworkService networks directly'
 
   local bluetooth_service="$production_dir/services/BluetoothService.qml"
+  local bluetooth_backend="$production_dir/services/internal/BluetoothBackend.qml"
   local bluetooth_model="$production_dir/services/internal/BluetoothModel.qml"
   local bluetooth_parser="$production_dir/services/internal/BluetoothParser.js"
   local bluetooth_reducer="$production_dir/services/internal/BluetoothReducer.js"
   local bluetooth_popup="$production_dir/BluetoothPopup.qml"
   [ -f "$bluetooth_service" ] || fail 'BluetoothService.qml is missing'
+  [ -f "$bluetooth_backend" ] || fail 'BluetoothBackend.qml is missing'
   [ -f "$bluetooth_model" ] || fail 'BluetoothModel.qml is missing'
   [ -f "$bluetooth_parser" ] || fail 'BluetoothParser.js is missing'
   [ -f "$bluetooth_reducer" ] || fail 'BluetoothReducer.js is missing'
+  rg -q '^import Quickshell\.Bluetooth$' "$bluetooth_backend" \
+    || fail 'BluetoothBackend.qml must import Quickshell.Bluetooth'
+  rg -q 'Bluetooth\.defaultAdapter' "$bluetooth_backend" \
+    || fail 'BluetoothBackend.qml must read native Bluetooth.defaultAdapter'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"busctl"' "$bluetooth_backend" \
+    || fail 'BluetoothBackend.qml must not own processes, timers, or busctl'
+  rg -q 'Internal\.BluetoothBackend[[:space:]]*\{' "$bluetooth_service" \
+    || fail 'BluetoothService.qml must compose the native BluetoothBackend'
   rg -q 'Internal\.BluetoothModel[[:space:]]*\{' "$bluetooth_service" \
     || fail 'BluetoothService.qml must compose the deep internal BluetoothModel'
   [ "$(rg '^[[:space:]]*property' "$bluetooth_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = 'property bool detailedMonitoring: false' ] \
     || fail 'BluetoothService.qml must expose only the narrow detailed-monitoring demand input'
-  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"busctl"' "$bluetooth_service" \
-    || fail 'BluetoothService.qml must stay a thin facade with no owned processes or command literals'
+  ! rg -n 'Quickshell\.Bluetooth|property[^:]*\b(backend|native)\b|(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"busctl"' "$bluetooth_service" \
+    || fail 'BluetoothService.qml must stay a thin facade with no native objects, processes, or busctl'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"busctl"|Quickshell\.Bluetooth' "$bluetooth_model" \
+    || fail 'BluetoothModel.qml must stay backend-free of Process/Timer/busctl/Bluetooth imports'
   for public_property in available enabled connectedCount devices; do
     rg -q "readonly property [^:]* ${public_property}:" "$bluetooth_service" \
       || fail "BluetoothService.qml is missing readonly public property: $public_property"
@@ -1739,10 +1764,10 @@ assert_no_view_processes_for_migrated_domains() {
     rg -F -q "$signature" "$bluetooth_service" \
       || fail "BluetoothService.qml is missing typed action signature: $signature"
   done
-  rg -q 'busctl' "$bluetooth_parser" \
-    || fail 'BluetoothParser.js must own the busctl command construction'
-  ! rg -n -i -g '*.qml' -g '*.js' -g '!BluetoothParser.js' -g '!BluetoothModel.qml' 'busctl|blueman-manager' "$production_dir" \
-    || fail 'bluetooth command construction exists outside the BluetoothService implementation'
+  rg -q 'openManagerCommand' "$bluetooth_parser" \
+    || fail 'BluetoothParser.js must own the blueman-manager launch argv'
+  ! rg -n -i -g '*.qml' -g '*.js' -g '!BluetoothParser.js' 'busctl|blueman-manager' "$production_dir" \
+    || fail 'bluetooth command construction exists outside BluetoothParser.js'
   [ "$(rg -o 'Services\.BluetoothService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
     || fail 'production shell.qml must instantiate exactly one Services.BluetoothService'
   rg -U -q 'Services\.BluetoothService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*bluetoothPopup\.shown' "$shell" \
@@ -1793,5 +1818,5 @@ run_power_native_construction_probe
 run_system_service_probe
 run_niri_service_probe
 run_network_native_construction_probe
-run_bluetooth_service_probe
+run_bluetooth_native_construction_probe
 assert_no_view_processes_for_migrated_domains

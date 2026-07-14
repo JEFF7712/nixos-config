@@ -89,4 +89,59 @@ TestCase {
         compare(BluetoothParser.toggleDeviceCommand("/org/bluez/hci0/dev_AA", true), ["busctl", "--system", "call", "org.bluez", "/org/bluez/hci0/dev_AA", "org.bluez.Device1", "Connect"]);
         compare(BluetoothParser.openManagerCommand(), ["blueman-manager"]);
     }
+
+    function test_reduceObservationUsesNativeBusyAndRetainsOnChurn() {
+        var previous = BluetoothReducer.reduceObservation(null, {
+            present: true,
+            enabled: true,
+            adapter: "hci0",
+            devices: [
+                {
+                    id: "AA:BB",
+                    name: "Buds",
+                    connected: false,
+                    busy: true
+                },
+                {
+                    id: "CC:DD",
+                    name: "Keyboard",
+                    connected: true,
+                    busy: false
+                }
+            ]
+        });
+        compare(previous.busyId, "AA:BB");
+        verify(previous.devices[0].busy || previous.devices[1].busy);
+        compare(previous.devices.map(d => d.name), ["Keyboard", "Buds"]);
+
+        var terminal = BluetoothReducer.reduceObservation(previous, {
+            present: true,
+            enabled: true,
+            adapter: "hci0",
+            devices: [
+                {
+                    id: "AA:BB",
+                    name: "Buds",
+                    connected: true,
+                    busy: false
+                },
+                {
+                    id: "CC:DD",
+                    name: "Keyboard",
+                    connected: true,
+                    busy: false
+                }
+            ]
+        });
+        compare(terminal.busyId, "");
+
+        var churn = BluetoothReducer.reduceObservation(terminal, {
+            present: false,
+            enabled: false,
+            adapter: "",
+            devices: []
+        });
+        verify(!churn.available);
+        compare(churn.devices.length, 2);
+    }
 }

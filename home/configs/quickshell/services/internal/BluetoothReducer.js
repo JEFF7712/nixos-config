@@ -80,3 +80,47 @@ function reduceFetch(previous, parsed, exitCode) {
         adapter: parsed.adapter || ""
     };
 }
+
+// Prefer native Connecting/Disconnecting flags; otherwise clear an optimistic
+// busyId once the device reaches a terminal state or disappears.
+function reconcileNativeBusy(previousBusyId, devices) {
+    var nativeBusyId = "";
+    (devices || []).forEach(function (device) {
+        if (device.busy)
+            nativeBusyId = device.id;
+    });
+    if (nativeBusyId)
+        return nativeBusyId;
+    // Optimistic or stale busy clears once native state is terminal (or the
+    // device disappeared) — do not keep previousBusyId just because the row
+    // is still listed.
+    return "";
+}
+
+function reduceObservation(previous, observation) {
+    var prev = previous || {
+        available: false,
+        enabled: false,
+        devices: [],
+        busyId: "",
+        adapter: ""
+    };
+    if (!observation || !observation.present) {
+        return {
+            available: false,
+            enabled: prev.enabled,
+            devices: (prev.devices || []).map(copyDevice),
+            busyId: prev.busyId || "",
+            adapter: prev.adapter || ""
+        };
+    }
+    var devices = sortDevices(observation.devices || []);
+    var busyId = reconcileNativeBusy(prev.busyId || "", devices);
+    return {
+        available: true,
+        enabled: !!observation.enabled,
+        devices: applyBusyRole(devices, busyId),
+        busyId: busyId,
+        adapter: observation.adapter || ""
+    };
+}
