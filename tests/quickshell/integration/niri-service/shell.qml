@@ -307,10 +307,13 @@ ShellRoot {
                     niriService.quitSession();
                     root.advance();
                 }
-            } else if (root.phase === 7 && root.elapsed() >= 200) {
-                const actions = root.actionsLog().trim();
-                if (actions !== "focus-workspace 3\nfocus-workspace-down\nfocus-workspace-up\nquit -s")
-                    return root.fail("action log mismatch: " + actions);
+            } else if (root.phase === 7 && root.elapsed() >= 400) {
+                // execDetached launches are unordered relative to each other,
+                // so assert the exact argv multiset rather than launch order.
+                const expected = ["focus-workspace 3", "focus-workspace-down", "focus-workspace-up", "quit -s"];
+                const actual = root.actionsLog().trim().split("\n").filter(line => line !== "").sort();
+                if (actual.join("\n") !== expected.slice().sort().join("\n"))
+                    return root.fail("action log mismatch: " + actual.join("\n"));
                 root.actionsPassed = true;
                 autoCrashTwo.setText("crash\n");
                 autoCrashThree.setText("crash\n");
