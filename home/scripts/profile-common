@@ -276,6 +276,18 @@ apply_wallpaper_theme() {
       --config-home "$CONFIG_HOME" --profiles-dir "$PROFILES_DIR" \
       --profile-dir "$PROFILES_DIR/$profile" \
       --obsidian-vault "${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}" 2>/dev/null || return 0
+  elif [ "$engine" = "temperature" ]; then
+    command -v magick >/dev/null 2>&1 || return 0
+    local color
+    color=$(matugen_source_color "$frame")
+    [ -n "$color" ] || return 0
+    accent=$(python3 "$REPO_HOME/scripts/temperature-render.py" \
+      --seed "$color" \
+      --mode "$mode" \
+      --config-home "$CONFIG_HOME" \
+      --profiles-dir "$PROFILES_DIR" \
+      --profile-dir "$PROFILES_DIR/$profile" 2>/dev/null) || return 0
+    [ -n "$accent" ] || return 0
   else
     command -v matugen >/dev/null 2>&1 || return 0
     command -v magick >/dev/null 2>&1 || return 0
@@ -357,9 +369,15 @@ apply_wallpaper_theme() {
     fi
     if [ -f "$nbase" ]; then
       nout="$PROFILES_DIR/runtime-niri-active.kdl"
-      awk -v a="$accent" '
+      local rgb="${accent#\#}"
+      rgb="${rgb:0:6}"
+      awk -v a="#$rgb" -v active="#${rgb}cc" -v inactive="#${rgb}44" '
         /focus-ring[ \t]*\{/ { infr = 1 }
+        /border[ \t]*\{/ { inb = 1 }
         infr && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" a "\""); infr = 0 }
+        inb && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" active "\""); print; next }
+        inb && /^[ \t]*inactive-color/ { sub(/"[^"]*"/, "\"" inactive "\""); print; next }
+        /\}/ { if (inb) inb = 0 }
         { print }
       ' "$nbase" > "$nout"
       local nlink
