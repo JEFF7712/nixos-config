@@ -350,6 +350,33 @@ set -g clock-mode-colour "{p["fg0"]}"
     )
 
 
+def zathura(p, out):
+    w(
+        out,
+        f"""set default-bg "{p["bg0"]}"
+set default-fg "{p["fg1"]}"
+set statusbar-bg "{p["bg1"]}"
+set statusbar-fg "{p["fg1"]}"
+set inputbar-bg "{p["bg1"]}"
+set inputbar-fg "{p["fg1"]}"
+set notification-error-bg "{p["err"]}"
+set notification-error-fg "{p["bg0"]}"
+set notification-warning-bg "{p["accent"]}"
+set notification-warning-fg "{p["bg0"]}"
+set completion-bg "{p["bg1"]}"
+set completion-fg "{p["fg1"]}"
+set completion-group-bg "{p["bg1"]}"
+set completion-group-fg "{p["fg2"]}"
+set completion-highlight-bg "{p["accent"]}"
+set completion-highlight-fg "{p["bg0"]}"
+set recolor true
+set recolor-keephue true
+set recolor-lightcolor "{p["bg0"]}"
+set recolor-darkcolor "{p["fg0"]}"
+""",
+    )
+
+
 def fish(p, out):
     w(
         out,
@@ -520,6 +547,7 @@ def main():
     btop(p, os.path.join(c, "btop/themes/profile.theme"))
     hyprlock(p, os.path.join(c, "hypr/profile-colors.conf"))
     tmux(p, os.path.join(c, "tmux/profile-colors.conf"))
+    zathura(p, os.path.join(c, "zathura/colors"))
     fish(p, os.path.join(c, "fish/conf.d/matugen_theme.fish"))
     starship(p, os.path.join(c, "starship_matugen.toml"))
     rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))

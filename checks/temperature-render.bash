@@ -111,6 +111,7 @@ for f in \
   "$config_home/btop/themes/profile.theme" \
   "$config_home/hypr/profile-colors.conf" \
   "$config_home/tmux/profile-colors.conf" \
+  "$config_home/zathura/colors" \
   "$config_home/fish/conf.d/matugen_theme.fish" \
   "$config_home/starship_matugen.toml" \
   "$config_home/rofi/profile-switcher.rasi"; do
