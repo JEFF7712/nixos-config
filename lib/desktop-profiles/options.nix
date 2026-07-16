@@ -122,14 +122,16 @@ in
         type = lib.types.enum [
           "matugen"
           "iris"
+          "temperature"
         ];
         default = "matugen";
         description = ''
           Which engine apply_wallpaper_theme uses for a wallpaperTheming
           profile. "matugen" runs the matugen templates (config[-<profile>].toml);
           "iris" runs the vendored iris.py extractor (k-means CIELAB palette with
-          WCAG contrast nudging) + iris-render. Ignored when wallpaperTheming is
-          false.
+          WCAG contrast nudging) + iris-render; "temperature" applies a subtle
+          grey/near-white hue tint from the wallpaper with no saturated accent.
+          Ignored when wallpaperTheming is false.
         '';
       };
 
