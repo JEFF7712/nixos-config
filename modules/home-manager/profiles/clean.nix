@@ -98,7 +98,7 @@ in
       gtkThemeLight = null;
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
-      kittyOpacity = 0.48;
+      kittyOpacity = 0.78;
     };
 
     wallpaperDir = "${config.assetsPath}/wallpapers/clean";
@@ -118,8 +118,12 @@ in
 
     niri = {
       animations = animations.snappy;
-      gaps = 8;
-      borderOff = true;
+      gaps = 16;
+      cornerRadius = 15;
+      borderOff = false;
+      borderWidth = 1;
+      borderActiveColor = "#ffffffcc";
+      borderInactiveColor = "#ffffff44";
       focusRingOff = true;
       shadowSoftness = 34;
       shadowSpread = 2;
@@ -129,7 +133,9 @@ in
       shadowInactiveColor = "#00000016";
       shadowDrawBehindWindow = true;
       tabIndicatorOff = true;
-      windowOpacity = 0.72;
+      windowOpacity = 0.85;
+      focusOpacity = false;
+      blur = true;
       windowHighlightOff = true;
       extraConfig = ''
         layer-rule {
@@ -185,8 +191,8 @@ in
 
         // Spotify glass: compositor-level transparency + blur over the
         // wallpaper, independent of the spicetify theme (so it never breaks on
-        // Spotify UI updates). Slightly less transparent than the 0.72 global
-        // so the now-playing text stays readable.
+        // Spotify UI updates). Matches the 0.85 global window opacity; keep the
+        // dedicated rule for blur/noise/radius independent of global defaults.
         window-rule {
             match app-id="Spotify"
             geometry-corner-radius 12
