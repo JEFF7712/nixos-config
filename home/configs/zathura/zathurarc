@@ -1,0 +1,6 @@
+# Profile colors are managed by switch-profile / wallpaper theme engines.
+include colors
+
+set adjust-open width
+set page-padding 4
+set selection-clipboard clipboard
