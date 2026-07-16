@@ -141,6 +141,13 @@ in
       blur = true;
       windowHighlightOff = true;
       extraConfig = ''
+        // Outline borders (not a filled rect behind the window). Default niri
+        // border-with-background washes through glass opacity and disappears as
+        // an edge; sharp uses the same override for the same reason.
+        window-rule {
+            draw-border-with-background false
+        }
+
         layer-rule {
             match namespace="^quickshell-topbar$"
             geometry-corner-radius 15
