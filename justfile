@@ -13,6 +13,7 @@ shell-check:
 wallpaper-script-check:
   bash checks/wallpaper-scripts.bash
   bash checks/iris-render.bash
+  bash checks/temperature-render.bash
   bash checks/merge-ini-section.bash
   bash checks/spicetify-theme.bash
   bash checks/profile-manifest.bash
