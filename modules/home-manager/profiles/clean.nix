@@ -123,8 +123,8 @@ in
       gaps = 12;
       cornerRadius = 15;
       borderOff = false;
-      borderWidth = 3;
-      # Opaque / high-alpha whites; width 3 so the outline reads on glass.
+      borderWidth = 1;
+      # Thin outline; niri defaults borders off — files.nix emits `on` when enabled.
       borderActiveColor = "#ffffff";
       borderInactiveColor = "#ffffffb3";
       focusRingOff = true;
