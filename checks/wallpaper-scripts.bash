@@ -118,3 +118,43 @@ assert_eq light "$(cat "$profiles_dir/runtime-theme-variant")" \
 assert_eq "spicetify $profiles_dir/tinted/manifest.json light" \
   "$(grep '^spicetify ' "$log_file")" \
   "wallpaper tint reapplies the active profile spicetify scheme"
+
+# nudge_gtk_reload must restore settings.ini's theme, not a stuck Adwaita sentinel.
+nudge_home="$tmpdir/nudge-home"
+mkdir -p "$nudge_home/.config/gtk-3.0" "$nudge_home/bin"
+printf '[Settings]\ngtk-theme-name=adw-gtk3-dark\n' > "$nudge_home/.config/gtk-3.0/settings.ini"
+cat > "$nudge_home/bin/gsettings" <<'EOF'
+#!/usr/bin/env bash
+state_file="${NUDGE_GS_STATE:?}"
+case "$1" in
+  get)
+    if [ -f "$state_file" ]; then
+      printf "'%s'\n" "$(cat "$state_file")"
+    else
+      printf "'Adwaita'\n"
+    fi
+    ;;
+  set)
+    # gsettings set SCHEMA KEY VALUE
+    printf '%s\n' "$4" > "$state_file"
+    printf 'set %s\n' "$4" >> "${NUDGE_GS_LOG:?}"
+    ;;
+esac
+EOF
+chmod +x "$nudge_home/bin/gsettings"
+# Stuck mid-nudge: live gsettings is Adwaita while settings.ini wants adw-gtk3-dark.
+printf 'Adwaita\n' > "$tmpdir/nudge-gs-state"
+: > "$tmpdir/nudge-gs-log"
+# Re-bind the real helper (wallpaper fixture stubs it above).
+unset -f nudge_gtk_reload
+# shellcheck disable=SC1091
+. "$REPO_ROOT/home/scripts/profile-common"
+HOME="$nudge_home" XDG_CONFIG_HOME="$nudge_home/.config" \
+  PATH="$nudge_home/bin:$PATH" \
+  NUDGE_GS_STATE="$tmpdir/nudge-gs-state" \
+  NUDGE_GS_LOG="$tmpdir/nudge-gs-log" \
+  nudge_gtk_reload
+assert_eq "adw-gtk3-dark" "$(cat "$tmpdir/nudge-gs-state")" \
+  "nudge_gtk_reload restores gtk-theme from settings.ini after a stuck Adwaita sentinel"
+assert_eq $'set Adwaita\nset adw-gtk3-dark' "$(cat "$tmpdir/nudge-gs-log")" \
+  "nudge_gtk_reload flips through Adwaita then back to the settings.ini theme"

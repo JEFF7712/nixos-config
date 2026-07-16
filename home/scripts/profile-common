@@ -583,6 +583,15 @@ apply_profile_appearance_files() {
   set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-theme-name "$gtk_theme"
   set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-icon-theme-name "$icon_theme"
 
+  # GTK3 Waypaper (and friends) honor this; gtk-4 already had it from HM defaults.
+  if [ "$variant" = light ]; then
+    set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-application-prefer-dark-theme 0
+    set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-application-prefer-dark-theme 0
+  else
+    set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-application-prefer-dark-theme 1
+    set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-application-prefer-dark-theme 1
+  fi
+
   if [ -f "$config_root/kitty/kitty.conf" ]; then
     sed -i "s|^background_opacity .*|background_opacity $kitty_opacity|" "$config_root/kitty/kitty.conf"
   fi
@@ -663,10 +672,27 @@ EOF
 # profile shares one theme name (adw-gtk3-dark), so a color switch fires no
 # change signal and open apps keep stale colors. Flip the theme to a sentinel
 # and back to force the notify::gtk-theme-name signal → CSS re-read.
+#
+# Restore target comes from settings.ini (written by apply_profile_appearance),
+# not the live gsettings value. An interrupted nudge used to leave gtk-theme on
+# the Adwaita sentinel; the next nudge then treated Adwaita as intentional and
+# Waypaper/GTK3 apps stayed stuck on the light theme.
 nudge_gtk_reload() {
-  local gs real sentinel
+  local gs real sentinel settings_file settings_theme
   gs=$(command -v gsettings) || return 0
-  real=$("$gs" get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'")
+  settings_file="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
+  settings_theme=$(
+    awk -F= '/^gtk-theme-name=/ {
+      gsub(/^[ \t]+|[ \t]+$/, "", $2)
+      print $2
+      exit
+    }' "$settings_file" 2>/dev/null || true
+  )
+  if [ -n "$settings_theme" ]; then
+    real=$settings_theme
+  else
+    real=$("$gs" get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'")
+  fi
   [ -n "$real" ] || return 0
   if [ "$real" = "Adwaita" ]; then
     sentinel="Adwaita-dark"
