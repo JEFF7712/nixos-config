@@ -371,7 +371,8 @@ apply_wallpaper_theme() {
       nout="$PROFILES_DIR/runtime-niri-active.kdl"
       local rgb="${accent#\#}"
       rgb="${rgb:0:6}"
-      awk -v a="#$rgb" -v active="#${rgb}cc" -v inactive="#${rgb}44" '
+      # Match clean's baked alphas: active opaque, inactive ~60% (#99).
+      awk -v a="#$rgb" -v active="#$rgb" -v inactive="#${rgb}99" '
         /focus-ring[ \t]*\{/ { infr = 1 }
         /border[ \t]*\{/ { inb = 1 }
         infr && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" a "\""); infr = 0 }
