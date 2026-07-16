@@ -372,7 +372,7 @@ apply_wallpaper_theme() {
       local rgb="${accent#\#}"
       rgb="${rgb:0:6}"
       # Match clean's baked alphas: active opaque, inactive ~60% (#99).
-      awk -v a="#$rgb" -v active="#$rgb" -v inactive="#${rgb}99" '
+      awk -v a="#$rgb" -v active="#${rgb}66" -v inactive="#${rgb}33" '
         /focus-ring[ \t]*\{/ { infr = 1 }
         /border[ \t]*\{/ { inb = 1 }
         infr && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" a "\""); infr = 0 }

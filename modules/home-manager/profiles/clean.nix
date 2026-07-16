@@ -124,9 +124,10 @@ in
       cornerRadius = 15;
       borderOff = false;
       borderWidth = 0.5;
-      # HiDPI: 1 logical px = 2 physical; 0.5 → one physical-pixel hairline.
-      borderActiveColor = "#ffffff";
-      borderInactiveColor = "#ffffffb3";
+      # Scale 2: 0.5 logical = 1 physical px (minimum continuous line). Soften
+      # with alpha so the hairline reads lighter rather than chunky.
+      borderActiveColor = "#ffffff66";
+      borderInactiveColor = "#ffffff33";
       focusRingOff = true;
       shadowSoftness = 34;
       shadowSpread = 2;
