@@ -272,6 +272,7 @@ let
         ".config/desktop-profiles/${name}/tmux-colors.conf".text = orEmpty profile.colors.tmux;
         ".config/desktop-profiles/${name}/hyprlock-colors.conf".text = orEmpty profile.colors.hyprlock;
         ".config/desktop-profiles/${name}/cava-colors".text = orEmpty profile.colors.cava;
+        ".config/desktop-profiles/${name}/zathura-colors".text = orEmpty profile.colors.zathura;
         ".config/desktop-profiles/${name}/vicinae-theme-dark.toml".text = vicinaeDarkTheme name profile;
         ".config/desktop-profiles/${name}/vicinae-theme-light.toml".text = vicinaeLightTheme name profile;
         ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides false profile;
@@ -299,6 +300,7 @@ let
           ".config/desktop-profiles/${name}/hyprlock-colors-light.conf".text =
             orEmpty profile.colorsLight.hyprlock;
           ".config/desktop-profiles/${name}/cava-colors-light".text = orEmpty profile.colorsLight.cava;
+          ".config/desktop-profiles/${name}/zathura-colors-light".text = orEmpty profile.colorsLight.zathura;
         }
         // lib.optionalAttrs (profile.makoConfigLight != null) {
           ".config/desktop-profiles/${name}/mako-config-light".text = profile.makoConfigLight;

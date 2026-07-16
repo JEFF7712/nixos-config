@@ -198,6 +198,17 @@ let
         gradMid = p.accent;
         gradHigh = p.fg0;
       };
+
+      zathura = theme.mkZathuraColors {
+        bg = p.bg0;
+        fg = p.fg1;
+        surface = p.bg1;
+        muted = p.fg2;
+        inherit (p) accent;
+        error = p.err;
+        recolorLight = p.bg0;
+        recolorDark = p.fg0;
+      };
     };
 
   # Opaque quickshell theme: bar, popups and base are all the main (accent)

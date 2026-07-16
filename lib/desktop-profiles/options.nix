@@ -78,6 +78,10 @@ let
       type = lib.types.nullOr lib.types.str;
       default = null;
     };
+    zathura = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+    };
   };
 in
 {

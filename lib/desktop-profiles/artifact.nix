@@ -25,6 +25,7 @@ let
     tmux = if light then "tmux-colors-light.conf" else "tmux-colors.conf";
     hyprlock = if light then "hyprlock-colors-light.conf" else "hyprlock-colors.conf";
     cava = if light then "cava-colors-light" else "cava-colors";
+    zathura = if light then "zathura-colors-light" else "zathura-colors";
     vicinae = if light then "vicinae-theme-light.toml" else "vicinae-theme-dark.toml";
   };
 in
