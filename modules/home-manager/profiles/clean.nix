@@ -118,12 +118,13 @@ in
 
     niri = {
       animations = animations.snappy;
-      gaps = 16;
+      gaps = 12;
       cornerRadius = 15;
       borderOff = false;
-      borderWidth = 1;
-      borderActiveColor = "#ffffffcc";
-      borderInactiveColor = "#ffffff44";
+      borderWidth = 2;
+      # Opaque / high-alpha whites — 1px + low alpha vanished on glass windows.
+      borderActiveColor = "#ffffff";
+      borderInactiveColor = "#ffffff99";
       focusRingOff = true;
       shadowSoftness = 34;
       shadowSpread = 2;
