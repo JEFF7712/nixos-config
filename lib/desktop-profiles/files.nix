@@ -68,7 +68,8 @@ let
         }
 
         border {
-            ${if profile.niri.borderOff then "off" else ""}
+            # niri defaults borders to off; emit on explicitly when enabled.
+            ${if profile.niri.borderOff then "off" else "on"}
             width ${toString profile.niri.borderWidth}
             active-color "${profile.niri.borderActiveColor}"
             inactive-color "${profile.niri.borderInactiveColor}"
