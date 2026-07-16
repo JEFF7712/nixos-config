@@ -123,10 +123,10 @@ in
       gaps = 12;
       cornerRadius = 15;
       borderOff = false;
-      borderWidth = 2;
-      # Opaque / high-alpha whites — 1px + low alpha vanished on glass windows.
+      borderWidth = 3;
+      # Opaque / high-alpha whites; width 3 so the outline reads on glass.
       borderActiveColor = "#ffffff";
-      borderInactiveColor = "#ffffff99";
+      borderInactiveColor = "#ffffffb3";
       focusRingOff = true;
       shadowSoftness = 34;
       shadowSpread = 2;
