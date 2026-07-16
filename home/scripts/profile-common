@@ -788,6 +788,7 @@ copy_profile_colors() {
 
   apply_btop_theme "$profile_dir" "$variant"
   apply_tmux_colors "$profile_dir" "$variant"
+  apply_zathura_theme "$profile_dir" "$variant"
   apply_hyprlock_colors "$profile_dir" "$variant"
   apply_cava_colors "$profile_dir" "$variant"
   apply_vicinae_theme "$profile_dir" "$variant"
@@ -949,6 +950,20 @@ apply_btop_theme() {
       printf 'color_theme = "profile"\n' >> "$conf"
     fi
   fi
+}
+
+# apply_zathura_theme <profile-dir> <variant>
+# Installs the variant-resolved colors fragment for zathurarc to include.
+# Running zathura instances pick it up on next start.
+apply_zathura_theme() {
+  local profile_dir="$1" variant="$2"
+  local src
+
+  src=$(pick_variant_file "$variant" "$profile_dir/zathura-colors" "$profile_dir/zathura-colors-light")
+  [ -s "$src" ] || return 0
+
+  mkdir -p "$CONFIG_HOME/zathura"
+  install -m 644 "$src" "$CONFIG_HOME/zathura/colors"
 }
 
 # apply_tmux_colors <profile-dir> <variant>
