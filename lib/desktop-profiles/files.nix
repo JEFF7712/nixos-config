@@ -117,7 +117,7 @@ let
     ''}
 
     window-rule {
-        geometry-corner-radius 10
+        geometry-corner-radius ${toString profile.niri.cornerRadius}
         clip-to-geometry true
         background-effect {
             blur ${if (focus || !profile.niri.blur) then "false" else "true"}
