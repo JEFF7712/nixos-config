@@ -70,8 +70,8 @@ if [ "$r" -lt 240 ] || [ "$g" -lt 240 ] || [ "$b" -lt 240 ]; then
   exit 1
 fi
 
-if [ "$b" -lt "$r" ]; then
-  printf 'FAIL: accent %s should lean cool (blue >= red) for a blue seed\n' "$accent_out" >&2
+if [ "$b" -le "$r" ]; then
+  printf 'FAIL: accent %s should lean cool (blue > red) for a blue seed, not pure white\n' "$accent_out" >&2
   exit 1
 fi
 

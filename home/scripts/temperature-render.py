@@ -31,6 +31,15 @@ ANCHORS = {
 
 HEX6_RE = re.compile(r"^#?[0-9a-fA-F]{6}$")
 
+# HLS is degenerate at L=0/L=1 (hue/sat can't move a pure black/white pixel),
+# which is exactly where the near-white anchors (fg0, accent at #ffffff) and,
+# under --mode light's lightness inversion, the near-black ones sit. Clamp
+# just off the poles so every anchor still picks up a faint hue cast while
+# staying visually near-white/near-black (0.96 -> min channel ~245 before the
+# saturation pulls it down further, well above the ~200 "near-white" floor).
+L_MAX = 0.96
+L_MIN = 1.0 - L_MAX
+
 
 def hex_to_rgb01(hexc):
     hexc = hexc.lstrip("#")
@@ -54,6 +63,7 @@ def tint(anchor_hex, sat, hue, invert):
     _h, l, _s = colorsys.rgb_to_hls(r, g, b)
     if invert:
         l = 1.0 - l
+    l = max(L_MIN, min(L_MAX, l))
     return rgb01_to_hex(colorsys.hls_to_rgb(hue, l, sat))
 
 
