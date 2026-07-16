@@ -321,8 +321,8 @@ in
       # No border; the focused window is marked by a thin accent focus ring.
       # active-color is rewritten to the wallpaper accent at runtime by
       # apply_wallpaper_theme (which regenerates this override and reloads niri);
-      # dark.accent here is the pre-first-render fallback. Windows stay
-      # transparent (per-focus 0.8/0.6 + blur, the niri defaults).
+      # dark.accent here is the pre-first-render fallback. Windows use the
+      # same opacity regardless of focus.
       borderOff = true;
       focusRingOff = false;
       focusRingWidth = 0.5;
@@ -339,7 +339,8 @@ in
       tabIndicatorOff = true;
       tabIndicatorActiveColor = dark.fg1;
       tabIndicatorInactiveColor = dark.bg3;
-      windowOpacity = 1.0;
+      windowOpacity = 0.8;
+      focusOpacity = false;
       windowHighlightOff = true;
       extraConfig = ''
         // Draw the focus ring as an outline, NOT a solid filled rectangle behind
