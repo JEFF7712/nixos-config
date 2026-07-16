@@ -283,6 +283,11 @@ in
           type = lib.types.int;
           default = 16;
         };
+        cornerRadius = lib.mkOption {
+          type = lib.types.either lib.types.int lib.types.float;
+          default = 10;
+          description = "Window geometry-corner-radius for the shared niri window-rule.";
+        };
         borderOff = lib.mkOption {
           type = lib.types.bool;
           default = true;
