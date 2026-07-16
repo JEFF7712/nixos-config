@@ -324,6 +324,17 @@ in
         gradMid = fg1;
         gradHigh = fg0;
       };
+
+      zathura = theme.mkZathuraColors {
+        bg = bg0;
+        fg = fg1;
+        surface = bg1;
+        muted = fg2;
+        inherit accent;
+        error = err;
+        recolorLight = bg0;
+        recolorDark = fg0;
+      };
     };
   };
 }

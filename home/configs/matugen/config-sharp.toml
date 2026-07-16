@@ -60,6 +60,10 @@ output_path = "~/.config/hypr/profile-colors.conf"
 input_path = "~/.config/matugen/templates-sharp/tmux-colors.conf"
 output_path = "~/.config/tmux/profile-colors.conf"
 
+[templates.zathura]
+input_path = "~/.config/matugen/templates-sharp/zathura-colors"
+output_path = "~/.config/zathura/colors"
+
 # Staging body only — apply_wallpaper_theme merges this into Comfy color.ini
 # as [sharp] so other schemes (Nord, tinted, …) stay intact.
 [templates.spicetify]

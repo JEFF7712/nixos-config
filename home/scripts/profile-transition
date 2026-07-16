@@ -371,6 +371,7 @@ dispatch_post_commit_adapters() {
     else
       run_post_commit_adapter btop apply_btop_theme "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter tmux apply_tmux_colors "$TARGET_DIR" "$TARGET_VARIANT"
+      run_post_commit_adapter zathura apply_zathura_theme "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter hyprlock apply_hyprlock_colors "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter cava apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter vicinae apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"

@@ -581,6 +581,43 @@ rec {
       gradient_color_3 = '${gradHigh}'
     '';
 
+  # Zathura colors fragment installed to ~/.config/zathura/colors and
+  # included from zathurarc. recolor is always on so page paper/ink track
+  # the profile (lightcolor = paper side, darkcolor = ink side).
+  mkZathuraColors =
+    {
+      bg,
+      fg,
+      surface ? bg,
+      muted ? fg,
+      accent ? fg,
+      error ? "#ff6b6b",
+      recolorLight ? bg,
+      recolorDark ? fg,
+    }:
+    ''
+      set default-bg "${bg}"
+      set default-fg "${fg}"
+      set statusbar-bg "${surface}"
+      set statusbar-fg "${fg}"
+      set inputbar-bg "${surface}"
+      set inputbar-fg "${fg}"
+      set notification-error-bg "${error}"
+      set notification-error-fg "${bg}"
+      set notification-warning-bg "${accent}"
+      set notification-warning-fg "${bg}"
+      set completion-bg "${surface}"
+      set completion-fg "${fg}"
+      set completion-group-bg "${surface}"
+      set completion-group-fg "${muted}"
+      set completion-highlight-bg "${accent}"
+      set completion-highlight-fg "${bg}"
+      set recolor true
+      set recolor-keephue true
+      set recolor-lightcolor "${recolorLight}"
+      set recolor-darkcolor "${recolorDark}"
+    '';
+
   mkMakoConfig =
     {
       background,

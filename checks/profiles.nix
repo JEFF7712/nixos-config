@@ -20,6 +20,7 @@ let
     "tmux-colors.conf"
     "hyprlock-colors.conf"
     "cava-colors"
+    "zathura-colors"
     "gtk-3.0-light.css"
     "gtk-4.0-light.css"
     "qt6ct-light.conf"
@@ -31,6 +32,7 @@ let
     "tmux-colors-light.conf"
     "hyprlock-colors-light.conf"
     "cava-colors-light"
+    "zathura-colors-light"
   ];
 
   vicinaeThemeFiles = [

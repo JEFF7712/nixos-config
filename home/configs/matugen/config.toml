@@ -57,3 +57,7 @@ output_path = "~/.config/hypr/profile-colors.conf"
 [templates.tmux]
 input_path = "~/.config/matugen/templates/tmux-colors.conf"
 output_path = "~/.config/tmux/profile-colors.conf"
+
+[templates.zathura]
+input_path = "~/.config/matugen/templates/zathura-colors"
+output_path = "~/.config/zathura/colors"

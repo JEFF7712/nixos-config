@@ -78,6 +78,7 @@ in
       spotify-player
       spicetify-cli
       spotifyLauncher
+      zathura
     ];
 
     programs.firefox = {
@@ -91,6 +92,10 @@ in
       associations.added = {
         "inode/directory" = [ "thunar.desktop" ];
         "application/x-directory" = [ "thunar.desktop" ];
+        "application/pdf" = [
+          "org.pwmt.zathura.desktop"
+          "firefox.desktop"
+        ];
       };
       defaultApplications = {
         "inode/directory" = "thunar.desktop";
@@ -100,7 +105,7 @@ in
         "x-scheme-handler/https" = "firefox.desktop";
         "x-scheme-handler/about" = "firefox.desktop";
         "x-scheme-handler/unknown" = "firefox.desktop";
-        "application/pdf" = "firefox.desktop";
+        "application/pdf" = "org.pwmt.zathura.desktop";
         "image/jpeg" = "firefox.desktop";
         "image/png" = "firefox.desktop";
         "image/gif" = "firefox.desktop";
@@ -132,6 +137,9 @@ in
     home.sessionVariables = {
       BROWSER = "firefox";
     };
+
+    xdg.configFile."zathura/zathurarc".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/zathura/zathurarc";
 
     xdg.configFile."vesktop/themes/sharp.theme.css".source =
       config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vesktop/themes/sharp.theme.css";

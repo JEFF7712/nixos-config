@@ -235,6 +235,20 @@ let
       );
 
       cava = theme.mkCavaColors ({ inherit (r) gradLow gradMid gradHigh; } // ov "cava");
+
+      zathura = theme.mkZathuraColors (
+        {
+          bg = r.bg0;
+          fg = r.fg1;
+          surface = r.bg1;
+          muted = r.fg3;
+          inherit (r) accent;
+          error = r.red;
+          recolorLight = r.bg0;
+          recolorDark = r.fg0;
+        }
+        // ov "zathura"
+      );
     };
 
   mkStaticProfile =
