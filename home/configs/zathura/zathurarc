@@ -2,5 +2,6 @@
 include colors
 
 set adjust-open width
-set page-padding 4
+set page-h-padding 4
+set page-v-padding 4
 set selection-clipboard clipboard

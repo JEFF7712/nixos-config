@@ -262,7 +262,8 @@ apply_wallpaper_theme() {
   # The engines overwrite whole files; make sure the destinations exist.
   mkdir -p "$CONFIG_HOME/gtk-3.0" "$CONFIG_HOME/gtk-4.0" "$CONFIG_HOME/qt5ct/colors" \
     "$CONFIG_HOME/qt6ct/colors" "$CONFIG_HOME/kitty" "$CONFIG_HOME/fish/conf.d" \
-    "$CONFIG_HOME/rofi" "$CONFIG_HOME/btop/themes" "$CONFIG_HOME/hypr" "$CONFIG_HOME/tmux"
+    "$CONFIG_HOME/rofi" "$CONFIG_HOME/btop/themes" "$CONFIG_HOME/hypr" "$CONFIG_HOME/tmux" \
+    "$CONFIG_HOME/zathura"
 
   if [ "$engine" = "iris" ]; then
     command -v iris-python >/dev/null 2>&1 || return 0
@@ -336,6 +337,7 @@ apply_wallpaper_theme() {
   if [ -f "$CONFIG_HOME/btop/btop.conf" ] && grep -q '^color_theme = ' "$CONFIG_HOME/btop/btop.conf"; then
     sed -i 's|^color_theme = .*|color_theme = "profile"|' "$CONFIG_HOME/btop/btop.conf"
   fi
+  reload_zathura_theme
   nudge_gtk_reload
 
   # spicetify re-patches xpui and may relaunch Spotify; keep it off the critical
@@ -952,9 +954,21 @@ apply_btop_theme() {
   fi
 }
 
+# reload_zathura_theme
+# Ask every open zathura to re-source zathurarc (and included colors) via D-Bus
+# SourceConfig. No-op if busctl is missing or no instances are running.
+reload_zathura_theme() {
+  command -v busctl >/dev/null 2>&1 || return 0
+  local name
+  while read -r name; do
+    [ -n "$name" ] || continue
+    busctl --user call "$name" /org/pwmt/zathura org.pwmt.zathura SourceConfig >/dev/null 2>&1 || true
+  done < <(busctl --user list 2>/dev/null | awk '/org\.pwmt\.zathura\.PID-/ {print $1}')
+}
+
 # apply_zathura_theme <profile-dir> <variant>
-# Installs the variant-resolved colors fragment for zathurarc to include.
-# Running zathura instances pick it up on next start.
+# Installs the variant-resolved colors fragment for zathurarc to include, then
+# live-reloads open zathura windows via D-Bus SourceConfig.
 apply_zathura_theme() {
   local profile_dir="$1" variant="$2"
   local src
@@ -964,6 +978,7 @@ apply_zathura_theme() {
 
   mkdir -p "$CONFIG_HOME/zathura"
   install -m 644 "$src" "$CONFIG_HOME/zathura/colors"
+  reload_zathura_theme
 }
 
 # apply_tmux_colors <profile-dir> <variant>
