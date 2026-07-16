@@ -371,11 +371,16 @@ apply_wallpaper_theme() {
       nout="$PROFILES_DIR/runtime-niri-active.kdl"
       local rgb="${accent#\#}"
       rgb="${rgb:0:6}"
-      # Match clean's baked alphas: active opaque, inactive ~60% (#99).
+      # Match clean's soft hairline alphas (#66 / #33). Also inject `on` when the
+      # HM-baked base still lacks it (niri defaults borders off; wallpaper apply
+      # regenerates from that base and would otherwise drop the live `on`).
       awk -v a="#$rgb" -v active="#${rgb}66" -v inactive="#${rgb}33" '
         /focus-ring[ \t]*\{/ { infr = 1 }
-        /border[ \t]*\{/ { inb = 1 }
+        /border[ \t]*\{/ { inb = 1; need_on = 1 }
         infr && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" a "\""); infr = 0 }
+        inb && /^[ \t]*on([ \t]|$)/ { need_on = 0 }
+        inb && /^[ \t]*off([ \t]|$)/ { need_on = 0 }
+        inb && need_on && /^[ \t]*width / { print "        on"; need_on = 0 }
         inb && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" active "\""); print; next }
         inb && /^[ \t]*inactive-color/ { sub(/"[^"]*"/, "\"" inactive "\""); print; next }
         /\}/ { if (inb) inb = 0 }
