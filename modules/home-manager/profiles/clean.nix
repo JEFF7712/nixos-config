@@ -61,6 +61,8 @@ in
 {
   desktopProfiles.profiles.clean = {
     bar = "quickshell";
+    wallpaperTheming = true;
+    colorEngine = "temperature";
 
     quickshellTheme = {
       fg = "#ffffff";
