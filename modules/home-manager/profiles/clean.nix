@@ -123,8 +123,8 @@ in
       gaps = 12;
       cornerRadius = 15;
       borderOff = false;
-      borderWidth = 1;
-      # Thin outline; niri defaults borders off — files.nix emits `on` when enabled.
+      borderWidth = 0.5;
+      # HiDPI: 1 logical px = 2 physical; 0.5 → one physical-pixel hairline.
       borderActiveColor = "#ffffff";
       borderInactiveColor = "#ffffffb3";
       focusRingOff = true;
