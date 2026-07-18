@@ -1,11 +1,11 @@
 * {
     font:                        "JetBrainsMono Nerd Font 11";
-    background-color:            {{colors.surface.default.hex}};
+    background-color:            {{colors.surface_container_lowest.default.hex}};
     text-color:                  {{colors.on_surface.default.hex}};
     border-color:                {{colors.outline_variant.default.hex}};
     selected-normal-background:  {{colors.surface_container_high.default.hex}};
     selected-normal-foreground:  {{colors.source_color.default.hex}};
-    normal-background:           {{colors.surface.default.hex}};
+    normal-background:           {{colors.surface_container_lowest.default.hex}};
     normal-foreground:           {{colors.on_surface.default.hex}};
 }
 
@@ -15,7 +15,7 @@ window {
     border-color:       {{colors.outline_variant.default.hex}};
     border-radius:      0px;
     padding:            12px;
-    background-color:   {{colors.surface.default.hex}};
+    background-color:   {{colors.surface_container_lowest.default.hex}};
 }
 
 mainbox {

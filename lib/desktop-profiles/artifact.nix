@@ -55,6 +55,7 @@ in
             wallpaperTheming
             colorEngine
             matugenScheme
+            matugenContrast
             wallpaperAccentVivid
             obsidianWallpaperTheme
             ;

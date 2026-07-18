@@ -160,6 +160,17 @@ in
         '';
       };
 
+      matugenContrast = lib.mkOption {
+        type = lib.types.nullOr (lib.types.numbers.between (-1) 1);
+        default = null;
+        description = ''
+          Optional matugen --contrast (-1..1) for wallpaperTheming profiles.
+          null means omit the flag (matugen's default of 0). Higher values push
+          dark surfaces toward black / light surfaces toward white. Ignored when
+          wallpaperTheming is false.
+        '';
+      };
+
       wallpaperAccentVivid = lib.mkOption {
         type = lib.types.bool;
         default = false;

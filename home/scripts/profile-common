@@ -292,7 +292,7 @@ apply_wallpaper_theme() {
   else
     command -v matugen >/dev/null 2>&1 || return 0
     command -v magick >/dev/null 2>&1 || return 0
-    local cfg color scheme
+    local cfg color scheme contrast
     # Per-profile matugen config wins (e.g. config-sharp.toml); else the default.
     cfg="$CONFIG_HOME/matugen/config-$profile.toml"
     [ -f "$cfg" ] || cfg="$CONFIG_HOME/matugen/config.toml"
@@ -304,7 +304,12 @@ apply_wallpaper_theme() {
     fi
     scheme=$(profile_manifest_capability "$profile" matugenScheme)
     [ -n "$scheme" ] && [ "$scheme" != "null" ] || scheme="scheme-tonal-spot"
-    matugen color hex "$color" --mode "$mode" --type "$scheme" -c "$cfg" >/dev/null 2>&1 || return 0
+    local contrast_args=()
+    contrast=$(profile_manifest_capability "$profile" matugenContrast)
+    if [ -n "$contrast" ] && [ "$contrast" != "null" ]; then
+      contrast_args=(--contrast "$contrast")
+    fi
+    matugen color hex "$color" --mode "$mode" --type "$scheme" "${contrast_args[@]}" -c "$cfg" >/dev/null 2>&1 || return 0
     # The matugen templates surface the seed verbatim as {{colors.source_color}},
     # so the seed IS the accent — reuse it for the niri focus-ring below.
     accent="$color"

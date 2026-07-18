@@ -49,21 +49,21 @@ body {
 :root {
   --colors: on;
 
-  --text-0: #141414;
+  --text-0: #0a0a0a;
   --text-1: #f2f2f2;
   --text-2: #e0e0e0;
   --text-3: #c8c8c8;
   --text-4: #6b6b6b;
   --text-5: #525252;
 
-  --bg-1: #3a3a3a;
-  --bg-2: #2a2a2a;
-  --bg-3: #222222;
-  --bg-4: #141414;
+  --bg-1: #2e2e2e;
+  --bg-2: #1e1e1e;
+  --bg-3: #121212;
+  --bg-4: #0a0a0a;
   --hover: #ffffff15;
-  --active: #262626;
-  --active-2: #1c1c1c;
-  --message-hover: #3a3a3a40;
+  --active: #1e1e1e;
+  --active-2: #121212;
+  --message-hover: #2e2e2e40;
 
   --accent-1: #e0e0e0;
   --accent-2: #c8c8c8;

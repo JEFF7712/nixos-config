@@ -9,10 +9,10 @@ let
   # and `hoverBg` are the two slots that differ beyond the palette itself.
   dark = rec {
     title = "Sharp dark";
-    bg0 = "#141414";
-    bg1 = "#1c1c1c";
-    bg2 = "#262626";
-    bg3 = "#3a3a3a";
+    bg0 = "#0a0a0a";
+    bg1 = "#121212";
+    bg2 = "#1e1e1e";
+    bg3 = "#2e2e2e";
     fg0 = "#f2f2f2";
     fg1 = "#c8c8c8";
     fg2 = "#8a8a8a";
@@ -279,6 +279,9 @@ in
     # follows the wallpaper (apply_obsidian_sharp writes the `sharp` snippet).
     obsidianWallpaperTheme = true;
     matugenScheme = "scheme-tonal-spot";
+    # Push M3 surfaces toward near-black so kitty/GTK backgrounds land around
+    # the baked bg0 (#0a0a0a); templates also read surface_container_lowest.
+    matugenContrast = 0.5;
     # Accent = the wallpaper's most vivid+bright color (not the dominant mood
     # hue), surfaced raw via {{colors.source_color}} in the sharp templates.
     wallpaperAccentVivid = true;
