@@ -13,6 +13,7 @@
       unzip
       libimobiledevice
       ifuse
+      gphoto2
     ];
 
     services.usbmuxd.enable = true;

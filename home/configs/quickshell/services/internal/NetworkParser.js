@@ -8,5 +8,5 @@ function interactiveConnectArgv(ssid) {
 }
 
 function settingsArgv() {
-    return ["kitty", "-e", "sudo", "nmtui"];
+    return ["kitty", "-e", "nmtui"];
 }

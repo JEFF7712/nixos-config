@@ -25,9 +25,11 @@ in
           davinci-resolve
           obs-studio
           vlc
+          mpv
           avidemux
           feishin
           f3d
+          darktable
         ]
       )
       ++ lib.optionals cfg.office.enable (

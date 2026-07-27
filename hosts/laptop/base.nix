@@ -130,7 +130,7 @@
     loader.systemd-boot.enable = true;
     # Flash the menu briefly (hold a key to catch it for rollback / the
     # `performance` specialisation) instead of the ~5s default.
-    loader.timeout = 1;
+    loader.timeout = 3;
     # zram is RAM-speed, so swap into it aggressively and skip readahead.
     kernel.sysctl = {
       "vm.swappiness" = 180;
@@ -175,7 +175,10 @@
 
   users.users.rupan = {
     isNormalUser = true;
-    extraGroups = [ "wheel" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+    ];
     packages = with pkgs; [
       tree
     ];

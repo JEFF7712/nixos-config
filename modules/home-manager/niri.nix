@@ -77,6 +77,7 @@
       home.packages = with pkgs; [
         grim
         slurp
+        imv
         awww
         mpvpaper
         wl-clipboard

@@ -37,6 +37,12 @@ let
       "x86_64-unknown-linux-musl" = "0pyj7lw3i0amgmfacngn0m7gcxbnsah7h74k82alda0npvqdv6hq";
       "aarch64-unknown-linux-musl" = "1rsqq0scrkc9dsfbxlffyhvisykfqkiryhb3finc6idaz56n24h6";
     };
+    "0.145.0" = {
+      "x86_64-unknown-linux-musl" = "0bl5j3a489n2vjagnmfvh1kvgdav1zc7phl0y7ww2363arwif8xc";
+      "aarch64-unknown-linux-musl" = "0ffxyfy62yxsm52033x6x0d3i7hnnjsblba0b57r9g06f8n8dd92";
+      "x86_64-apple-darwin" = "0fd9andn5lyscslwf42v1ykk753dzdjdk8lkcq908dziby9afa16";
+      "aarch64-apple-darwin" = "0326d13gap30ir5xdm9cm7jl353b3wpzf7zrq6si72da6il31ybm";
+    };
   };
 
   versionHashes =
