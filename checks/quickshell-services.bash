@@ -1500,6 +1500,10 @@ assert_no_view_processes_for_migrated_domains() {
   done
   ! rg -U -q 'onDetailedMonitoringChanged:[^\n]*refreshDebounce|onDetailedMonitoringChanged:[[:space:]]*\{[^}]*refreshDebounce' "$media_service" \
     || fail 'MediaService detailedMonitoring enable must not schedule the follow debounce timer'
+  # playerctl --follow only reprints when the formatted string changes; status-only
+  # misses track swaps while Playing (popup/bar stay stale until a click reconciles).
+  rg -F -q '"{{status}}\t{{title}}\t{{artist}}\t{{album}}\t{{mpris:artUrl}}\t{{mpris:length}}\t{{shuffle}}\t{{loop}}"' "$media_model" \
+    || fail 'MediaModel follow format must include track fields, not status alone'
   rg -U -q 'Topbar[[:space:]]*\{[^}]*mediaService:[[:space:]]*mediaService' "$shell" \
     || fail 'production shell.qml does not wire MediaService directly to Topbar'
   rg -U -q 'MediaPopup[[:space:]]*\{[^}]*mediaService:[[:space:]]*mediaService' "$shell" \

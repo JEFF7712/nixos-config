@@ -32,7 +32,7 @@ record_action() {
   printf '%s\n' "$*" >>"$actions"
 }
 
-if [ "$#" -eq 4 ] && [ "$1" = --follow ] && [ "$2" = metadata ] && [ "$3" = --format ] && [ "$4" = '{{status}}' ]; then
+if [ "$#" -eq 4 ] && [ "$1" = --follow ] && [ "$2" = metadata ] && [ "$3" = --format ]; then
   if [ -f "$state_dir/follow.active" ]; then
     printf 'follow-overlap %s\n' "$$" >>"$state_dir/playerctl-overlap.log"
     exit 75

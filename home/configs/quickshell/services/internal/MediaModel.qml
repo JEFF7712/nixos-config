@@ -165,7 +165,9 @@ Scope {
     Process {
         id: followProcess
         running: root._followRequested
-        command: ["setpriv", "--pdeathsig", "TERM", "--", "playerctl", "--follow", "metadata", "--format", "{{status}}"]
+        // Include track fields, not just status: playerctl --follow only reprints when the
+        // formatted string changes, so "{{status}}" alone misses title/artist swaps while Playing.
+        command: ["setpriv", "--pdeathsig", "TERM", "--", "playerctl", "--follow", "metadata", "--format", "{{status}}\t{{title}}\t{{artist}}\t{{album}}\t{{mpris:artUrl}}\t{{mpris:length}}\t{{shuffle}}\t{{loop}}"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data)
