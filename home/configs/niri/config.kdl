@@ -311,6 +311,8 @@ binds {
     Mod+Alt+N { spawn "wl-copy" "Ramrupan Sunderapandyan"; }
     Mod+Alt+L { spawn "wl-copy" "https://www.linkedin.com/in/rupan-sunderapandyan/"; }
     Mod+Alt+A { spawn "wl-copy" "538 West Washington Ave Apt 504"; }
+    Alt+Shift+W { spawn "wl-copy" "https://rupan.dev/"; }
+    Alt+Shift+G { spawn "wl-copy" "https://github.com/JEFF7712"; }
 
     XF86AudioRaiseVolume allow-when-locked=true { spawn "profile-dispatch" "volume-up"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn "profile-dispatch" "volume-down"; }
