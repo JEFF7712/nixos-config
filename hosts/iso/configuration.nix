@@ -118,7 +118,7 @@
     "fbdev"
   ];
 
-  time.timeZone = "America/New_York";
+  time.timeZone = "America/Chicago";
 
   networking.nameservers = [
     "1.1.1.1"
