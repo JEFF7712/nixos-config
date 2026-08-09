@@ -12,9 +12,8 @@
 
   nix = {
     package = pkgs.nix;
-    # Pure-flake setup: no channels, and pin the registry + NIX_PATH to the
-    # locked nixpkgs so `nix run nixpkgs#foo`, comma, and `nix-shell -p`
-    # all resolve to the same rev as the running system.
+    # No channels; pin registry + NIX_PATH to the locked nixpkgs so ad-hoc
+    # `nix run`/`nix-shell -p` match the running system's rev.
     channel.enable = false;
     registry.nixpkgs.flake = inputs.nixpkgs;
     nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
@@ -23,11 +22,8 @@
         "nix-command"
         "flakes"
       ];
-      # Cap build fan-out on the i9-13900H (20 threads) / ~31G laptop.
-      # `auto`/`0` ran many -j20 jobs and OOM'd the desktop. max-jobs=2 keeps
-      # peak concurrent-build memory to ~2 heavy compiles (4 could still OOM a
-      # 30G box) while 2*8=16 threads still saturate the CPU; oom-protection
-      # is the backstop if a single build overshoots.
+      # `auto` OOM'd this ~31G box. 2 jobs x 8 cores still saturates the CPU;
+      # oom-protection is the backstop if one build overshoots.
       max-jobs = 2;
       cores = 8;
       max-substitution-jobs = 16;
@@ -64,9 +60,8 @@
     ollama.package = pkgs.ollama-cuda;
   };
 
-  # `just vm` boots this config in QEMU. Strip hardware-bound pieces and give
-  # the VM a usable login: the real machine's password is imperative state
-  # that doesn't exist inside the VM image.
+  # `just vm`: strip hardware-bound pieces and set a password, since the real
+  # one is imperative state the VM image doesn't have.
   virtualisation.vmVariant = {
     virtualisation = {
       memorySize = 8192;
@@ -128,16 +123,14 @@
   boot = {
     # Use the systemd-boot EFI boot loader.
     loader.systemd-boot.enable = true;
-    # Flash the menu briefly (hold a key to catch it for rollback / the
-    # `performance` specialisation) instead of the ~5s default.
+    # Brief flash instead of the ~5s default; hold a key to catch it.
     loader.timeout = 3;
     # zram is RAM-speed, so swap into it aggressively and skip readahead.
     kernel.sysctl = {
       "vm.swappiness" = 180;
       "vm.page-cluster" = 0;
     };
-    # nh clean prunes profiles, but ESP entries only shrink at the next
-    # switch; cap them so /boot can't fill up silently.
+    # ESP entries only shrink at the next switch; cap so /boot can't fill up.
     loader.systemd-boot.configurationLimit = 10;
     loader.efi.canTouchEfiVariables = true;
     supportedFilesystems = [ "exfat" ];
@@ -167,7 +160,18 @@
   # Don't block boot on the network being fully up (~5s off graphical.target).
   systemd.services.NetworkManager-wait-online.enable = false;
 
-  time.timeZone = "America/New_York";
+  # Router advertises a default route but IPv6 egress blackholes: dual-stack
+  # hosts cost a ~10s AAAA timeout each. Any entry replaces glibc's table, so
+  # these are the RFC 6724 defaults with IPv4 moved above global v6.
+  networking.getaddrinfo.precedence = {
+    "::1/128" = 50;
+    "::ffff:0:0/96" = 45;
+    "::/0" = 40;
+    "2002::/16" = 30;
+    "::/96" = 20;
+  };
+
+  time.timeZone = "America/Chicago";
 
   services.printing.enable = true;
 
@@ -184,9 +188,8 @@
     ];
   };
 
-  # switch/test are pinned to this repo's exact flake refs — a wildcard here
-  # would let any flake URI run as root. dry-activate stays globbed for
-  # nix-agent's headless dry runs.
+  # switch/test pinned to this repo's exact flake refs; a wildcard would let
+  # any flake URI run as root. dry-activate stays globbed for headless runs.
   security.sudo.extraRules = [
     {
       users = [ "rupan" ];
@@ -286,18 +289,12 @@
   nix.optimise.automatic = true;
 
   # Homelab Attic binary cache. Disabled while the homelab is offline.
-  # extra-substituters: make the daemon fetch from it.
-  # extra-trusted-substituters: let non-trusted users (i.e. not root) use it.
-  # extra-trusted-public-keys: verify signatures from it.
-  # accept-flake-config: auto-accept any flake's nixConfig.extra-substituters /
-  #   trusted-public-keys / etc. without the interactive y/N prompt that hangs
-  #   direnv (direnv has no stdin to answer). Saved per-flake answers live in
-  #   ~/.local/share/nix/trusted-settings.json; this is the global escape hatch.
   # nix.settings.extra-substituters = [ "http://10.0.20.190:8080/homelab" ];
   # nix.settings.extra-trusted-substituters = [ "http://10.0.20.190:8080/homelab" ];
   # nix.settings.extra-trusted-public-keys = [
   #   "homelab:s17u8G3szjlQ6UmMAPsszVS/J1jaw6gDwSDM9+/QeNQ="
   # ];
+  # direnv has no stdin to answer the interactive y/N prompt, so it hangs.
   nix.settings.accept-flake-config = true;
 
   system.stateVersion = "25.11"; # DO NOT EDIT
