@@ -262,18 +262,20 @@ ShellRoot {
     Process {
         id: themeLoader
         running: true
-        command: ["select-quickshell-theme"]
+        // Absolute path: quickshell's PATH may omit ~/.local/bin on some spawns.
+        command: [Quickshell.env("HOME") + "/.local/bin/select-quickshell-theme"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const txt = this.text.trim();
-                if (!txt)
-                    return;
-                try {
-                    root.applyTheme(JSON.parse(txt));
-                    root.themeLoaded = true;
-                } catch (e) {
-                    console.warn("quickshell-theme.json parse failed:", e);
+                if (txt) {
+                    try {
+                        root.applyTheme(JSON.parse(txt));
+                    } catch (e) {
+                        console.warn("quickshell-theme.json parse failed:", e);
+                    }
                 }
+                // Reveal even on empty/parse failure so the bar is never stuck hidden.
+                root.themeLoaded = true;
             }
         }
     }
@@ -320,6 +322,7 @@ ShellRoot {
         niriService: niriService
         networkService: networkService
         bluetoothService: bluetoothService
+        themeReady: root.themeLoaded
         themeFg: root.themeFg
         themeBg: root.themeBg
         themeRawBg: root.themeRawBg

@@ -50,6 +50,9 @@ PanelWindow {
     property color barInnerHighlight: "#0fffffff"
     property color pillBg: "#0affffff"
     property color pillBorder: "#14ffffff"
+    // shell.qml defaults match the floating clean-style bar; stay hidden until
+    // select-quickshell-theme has applied so Mod+B / cold start never flash it.
+    property bool themeReady: false
 
     property int notificationCount: 0
     readonly property bool cavaRequested: mediaPill.visible
@@ -107,6 +110,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
+    visible: topbarWindow.themeReady
     anchors {
         top: true
         left: true
@@ -118,7 +122,8 @@ PanelWindow {
         right: topbarWindow.barMargin
     }
     implicitHeight: topbarWindow.barHeight
-    exclusiveZone: topbarWindow.barHeight + (topbarWindow.barMarginTop > 0 ? topbarWindow.barMarginTop : 0) + topbarWindow.exclusiveZoneOffset
+    // No zone until themed — avoids reserving floating-bar space then snapping to profile height.
+    exclusiveZone: topbarWindow.themeReady ? topbarWindow.barHeight + (topbarWindow.barMarginTop > 0 ? topbarWindow.barMarginTop : 0) + topbarWindow.exclusiveZoneOffset : -1
     color: "transparent"
 
     Rectangle {
