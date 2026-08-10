@@ -48,15 +48,18 @@ let
       accentFg = p.bg0;
       destructiveBg = p.err;
       destructiveFg = p.fg0;
+      # Flatten chrome to bg0 so GTK matches kitty (matugen templates do the
+      # same with surface_container_lowest). Elevations stay on popover/card.
       windowBg = p.bg0;
       windowFg = p.fg1;
-      headerbarBg = p.bg1;
+      viewBg = p.bg0;
+      headerbarBg = p.bg0;
       headerbarBackdrop = "@window_bg_color";
       popoverBg = p.bg1;
       cardBg = p.bg1;
       dialogBg = p.bg0;
       dialogFg = p.fg1;
-      sidebarBg = p.bg1;
+      sidebarBg = p.bg0;
       sidebarBackdrop = "@window_bg_color";
       sidebarBorder = p.bg2;
       secondarySidebarBg = p.bg0;
@@ -73,14 +76,14 @@ let
     // {
       qt6 = theme.mkQt6Roles {
         windowText = p.fg1;
-        button = p.bg1;
+        button = p.bg0;
         midlight = p.bg3;
         mid = p.bg2;
         window = p.bg0;
         highlight = p.accent;
         highlightedText = p.bg2;
         linkVisited = p.fg2;
-        alternateBase = p.bg1;
+        alternateBase = p.bg0;
         tooltipBase = p.bg0;
         tooltipText = p.bg1;
         secondaryText = p.fg2;
