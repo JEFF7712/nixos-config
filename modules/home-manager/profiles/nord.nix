@@ -190,6 +190,21 @@ in
             geometry-corner-radius 0
             clip-to-geometry true
         }
+
+        layer-rule {
+            match namespace="^quickshell-topbar$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^quickshell-popup$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^quickshell-notifications$"
+            geometry-corner-radius 0
+        }
       '';
     };
   };

@@ -296,6 +296,22 @@ in
       tabIndicatorOff = true;
       tabIndicatorActiveColor = dark.accent;
       tabIndicatorInactiveColor = dark.bg3;
+      extraConfig = ''
+        layer-rule {
+            match namespace="^quickshell-topbar$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^quickshell-popup$"
+            geometry-corner-radius 0
+        }
+
+        layer-rule {
+            match namespace="^quickshell-notifications$"
+            geometry-corner-radius 0
+        }
+      '';
     };
 
     colors = mkColors dark;

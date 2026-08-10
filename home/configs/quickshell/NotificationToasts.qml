@@ -15,12 +15,15 @@ PanelWindow {
     property color innerHighlight: Qt.rgba(1, 1, 1, 0.06)
     property color dividerColor: Qt.rgba(1, 1, 1, 0.1)
     property bool flatMode: false
+    property bool popupAttachToBar: false
     property string barFont: "JetBrainsMono Nerd Font"
     property int topMargin: 64
+    property int barMargin: 0
 
     readonly property int defaultTimeout: 5000
     readonly property int maxVisible: 4
     readonly property int cardRadius: flatMode ? 0 : 14
+    readonly property int sideMargin: popupAttachToBar ? barMargin : 10
 
     property var toasts: []
     property int now: 0
@@ -99,7 +102,7 @@ PanelWindow {
     }
     margins {
         top: root.topMargin
-        right: 10
+        right: root.sideMargin
     }
     implicitWidth: 340
     implicitHeight: Math.max(1, stack.implicitHeight)

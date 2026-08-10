@@ -136,6 +136,7 @@ ShellRoot {
             if (p)
                 p.suppressPrewarm = true;
         }
+        let attachOrAnimChanged = false;
         try {
             root.resetThemeDefaults();
             if (!theme)
@@ -219,14 +220,26 @@ ShellRoot {
             // layout, new colors) do not trip InfoPopup's attach/style prewarm flash.
             const nextAttach = theme.popupAttachToBar !== undefined ? theme.popupAttachToBar === "true" : false;
             const nextAnim = theme.popupAnimationStyle !== undefined ? theme.popupAnimationStyle : "softPop";
-            if (root.popupAttachToBar !== nextAttach)
+            if (root.popupAttachToBar !== nextAttach) {
                 root.popupAttachToBar = nextAttach;
-            if (root.popupAnimationStyle !== nextAnim)
+                attachOrAnimChanged = true;
+            }
+            if (root.popupAnimationStyle !== nextAnim) {
                 root.popupAnimationStyle = nextAnim;
+                attachOrAnimChanged = true;
+            }
         } finally {
             for (const p of popups) {
                 if (p)
                     p.suppressPrewarm = false;
+            }
+            // Change handlers ran while suppressed; retry now that poseLocked snaps
+            // off-screen without animating (no bar flash on profile switch).
+            if (attachOrAnimChanged) {
+                for (const p of popups) {
+                    if (p)
+                        p.prewarm();
+                }
             }
         }
     }
@@ -367,6 +380,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     WifiPopup {
@@ -385,6 +399,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     BluetoothPopup {
@@ -403,6 +418,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     BatteryPopup {
@@ -421,6 +437,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     CalendarPopup {
@@ -438,6 +455,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     NotificationsPopup {
@@ -456,6 +474,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     SystemPopup {
@@ -476,6 +495,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     MediaPopup {
@@ -495,6 +515,7 @@ ShellRoot {
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     NotificationToasts {
@@ -507,8 +528,10 @@ ShellRoot {
         innerHighlight: root.barInnerHighlight
         dividerColor: root.dividerColor
         flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
         barFont: root.barFont
         topMargin: root.popupTopMargin
+        barMargin: root.barMargin
     }
 
     PanelWindow {

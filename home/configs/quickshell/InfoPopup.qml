@@ -9,6 +9,9 @@ PanelWindow {
     property string title: ""
     property string popupPosition: "right"
     property int topMargin: 64
+    // When attached to a flat flush bar, match the bar's side inset (usually 0)
+    // so the popup hangs from the screen edge instead of floating 10px inboard.
+    property int barMargin: 0
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color themeAccent: "#ffffff"
@@ -25,6 +28,11 @@ PanelWindow {
     property bool warming: false
     property bool opening: false
     property bool closing: false
+    // Snap x/y/opacity/scale without Behavior. Must not key off `shown` —
+    // openTimer used to clear settle via shown=true in the same tick as the
+    // pose change, and Qt applied the final value while Behavior was still
+    // disabled (instant open, close still animated).
+    property bool poseLocked: false
     // False until the shell has settled after launch. The startup theme-load
     // flips popupAttachToBar/popupAnimationStyle, whose change handlers call
     // prewarm(); without this gate every popup would briefly map (warming ->
@@ -43,6 +51,7 @@ PanelWindow {
     readonly property bool active: shown || opening || closing
     readonly property bool mapped: active || warming
     readonly property int cardRadius: flatMode ? 0 : 15
+    readonly property int sideMargin: popupAttachToBar ? barMargin : 10
     readonly property int contentHeight: outerColumn.implicitHeight + 28
     readonly property int hiddenX: sideSlide ? (popupPosition === "left" ? -card.width : card.width) : 0
     readonly property int hiddenY: sideSlide ? 0 : attachedSlide ? -card.height : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
@@ -56,6 +65,7 @@ PanelWindow {
         if (root.suppressPrewarm || !root.ready || !root.attachedSlide || root.active)
             return;
         root.frozenHeight = Math.max(1, root.contentHeight);
+        root.poseLocked = true;
         root.warming = true;
         warmTimer.restart();
     }
@@ -65,6 +75,7 @@ PanelWindow {
             return;
         warmTimer.stop();
         root.warming = false;
+        root.poseLocked = false;
         if (!root.active)
             root.frozenHeight = 0;
     }
@@ -73,16 +84,19 @@ PanelWindow {
         root.ready = true;
         closeTimer.stop();
         openTimer.stop();
+        showTimer.stop();
         warmTimer.stop();
         root.warming = false;
         if (root.attachedSlide) {
             root.frozenHeight = Math.max(1, root.contentHeight);
+            root.poseLocked = true;
             root.opening = true;
             root.closing = false;
             root.shown = false;
             openTimer.restart();
             return;
         }
+        root.poseLocked = false;
         root.closing = false;
         root.opening = false;
         root.shown = true;
@@ -90,8 +104,10 @@ PanelWindow {
     }
     function close() {
         openTimer.stop();
+        showTimer.stop();
         warmTimer.stop();
         root.warming = false;
+        root.poseLocked = false;
         if (root.shown || root.opening) {
             root.frozenHeight = Math.max(1, root.implicitHeight);
             root.closing = true;
@@ -127,8 +143,8 @@ PanelWindow {
     }
     margins {
         top: root.topMargin
-        right: root.sideSlide ? 0 : (root.popupPosition === "right" ? 10 : 0)
-        left: root.sideSlide ? 0 : (root.popupPosition === "left" ? 10 : 0)
+        right: root.popupPosition === "right" ? root.sideMargin : 0
+        left: root.popupPosition === "left" ? root.sideMargin : 0
     }
     implicitWidth: 300
     implicitHeight: (root.warming || root.opening || root.closing) ? root.frozenHeight : root.contentHeight
@@ -140,7 +156,14 @@ PanelWindow {
         interval: 700
         running: true
         repeat: false
-        onTriggered: root.ready = true
+        onTriggered: {
+            root.ready = true;
+            // Theme apply usually lands before ready with suppressPrewarm, so the
+            // attach/style change handlers never prewarm on startup. Map once now
+            // (off-screen, Behaviors disabled via poseLocked) so the first click
+            // does not also pay layershell surface creation mid-animation.
+            root.prewarm();
+        }
     }
 
     Timer {
@@ -159,12 +182,25 @@ PanelWindow {
         repeat: false
         onTriggered: {
             root.warming = false;
+            root.poseLocked = false;
             root.frozenHeight = 0;
         }
     }
 
+    // Two ticks: unlock Behaviors, then flip shown so the open animation runs.
+    // Same-tick unlock+show can still snap (Behavior enable races the pose bind).
     Timer {
         id: openTimer
+        interval: 16
+        repeat: false
+        onTriggered: {
+            root.poseLocked = false;
+            showTimer.restart();
+        }
+    }
+
+    Timer {
+        id: showTimer
         interval: 16
         repeat: false
         onTriggered: {
@@ -197,27 +233,28 @@ PanelWindow {
             scale: root.shown ? 1.0 : root.hiddenScale
             transformOrigin: root.popupPosition === "left" ? Item.TopLeft : Item.TopRight
             Behavior on x {
-                enabled: true
+                enabled: !root.poseLocked
                 NumberAnimation {
                     duration: root.motionDuration
                     easing.type: Easing.OutCubic
                 }
             }
             Behavior on y {
-                enabled: true
+                enabled: !root.poseLocked
                 NumberAnimation {
                     duration: root.motionDuration
                     easing.type: Easing.InOutCubic
                 }
             }
             Behavior on opacity {
+                enabled: !root.poseLocked
                 NumberAnimation {
                     duration: root.motionDuration
                     easing.type: root.quickFade ? Easing.OutCubic : Easing.InOutCubic
                 }
             }
             Behavior on scale {
-                enabled: !root.attachedSlide
+                enabled: !root.attachedSlide && !root.poseLocked
                 NumberAnimation {
                     duration: root.motionDuration
                     easing.type: Easing.InOutCubic

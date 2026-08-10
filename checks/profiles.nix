@@ -152,6 +152,7 @@ let
     "gruvbox"
     "nord"
     "sharp"
+    "tinted"
   ];
 
   checkSlideProfile =
