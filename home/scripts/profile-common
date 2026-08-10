@@ -802,9 +802,90 @@ copy_profile_colors() {
   return 0
 }
 
+# Resolve Vicinae window chrome from a quickshell theme JSON (flatMode /
+# barRadius). Flat profiles get 0 rounding, no shadow, solid material so the
+# wallpaper accent reads cleanly; soft profiles keep blur + rounded corners.
+vicinae_window_style_from_qs() {
+  local qs_theme="$1"
+  local flat radius rounding shadow material opacity
+
+  flat="false"
+  radius="10"
+  if [ -s "$qs_theme" ]; then
+    flat=$(jq -r '.flatMode // "false"' "$qs_theme" 2>/dev/null || echo "false")
+    radius=$(jq -r '.barRadius // "10"' "$qs_theme" 2>/dev/null || echo "10")
+  fi
+
+  if [ "$flat" = "true" ] || [ "$radius" = "0" ]; then
+    rounding=0
+    shadow=0
+    material="none"
+    opacity="0.96"
+  else
+    case "$radius" in
+      ''|*[!0-9]*) rounding=10 ;;
+      *) rounding=$radius ;;
+    esac
+    shadow=12
+    material="blur"
+    opacity="0.92"
+  fi
+
+  printf '%s\t%s\t%s\t%s\n' "$rounding" "$shadow" "$material" "$opacity"
+}
+
+# Write ~/.config/vicinae/settings.json (pure JSON — Vicinae may rewrite as
+# JSONC later, so never jq-merge the live file).
+write_vicinae_settings() {
+  local family="$1" size="$2" qs_theme="$3"
+  local settings tmp rounding shadow material opacity
+
+  settings="$CONFIG_HOME/vicinae/settings.json"
+  IFS=$'\t' read -r rounding shadow material opacity < <(vicinae_window_style_from_qs "$qs_theme")
+  [ -n "$family" ] || family="JetBrainsMono Nerd Font"
+  [ -n "$size" ] || size=11
+
+  mkdir -p "$(dirname "$settings")"
+  tmp=$(mktemp "$settings.XXXXXX")
+  jq -n \
+    --arg family "$family" \
+    --argjson size "$size" \
+    --argjson rounding "$rounding" \
+    --argjson shadow "$shadow" \
+    --arg material "$material" \
+    --argjson opacity "$opacity" \
+    '{
+      close_on_focus_loss: true,
+      pop_to_root_on_close: true,
+      search_files_in_root: true,
+      favicon_service: "twenty",
+      font: { normal: { family: $family, size: $size } },
+      launcher_window: {
+        opacity: $opacity,
+        material: $material,
+        rounding: $rounding,
+        compact_mode: { enabled: true },
+        layer_shell: { enabled: true },
+        client_side_decorations: {
+          enabled: true,
+          border_width: 1,
+          shadow_size: $shadow
+        }
+      },
+      telemetry: { system_info: false },
+      theme: {
+        dark: { name: "desktop-profile-dark", icon_theme: "default" },
+        light: { name: "desktop-profile-light", icon_theme: "default" }
+      }
+    }' > "$tmp"
+  install -m 644 "$tmp" "$settings"
+  rm -f "$tmp"
+}
+
 apply_vicinae_theme() {
   local profile_dir="$1"
-  local dark_src light_src theme_dir settings tmp family size profile fonts
+  local dark_src light_src theme_dir family size profile fonts
+  local qs_theme variant
 
   dark_src="$profile_dir/vicinae-theme-dark.toml"
   light_src="$profile_dir/vicinae-theme-light.toml"
@@ -816,35 +897,20 @@ apply_vicinae_theme() {
   install -m 644 "$dark_src" "$theme_dir/desktop-profile-dark.toml"
   install -m 644 "$light_src" "$theme_dir/desktop-profile-light.toml"
 
-  settings="$CONFIG_HOME/vicinae/settings.json"
   profile=$(basename "$profile_dir")
   fonts=$(profile_manifest_transition_json "$profile" fonts)
   IFS=$'\t' read -r family size < <(jq -r '[.ui.family, .ui.size] | @tsv' <<< "$fonts") || true
-  [ -n "$family" ] || family="JetBrainsMono Nerd Font"
-  [ -n "$size" ] || size=11
-  tmp=$(mktemp "$settings.XXXXXX")
-  jq -n \
-    --arg family "$family" \
-    --argjson size "$size" \
-    '{
-      close_on_focus_loss: true,
-      pop_to_root_on_close: true,
-      search_files_in_root: true,
-      favicon_service: "twenty",
-      font: { normal: { family: $family, size: $size } },
-      launcher_window: {
-        opacity: 0.92,
-        material: "blur",
-        layer_shell: { enabled: true }
-      },
-      telemetry: { system_info: false },
-      theme: {
-        dark: { name: "desktop-profile-dark", icon_theme: "default" },
-        light: { name: "desktop-profile-light", icon_theme: "default" }
-      }
-    }' > "$tmp"
-  install -m 644 "$tmp" "$settings"
-  rm -f "$tmp"
+
+  variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+  qs_theme="$profile_dir/quickshell-theme.json"
+  [ "$variant" = "light" ] && [ -s "$profile_dir/quickshell-theme-light.json" ] \
+    && qs_theme="$profile_dir/quickshell-theme-light.json"
+  # Wallpaper-driven profiles may already have a fresher runtime theme.
+  [ -s "$PROFILES_DIR/runtime-quickshell-theme.json" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null || true)" = "$profile" ] \
+    && qs_theme="$PROFILES_DIR/runtime-quickshell-theme.json"
+
+  write_vicinae_settings "$family" "$size" "$qs_theme"
   systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
 }
 
@@ -868,6 +934,7 @@ apply_vicinae_runtime_theme() {
   local theme_json="$PROFILES_DIR/runtime-quickshell-theme.json"
   local theme_dir="${XDG_DATA_HOME:-$HOME/.local/share}/vicinae/themes"
   local out raw_bg popup_bg fg secondary accent warm fresh red
+  local accent_fg hover_bg accent_hex family size fonts
 
   [ -s "$theme_json" ] || return 0
 
@@ -879,6 +946,9 @@ apply_vicinae_runtime_theme() {
   warm=$(json_color "$theme_json" warm "$accent")
   fresh=$(json_color "$theme_json" fresh "$accent")
   red=$(json_color "$theme_json" red "#ff6b6b")
+  accent_fg="$raw_bg"
+  accent_hex="${accent#\#}"
+  hover_bg="#40${accent_hex}"
 
   mkdir -p "$theme_dir"
   out="$theme_dir/desktop-profile-$variant.toml"
@@ -894,14 +964,18 @@ inherits = "vicinae-$variant"
 background = "$raw_bg"
 foreground = "$fg"
 secondary_background = "$popup_bg"
-border = "$secondary"
+border = "$accent"
 accent = "$accent"
+accent_foreground = "$accent_fg"
+
+[colors.main_window]
+border = "$accent"
 
 [colors.accents]
 blue = "$accent"
 green = "$fresh"
 magenta = "$warm"
-orange = "$warm"
+orange = "$accent"
 purple = "$accent"
 red = "$red"
 yellow = "$warm"
@@ -913,26 +987,43 @@ muted = "$secondary"
 placeholder = "$secondary"
 danger = "$red"
 success = "$fresh"
+selection = { background = "$accent", foreground = "$accent_fg" }
+
+[colors.text.links]
+default = "$accent"
+visited = "$warm"
 
 [colors.list.item.selection]
-background = "$popup_bg"
-foreground = "$fg"
-secondary_background = "$raw_bg"
-secondary_foreground = "$secondary"
+background = "$accent"
+foreground = "$accent_fg"
+secondary_background = "$accent"
+secondary_foreground = "$accent_fg"
 
 [colors.list.item.hover]
-background = "$popup_bg"
+background = "$hover_bg"
 foreground = "$fg"
 secondary_foreground = "$secondary"
+
+[colors.grid.item]
+background = "$popup_bg"
+hover = { outline = "$accent" }
+selection = { outline = "$accent" }
 
 [colors.input]
 border = "$secondary"
 border_focus = "$accent"
 
+[colors.button.primary]
+focus = { outline = "$accent" }
+
 [colors.loading]
 bar = "$accent"
 spinner = "$accent"
 EOF
+
+  fonts=$(profile_manifest_transition_json "$profile" fonts)
+  IFS=$'\t' read -r family size < <(jq -r '[.ui.family, .ui.size] | @tsv' <<< "$fonts") || true
+  write_vicinae_settings "$family" "$size" "$theme_json"
   systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
 }
 

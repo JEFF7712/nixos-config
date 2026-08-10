@@ -162,6 +162,16 @@ let
     theme: key: fallback:
     stripAlpha (theme.${key} or fallback);
 
+  # Accent wash for list hover (AARRGGBB). Selection uses a solid accent fill so
+  # wallpaper-driven accents (sharp/tinted) actually read in the launcher UI —
+  # previously selection/hover matched the background so accent was invisible.
+  accentWash =
+    accent:
+    let
+      hex = if builtins.substring 0 1 accent == "#" then builtins.substring 1 6 accent else accent;
+    in
+    "#40${hex}";
+
   vicinaeTheme =
     name: variant: theme:
     let
@@ -173,6 +183,9 @@ let
       warm = colorFrom theme "warm" accent;
       fresh = colorFrom theme "fresh" accent;
       red = colorFrom theme "red" "#ff6b6b";
+      # Text on accent chips: rawBg is dark on dark themes / light on light.
+      accentFg = rawBg;
+      hoverBg = accentWash accent;
     in
     ''
       [meta]
@@ -186,14 +199,18 @@ let
       background = "${rawBg}"
       foreground = "${fg}"
       secondary_background = "${popupBg}"
-      border = "${secondary}"
+      border = "${accent}"
       accent = "${accent}"
+      accent_foreground = "${accentFg}"
+
+      [colors.main_window]
+      border = "${accent}"
 
       [colors.accents]
       blue = "${accent}"
       green = "${fresh}"
       magenta = "${warm}"
-      orange = "${warm}"
+      orange = "${accent}"
       purple = "${accent}"
       red = "${red}"
       yellow = "${warm}"
@@ -205,21 +222,34 @@ let
       placeholder = "${secondary}"
       danger = "${red}"
       success = "${fresh}"
+      selection = { background = "${accent}", foreground = "${accentFg}" }
+
+      [colors.text.links]
+      default = "${accent}"
+      visited = "${warm}"
 
       [colors.list.item.selection]
-      background = "${popupBg}"
-      foreground = "${fg}"
-      secondary_background = "${rawBg}"
-      secondary_foreground = "${secondary}"
+      background = "${accent}"
+      foreground = "${accentFg}"
+      secondary_background = "${accent}"
+      secondary_foreground = "${accentFg}"
 
       [colors.list.item.hover]
-      background = "${popupBg}"
+      background = "${hoverBg}"
       foreground = "${fg}"
       secondary_foreground = "${secondary}"
+
+      [colors.grid.item]
+      background = "${popupBg}"
+      hover = { outline = "${accent}" }
+      selection = { outline = "${accent}" }
 
       [colors.input]
       border = "${secondary}"
       border_focus = "${accent}"
+
+      [colors.button.primary]
+      focus = { outline = "${accent}" }
 
       [colors.loading]
       bar = "${accent}"
