@@ -1,10 +1,11 @@
 {
   "mcpServers": {
     "nix-agent": {
-      "command": "nix-agent",
+      "command": "/home/rupan/projects/nix-agent/.venv/bin/nix-agent",
       "args": [],
       "env": {
-        "NIX_AGENT_FLAKE": "/home/rupan/nixos"
+        "NIX_AGENT_FLAKE": "/home/rupan/nixos",
+        "NIX_AGENT_USAGE_LOG": "1"
       }
     },
     "mcp-nixos": {
