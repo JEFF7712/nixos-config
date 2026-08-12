@@ -43,6 +43,10 @@ let
       "x86_64-apple-darwin" = "0fd9andn5lyscslwf42v1ykk753dzdjdk8lkcq908dziby9afa16";
       "aarch64-apple-darwin" = "0326d13gap30ir5xdm9cm7jl353b3wpzf7zrq6si72da6il31ybm";
     };
+    "0.147.0" = {
+      "x86_64-unknown-linux-musl" = "0mj3vnhrgyxp71wqi0x22y32wnyv4iv5z2dmrngyqqw3mkxasih1";
+      "aarch64-unknown-linux-musl" = "0z1w9nssbr95wa3slwq5dn1s8gbfz2v3375gg380xcsdxacgzm6z";
+    };
   };
 
   versionHashes =

@@ -61,7 +61,7 @@
       url = "github:jacopone/code-cursor-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.5.0";
+    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.8.1";
     compchem-cctop = {
       url = "github:JEFF7712/cctop";
       inputs.nixpkgs.follows = "nixpkgs";
