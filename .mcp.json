@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "nix-agent": {
-      "command": "/home/rupan/.local/share/nix-agent-0.8.1/bin/nix-agent",
+      "command": "nix-agent",
       "args": [],
       "env": {
         "NIX_AGENT_FLAKE": "/home/rupan/nixos",

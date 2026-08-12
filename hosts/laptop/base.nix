@@ -188,8 +188,19 @@
     ];
   };
 
+  programs.nix-agent = {
+    enable = true;
+    flake = /home/rupan/nixos;
+    privilegedAutomation = {
+      enable = true;
+      user = "rupan";
+    };
+  };
+
   # switch/test pinned to this repo's exact flake refs; a wildcard would let
   # any flake URI run as root. dry-activate stays globbed for headless runs.
+  # nix-agent privilegedAutomation adds a second, narrower set: rebuild/switch
+  # for --flake /home/rupan/nixos*, plus rollback / generation-switch.
   security.sudo.extraRules = [
     {
       users = [ "rupan" ];

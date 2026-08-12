@@ -25,6 +25,7 @@ check-local-bin:
 
 check-flake-update:
   bash checks/flake-update.bash
+  bash checks/nix-pin-nixpkgs.bash
 
 check-agent-docs:
   bash checks/agent-docs.bash
@@ -185,14 +186,48 @@ switch:
     exit 1
   fi
   # Refuse a toolchain-cascade switch (uncached nixpkgs tip → thousands of
-  # from-source builds, hours on this box). FORCE=1 to override.
+  # from-source builds, hours on this box). FORCE=1 to override. In a
+  # terminal, offer to pin nixpkgs back to the running revision and continue.
+  toplevel=".#nixosConfigurations.laptop.config.system.build.toplevel"
+  pin=./home/scripts/nix-pin-nixpkgs-running
   if [ "${FORCE:-0}" != "1" ]; then
     rc=0
-    ./home/scripts/nix-cascade-guard ".#nixosConfigurations.laptop.config.system.build.toplevel" || rc=$?
+    ./home/scripts/nix-cascade-guard "$toplevel" || rc=$?
     if [ "$rc" = "10" ]; then
       echo "cascade: this switch would rebuild the toolchain from source (nixpkgs tip not cached yet)." >&2
-      echo "options: wait ~a day for hydra, pin nixpkgs back, or override with 'FORCE=1 just switch'." >&2
-      exit 1
+      running=$("$pin" --rev)
+      locked=$("$pin" --locked-rev)
+      if [ "$running" = "$locked" ]; then
+        echo "nixpkgs is already the running revision ${running:0:7}; pinning will not help." >&2
+        echo "options: wait ~a day for hydra, or override with 'FORCE=1 just switch'." >&2
+        exit 1
+      fi
+      answer=
+      if [ -t 0 ]; then
+        printf 'Pin nixpkgs back to running revision %s and continue? [y/N] ' "${running:0:7}" >&2
+        read -r answer || true
+      elif exec 3<>/dev/tty; then
+        printf 'Pin nixpkgs back to running revision %s and continue? [y/N] ' "${running:0:7}" >&3
+        read -r -t 60 answer <&3 || true
+        exec 3>&-
+      fi
+      case "$answer" in
+        y | Y | yes | YES)
+          "$pin"
+          rc=0
+          ./home/scripts/nix-cascade-guard "$toplevel" || rc=$?
+          if [ "$rc" = "10" ]; then
+            echo "cascade: still above threshold after pinning; wait for hydra or FORCE=1 just switch." >&2
+            exit 1
+          elif [ "$rc" != "0" ]; then
+            echo "cascade-guard error (rc=$rc); proceeding without it." >&2
+          fi
+          ;;
+        *)
+          echo "options: wait ~a day for hydra, pin nixpkgs back, or override with 'FORCE=1 just switch'." >&2
+          exit 1
+          ;;
+      esac
     elif [ "$rc" != "0" ]; then
       echo "cascade-guard error (rc=$rc); proceeding without it." >&2
     fi

@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Pin the flake's nixpkgs input to the revision the running system was built
+# from (nixos-version --json). That rev is already on this machine, so a
+# cascade switch can fall back to it instead of rebuilding the toolchain.
+#
+# Usage: nix-pin-nixpkgs-running [--rev|--locked-rev] [flake-dir]
+# Exit:  0 ok · 2 usage/parse error
+# Env:   NIXOS_VERSION (default nixos-version) · NIX (default nix)
+set -euo pipefail
+
+nixos_version="${NIXOS_VERSION:-nixos-version}"
+nix="${NIX:-nix}"
+mode="pin"
+dir="."
+
+while (($#)); do
+  case "$1" in
+    --rev) mode=rev; shift ;;
+    --locked-rev) mode=locked-rev; shift ;;
+    --) shift; break ;;
+    -*)
+      echo "usage: nix-pin-nixpkgs-running [--rev|--locked-rev] [flake-dir]" >&2
+      exit 2
+      ;;
+    *)
+      dir=$1
+      shift
+      ;;
+  esac
+done
+
+running_rev() {
+  local json rev
+  json=$("$nixos_version" --json)
+  rev=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("nixpkgsRevision") or "")' <<<"$json")
+  if [[ ! $rev =~ ^[0-9a-f]{40}$ ]]; then
+    echo "nix-pin-nixpkgs-running: could not parse nixpkgsRevision from nixos-version --json" >&2
+    exit 2
+  fi
+  printf '%s\n' "$rev"
+}
+
+locked_rev() {
+  local lock=$dir/flake.lock
+  if [ ! -f "$lock" ]; then
+    echo "nix-pin-nixpkgs-running: missing $lock" >&2
+    exit 2
+  fi
+  python3 - "$lock" <<'PY'
+import json, sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    lock = json.load(fh)
+node = lock["nodes"][lock["root"]]["inputs"]["nixpkgs"]
+if isinstance(node, list):
+    sys.stderr.write("nix-pin-nixpkgs-running: root nixpkgs input is a follow, not a locked node\n")
+    sys.exit(2)
+rev = lock["nodes"][node]["locked"]["rev"]
+if not isinstance(rev, str):
+    sys.stderr.write("nix-pin-nixpkgs-running: flake.lock nixpkgs rev is missing\n")
+    sys.exit(2)
+print(rev)
+PY
+}
+
+case "$mode" in
+  rev) running_rev ;;
+  locked-rev) locked_rev ;;
+  pin)
+    rev=$(running_rev)
+    echo "pinning nixpkgs to running revision $rev" >&2
+    "$nix" flake lock --override-input nixpkgs "github:nixos/nixpkgs/$rev" "$dir"
+    ;;
+esac

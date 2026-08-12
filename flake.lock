@@ -491,16 +491,16 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1786412392,
-        "narHash": "sha256-7bkDCyU6Fo3z96lyd/PKQl7iDXzD2mZwuApxzfz3tt4=",
+        "lastModified": 1786568632,
+        "narHash": "sha256-MxEuIVgZaMlEVLjHOOoqGxOkC+eVESPe9Dz3Q9Fgb7w=",
         "owner": "JEFF7712",
         "repo": "nix-agent",
-        "rev": "ac884c1dd274ff6e0d85b8863baca59ad985b430",
+        "rev": "3ff59faeba283d627b987c7be70083318899d248",
         "type": "github"
       },
       "original": {
         "owner": "JEFF7712",
-        "ref": "v0.8.1",
+        "ref": "v0.9.1",
         "repo": "nix-agent",
         "type": "github"
       }
