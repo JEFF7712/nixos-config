@@ -37,7 +37,7 @@
                 previous="$(cat "$state_file")"
               fi
               if [ "$previous" != "$invocation_id" ]; then
-                notify-send -u critical "NixOS update failed" "$unit: $result"
+                notify-send -u normal "NixOS update failed" "$unit: $result"
                 printf '%s\n' "$invocation_id" > "$state_file"
               fi
             fi
