@@ -8,11 +8,12 @@ set -euo pipefail
 pkill -f 'pw-record.*xhisper.wav' 2>/dev/null || true
 rm -f /tmp/xhisper.wav
 
-# Tear down the listening popup.
+# Tear down the listening popup and any in-flight transcribe lock.
 if [ -f /tmp/xhisper-popup.pid ]; then
   kill "$(cat /tmp/xhisper-popup.pid)" 2>/dev/null || true
   rm -f /tmp/xhisper-popup.pid
 fi
+rm -f /tmp/xhisper-transcribing
 
 # Erase the inline "(recording...)" that xhisper typed at the cursor.
 # Wait for Mod to be released first so backspaces don't collide with niri binds.

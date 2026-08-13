@@ -1,0 +1,49 @@
+# Main
+
+if [ -f /tmp/xhisper-transcribing ] && ! pgrep -f "$PROCESS_PATTERN" > /dev/null; then
+  exit 0
+fi
+
+# Find recording process, if so then kill
+if pgrep -f "$PROCESS_PATTERN" > /dev/null; then
+  pkill -f "$PROCESS_PATTERN"; sleep 0.2 # Buffer for flush
+  delete_n_chars 14 # "(recording...)"
+
+  WORK_WAV=$(mktemp /tmp/xhisper-XXXXXX.wav)
+  mv -f "$RECORDING" "$WORK_WAV"
+  echo $$ > /tmp/xhisper-transcribing
+
+  # Check if recording is silent
+  if is_silent "$WORK_WAV"; then
+    paste "(no sound detected)"
+    sleep 0.6
+    delete_n_chars 19 # "(no sound detected)"
+    rm -f "$WORK_WAV"
+    exit 0
+  fi
+
+  kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; rm -f /tmp/xhisper-popup.pid ; XHISPER_POPUP_TEXT="Transcribing…" qs -p "$HOME/.config/quickshell-xhisper-popup" >/dev/null 2>&1 & echo $! > /tmp/xhisper-popup.pid ; paste "(transcribing...)"
+  TRANSCRIPTION=$(transcribe "$WORK_WAV")
+  delete_n_chars 17 # "(transcribing...)"
+
+  # Post-process with LLM if configured
+  if [ -n "$post_process_model" ] && [ -n "$TRANSCRIPTION" ]; then
+    paste "(formatting...)"
+    FORMATTED=$(post_process "$TRANSCRIPTION")
+    delete_n_chars 15 # "(formatting...)"
+    # Only paste if we got a result
+    if [ -n "$FORMATTED" ]; then
+      paste "$FORMATTED"
+    else
+      paste "$TRANSCRIPTION"
+    fi
+  elif [ -z "$TRANSCRIPTION" ]; then
+    paste "(no speech detected)"
+    sleep 0.6
+    delete_n_chars 19
+  else
+    paste "$TRANSCRIPTION"
+  fi
+
+  rm -f "$WORK_WAV"
+else

@@ -60,20 +60,7 @@ stdenv.mkDerivation {
     substituteInPlace xhisper.sh \
       --replace-fail \
         'export LD_LIBRARY_PATH=/usr/local/lib/ollama/cuda_v12/lib:$LD_LIBRARY_PATH' \
-        'trap "kill \$(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null; rm -f /tmp/xhisper-popup.pid" EXIT  # LD_LIBRARY_PATH hack stripped; install popup-cleanup trap'
-
-    # Point the Python entrypoint at our wrapped interpreter (faster-whisper available).
-    substituteInPlace xhisper_transcribe.py \
-      --replace-fail \
-        '#!/usr/bin/env python3' \
-        '#!${python}/bin/python3'
-
-    # Upstream's argparse rejects English-only model variants like small.en.
-    # Drop the explicit choices list so faster-whisper validates instead.
-    substituteInPlace xhisper_transcribe.py \
-      --replace-fail \
-        'choices=["tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3"],' \
-        ""
+        "$(cat ${./exit-trap.nixos})"
 
     # Upstream calls `python3 "$TRANSCRIPT_SCRIPT"` where TRANSCRIPT_SCRIPT is the
     # bare name "xhisper_transcribe". python3 treats that as a cwd-relative path
@@ -96,7 +83,7 @@ stdenv.mkDerivation {
         'cmd_args+=(--prompt "$transcription_prompt")' \
       --replace-fail \
         '"$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null' \
-        '"$TRANSCRIPT_SCRIPT" "$recording" "''${cmd_args[@]}" 2>/dev/null'
+        '"$TRANSCRIPT_SCRIPT" "$recording" "''${cmd_args[@]}" 2>> "$LOGFILE"'
 
     # The user binds xhisper to Mod+Z (Super+Z). After the keypress fires the
     # script, paste() starts typing the status / transcript via uinput while
@@ -119,16 +106,25 @@ stdenv.mkDerivation {
         'paste "(recording...)"' \
         'paste "(recording...)" ; kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; XHISPER_POPUP_TEXT="🎤 Listening…" qs -p "$HOME/.config/quickshell-xhisper-popup" >/dev/null 2>&1 & echo $! > /tmp/xhisper-popup.pid'
 
+    # Snapshot the wav, keep a transcribing popup, and surface empty results
+    # instead of deleting "(transcribing...)" and pasting nothing. Extra Mod+Z
+    # during Whisper used to start a new recording and clobber the wav.
     substituteInPlace xhisper.sh \
       --replace-fail \
-        'paste "(transcribing...)"' \
-        'kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; rm -f /tmp/xhisper-popup.pid ; paste "(transcribing...)"'
+        "$(cat ${./finish-recording.orig})" \
+        "$(cat ${./finish-recording.nixos})"
   '';
 
   makeFlags = [ "PREFIX=$(out)" ];
 
   postInstall = ''
     install -Dm644 default_xhisperrc $out/share/xhisper/default_xhisperrc
+
+    # Prefer the local Hugging Face cache and fall back CUDA → CPU. Overwrites
+    # upstream xhisper_transcribe so Mod+Z cannot hang on a Hub download.
+    install -Dm755 ${./xhisper_transcribe.py} $out/bin/xhisper_transcribe
+    substituteInPlace $out/bin/xhisper_transcribe \
+      --replace-fail '#!/usr/bin/env python3' '#!${python}/bin/python3'
 
     # Reads the tail of /tmp/xhisper.wav (the file pw-record is writing) every
     # 50 ms, computes RMS amplitude of the last 50 ms of samples, prints a

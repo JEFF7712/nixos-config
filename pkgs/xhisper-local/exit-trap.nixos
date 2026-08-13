@@ -1,0 +1,1 @@
+trap 'kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null; rm -f /tmp/xhisper-popup.pid; if [ "$(cat /tmp/xhisper-transcribing 2>/dev/null)" = "$$" ]; then rm -f /tmp/xhisper-transcribing; fi' EXIT  # LD_LIBRARY_PATH hack stripped; install popup-cleanup trap

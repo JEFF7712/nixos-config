@@ -1,0 +1,37 @@
+# Main
+
+# Find recording process, if so then kill
+if pgrep -f "$PROCESS_PATTERN" > /dev/null; then
+  pkill -f "$PROCESS_PATTERN"; sleep 0.2 # Buffer for flush
+  delete_n_chars 14 # "(recording...)"
+
+  # Check if recording is silent
+  if is_silent "$RECORDING"; then
+    paste "(no sound detected)"
+    sleep 0.6
+    delete_n_chars 19 # "(no sound detected)"
+    rm -f "$RECORDING"
+    exit 0
+  fi
+
+  paste "(transcribing...)"
+  TRANSCRIPTION=$(transcribe "$RECORDING")
+  delete_n_chars 17 # "(transcribing...)"
+
+  # Post-process with LLM if configured
+  if [ -n "$post_process_model" ] && [ -n "$TRANSCRIPTION" ]; then
+    paste "(formatting...)"
+    FORMATTED=$(post_process "$TRANSCRIPTION")
+    delete_n_chars 15 # "(formatting...)"
+    # Only paste if we got a result
+    if [ -n "$FORMATTED" ]; then
+      paste "$FORMATTED"
+    else
+      paste "$TRANSCRIPTION"
+    fi
+  else
+    paste "$TRANSCRIPTION"
+  fi
+
+  rm -f "$RECORDING"
+else
