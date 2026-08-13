@@ -161,6 +161,27 @@ TestCase {
         compare(noMarkers.lastError, "failed to parse metrics snapshot");
     }
 
+    function test_formatUptimeFromSeconds() {
+        compare(SystemParser.formatUptime(""), "");
+        compare(SystemParser.formatUptime("0"), "0 minutes");
+        compare(SystemParser.formatUptime("59"), "0 minutes");
+        compare(SystemParser.formatUptime("60"), "1 minute");
+        compare(SystemParser.formatUptime("120"), "2 minutes");
+        compare(SystemParser.formatUptime("3600"), "1 hour");
+        compare(SystemParser.formatUptime("3660"), "1 hour, 1 minute");
+        compare(SystemParser.formatUptime("86400"), "1 day");
+        compare(SystemParser.formatUptime("93780"), "1 day, 2 hours, 3 minutes");
+        compare(SystemParser.formatUptime("259200"), "3 days");
+        compare(SystemParser.formatUptime("3 days"), "3 days");
+    }
+
+    function test_reduceMetadataSnapshotFormatsUptimeSeconds() {
+        const reduced = SystemParser.reduceMetadataSnapshot(SystemParser.initialState(), metadataText({
+            uptime: "93780"
+        }), 0);
+        compare(reduced.uptime, "1 day, 2 hours, 3 minutes");
+    }
+
     function test_reduceMetadataSnapshotMissingGenerationSymlinkPreservesLastValid() {
         const previous = SystemParser.reduceMetadataSnapshot(SystemParser.initialState(), metadataText(), 0);
         compare(previous.nixGeneration, "42");

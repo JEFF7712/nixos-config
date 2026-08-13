@@ -95,6 +95,8 @@ ShellRoot {
                 if (systemService.available && systemService.hostName !== "") {
                     if (!root.validTypes() || !root.validRange())
                         return root.fail("system service public contract is invalid");
+                    if (systemService.uptime === "")
+                        return root.fail("uptime is empty");
                     root.advance();
                 }
             } else if (root.phase === 1) {

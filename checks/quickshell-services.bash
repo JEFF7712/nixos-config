@@ -1106,7 +1106,8 @@ run_system_service_probe() {
     (.diagnostics.ramPercent | type == "number") and
     (.diagnostics.diskPercent | type == "number") and
     (.diagnostics.hostName | type == "string") and
-    (.diagnostics.kernel | type == "string")' \
+    (.diagnostics.kernel | type == "string") and
+    (.diagnostics.uptime | type == "string" and . != "")' \
     "$state_dir/result.json" >/dev/null || {
     jq . "$state_dir/result.json" >&2 || true
     fail 'system fixture reported invalid state or action behavior'

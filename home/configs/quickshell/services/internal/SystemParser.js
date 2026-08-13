@@ -14,7 +14,9 @@ var METRICS_COMMAND = "cat /proc/stat 2>/dev/null; " + "printf '\\n%s\\n' '" + M
 // Static host metadata: hostname, kernel, uptime, and NixOS generation.
 // Mirrors the previous SystemPopup fetchProc adapter, minus the memory
 // percentage (now derived from the metrics probe's /proc/meminfo read).
-var METADATA_COMMAND = "echo \"host|$(hostnamectl hostname 2>/dev/null || hostname)\"; " + "echo \"kernel|$(uname -r)\"; " + "echo \"uptime|$(uptime -p 2>/dev/null | sed 's/^up //')\"; " + "g=$(readlink /nix/var/nix/profiles/system 2>/dev/null | grep -o '[0-9]*' | head -1); " + "[ -n \"$g\" ] && echo \"gen|$g\" || true";
+// Uptime seconds come from /proc/uptime so the probe cannot go blank when
+// `uptime -p` is missing, lacks -p, or has its errors discarded.
+var METADATA_COMMAND = "echo \"host|$(hostnamectl hostname 2>/dev/null || hostname)\"; " + "echo \"kernel|$(uname -r)\"; " + "echo \"uptime|$(awk '{print int($1)}' /proc/uptime 2>/dev/null)\"; " + "g=$(readlink /nix/var/nix/profiles/system 2>/dev/null | grep -o '[0-9]*' | head -1); " + "[ -n \"$g\" ] && echo \"gen|$g\" || true";
 
 function clamp(value, minimum, maximum) {
     return Math.max(minimum, Math.min(maximum, value));
@@ -31,6 +33,31 @@ function fields(text) {
         result[key] = lines[index].substring(separator + 1).trim();
     }
     return result;
+}
+
+// Pretty-print /proc/uptime seconds the way `uptime -p` used to, without
+// depending on that binary. Non-numeric strings pass through so existing
+// pretty snapshots keep working.
+function formatUptime(raw) {
+    var text = String(raw || "").trim();
+    if (!text)
+        return "";
+    if (!/^\d+(\.\d+)?$/.test(text))
+        return text;
+    var seconds = Math.floor(Number(text));
+    if (!isFinite(seconds) || seconds < 0)
+        return "";
+    var days = Math.floor(seconds / 86400);
+    var hours = Math.floor((seconds % 86400) / 3600);
+    var minutes = Math.floor((seconds % 3600) / 60);
+    var parts = [];
+    if (days > 0)
+        parts.push(days + (days === 1 ? " day" : " days"));
+    if (hours > 0)
+        parts.push(hours + (hours === 1 ? " hour" : " hours"));
+    if (minutes > 0 || parts.length === 0)
+        parts.push(minutes + (minutes === 1 ? " minute" : " minutes"));
+    return parts.join(", ");
 }
 
 function initialState() {
@@ -202,7 +229,7 @@ function reduceMetadataSnapshot(previous, text, exitCode) {
     if (values.kernel)
         next.kernel = values.kernel;
     if (values.uptime)
-        next.uptime = values.uptime;
+        next.uptime = formatUptime(values.uptime);
     if (values.gen)
         next.nixGeneration = values.gen;
     next.lastError = "";
