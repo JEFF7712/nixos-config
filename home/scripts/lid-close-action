@@ -1,13 +1,41 @@
 #!/usr/bin/env bash
+# Lid close: suspend unless Stasis reports an idle inhibit, in which case
+# only blank the displays so downloads/video/caffeine can keep running.
 set -euo pipefail
 
-/home/rupan/.local/bin/lock-screen &
-sleep 1
+stasis_field() {
+  local key="$1"
+  printf '%s\n' "$stasis_info" | awk -F': *' -v key="$key" '
+    $1 == key { print $2; exit }
+  '
+}
 
-manual_pause="$(stasis info 2>/dev/null | awk -F': *' '/^Manual Pause/{print $2; exit}' || true)"
+stasis_info="$(stasis info 2>/dev/null || true)"
 
-if [[ "$manual_pause" == "yes" ]]; then
+inhibited=false
+case "$(stasis_field "Manual Pause")" in
+  yes) inhibited=true ;;
+esac
+case "$(stasis_field "D-Bus Inhibiting")" in
+  yes) inhibited=true ;;
+esac
+
+for key in \
+  "Apps Inhibiting" \
+  "Media Players Playing" \
+  "Apps Blocking Suspend" \
+  "Media Players Blocking Suspend"; do
+  count="$(stasis_field "$key")"
+  if [[ "${count:-0}" =~ ^[1-9][0-9]*$ ]]; then
+    inhibited=true
+  fi
+done
+
+if [[ "$inhibited" == true ]]; then
+  niri msg action power-off-monitors || true
   exit 0
 fi
 
+/home/rupan/.local/bin/lock-screen &
+sleep 1
 systemctl suspend

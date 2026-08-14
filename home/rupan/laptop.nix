@@ -21,20 +21,46 @@
       gnused
       hyprlock
       jq
+      niri
     ];
+    # Stasis 1.5 on a laptop only uses default.ac / default.battery, and it
+    # replaces any rune missing current knobs (e.g. monitor_media) with the
+    # bootstrap plan (swaylock, no lid_close_action). Keep globals under
+    # default: and the idle plan under ac:/battery:.
     extraConfig = ''
       default:
-        enable_loginctl true
-        enable_dbus_inhibit false
+        enable_loginctl_integration true
+        enable_dbus_inhibit true
+        monitor_media true
+        ignore_remote_media true
+        suspend_inhibit_media [ ]
+        inhibit_apps [
+          "vlc"
+          "mpv"
+          r"steam_app_.*"
+        ]
+        suspend_inhibit_apps [ ]
         prepare_sleep_command "/home/rupan/.local/bin/lock-screen"
         lid_close_action "/home/rupan/.local/bin/lid-close-action"
-        lock_screen:
-          timeout 300
-          command "/home/rupan/.local/bin/lock-screen"
+        ac:
+          lock_screen:
+            timeout 300
+            command "/home/rupan/.local/bin/lock-screen"
+          end
+          suspend:
+            timeout 600
+            command "systemctl suspend"
+          end
         end
-        suspend:
-          timeout 600
-          command "systemctl suspend"
+        battery:
+          lock_screen:
+            timeout 120
+            command "/home/rupan/.local/bin/lock-screen"
+          end
+          suspend:
+            timeout 180
+            command "systemctl suspend"
+          end
         end
       end
     '';

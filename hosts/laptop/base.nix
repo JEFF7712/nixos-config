@@ -107,6 +107,8 @@
   };
   services.asusd.enable = true;
   zramSwap.enable = true;
+  # logind cannot see idle inhibit, so lid handling stays in Stasis
+  # (lid-close-action). Docked stays ignore for an external display.
   services.logind.settings.Login = {
     HandleLidSwitch = "ignore";
     HandleLidSwitchDocked = "ignore";
