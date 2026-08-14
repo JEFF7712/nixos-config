@@ -275,9 +275,15 @@ in
           tauri-apps.tauri-vscode
           llvm-vs-code-extensions.vscode-clangd
           ms-vscode.cmake-tools
+          james-yu.latex-workshop
         ];
       };
     };
+
+    # Cursor does not read ~/.vscode/extensions. Mirror the HM-managed
+    # LaTeX Workshop install into Cursor's mutable extensions dir.
+    home.file.".cursor/extensions/james-yu.latex-workshop".source =
+      "${pkgs.vscode-marketplace.james-yu.latex-workshop}/share/vscode/extensions/james-yu.latex-workshop";
 
     xdg.configFile."Code/User/settings.json" = {
       source = config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vscode/settings.json";
