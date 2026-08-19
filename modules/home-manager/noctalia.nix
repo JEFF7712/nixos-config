@@ -443,46 +443,7 @@ in
           editMode = false;
           enabled = true;
           gridSnap = true;
-          monitorWidgets = [
-            {
-              name = "DP-7";
-              widgets = [ ];
-            }
-            {
-              name = "DP-6";
-              widgets = [
-                {
-                  id = "Clock";
-                  x = 740;
-                  y = 100;
-                  scale = 3;
-                  format = "h:mm AP\\nd MMMM yyyy";
-                  clockStyle = "minimal";
-                  showBackground = false;
-                  useCustomFont = false;
-                  customFont = "";
-                  usePrimaryColor = false;
-                }
-                {
-                  id = "MediaPlayer";
-                  x = 440;
-                  y = 420;
-                  scale = 2.834;
-                  hideMode = "visible";
-                  showBackground = false;
-                  visualizerType = "linear";
-                  visualizerVisibility = "always";
-                }
-                {
-                  id = "Weather";
-                  x = 580;
-                  y = 780;
-                  scale = 3;
-                  showBackground = false;
-                }
-              ];
-            }
-          ];
+          monitorWidgets = [ ];
         };
 
         dock = {
@@ -509,19 +470,6 @@ in
           screenLock = "";
           screenUnlock = "";
           wallpaperChange = "";
-        };
-
-        location = {
-          name = "Madison, WI";
-          analogClockInCalendar = false;
-          firstDayOfWeek = -1;
-          showCalendarEvents = true;
-          showCalendarWeather = true;
-          showWeekNumberInCalendar = false;
-          use12hourFormat = true;
-          useFahrenheit = true;
-          weatherEnabled = true;
-          weatherShowEffects = true;
         };
 
         network = {
