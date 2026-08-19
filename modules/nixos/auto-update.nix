@@ -11,6 +11,9 @@ let
     runtimeInputs = with pkgs; [
       bash
       coreutils
+      # `cmp` compares the flake.lock snapshot; writeShellApplication pins PATH,
+      # so without this the pipeline dies before it can rebuild.
+      diffutils
       getent
       git
       nix
