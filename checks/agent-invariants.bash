@@ -83,16 +83,22 @@ check_module_options() {
 }
 
 check_wallpaper_dirs() {
+  local assets_root="${HOME}/nixos-assets"
   local entry path
+
+  if [ ! -d "$assets_root" ]; then
+    echo "agent-invariants: assets repo not present, skipping wallpaper dir check" >&2
+    return 0
+  fi
 
   while IFS= read -r entry; do
     path=${entry#*:}
-    if [ ! -d "$path" ]; then
+    if [ ! -d "$assets_root/$path" ]; then
       fail "profile references missing wallpaper directory: $entry"
     fi
   done < <(
     rg --pcre2 -No --replace '$1' \
-      'wallpaperDir(?:Light)? = "\$\{config\.repoPath\}/([^"]+)"' \
+      'wallpaperDir(?:Light)? = "\$\{config\.assetsPath\}/([^"]+)"' \
       modules/home-manager/profiles || true
   )
 }
