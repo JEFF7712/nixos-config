@@ -17,7 +17,7 @@
 #   title, barBg (rgba), barShadow (rgba), plus any extra keys overrides need
 let
   theme = import ./theme-builders.nix;
-  waybar = import ../waybar.nix;
+  waybar = import ./waybar.nix;
 
   alpha = a: c: "#${a}${builtins.substring 1 6 c}";
 

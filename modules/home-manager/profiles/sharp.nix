@@ -1,7 +1,7 @@
 { pkgs, config, ... }:
 
 let
-  waybar = import ../../../lib/waybar.nix;
+  waybar = import ../../../lib/desktop-profiles/waybar.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 

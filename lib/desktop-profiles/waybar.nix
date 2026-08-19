@@ -11,7 +11,7 @@
 #   - Minimal: flat
 #
 # Usage from a profile:
-#   let waybar = import ../../../lib/waybar.nix;
+#   let waybar = import ../../../lib/desktop-profiles/waybar.nix;
 #   in {
 #     waybar.config = waybar.mkConfig { floating = true; pill = true; };
 #     waybar.style = waybar.mkPillStyle { ... };
