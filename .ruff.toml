@@ -1,0 +1,4 @@
+[lint]
+# `l` is lightness throughout the color engine (HSL/LAB/LCH), so the ambiguous
+# single-letter rule fights the domain rather than catching bugs.
+ignore = ["E741"]

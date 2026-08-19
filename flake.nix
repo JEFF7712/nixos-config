@@ -109,8 +109,13 @@
           programs.statix.enable = true;
           programs.deadnix.enable = true;
           programs.qmlformat.enable = true;
+          programs.ruff-format.enable = true;
+          programs.ruff-check.enable = true;
           settings.formatter.statix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
           settings.formatter.deadnix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
+          # Both ruff formatters match *.py only; this script is python by shebang.
+          settings.formatter.ruff-format.includes = [ "home/scripts/merge-ini-section" ];
+          settings.formatter.ruff-check.includes = [ "home/scripts/merge-ini-section" ];
         };
       };
 
