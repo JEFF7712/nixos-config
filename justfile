@@ -68,6 +68,9 @@ eval-vm target="laptop":
 flake-check:
   nix flake check
 
+flake-check-shells:
+  nix flake check --no-write-lock-file ./shells
+
 check-profiles host="laptop" user="rupan":
   nix eval --no-write-lock-file --impure --json \
     ".#nixosConfigurations.{{host}}.config.home-manager.users.{{user}}.home.file" \
@@ -86,6 +89,7 @@ check:
   just qml-lint
   just quickshell-test
   just flake-check
+  just flake-check-shells
   just eval-all
   just check-profiles
   git diff --check
@@ -148,6 +152,7 @@ agent-context:
 
 update:
   nix flake update
+  nix flake update --flake ./shells
 
 build target="laptop":
   nix build --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.toplevel"
