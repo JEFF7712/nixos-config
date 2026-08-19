@@ -9,7 +9,7 @@ let
 in
 {
   options.focusMode = {
-    enable = lib.mkEnableOption "a scoped polkit rule letting the desktop user pause or stop NixOS auto-update timers while focus/performance mode is active, so a background rebuild cannot tank a session";
+    enable = lib.mkEnableOption "a scoped polkit rule letting the desktop user start or stop the NixOS auto-update timer while focus/performance mode is active, so a background rebuild cannot tank a session";
 
     user = lib.mkOption {
       type = lib.types.str;
@@ -25,10 +25,9 @@ in
         if (action.id == "org.freedesktop.systemd1.manage-units" &&
             subject.user == ${builtins.toJSON cfg.user}) {
           var unit = action.lookup("unit");
-          if (unit == "nixos-auto-update.timer" ||
-              unit == "nixos-auto-update.service" ||
-              unit == "nixos-ai-tools-auto-update.timer" ||
-              unit == "nixos-ai-tools-auto-update.service") {
+          var verb = action.lookup("verb");
+          if (unit == "nixos-auto-update.timer" &&
+              (verb == "start" || verb == "stop")) {
             return polkit.Result.YES;
           }
         }
