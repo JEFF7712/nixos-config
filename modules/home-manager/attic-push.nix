@@ -1,3 +1,5 @@
+# Intentionally unenabled while the homelab is offline. The matching substituter
+# block in hosts/laptop/base.nix is commented out for the same reason.
 {
   pkgs,
   lib,
