@@ -289,6 +289,7 @@
 
   auto-update.enable = true;
 
+  focusMode.enable = true;
   programs.nh = {
     enable = true;
     flake = "/home/rupan/nixos";
