@@ -75,11 +75,9 @@
           smallModel = "cursor:cursor-grok-4.5-high";
         };
 
-        # Upstream codex-cli-nix omits codex-code-mode-host, which is required
-        # for command execution.
-        codexCli = pkgs.callPackage ../../pkgs/codex-cli {
-          codex-upstream = inputs.codex-cli-nix.packages.${system}.default;
-        };
+        # Upstream ships codex + codex-code-mode-host under libexec (since
+        # sadjow/codex-cli-nix moved off bin/codex-raw).
+        codexCli = inputs.codex-cli-nix.packages.${system}.default;
         codexWithGithubToken = pkgs.writeShellScriptBin "codex" ''
           if [ -z "''${GITHUB_PAT_TOKEN:-}" ]; then
             export GITHUB_PAT_TOKEN="$(${lib.getExe pkgs.gh} auth token)"
