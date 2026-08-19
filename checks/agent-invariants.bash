@@ -12,11 +12,17 @@ fail() {
 
 is_allowed_hardcoded_repo_path() {
   case "$1" in
-    .mcp.json | \
-      hosts/iso/configuration.nix | \
-      hosts/laptop/base.nix | \
-      modules/nixos/auto-update.nix | \
-      modules/nixos/git.nix)
+    .mcp.json | hosts/iso/configuration.nix)
+      return 0
+      ;;
+    # programs.nix-agent.flake is lib.types.path, so it cannot use the
+    # string-typed config.repoPath option and must stay a path literal.
+    hosts/laptop/base.nix)
+      return 0
+      ;;
+    # This file is the NixOS-level source of truth: the option default is
+    # the path literal that other modules should reference via config.repoPath.
+    modules/nixos/repo-path.nix)
       return 0
       ;;
     *)

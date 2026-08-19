@@ -2,6 +2,7 @@
   lib,
   pkgs,
   inputs,
+  config,
   ...
 }:
 
@@ -211,8 +212,8 @@
           rebuild = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
           nh = "${pkgs.nh}/bin/nh";
           flakeRefs = [
-            "path\\:/home/rupan/nixos\\#laptop"
-            "/home/rupan/nixos\\#laptop"
+            "path\\:${config.repoPath}\\#laptop"
+            "${config.repoPath}\\#laptop"
             ".\\#laptop"
           ];
         in
@@ -288,11 +289,11 @@
   networking.wireless.iwd.enable = false;
 
   auto-update.enable = true;
-
   focusMode.enable = true;
+
   programs.nh = {
     enable = true;
-    flake = "/home/rupan/nixos";
+    flake = config.repoPath;
     clean = {
       enable = true;
       dates = "daily";

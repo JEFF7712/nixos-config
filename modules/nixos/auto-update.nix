@@ -37,9 +37,9 @@ let
           "--label"
           label
           "--repo"
-          "/home/rupan/nixos"
+          config.repoPath
           "--target"
-          "path:/home/rupan/nixos#laptop"
+          "path:${config.repoPath}#laptop"
           "--commit-message"
           commitMessage
           "--eval-failure"
