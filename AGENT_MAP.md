@@ -31,11 +31,13 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 - New NixOS modules go in `modules/nixos/` and are auto-discovered by `import-tree`.
 - New home-manager modules go in `modules/home-manager/` and are auto-discovered by `import-tree`.
 - Use `lib.mkEnableOption` plus `lib.mkIf config.<option>.enable` for module toggles.
+- New modules get a kebab-case file name and an option name matching that file name, as the `new-nixos-module` / `new-home-module` scaffolds emit; existing camelCase option names are grandfathered and must not be renamed.
 - Use `config.repoPath` for repo-relative paths that must point outside the Nix store.
 - Do not add manual imports for files under auto-discovered module trees.
 - Do not add `nix.gc` or `system.autoUpgrade`; cleanup and updates are already handled by repo modules.
 - Prefer existing helpers in `lib/desktop-profiles/` before adding profile-specific generated file logic.
 - Keep generated or mutable desktop config under `home/configs/` or `home/scripts/`, not inline in unrelated modules.
+- The Quickshell bar is launched from `home/configs/quickshell/shell.qml` by `profile-transition` and `toggle-bar`; it has no `xdg.configFile` or `home.file` entry and is not in `sync_live_config`.
 - Do not use `git add .`; stage the specific files changed.
 - Use `new-nixos-module <name>` and `new-home-module <name>` for new auto-discovered modules.
 
@@ -44,7 +46,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 Run the smallest command that proves the touched surface; the "Validate" column above is the per-task minimum. Run `just check` before larger handoffs.
 
 - `just quick` - fast default for low-risk Nix edits: laptop eval plus whitespace.
-- `just check` - broad local gate: agent checks, fmt, shell/wallpaper/profile checks, flake check, host evals, whitespace. Superset of CI (CI skips the heavier evals/builds).
+- `just check` - broad local gate: agent checks, laptop-safety, local-bin, flake-update, fmt, shell/wallpaper/xhisper, qml-lint, quickshell-test, flake check, host evals, profiles, whitespace. Superset of CI. Local-only: `just eval-all` and `just check-laptop-safety` (full host evals), `just check-flake-update` (update/pin script tests), `just check-local-bin` (inspects live `~/.local/bin`), and `just quickshell-test` (needs host `quickshell` plus a Wayland display).
 - `just build <host>` - realizes the closure and catches build failures eval misses. Use for package, overlay, or flake-input changes.
 - `just dry` / `just switch` - activation and final apply for laptop changes; intentional, they touch system state.
 - Escalate a task's minimum to `just check` when the change is risky, then `just build <host>` if it affects realized packages or services.

@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repo.
 
 ## What This Is
 
-NixOS flake-based system config for multiple hosts (`laptop`, `iso`) with home-manager. Lives at `~/nixos`, single source of truth for system + user config. State version `25.11`.
+NixOS flake-based system config for multiple hosts (`laptop`, `laptop-crypt`, `iso`) with home-manager. Lives at `~/nixos`, single source of truth for system + user config. State version `25.11`.
 
 ## Commands
 
@@ -13,7 +13,7 @@ Recipes live in the `justfile` (`just` to list). Prefer them:
 ```bash
 just switch        # build + switch through nh (resolved store path, root bypass)
 just dry           # dry-activate laptop config (resolved nixos-rebuild)
-just check         # full validation: fmt-check + shell-check + wallpaper-scripts + flake check + eval laptop&iso + check-profiles + git diff --check
+just check         # full validation: agent docs/workflows + laptop-safety + local-bin + flake-update + fmt-check + shell/wallpaper/xhisper + qml-lint + quickshell-test + flake check + eval-all + check-profiles + git diff --check
 just fmt-check     # nix fmt --fail-on-change (mirrors CI; fails if anything is unformatted)
 just quick         # fast pre-commit: eval laptop + git diff --check
 just eval [target] # eval a host's toplevel drvPath (default laptop)
@@ -23,7 +23,7 @@ just fmt           # nix fmt — runs nixfmt + statix + deadnix (treefmt-nix)
 just qml-lint      # qmllint for quickshell QML, with unresolved Quickshell/qmltypes noise disabled
 just update        # nix flake update
 
-nix develop ./shells[#python|#cbe|#ml|#homelab]   # dev shells (ml default; separate shells/flake.nix)
+nix develop ./shells[#c|#python|#cbe|#ml|#homelab]   # dev shells (ml default; separate shells/flake.nix)
 ```
 
 ## Agent Workflow
@@ -36,11 +36,11 @@ Commit history here is disposable — when asked to commit, commit freely (batch
 
 ## Architecture
 
-`flake.nix` defines `laptop` (full: NVIDIA, gaming, heavy apps, VPN, stasis) and `iso` (lighter live image, auto-clones repo on boot) via a `mkSystem` helper, using `flake-parts`. Each host = `hosts/<name>/{configuration,hardware-configuration}.nix` + home config `home/rupan/<name>.nix` (base: `home/rupan/home.nix`).
+`flake.nix` defines `laptop` (full: NVIDIA, gaming, heavy apps, VPN, stasis), `laptop-crypt` (post-LUKS-reinstall variant of laptop: disko plus btrfs plus impermanence), and `iso` (lighter live image, auto-clones repo on boot) via a `mkSystem` helper, using `flake-parts`. Each host has `hosts/<name>/configuration.nix` plus home config `home/rupan/<name>.nix` (base: `home/rupan/home.nix`); `laptop` also has `hardware-configuration.nix`, `base.nix` (nearly all config, shared with `laptop-crypt`), and `disko.nix`; `iso` has no `hardware-configuration.nix`.
 
-**Modules** live in `modules/nixos/` (system) and `modules/home-manager/` (user). All use the `lib.mkEnableOption` / `lib.mkIf config.<name>.enable` pattern, toggled per-host. **Auto-discovered via `import-tree`** — dropping a new `.nix` file in either dir is enough to register it. Read the dir to see what exists; each module's option name matches its purpose.
+**Modules** live in `modules/nixos/` (system) and `modules/home-manager/` (user). Most use the `lib.mkEnableOption` / `lib.mkIf config.<name>.enable` pattern, toggled per-host; profile modules in `modules/home-manager/profiles/` declare no options (they populate `desktopProfiles.profiles.<name>`). **Auto-discovered via `import-tree`**: dropping a new `.nix` file in either dir is enough to register it. Read the dir to see what exists; each module's option name matches its purpose.
 
-**Desktop profiles** (`modules/home-manager/profiles/`): runtime theme switching without rebuild. `noctalia` (default, Material Design 3 via matugen) plus static schemes (`nord`, `catppuccin`, `gruvbox`, `rosepine`, `everforest`, `clean`, `minimal`) with dark/light variants. Each profile sets colors (GTK/Qt/kitty/fish/starship/rofi), cursor, wallpapers, niri visuals. Managed at runtime by `home/scripts/`: `switch-profile <name>`, `toggle-variant`, `rofi-profile`. Active profile is the symlink `.config/desktop-profiles/active → <name>/`.
+**Desktop profiles** (`modules/home-manager/profiles/`): runtime theme switching without rebuild. `noctalia` (default, Material Design 3 via matugen) plus static schemes (`nord`, `catppuccin`, `gruvbox`, `rosepine`, `everforest`, `clean`, `sharp`) and wallpaper-driven `tinted` (opaque, palette regenerated from the current wallpaper by matugen) with dark/light variants. Each profile sets colors (GTK/Qt/kitty/fish/starship/rofi), cursor, wallpapers, niri visuals. Managed at runtime by `home/scripts/`: `switch-profile <name>`, `toggle-variant`, `rofi-profile`. Active profile is the symlink `.config/desktop-profiles/active → <name>/`.
 
 **Out-of-store symlinks** (`mkOutOfStoreSymlink`), so **edits take effect without rebuild**:
 - `home/configs/` → real KDL/CSS/TOML/conf files in the home dir.
@@ -55,7 +55,7 @@ The `repoPath` option (default `$HOME/nixos`) drives these paths — keep it con
 - Cascade guard (`home/scripts/nix-cascade-guard`): a fresh nixpkgs tip (unstable right after a staging-next merge) evals fine but its binaries may not be cached yet, so a switch rebuilds stdenv/glibc + everything downstream from source — 3000+ derivations, hours. `nix eval` can't see this; a `--dry-run` reports the build count. Normal switch here ≈150 (config delta + unfree CUDA overlay pkgs, which never hit the public cache); cascade is 3000+, default threshold 800. Both `auto-update` services run it after the eval gate and, on cascade (exit 10), revert `flake.lock` and defer to the next run instead of grinding. `just switch` / `njs` run it too: in a terminal they offer to pin nixpkgs back to the running revision (y/n) and continue; non-interactive runs refuse with a hint. Override with `FORCE=1 just switch`. Manual pin: `nix flake lock --override-input nixpkgs github:nixos/nixpkgs/<cached-rev>` (the running system's rev is in `nixos-version --json`).
 - home-manager uses `backupFileExtension = "backup"` — activation renames conflicting existing files to `*.backup` instead of failing.
 - Some packages pull from `nixpkgs-stable` (25.11) — grep `pkgs-stable` before adding similar ones.
-- Overlays live in `overlays/` (imported by `flake.nix`): `local-packages`, `ctranslate2-cuda`, `python-fixes`, `nix-vscode-extensions`.
+- Overlays live in `overlays/` (imported by `flake.nix`): `local-packages`, `ctranslate2-cuda`, `nix-vscode-extensions`.
 - Quickshell bar work lives in `home/configs/quickshell*/`. `nix fmt` includes `qmlformat`; use `just qml-lint` for agent/manual checks. It intentionally disables unresolved import/type/property categories until Quickshell qmltypes/import metadata is wired up.
 - GPU: Intel iGPU + NVIDIA Prime offload, with a `performance` specialisation for sync mode (`modules/nixos/nvidia.nix`).
 - CI: `build-iso.yml` on `v*` tags; `check.yml` on push/PR runs `nix flake check` + `nix fmt --fail-on-change`.
