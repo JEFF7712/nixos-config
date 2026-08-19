@@ -171,7 +171,7 @@
       # manages them; overwrite instead of aborting activation.
       force = true;
     }
-  ) (builtins.readDir ../scripts);
+  ) (lib.filterAttrs (_: type: type == "regular") (builtins.readDir ../scripts));
 
   xdg.configFile."hypr/hyprlock.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/hypr/hyprlock.conf";
