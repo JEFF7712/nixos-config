@@ -139,6 +139,12 @@ in
         ) config.desktopProfiles.profiles
       );
 
+    # matugen templates + config for the wallpaper-driven `tinted` profile.
+    # Out-of-store so template edits re-theme on the next wallpaper change with
+    # no rebuild. apply_wallpaper_theme invokes matugen against this config.
+    xdg.configFile."matugen".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/matugen";
+
     home.file = lib.mkMerge (
       lib.mapAttrsToList profileArtifact.compile config.desktopProfiles.profiles
     );
