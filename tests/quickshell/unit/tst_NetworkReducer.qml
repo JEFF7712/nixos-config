@@ -209,6 +209,6 @@ TestCase {
     }
 
     function test_settingsArgv() {
-        compare(NetworkParser.settingsArgv(), ["kitty", "-e", "sudo", "nmtui"]);
+        compare(NetworkParser.settingsArgv(), ["kitty", "-e", "nmtui"]);
     }
 }
