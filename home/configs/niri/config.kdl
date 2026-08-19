@@ -116,13 +116,6 @@ layer-rule {
     }
 }
 
-// Custom app launcher (rendered by quickshell-launcher) — no blur, just
-// translucent over windows like the bar's info popups.
-layer-rule {
-    match namespace="^quickshell-app-launcher$"
-    geometry-corner-radius 18
-}
-
 // --- Window Rules ---
 window-rule {
     open-maximized true
