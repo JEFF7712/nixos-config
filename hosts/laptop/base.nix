@@ -194,16 +194,18 @@
   programs.nix-agent = {
     enable = true;
     flake = /home/rupan/nixos;
-    privilegedAutomation = {
-      enable = true;
-      user = "rupan";
-    };
+    # v0.9.1 only emits `--flake <dir>*`, and sudo fnmatch `*` matches `/` and `#`.
+    # Equivalent exact/ERE rules are in extraRules below.
+    privilegedAutomation.enable = false;
   };
 
-  # switch/test pinned to this repo's exact flake refs; a wildcard would let
-  # any flake URI run as root. dry-activate stays globbed for headless runs.
-  # nix-agent privilegedAutomation adds a second, narrower set: rebuild/switch
-  # for --flake /home/rupan/nixos*, plus rollback / generation-switch.
+  # Passwordless rebuild is pinned to this repo's absolute path. sudo does not
+  # bind cwd, so `.` / `.#laptop` would run any flake, and a trailing `*` would
+  # match `/` and `#` (fnmatch, no FNM_PATHNAME). Flake refs are therefore exact
+  # literals, not patterns; `#` and `:` are escaped for the sudoers lexer.
+  # sudo matches all arguments as ONE concatenated string, so a regex is only a
+  # regex when it starts right after the command name (see --switch-generation).
+  # Keep in sync with `just switch` / `just dry`. Root ignores user nix.conf.
   security.sudo.extraRules = [
     {
       users = [ "rupan" ];
@@ -211,33 +213,43 @@
         let
           rebuild = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
           nh = "${pkgs.nh}/bin/nh";
+          nixEnv = "${pkgs.nix}/bin/nix-env";
           flakeRefs = [
             "path\\:${config.repoPath}\\#laptop"
             "${config.repoPath}\\#laptop"
-            ".\\#laptop"
+            config.repoPath
+          ];
+          actions = [
+            "switch"
+            "test"
+            "dry-activate"
           ];
         in
         [
           {
-            command = "${rebuild} dry-activate --flake *";
+            command = "${nh} os switch -R ${config.repoPath} -H laptop -- --max-jobs 2 --cores 8";
             options = [ "NOPASSWD" ];
           }
           {
-            # Keep in sync with `just switch` — root ignores user nix.conf.
-            command = "${nh} os switch -R . -H laptop -- --max-jobs 2 --cores 8";
+            command = "${rebuild} switch --rollback";
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "${nixEnv} ^-p /nix/var/nix/profiles/system --switch-generation [0-9]+$";
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "/nix/var/nix/profiles/system/bin/switch-to-configuration switch";
             options = [ "NOPASSWD" ];
           }
         ]
-        ++ lib.concatMap (ref: [
-          {
-            command = "${rebuild} switch --flake ${ref}";
+        ++ lib.concatMap (
+          action:
+          map (ref: {
+            command = "${rebuild} ${action} --flake ${ref}";
             options = [ "NOPASSWD" ];
-          }
-          {
-            command = "${rebuild} test --flake ${ref}";
-            options = [ "NOPASSWD" ];
-          }
-        ]) flakeRefs;
+          }) flakeRefs
+        ) actions;
     }
   ];
 

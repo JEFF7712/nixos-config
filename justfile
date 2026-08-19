@@ -176,7 +176,7 @@ vm-crypt:
   nix run --no-write-lock-file -L ".#nixosConfigurations.laptop-crypt.config.system.build.vmWithDisko"
 
 dry:
-  sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake .#laptop
+  sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake "{{ justfile_directory() }}#laptop"
 
 # Caps must match hosts/laptop/base.nix sudoers pin (and nix.settings).
 # Root builds ignore ~/.config/nix/nix.conf — pass flags explicitly.
@@ -241,7 +241,7 @@ switch:
       echo "cascade-guard error (rc=$rc); proceeding without it." >&2
     fi
   fi
-  sudo "$(readlink -f "$(command -v nh)")" os switch -R . -H laptop -- --max-jobs 2 --cores 8
+  sudo "$(readlink -f "$(command -v nh)")" os switch -R "{{ justfile_directory() }}" -H laptop -- --max-jobs 2 --cores 8
 
 gc:
   nh clean all --keep-since 30d
