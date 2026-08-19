@@ -29,8 +29,6 @@
         net-tools
         openssl_oqs
         tcpdump
-        sops
-        age
         dig
         glab
         nodejs_24

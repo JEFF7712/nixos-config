@@ -15,15 +15,13 @@ in
   imports = [ inputs.noctalia.homeModules.default ];
 
   config = lib.mkIf config.noctalia.enable {
+    # matugen comes from desktop-profiles.nix; the GTK/Qt theming tools
+    # (nwg-look, qt6ct, adw-gtk3) from niri.nix.
     home.packages = with pkgs; [
-      matugen
       gpu-screen-recorder
       cliphist
       wlsunset
       ddcutil
-      nwg-look
-      kdePackages.qt6ct
-      adw-gtk3
       python3
     ];
 
