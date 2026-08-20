@@ -3,14 +3,15 @@
 # contrast nudging). Vendored from Harman1307/Alphonso for the `tinted` profile.
 # Run via the `iris-python` wrapper (provides numpy + pillow). Outputs JSON
 # consumed by iris-render (home/scripts/iris-render.py).
-import sys
-import json
-import os
-import hashlib
 import argparse
+import hashlib
+import json
 import math
-from PIL import Image
+import os
+import sys
+
 import numpy as np
+from PIL import Image
 
 
 def parse_args():
