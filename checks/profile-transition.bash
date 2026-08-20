@@ -557,7 +557,7 @@ check_legacy_runtime_regressions() {
   run_legacy_transition reapply-override reapply
   assert_log_contains 'systemctl --user stop noctalia-shell' \
     "reapply stops Noctalia when a bar override may have changed"
-  assert_log_contains 'pkill -f waybar' \
+  assert_log_contains 'pkill -x waybar' \
     "reapply stops Waybar when a bar override may have changed"
   assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
     "reapply stops Quickshell when a bar override may have changed"
@@ -1128,7 +1128,7 @@ assert_mode 600 "$home/.config/waybar/config.jsonc" "staging rollback restores f
   printf 'FAIL: staging rollback restores a missing path\n' >&2
   exit 1
 }
-assert_log_not_contains "pkill -f waybar" "staging failure occurs before old Waybar shutdown"
+assert_log_not_contains "pkill -x waybar" "staging failure occurs before old Waybar shutdown"
 assert_log_not_contains "verify-waybar active=old" "staging failure needs no bar recovery"
 if find "$tmpdir/runtime" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
   printf 'FAIL: staging rollback left a transaction directory behind\n' >&2
@@ -1344,7 +1344,7 @@ for previous in old qs noc; do
     fi
 
     case "$previous" in
-      old) assert_log_contains 'pkill -f waybar' "Waybar is stopped from $previous to $target" ;;
+      old) assert_log_contains 'pkill -x waybar' "Waybar is stopped from $previous to $target" ;;
       qs)
         if [ "$target" = qs ]; then
           assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
@@ -1359,7 +1359,7 @@ for previous in old qs noc; do
     esac
     case "$target" in
       old)
-        assert_log_contains 'pgrep -f waybar' "Waybar readiness uses pgrep from $previous"
+        assert_log_contains 'pgrep -x waybar' "Waybar readiness uses pgrep from $previous"
         assert_log_contains 'systemctl --user start awww' "Waybar starts awww from $previous"
         assert_log_contains_eventually 'mako ' "Waybar starts Mako from $previous"
         assert_log_contains 'makoctl mode -a dnd' "Waybar rearms focus DND from $previous"

@@ -58,7 +58,7 @@ profile_status() {
       fi
       ;;
     waybar)
-      pgrep -f waybar >/dev/null 2>&1 && mark ok "waybar" || mark fail "waybar"
+      pgrep -x waybar >/dev/null 2>&1 && mark ok "waybar" || mark fail "waybar"
       mako_running && mark ok "mako" || mark fail "mako"
       ;;
     quickshell)

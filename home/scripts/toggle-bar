@@ -21,8 +21,8 @@ toggle_quickshell() {
 }
 
 toggle_waybar() {
-  if pgrep -f waybar >/dev/null 2>&1; then
-    pkill -f waybar 2>/dev/null || true
+  if pgrep -x waybar >/dev/null 2>&1; then
+    pkill -x waybar 2>/dev/null || true
   else
     waybar >/dev/null 2>&1 &
     disown

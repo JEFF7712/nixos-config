@@ -54,12 +54,12 @@ stop_bar() {
       fi
       ;;
     waybar)
-      pkill -f waybar >/dev/null 2>&1 || true
+      pkill -x waybar >/dev/null 2>&1 || true
       for _ in $(seq 1 20); do
-        pgrep -f waybar >/dev/null 2>&1 || break
+        pgrep -x waybar >/dev/null 2>&1 || break
         sleep 0.1
       done
-      if pgrep -f waybar >/dev/null 2>&1; then
+      if pgrep -x waybar >/dev/null 2>&1; then
         echo "Error: waybar did not stop." >&2
         return 1
       fi
@@ -163,7 +163,7 @@ verify_bar() {
           && notification_owner_is noctalia && return 0
         ;;
       waybar)
-        pgrep -f waybar >/dev/null 2>&1 && notification_owner_is mako && return 0
+        pgrep -x waybar >/dev/null 2>&1 && notification_owner_is mako && return 0
         ;;
       quickshell)
         pgrep -f "$quickshell_pattern" >/dev/null 2>&1 \
