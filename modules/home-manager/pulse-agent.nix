@@ -34,17 +34,18 @@ in
 
     listenHost = lib.mkOption {
       type = lib.types.str;
-      default = "0.0.0.0";
-      description = "Bind address for the web UI (passed to `pulse run --host`).";
+      default = "127.0.0.1";
+      description = ''
+        Bind address for the web UI (passed to `pulse run --host`). Loopback by default.
+        Override only if you intentionally want non-local access; open the host firewall
+        yourself in that case.
+      '';
     };
 
     port = lib.mkOption {
       type = lib.types.port;
       default = 8000;
-      description = ''
-        Listen port. If you expose this on a network interface, open the firewall on the NixOS
-        host, e.g. `networking.firewall.allowedTCPPorts = [ 8000 ];` (adjust to match `port`).
-      '';
+      description = "Listen port for the web UI (passed to `pulse run --port`).";
     };
 
     extraEnvironment = lib.mkOption {
