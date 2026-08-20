@@ -7,7 +7,10 @@ PROFILE=""
 [ -f "$ACTIVE_FILE" ] && PROFILE=$(cat "$ACTIVE_FILE")
 
 if [ "$PROFILE" = "noctalia" ]; then
-  exec noctalia-shell ipc --any-display call lockScreen lock
+  # noctalia 5.0.0 renamed the binary (noctalia-shell -> noctalia) and replaced
+  # `ipc ... call` with `msg`. The old form exited 127, so this branch never
+  # locked. `noctalia-shell` survives only as the systemd unit name.
+  exec noctalia msg session lock
 else
   PROFILES_DIR="$HOME/.config/desktop-profiles"
   PROFILE_DIR="$PROFILES_DIR/$PROFILE"
