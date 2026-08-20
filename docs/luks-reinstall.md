@@ -60,12 +60,18 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
      module; replace the `./hardware-configuration.nix` import with the
      laptop-crypt hardware config (copy it over
      `hosts/laptop/hardware-configuration.nix`).
+   - Set `impermanence.enable = true` on the laptop host (it currently lives
+     only in `hosts/laptop-crypt/configuration.nix`). Skipping this yields
+     LUKS+btrfs with no root rollback and no /persist binds.
    - Keep `laptop-crypt` in the flake until cleanup; it does no harm.
 2. Boot the ISO USB (`writeUSB`; the ISO auto-clones the repo).
 3. Write the LUKS passphrase for disko (used once at format time):
    `echo -n 'THE-REAL-PASSPHRASE' > /tmp/disk.key`
-4. Partition + format + mount:
-   `sudo nix run github:nix-community/disko/v1.13.0 -- --mode destroy,format,mount --flake ~/nixos#laptop`
+4. Partition + format + mount. Use the flake's own disko (patched master,
+   same as `just vm-crypt`), not a version tag: those are stale against
+   current nixpkgs. This is destroy+format+mount and will prompt before
+   wiping `/dev/nvme0n1`:
+   `sudo nix run --no-write-lock-file ~/nixos#nixosConfigurations.laptop-crypt.config.system.build.destroyFormatMount`
 5. Restore the key material BEFORE installing. The durable copies live
    under /persist (preservation bind-mounts them at runtime), but
    nixos-install's activation runs without those binds, so ALSO copy them
@@ -81,8 +87,19 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
    ```
 6. `sudo nixos-install --flake ~/nixos#laptop --no-root-passwd`
    (lanzaboote signs with the restored keys; secure boot stays enforcing.)
-7. Reboot into the encrypted system, unlock with the passphrase.
-8. `passwd` for rupan, then restore `/home/rupan` from backup.
+7. Set rupan's password with nixos-enter and copy the hash into /persist
+   before the first reboot, because that boot already rolls `@root` back
+   to `@root-blank` (a later `passwd` is wiped on the next rollback):
+   ```bash
+   sudo nixos-enter --root /mnt -c "passwd rupan"
+   mkdir -p /mnt/persist/etc
+   cp -a /mnt/etc/shadow /mnt/persist/etc/shadow
+   cp -a /mnt/etc/gshadow /mnt/persist/etc/gshadow 2>/dev/null || true
+   ```
+   nixos-enter writes the ephemeral `@root`; the durable copy is the one
+   under /persist, same as the ssh/sbctl restore above.
+8. Reboot into the encrypted system, unlock with the passphrase, then
+   restore `/home/rupan` from backup.
 9. Enroll the TPM so future boots skip the passphrase (PCR 7 = secure boot
    state; passphrase remains as fallback):
    `sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/nvme0n1p2`

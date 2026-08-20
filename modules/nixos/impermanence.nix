@@ -71,6 +71,18 @@
             file = "/etc/machine-id";
             inInitrd = true;
           }
+          # mutableUsers passwords live here; without this, first boot locks
+          # rupan out (root has no password, no autologin).
+          {
+            file = "/etc/shadow";
+            group = "shadow";
+            mode = "0640";
+          }
+          {
+            file = "/etc/gshadow";
+            group = "shadow";
+            mode = "0640";
+          }
         ];
         directories = [
           {
