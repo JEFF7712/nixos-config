@@ -1,16 +1,57 @@
 #!/usr/bin/env bash
+# Write an image to a removable disk. Refuses anything that is not removable
+# or USB-attached, and refuses the disk holding /, because the only previous
+# guard was typing YES and `nvme0n1` was an accepted answer.
+set -euo pipefail
 
-echo -n "filepath: "
-read -r filePath
+removable_disks() {
+  lsblk -dno NAME,RM,TRAN,TYPE | awk '$4 == "disk" && ($2 == "1" || $3 == "usb") { print $1 }'
+}
 
-echo -n "USB device (e.g. sda): "
-read -r usb
+root_disk() {
+  local src
+  src=$(findmnt -no SOURCE / 2>/dev/null) || return 0
+  lsblk -no PKNAME "$src" 2>/dev/null | grep -v '^$' | head -1 || true
+}
 
-echo "About to write $filePath to /dev/$usb. WARNING: This will erase all data on /dev/$usb."
-read -p "Type 'YES' to continue: " confirm
+read -r -p "filepath: " filePath
+if [ ! -f "$filePath" ]; then
+  echo "Not a file: $filePath" >&2
+  exit 1
+fi
 
-if [ "$confirm" = "YES" ]; then
-  sudo dd if="$filePath" of="/dev/$usb" bs=1M status=progress && sync
+mapfile -t candidates < <(removable_disks)
+if [ "${#candidates[@]}" -eq 0 ]; then
+  echo "No removable or USB disk found. Plug the stick in and rerun." >&2
+  exit 1
+fi
+
+echo "Removable disks:"
+lsblk -dno NAME,SIZE,TRAN,MODEL "${candidates[@]/#//dev/}" | sed 's/^/  /'
+
+read -r -p "USB device (e.g. sda): " usb
+usb=${usb#/dev/}
+
+found=false
+for d in "${candidates[@]}"; do
+  [ "$d" = "$usb" ] && found=true
+done
+if [ "$found" != true ]; then
+  echo "Refusing: /dev/$usb is not one of the removable disks listed above." >&2
+  exit 1
+fi
+if [ "$usb" = "$(root_disk)" ]; then
+  echo "Refusing: /dev/$usb holds the root filesystem." >&2
+  exit 1
+fi
+
+echo "About to write $filePath to /dev/$usb ($(lsblk -dno SIZE,MODEL "/dev/$usb" | xargs))."
+echo "WARNING: this erases all data on /dev/$usb."
+read -r -p "Type the device name ($usb) to continue: " confirm
+
+if [ "$confirm" = "$usb" ]; then
+  sudo dd if="$filePath" of="/dev/$usb" bs=1M status=progress conv=fsync
+  sync
 else
   echo "Aborted."
 fi
