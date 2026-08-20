@@ -16,11 +16,28 @@ let
       diffutils
       getent
       git
+      # `sed` is used by nix-cascade-guard, which the pipeline invokes with PATH
+      # preserved. The unit PATH currently supplies gnused; that is the same
+      # fragile coupling that hid the missing-cmp outage.
+      gnused
       nix
       nixos-rebuild
       util-linux
     ];
     text = builtins.readFile ../../home/scripts/nixos-flake-update;
+  };
+
+  failureAlert = pkgs.writeShellApplication {
+    name = "nixos-auto-update-alert";
+    runtimeInputs = with pkgs; [
+      systemd
+    ];
+    text = ''
+      # Root has no session bus, so notify-send from this unit would not reach
+      # the desktop. systemctl --machine=USER@ --user is systemd's supported
+      # way to start a user unit, which already has the graphical session bus.
+      systemctl --machine=rupan@ --user start system-update-failure-notify.service
+    '';
   };
 
   mkUpdateService =
@@ -55,6 +72,7 @@ let
       inherit description;
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
+      onFailure = [ "nixos-auto-update-alert.service" ];
       serviceConfig = {
         Type = "oneshot";
         Nice = 15;
@@ -63,6 +81,7 @@ let
         MemoryHigh = "18G";
         MemoryMax = "22G";
         TasksMax = 1024;
+        StateDirectory = "nixos-auto-update";
       };
       script = ''
         exec ${lib.getExe updatePipeline} ${pipelineArgs}
@@ -74,6 +93,14 @@ in
 
   config = lib.mkIf config.auto-update.enable {
     systemd.tmpfiles.rules = [ "f /run/nixos-auto-update.lock 0664 root users -" ];
+
+    systemd.services.nixos-auto-update-alert = {
+      description = "Notify the graphical session that an auto-update unit failed";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe failureAlert;
+      };
+    };
 
     systemd.services.nixos-auto-update = mkUpdateService {
       description = "Update flake inputs, commit lock file, and rebuild";

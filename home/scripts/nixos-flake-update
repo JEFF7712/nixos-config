@@ -12,6 +12,7 @@ dns_retries="${DNS_RETRIES:-60}"
 dns_retry_delay="${DNS_RETRY_DELAY:-5}"
 cascade_guard="${CASCADE_GUARD:-}"
 nixos_rebuild="${NIXOS_REBUILD:-nixos-rebuild}"
+defer_alert_after="${DEFER_ALERT_AFTER:-6}"
 
 while (($#)); do
   case "$1" in
@@ -44,6 +45,10 @@ cascade_guard="${cascade_guard:-$repo/home/scripts/nix-cascade-guard}"
 target_flake="${target%%#*}"
 target_name="${target##*#}"
 toplevel="${target_flake}#nixosConfigurations.${target_name}.config.system.build.toplevel"
+defer_file=""
+if [[ -n ${STATE_DIRECTORY:-} ]]; then
+  defer_file="$STATE_DIRECTORY/defer-count-${label// /-}"
+fi
 
 restore_lock() {
   mv -f -- "$lock_snapshot" "$repo/flake.lock"
@@ -74,8 +79,61 @@ cleanup() {
   exit "$status"
 }
 
+# Root auto-update must not activate uncommitted edits. import-tree loads
+# untracked .nix files, so those count too. Apply local edits with `just switch`.
+refuse_if_dirty_tree() {
+  local porcelain line path
+  porcelain="$(runuser -u rupan -- git -C "$repo" status --porcelain --untracked-files=all)" || {
+    printf '%s update refused: git status failed\n' "$label" >&2
+    exit 1
+  }
+  while IFS= read -r line; do
+    [[ -z $line ]] && continue
+    path="${line#?? }"
+    if [[ $path == *' -> '* ]]; then
+      path="${path##* -> }"
+    fi
+    if [[ $path == \"*\" ]]; then
+      path="${path:1:${#path}-2}"
+    fi
+    if [[ $path != flake.lock ]]; then
+      printf '%s update refused: working tree differs from HEAD besides flake.lock (%s). Apply local edits with just switch.\n' \
+        "$label" "$path" >&2
+      exit 1
+    fi
+  done <<<"$porcelain"
+}
+
+clear_defer_count() {
+  [[ -n $defer_file ]] || return 0
+  rm -f -- "$defer_file"
+}
+
+consecutive_defer_exceeded() {
+  local count=0
+  [[ -n $defer_file ]] || return 1
+  mkdir -p "$STATE_DIRECTORY"
+  if [[ -r $defer_file ]]; then
+    count=$(cat -- "$defer_file")
+  fi
+  if [[ $count =~ ^[0-9]+$ ]]; then
+    count=$((count + 1))
+  else
+    count=1
+  fi
+  printf '%s\n' "$count" > "$defer_file"
+  if (( count >= defer_alert_after )); then
+    printf '%s update: %s consecutive defers (threshold %s); surfacing stuck upstream\n' \
+      "$label" "$count" "$defer_alert_after" >&2
+    return 0
+  fi
+  return 1
+}
+
 exec {lock_fd}>"$update_lock"
 flock -n "$lock_fd" || exit 0
+
+refuse_if_dirty_tree
 
 dns_ready=false
 for ((attempt = 0; attempt < dns_retries; attempt++)); do
@@ -118,6 +176,9 @@ if ! runuser -u rupan -- nix eval --no-write-lock-file \
   if [[ $eval_failure == defer ]]; then
     printf '%s update deferred: updated inputs fail eval; flake.lock reverted, will retry next run\n' \
       "$label" >&2
+    if consecutive_defer_exceeded; then
+      exit 1
+    fi
     exit 0
   fi
   printf '%s update fails eval; flake.lock reverted\n' "$label" >&2
@@ -130,6 +191,7 @@ case "$compare_status" in
   0)
     remove_snapshot
     disarm_cleanup
+    clear_defer_count
     printf '%s flake.lock unchanged; skipping rebuild\n' "$label"
     exit 0
     ;;
@@ -144,12 +206,15 @@ case "$compare_status" in
 esac
 
 cascade_status=0
-runuser -u rupan -- "$cascade_guard" \
+runuser -u rupan -w PATH -- "$cascade_guard" \
   "$toplevel" || cascade_status=$?
 if [[ $cascade_status -eq 10 ]]; then
   restore_lock
   disarm_cleanup
   printf '%s update deferred: toolchain cascade; flake.lock reverted\n' "$label" >&2
+  if consecutive_defer_exceeded; then
+    exit 1
+  fi
   exit 0
 elif [[ $cascade_status -ne 0 ]]; then
   restore_lock
@@ -159,8 +224,10 @@ elif [[ $cascade_status -ne 0 ]]; then
   exit 1
 fi
 
+clear_defer_count
 runuser -u rupan -- git -C "$repo" commit -m "$commit_message" -- flake.lock
 remove_snapshot
 disarm_cleanup
+refuse_if_dirty_tree
 "$nixos_rebuild" switch --flake "$target" \
   --option max-jobs 2 --option cores 8
