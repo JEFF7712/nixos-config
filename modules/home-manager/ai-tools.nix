@@ -75,14 +75,12 @@
 
       # Upstream ships codex + codex-code-mode-host under libexec (since
       # sadjow/codex-cli-nix moved off bin/codex-raw).
+      # Do not wrap with `export GITHUB_PAT_TOKEN`: Codex does not read it.
+      # git/`gh` use their own credential stores, and ChatGPT login uses the
+      # GitHub App Connector (the plugin bearer_token_env_var is API-key
+      # sessions only). A session-wide export leaks the PAT into
+      # systemd --user and every descendant via /proc/<pid>/environ.
       codexCli = inputs.codex-cli-nix.packages.${system}.default;
-      codexWithGithubToken = pkgs.writeShellScriptBin "codex" ''
-        if [ -z "''${GITHUB_PAT_TOKEN:-}" ]; then
-          export GITHUB_PAT_TOKEN="$(${lib.getExe pkgs.gh} auth token)"
-        fi
-
-        exec ${lib.getExe codexCli} "$@"
-      '';
     in
     {
       home.packages =
@@ -97,7 +95,7 @@
           claude-code-proxy
         ])
         ++ [
-          codexWithGithubToken
+          codexCli
           claudeCode
           claudeCodex
           claudeGrok
