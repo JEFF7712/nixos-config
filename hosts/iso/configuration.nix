@@ -17,7 +17,7 @@
 
   environment.etc."nixos-config-source".source = self;
 
-  system.activationScripts.copyConfig = ''
+  system.activationScripts.copyConfig = lib.stringAfter [ "users" "etc" ] ''
     if [ ! -d /home/rupan/nixos ]; then
       mkdir -p /home/rupan
       ${pkgs.rsync}/bin/rsync -av --chmod=u+w /etc/nixos-config-source/ /home/rupan/nixos/
@@ -47,7 +47,6 @@
   bluetooth.enable = true;
   filemanager.enable = true;
   file-utils.enable = true;
-  git.enable = true;
 
   users.users.rupan = {
     isNormalUser = true;
@@ -111,7 +110,9 @@
   services.power-profiles-daemon.enable = true;
   services.printing.enable = true;
   services.libinput.enable = true;
-  services.openssh.enable = true;
+  # Installer profile enables sshd; disable it so setting a password does not
+  # expose well-known accounts over the network.
+  services.openssh.enable = lib.mkForce false;
 
   services.xserver.videoDrivers = [
     "modesetting"
