@@ -13,10 +13,10 @@ jobs:
       contents: write
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
     - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@main
+      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
       with:
         tool-cache: true
         android: true
@@ -28,11 +28,11 @@ jobs:
 
     # 1. Install Nix
     - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@main
+      uses: DeterminateSystems/nix-installer-action@33c9ab3ef95cd57c164d9d6eb1f9a46338538d41 # main
 
     # 2. Binary cache (magic-nix-cache was discontinued upstream)
     - name: Cachix
-      uses: cachix/cachix-action@v15
+      uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
       with:
         name: jeff7712
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
@@ -51,7 +51,7 @@ jobs:
         sha256sum rupan-nixos.iso > rupan-nixos.iso.sha256
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
       with:
         files: |
           rupan-nixos.iso
