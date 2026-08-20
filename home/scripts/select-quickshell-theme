@@ -6,8 +6,10 @@ profiles="${XDG_CONFIG_HOME:-$HOME/.config}/desktop-profiles"
 PROFILES_DIR="$profiles"
 # shellcheck source=/dev/null
 . "$script_dir/profile-manifest"
-profile="${DESKTOP_PROFILE_TRANSITION_TARGET:-$(cat "$profiles/active" 2>/dev/null || true)}"
-variant="${DESKTOP_PROFILE_TRANSITION_VARIANT:-$(cat "$profiles/active-variant" 2>/dev/null || echo dark)}"
+profile="$(cat "$profiles/transition-target" 2>/dev/null || true)"
+[ -n "$profile" ] || profile="$(cat "$profiles/active" 2>/dev/null || true)"
+variant="$(cat "$profiles/transition-variant" 2>/dev/null || true)"
+[ -n "$variant" ] || variant="$(cat "$profiles/active-variant" 2>/dev/null || echo dark)"
 runtime="$profiles/runtime-quickshell-theme.json"
 
 [ -n "$profile" ] || exit 0

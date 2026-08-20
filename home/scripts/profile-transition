@@ -3,6 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/profile-common"
+TRANSITION_TARGET_FILE="$PROFILES_DIR/transition-target"
+TRANSITION_VARIANT_FILE="$PROFILES_DIR/transition-variant"
 
 usage() {
   echo "Usage: profile-transition switch NAME | variant dark|light|toggle | reapply | startup [NAME]" >&2
@@ -29,6 +31,15 @@ link_atomic() {
 read_state() {
   local path="$1" fallback="$2"
   cat "$path" 2>/dev/null || printf '%s\n' "$fallback"
+}
+
+write_pending_identity() {
+  write_atomic "$TRANSITION_TARGET_FILE" "$1"
+  write_atomic "$TRANSITION_VARIANT_FILE" "$2"
+}
+
+clear_pending_identity() {
+  rm -f -- "$TRANSITION_TARGET_FILE" "$TRANSITION_VARIANT_FILE"
 }
 
 has_light_variant() {
@@ -95,7 +106,7 @@ stop_all_bars() {
 }
 
 start_bar() {
-  local bar="$1" theme_profile="$2" theme_variant="$3"
+  local bar="$1"
   case "$bar" in
     noctalia)
       stop_mako
@@ -118,9 +129,7 @@ start_bar() {
       systemctl --user start awww >/dev/null 2>&1 || true
       stop_mako
       wait_for_mako_shutdown
-      DESKTOP_PROFILE_TRANSITION_TARGET="$theme_profile" \
-        DESKTOP_PROFILE_TRANSITION_VARIANT="$theme_variant" \
-        quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 9>&- >/dev/null 2>&1 &
+      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 9>&- >/dev/null 2>&1 &
       ;;
   esac
 }
@@ -342,14 +351,13 @@ apply_niri_reload() {
 }
 
 # apply_visual_commit
-# Fire on-screen chrome together (still under the rollback trap, before preference
-# commit) so niri gaps/borders, wallpaper, and the Quickshell theme stamp do not
-# land at different times. Theme selection reads DESKTOP_PROFILE_TRANSITION_* so
-# the bar nudge works before active is written. Cursor/GTK follow immediately in
-# post-commit via system-preferences (soft-fail with the usual adapter warning).
+# Fire on-screen chrome together (still under the rollback trap) so niri
+# gaps/borders, wallpaper, and the Quickshell theme stamp do not land at
+# different times. A freshly started bar reads pending identity files until
+# commit; the stamp nudge then follows committed active/variant. Cursor/GTK
+# follow immediately in post-commit via system-preferences (soft-fail with
+# the usual adapter warning).
 apply_visual_commit() {
-  export DESKTOP_PROFILE_TRANSITION_TARGET="$TARGET"
-  export DESKTOP_PROFILE_TRANSITION_VARIANT="$TARGET_VARIANT"
   apply_niri_reload
   apply_wallpaper_adapter
   if [ "$TARGET_BAR" = quickshell ] && [ "$MODE" != startup ]; then
@@ -642,6 +650,7 @@ restore_snapshot() {
 rollback() {
   local status="$1" rollback_errors=0
   trap - EXIT INT TERM HUP
+  clear_pending_identity
   set +e
   rollback_try() {
     local label="$1"
@@ -655,7 +664,7 @@ rollback() {
   rollback_try "snapshot restore" restore_snapshot
   rollback_try "Niri reload" niri msg action load-config-file
   if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/manifest.json" ]; then
-    rollback_try "previous bar restart" start_bar "$CURRENT_BAR" "$OLD_ACTIVE" "$OLD_VARIANT"
+    rollback_try "previous bar restart" start_bar "$CURRENT_BAR"
     rollback_try "previous bar verification" verify_bar "$CURRENT_BAR"
   fi
   rollback_try "snapshot cleanup" rm -rf "$TRANSACTION_DIR"
@@ -701,6 +710,7 @@ commit_preferences() {
     write_atomic "$PROFILES_DIR/variant-$TARGET" "$TARGET_VARIANT"
     [ "${PROFILE_TRANSITION_FAIL_COMMIT_AFTER:-}" != preference ] || return 1
   fi
+  clear_pending_identity
   PREFS_COMMITTED=1
 }
 
@@ -764,16 +774,17 @@ if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]
   NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.focus)
 fi
 link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
+write_pending_identity "$TARGET" "$TARGET_VARIANT"
 if [ "$SAME_QUICKSHELL" -eq 1 ]; then
   # Process may be up but not ready (e.g. lost notification bus). Never launch a
   # second Quickshell beside a live one — stop first, then restart cleanly.
   if ! verify_bar quickshell; then
     stop_bar quickshell
-    start_bar quickshell "$TARGET" "$TARGET_VARIANT"
+    start_bar quickshell
     verify_bar quickshell
   fi
 else
-  start_bar "$TARGET_BAR" "$TARGET" "$TARGET_VARIANT"
+  start_bar "$TARGET_BAR"
   verify_bar "$TARGET_BAR"
 fi
 

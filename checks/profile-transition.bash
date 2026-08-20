@@ -58,6 +58,24 @@ assert_mode() {
   assert_eq "$expected" "$(stat -c '%a' "$path")" "$label"
 }
 
+assert_pending_cleared() {
+  local label="$1"
+  if [ -e "$profiles/transition-target" ] || [ -e "$profiles/transition-variant" ]; then
+    printf 'FAIL: %s left pending transition identity files\n' "$label" >&2
+    exit 1
+  fi
+}
+
+assert_selector_ignores_frozen_env() {
+  local expected="$1" frozen_profile="$2" frozen_variant="$3" label="$4"
+  assert_eq "$expected" \
+    "$(HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+      DESKTOP_PROFILE_TRANSITION_TARGET="$frozen_profile" \
+      DESKTOP_PROFILE_TRANSITION_VARIANT="$frozen_variant" \
+      "$PROFILE_THEME_SELECTOR")" \
+    "$label"
+}
+
 stop_persistent_children() {
   local pid_file pid alive
   local -a pids=()
@@ -850,11 +868,14 @@ cat > "$bin_dir/quickshell" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 active_variant=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active-variant" 2>/dev/null || echo dark)
-theme_profile=${DESKTOP_PROFILE_TRANSITION_TARGET:-$active}
-theme_variant=${DESKTOP_PROFILE_TRANSITION_VARIANT:-$active_variant}
+theme_profile=$(cat "$XDG_CONFIG_HOME/desktop-profiles/transition-target" 2>/dev/null || true)
+[ -n "$theme_profile" ] || theme_profile=$active
+theme_variant=$(cat "$XDG_CONFIG_HOME/desktop-profiles/transition-variant" 2>/dev/null || true)
+[ -n "$theme_variant" ] || theme_variant=$active_variant
 selected=$("$PROFILE_THEME_SELECTOR")
-printf 'quickshell %s active=%s active_variant=%s theme=%s theme_variant=%s selected=%s\n' \
-  "$*" "$active" "$active_variant" "$theme_profile" "$theme_variant" "$selected" >> "$COMMAND_LOG"
+printf 'quickshell %s active=%s active_variant=%s theme=%s theme_variant=%s selected=%s env_target=%s env_variant=%s\n' \
+  "$*" "$active" "$active_variant" "$theme_profile" "$theme_variant" "$selected" \
+  "${DESKTOP_PROFILE_TRANSITION_TARGET-}" "${DESKTOP_PROFILE_TRANSITION_VARIANT-}" >> "$COMMAND_LOG"
 if [ -n "${START_COUNT_FILE:-}" ]; then
   count=$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)
   printf '%s\n' "$((count + 1))" > "$START_COUNT_FILE"
@@ -1198,6 +1219,7 @@ assert_eq "$profiles/old/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "partial commit restores Niri override"
 assert_log_contains "verify-waybar active=old" "partial commit recovers the previous bar"
+assert_pending_cleared "partial commit rollback"
 
 # Once all preferences are durable, a signal may clean transaction storage but
 # must not roll the committed state or runtime back.
@@ -1399,6 +1421,8 @@ cp -a "$profiles/qs" "$profiles/qs2"
 "$real_jq" '.name = "qs2"' "$profiles/qs2/manifest.json" \
   > "$profiles/qs2/manifest.json.tmp"
 mv "$profiles/qs2/manifest.json.tmp" "$profiles/qs2/manifest.json"
+printf '{"payload":"qs2-dark"}\n' > "$profiles/qs2/quickshell-theme.json"
+printf '{"payload":"qs2-light"}\n' > "$profiles/qs2/quickshell-theme-light.json"
 printf 'qs\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-qs2"
@@ -1418,6 +1442,9 @@ assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell
   "qs→qs2 does not kill Quickshell"
 [ -s "$profiles/quickshell-theme-reload" ] \
   || { printf 'FAIL: same-bar switch did not nudge quickshell-theme-reload\n' >&2; exit 1; }
+assert_pending_cleared "same-bar switch"
+assert_selector_ignores_frozen_env '{"payload":"qs2-dark"}' qs dark \
+  "same-bar switch selector follows committed qs2, not the launch-time identity"
 
 assert_eq '{"profile":"old"}' "$(cat "$home/.config/waybar/config.jsonc")" \
   "Waybar config is installed as a writable target file"
@@ -1444,17 +1471,24 @@ printf 'mako\n' > "$notification_state"
 printf '{"payload":"qs-runtime-dark"}\n' > "$profiles/runtime-quickshell-theme.json"
 printf 'qs\n' > "$profiles/runtime-theme-profile"
 rm -f "$profiles/runtime-theme-variant"
+printf 'qs\n' > "$profiles/transition-target"
+printf 'dark\n' > "$profiles/transition-variant"
 assert_eq '{"payload":"qs-dark"}' \
-  "$(HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-    DESKTOP_PROFILE_TRANSITION_TARGET=qs DESKTOP_PROFILE_TRANSITION_VARIANT=dark \
-    "$PROFILE_THEME_SELECTOR")" \
+  "$(HOME="$home" XDG_CONFIG_HOME="$home/.config" "$PROFILE_THEME_SELECTOR")" \
   "an untagged legacy runtime override falls back to the baked dark theme"
+rm -f "$profiles/transition-target" "$profiles/transition-variant"
 # Task 12 presentation-split contract: pending/runtime Quickshell theme selection
 # and InfoPopup lifecycle semantics stay the source of truth (do not edit InfoPopup).
 rg -q 'runtime-quickshell-theme.json' "$REPO_ROOT/home/scripts/select-quickshell-theme" \
   || { printf 'FAIL: select-quickshell-theme lost runtime theme preference\n' >&2; exit 1; }
-rg -q 'DESKTOP_PROFILE_TRANSITION_TARGET' "$REPO_ROOT/home/scripts/select-quickshell-theme" \
+rg -q 'transition-target' "$REPO_ROOT/home/scripts/select-quickshell-theme" \
   || { printf 'FAIL: select-quickshell-theme lost pending transition target preference\n' >&2; exit 1; }
+if rg -q 'DESKTOP_PROFILE_TRANSITION_TARGET' \
+  "$REPO_ROOT/home/scripts/select-quickshell-theme" \
+  "$REPO_ROOT/home/scripts/profile-transition"; then
+  printf 'FAIL: pending Quickshell identity is still pinned in the process environment\n' >&2
+  exit 1
+fi
 for lifecycle in 'property bool shown: false' 'readonly property bool active:' 'readonly property bool mapped:' 'property bool warming: false' 'property bool ready: false'; do
   rg -F -q "$lifecycle" "$REPO_ROOT/home/configs/quickshell/InfoPopup.qml" \
     || { printf 'FAIL: InfoPopup.qml missing lifecycle contract: %s\n' "$lifecycle" >&2; exit 1; }
@@ -1468,8 +1502,9 @@ HOME="$home" XDG_CONFIG_HOME="$home/.config" \
 assert_eq quickshell "$(cat "$notification_state")" \
   "Quickshell starts only after Mako releases notification ownership"
 assert_log_contains \
-  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=old active_variant=dark theme=qs theme_variant=light selected={\"payload\":\"qs-light\"}" \
+  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=old active_variant=dark theme=qs theme_variant=light selected={\"payload\":\"qs-light\"} env_target= env_variant=" \
   "Quickshell selects the pending light payload instead of the stale dark runtime override"
+assert_pending_cleared "waybar to Quickshell switch"
 
 printf 'qs\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
@@ -1494,6 +1529,9 @@ assert_log_not_contains \
   "Quickshell variant toggle does not relaunch via start_bar"
 [ -s "$profiles/quickshell-theme-reload" ] \
   || { printf 'FAIL: variant toggle did not nudge quickshell-theme-reload\n' >&2; exit 1; }
+assert_pending_cleared "variant toggle"
+assert_selector_ignores_frozen_env '{"payload":"qs-light"}' qs dark \
+  "variant toggle selector follows committed light, not the launch-time variant"
 
 printf 'dark\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-qs"
@@ -1519,8 +1557,9 @@ assert_eq dark "$(cat "$profiles/active-variant")" \
 assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
   "unhealthy same-bar Quickshell is stopped before restart fallback"
 assert_log_contains \
-  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=qs active_variant=dark theme=qs theme_variant=dark selected={\"payload\":\"qs-runtime-dark\"}" \
+  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=qs active_variant=dark theme=qs theme_variant=dark selected={\"payload\":\"qs-runtime-dark\"} env_target= env_variant=" \
   "Quickshell rollback restarts the old dark runtime theme"
+assert_pending_cleared "Quickshell variant rollback"
 
 # A Waybar-to-Waybar transition must wait for the old Mako process to disappear
 # before deciding whether to launch its replacement. A stale owner string is not
