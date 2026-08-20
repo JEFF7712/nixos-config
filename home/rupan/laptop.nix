@@ -15,14 +15,24 @@
 
   services.stasis = {
     enable = true;
-    extraPathPackages = with pkgs; [
+    # Stasis runs its commands with only this PATH, so anything lock-screen or
+    # lid-close-action calls has to be listed. Missing `stasis` made the
+    # lid-close inhibit check a silent no-op (`stasis info` returned nothing, so
+    # it always suspended); missing `noctalia-shell` made the lock fail open on
+    # the noctalia profile.
+    extraPathPackages = [
+      config.programs.noctalia.package
+      config.services.stasis.package
+    ]
+    ++ (with pkgs; [
       findutils
       gawk
       gnused
       hyprlock
       jq
       niri
-    ];
+      procps # pgrep, for lid-close-action's lock barrier
+    ]);
     # Stasis 1.5 on a laptop only uses default.ac / default.battery, and it
     # replaces any rune missing current knobs (e.g. monitor_media) with the
     # bootstrap plan (swaylock, no lid_close_action). Keep globals under

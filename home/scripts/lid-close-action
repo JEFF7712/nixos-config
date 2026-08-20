@@ -36,6 +36,34 @@ if [[ "$inhibited" == true ]]; then
   exit 0
 fi
 
+# Suspending before the locker owns the session shows the desktop on resume,
+# so confirm the lock instead of sleeping and hoping. hyprlock does not set
+# logind's LockedHint, so detect it by process; the noctalia branch is an ipc
+# call that exits 0 once the shell has locked. If neither lands, blank instead
+# of suspending: an awake laptop is recoverable, one that resumes unlocked in
+# someone else's hands is not.
 /home/rupan/.local/bin/lock-screen &
-sleep 1
+lock_pid=$!
+
+locked=false
+for _ in $(seq 1 50); do
+  if pgrep -x hyprlock >/dev/null 2>&1; then
+    locked=true
+    break
+  fi
+  if ! kill -0 "$lock_pid" 2>/dev/null; then
+    if wait "$lock_pid"; then
+      locked=true
+    fi
+    break
+  fi
+  sleep 0.1
+done
+
+if [ "$locked" != true ]; then
+  printf 'lid-close-action: screen did not lock; blanking instead of suspending\n' >&2
+  niri msg action power-off-monitors || true
+  exit 1
+fi
+
 systemctl suspend
