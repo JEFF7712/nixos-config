@@ -102,25 +102,28 @@
       systems = [ "x86_64-linux" ];
       imports = [ inputs.treefmt-nix.flakeModule ];
 
-      perSystem = _: {
-        treefmt = {
-          projectRootFile = "flake.nix";
-          programs.nixfmt.enable = true;
-          programs.statix.enable = true;
-          programs.deadnix.enable = true;
-          programs.qmlformat.enable = true;
-          # Formatter only. ruff-check is deliberately off: its default rule set
-          # moves with nixpkgs, and this repo auto-updates hourly, so a ruff bump
-          # would turn `nix fmt`, `just check` and CI red with no local change.
-          # (0.16.3 flagged 29 findings that 0.15.20 did not.) Run `ruff check`
-          # by hand; `.ruff.toml` holds the repo's rule choices for that.
-          programs.ruff-format.enable = true;
-          settings.formatter.statix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
-          settings.formatter.deadnix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
-          # ruff-format matches *.py only; this script is python by shebang.
-          settings.formatter.ruff-format.includes = [ "home/scripts/merge-ini-section" ];
+      perSystem =
+        { pkgs, ... }:
+        {
+          packages.iris-python = pkgs.callPackage ./pkgs/iris-python { };
+          treefmt = {
+            projectRootFile = "flake.nix";
+            programs.nixfmt.enable = true;
+            programs.statix.enable = true;
+            programs.deadnix.enable = true;
+            programs.qmlformat.enable = true;
+            # Formatter only. ruff-check is deliberately off: its default rule set
+            # moves with nixpkgs, and this repo auto-updates hourly, so a ruff bump
+            # would turn `nix fmt`, `just check` and CI red with no local change.
+            # (0.16.3 flagged 29 findings that 0.15.20 did not.) Run `ruff check`
+            # by hand; `.ruff.toml` holds the repo's rule choices for that.
+            programs.ruff-format.enable = true;
+            settings.formatter.statix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
+            settings.formatter.deadnix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
+            # ruff-format matches *.py only; this script is python by shebang.
+            settings.formatter.ruff-format.includes = [ "home/scripts/merge-ini-section" ];
+          };
         };
-      };
 
       flake =
         let
