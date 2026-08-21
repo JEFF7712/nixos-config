@@ -24,8 +24,10 @@ esac
 wallpaper=""
 if [ -f "$WAYPAPER_CFG" ]; then
   wallpaper=$(awk -F' = ' '$1 == "wallpaper" { print $2; exit }' "$WAYPAPER_CFG" 2>/dev/null || true)
+  # The tilde must be quoted: bash tilde-expands `case` PATTERNS, so a bare
+  # ~/* becomes /home/<user>/* and never matches the literal ~ waypaper writes.
   case "$wallpaper" in
-    ~/*) wallpaper="$HOME/${wallpaper#~/}" ;;
+    "~/"*) wallpaper="$HOME/${wallpaper#"~/"}" ;;
   esac
 fi
 if [ -z "$wallpaper" ]; then

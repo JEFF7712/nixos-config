@@ -341,3 +341,49 @@ assert_eq "adw-gtk3-dark" "$(cat "$tmpdir/nudge-gs-state")" \
   "nudge_gtk_reload restores gtk-theme from settings.ini after a stuck Adwaita sentinel"
 assert_eq $'set Adwaita\nset adw-gtk3-dark' "$(cat "$tmpdir/nudge-gs-log")" \
   "nudge_gtk_reload flips through Adwaita then back to the settings.ini theme"
+
+# waypaper writes `wallpaper = ~/...` with a literal tilde. bash tilde-expands
+# `case` PATTERNS, so an unquoted ~/* pattern silently never matched and iris
+# received the literal path, breaking wallpaper theming entirely.
+tilde_home="$tmpdir/tilde-home"
+tilde_cfg="$tmpdir/tilde-home/.config"
+tilde_bin="$tmpdir/tilde-bin"
+mkdir -p "$tilde_home/pics" "$tilde_cfg/waypaper" "$tilde_bin"
+: > "$tilde_home/pics/wave.png"
+
+cat > "$tilde_bin/iris-python" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  */iris.py)
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "--wallpaper" ]; then printf '%s\n' "$2" > "$TILDE_ARG_LOG"; fi
+      shift
+    done
+    printf '{"fg":"#ffffff","bg":"#000000","surface":"#111111","dim":"#999999","accent":"#d8915f","red":"#ff0000","green":"#00ff00","yellow":"#ffff00"}'
+    ;;
+  */iris-render.py) cat >/dev/null ;;
+esac
+EOF
+printf '#!/usr/bin/env bash\nexit 0\n' > "$tilde_bin/systemctl"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$tilde_bin/pkill"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$tilde_bin/niri"
+chmod +x "$tilde_bin/iris-python" "$tilde_bin/systemctl" "$tilde_bin/pkill" "$tilde_bin/niri"
+
+mkdir -p "$tilde_cfg/desktop-profiles/tinted"
+printf 'tinted\n' > "$tilde_cfg/desktop-profiles/active"
+printf 'dark\n' > "$tilde_cfg/desktop-profiles/active-variant"
+printf '{"capabilities":{"colorEngine":"iris","wallpaperTheming":true},"artifacts":{}}\n' \
+  > "$tilde_cfg/desktop-profiles/tinted/manifest.json"
+
+cat > "$tilde_cfg/waypaper/config.ini" <<'EOF'
+[Settings]
+backend = awww
+wallpaper = ~/pics/wave.png
+EOF
+
+TILDE_ARG_LOG="$tmpdir/tilde-arg" \
+  HOME="$tilde_home" XDG_CONFIG_HOME="$tilde_cfg" PATH="$tilde_bin:$PATH" \
+  "$REPO_ROOT/home/scripts/waypaper-backend-sync" >/dev/null 2>&1 || true
+
+assert_eq "$tilde_home/pics/wave.png" "$(cat "$tmpdir/tilde-arg" 2>/dev/null || true)" \
+  "waypaper-backend-sync expands a leading tilde from config.ini"
