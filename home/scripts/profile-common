@@ -163,7 +163,7 @@ set_wallpaper() {
     apply_wallpaper_theme "$wallpaper"
   else
     (apply_wallpaper_theme "$wallpaper") 9>&- &
-    disown
+    disown 2>/dev/null || true
   fi
 }
 
@@ -289,7 +289,7 @@ matugen_frame() {
 # locations, then reload the consumers that don't poll. Engine is per-profile
 # (matugen or iris). No-op unless the active profile opted in (wallpaperTheming).
 apply_wallpaper_theme() {
-  local wp="$1" profile variant frame mode engine accent=""
+  local wp="$1" profile variant frame mode engine accent="" bar
   local job_profile job_variant job_gen
   [ -n "$wp" ] || return 0
 
@@ -464,11 +464,12 @@ apply_wallpaper_theme() {
     apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant"
   else
     (apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant") 9>&- &
-    disown
+    disown 2>/dev/null || true
   fi
 
   # Quickshell watches quickshell-theme-reload and hot-applies select-quickshell-theme.
-  if [ "$(profile_bar "$profile")" = "quickshell" ]; then
+  bar=$(profile_bar "$profile" 2>/dev/null || true)
+  if [ "$bar" = "quickshell" ]; then
     nudge_quickshell_theme_reload
   fi
 
@@ -567,7 +568,7 @@ wait_for_mako_shutdown() {
 start_mako() {
   mako_running || {
     mako 9>&- 2>/dev/null &
-    disown
+    disown 2>/dev/null || true
   }
 }
 
@@ -1178,6 +1179,7 @@ reload_zathura_theme() {
     [ -n "$name" ] || continue
     busctl --user call "$name" /org/pwmt/zathura org.pwmt.zathura SourceConfig >/dev/null 2>&1 || true
   done < <(busctl --user list 2>/dev/null | awk '/org\.pwmt\.zathura\.PID-/ {print $1}')
+  return 0
 }
 
 # apply_zathura_theme <profile-dir> <variant>

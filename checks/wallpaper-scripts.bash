@@ -5,7 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$REPO_ROOT/home/scripts/profile-common"
 
 tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
+trap 'rm -rf "$tmpdir" || true' EXIT
 
 assert_eq() {
   local expected="$1" actual="$2" label="$3"
@@ -120,6 +120,7 @@ apply_spicetify_theme() {
 }
 
 : > "$log_file"
+PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
 COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" apply_wallpaper_theme "$tmpdir/still.png"
 
 assert_eq tinted "$(cat "$profiles_dir/runtime-theme-profile")" \
@@ -296,9 +297,19 @@ esac
 EOF
 chmod +x "$bin_dir/iris-python"
 rm -f "$sync_profiles/runtime-theme-profile"
-COMMAND_LOG="$log_file" HOME="$tmpdir/home" XDG_CONFIG_HOME="$config_dir" \
-  PATH="$bin_dir:$PATH" \
-  "$REPO_ROOT/home/scripts/waypaper-backend-sync"
+set +e
+sync_err=$(
+  COMMAND_LOG="$log_file" HOME="$tmpdir/home" XDG_CONFIG_HOME="$config_dir" \
+    PATH="$bin_dir:$PATH" PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
+    "$REPO_ROOT/home/scripts/waypaper-backend-sync" 2>&1
+)
+sync_status=$?
+set -e
+if [ "$sync_status" -ne 0 ]; then
+  printf 'FAIL: waypaper-backend-sync exited %s for apostrophe wallpaper\n%s\n' \
+    "$sync_status" "$sync_err" >&2
+  exit 1
+fi
 assert_eq tinted "$(cat "$sync_profiles/runtime-theme-profile")" \
   "waypaper-backend-sync reads wallpaper = from config.ini without a shell argv"
 
@@ -387,3 +398,5 @@ TILDE_ARG_LOG="$tmpdir/tilde-arg" \
 
 assert_eq "$tilde_home/pics/wave.png" "$(cat "$tmpdir/tilde-arg" 2>/dev/null || true)" \
   "waypaper-backend-sync expands a leading tilde from config.ini"
+
+printf 'OK: wallpaper-scripts.bash\n'

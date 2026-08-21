@@ -256,7 +256,7 @@ apply_noctalia_wallpaper() {
     (run_noctalia_wallpaper_job) 9>&-
   else
     (run_noctalia_wallpaper_job) 9>&- &
-    disown
+    disown 2>/dev/null || true
   fi
 }
 
@@ -281,7 +281,7 @@ refresh_pywal() {
       wal --theme "$theme" -q 2>/dev/null || true
       command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
     ) 9>&- &
-    disown
+    disown 2>/dev/null || true
   fi
 }
 
@@ -290,7 +290,7 @@ restart_swayosd() {
     systemctl --user restart swayosd 2>/dev/null || true
   else
     (systemctl --user restart swayosd 2>/dev/null || true) 9>&- &
-    disown
+    disown 2>/dev/null || true
   fi
 }
 
@@ -301,7 +301,7 @@ start_profile_switcher() {
     quickshell -p "$switcher_path" 9>&- >/dev/null 2>&1
   else
     quickshell -p "$switcher_path" 9>&- >/dev/null 2>&1 &
-    disown
+    disown 2>/dev/null || true
   fi
 }
 
