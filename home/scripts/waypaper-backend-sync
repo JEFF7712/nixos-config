@@ -19,6 +19,17 @@ case "$backend" in
     ;;
 esac
 
-# waypaper passes the chosen wallpaper as $1 via its post_command; re-tint
-# wallpaper-themed profiles from it (no-op for the rest).
-apply_wallpaper_theme "${1:-}"
+# Read the path from waypaper's config instead of $1: waypaper runs post_command
+# with shell=True and only escapes spaces, so quotes/$ in a filename break argv.
+wallpaper=""
+if [ -f "$WAYPAPER_CFG" ]; then
+  wallpaper=$(awk -F' = ' '$1 == "wallpaper" { print $2; exit }' "$WAYPAPER_CFG" 2>/dev/null || true)
+  case "$wallpaper" in
+    ~/*) wallpaper="$HOME/${wallpaper#~/}" ;;
+  esac
+fi
+if [ -z "$wallpaper" ]; then
+  wallpaper="${1:-}"
+fi
+
+apply_wallpaper_theme "$wallpaper"
