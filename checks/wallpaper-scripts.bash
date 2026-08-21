@@ -353,6 +353,27 @@ assert_eq "adw-gtk3-dark" "$(cat "$tmpdir/nudge-gs-state")" \
 assert_eq $'set Adwaita\nset adw-gtk3-dark' "$(cat "$tmpdir/nudge-gs-log")" \
   "nudge_gtk_reload flips through Adwaita then back to the settings.ini theme"
 
+# CI runners ship gsettings (GTK) but have no user D-Bus session. A failing
+# `gsettings get` pipeline must not abort wallpaper theming under pipefail.
+nudge_fail_bin="$tmpdir/nudge-fail-bin"
+mkdir -p "$nudge_fail_bin" "$tmpdir/nudge-fail-home"
+cat > "$nudge_fail_bin/gsettings" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+chmod +x "$nudge_fail_bin/gsettings"
+unset -f nudge_gtk_reload
+# shellcheck disable=SC1091
+. "$REPO_ROOT/home/scripts/profile-common"
+set +e
+HOME="$tmpdir/nudge-fail-home" XDG_CONFIG_HOME="$tmpdir/nudge-fail-home/.config" \
+  PATH="$nudge_fail_bin:$PATH" \
+  nudge_gtk_reload
+nudge_fail_status=$?
+set -e
+assert_eq 0 "$nudge_fail_status" \
+  "nudge_gtk_reload survives a failing gsettings pipeline under pipefail"
+
 # waypaper writes `wallpaper = ~/...` with a literal tilde. bash tilde-expands
 # `case` PATTERNS, so an unquoted ~/* pattern silently never matched and iris
 # received the literal path, breaking wallpaper theming entirely.

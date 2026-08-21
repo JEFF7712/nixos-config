@@ -841,7 +841,9 @@ nudge_gtk_reload() {
   if [ -n "$settings_theme" ]; then
     real=$settings_theme
   else
-    real=$("$gs" get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'")
+    # gsettings get fails with no D-Bus session; pipefail must not abort the
+    # wallpaper theme apply (CI runners have gsettings from GTK, no session).
+    real=$("$gs" get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'") || true
   fi
   [ -n "$real" ] || return 0
   if [ "$real" = "Adwaita" ]; then
@@ -852,6 +854,7 @@ nudge_gtk_reload() {
   "$gs" set org.gnome.desktop.interface gtk-theme "$sentinel" 2>/dev/null || true
   sleep 0.15
   "$gs" set org.gnome.desktop.interface gtk-theme "$real" 2>/dev/null || true
+  return 0
 }
 
 profile_runtime_string() {
