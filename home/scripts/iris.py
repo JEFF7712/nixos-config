@@ -23,32 +23,83 @@ def parse_args():
     return p.parse_args()
 
 
+THEME_KEYS = (
+    "bg",
+    "surface",
+    "fg",
+    "dim",
+    "accent",
+    "red",
+    "green",
+    "yellow",
+    "dark",
+    "tone_l",
+    "syntax_keyword",
+    "syntax_string",
+    "syntax_func",
+    "syntax_type",
+    "syntax_const",
+    "syntax_comment",
+    "syntax_param",
+    "syntax_operator",
+)
+
+
 def get_cache_key(path, dark, glass):
-    try:
-        st = os.stat(path)
-        raw = f"{path}{st.st_mtime}{st.st_size}_{dark}_{glass}"
-    except Exception:
-        raw = f"{path}_{dark}_{glass}"
-    return hashlib.md5(raw.encode()).hexdigest()[:16]
+    h = hashlib.md5()
+    h.update(f"{int(dark)}_{int(glass)}_".encode())
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()[:16]
+
+
+def valid_theme(data):
+    if not isinstance(data, dict):
+        return False
+    if not all(k in data for k in THEME_KEYS):
+        return False
+    if not isinstance(data["dark"], bool):
+        return False
+    for k in THEME_KEYS:
+        if k in ("dark", "tone_l"):
+            continue
+        v = data[k]
+        if not isinstance(v, str) or len(v) != 7 or not v.startswith("#"):
+            return False
+        try:
+            int(v[1:], 16)
+        except ValueError:
+            return False
+    return True
 
 
 def check_cache(key):
     f = os.path.expanduser(f"~/.cache/wallpaper-colors/{key}.json")
     try:
         with open(f) as fh:
-            return fh.read().strip()
+            data = json.load(fh)
     except Exception:
         return None
+    if not valid_theme(data):
+        return None
+    return json.dumps(data)
 
 
 def write_cache(key, data):
     d = os.path.expanduser("~/.cache/wallpaper-colors")
-    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, f"{key}.json")
+    tmp = path + ".tmp"
     try:
-        with open(f"{d}/{key}.json", "w") as fh:
+        os.makedirs(d, exist_ok=True)
+        with open(tmp, "w") as fh:
             fh.write(data)
+        os.replace(tmp, path)
     except Exception:
-        pass
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
 
 
 def resolve_path(path):
@@ -57,12 +108,6 @@ def resolve_path(path):
         return r if os.path.exists(r) else path
     except Exception:
         return path
-
-
-def find_thumb(resolved):
-    base = os.path.expanduser("~/.cache/wallpaper-thumbs")
-    t = os.path.join(base, os.path.basename(resolved) + ".thumb.jpg")
-    return t if os.path.exists(t) else None
 
 
 def srgb_lin(c):
@@ -147,19 +192,21 @@ def contrast(r1, g1, b1, r2, g2, b2):
 
 def nudge_l(h, s, l, target_cr, against_rgb, go_darker):
     step = -0.005 if go_darker else 0.005
-    hard_limit = 0.18 if go_darker else 0.82
-    for _ in range(130):
+    pole = 0.0 if go_darker else 1.0
+    l = max(0.0, min(1.0, l))
+    for _ in range(220):
         r, g, b = hsl_to_rgb(h, s, l)
         if contrast(r, g, b, *against_rgb) >= target_cr:
             return h, s, l
-        l = l + step
-        if go_darker and l < hard_limit:
-            l = hard_limit
+        nxt = l + step
+        if (go_darker and nxt <= pole) or ((not go_darker) and nxt >= pole):
+            l = pole
+            r, g, b = hsl_to_rgb(h, s, l)
+            if contrast(r, g, b, *against_rgb) >= target_cr:
+                return h, s, l
             break
-        if not go_darker and l > hard_limit:
-            l = hard_limit
-            break
-    return h, s, l
+        l = nxt
+    return h, 0.0, pole
 
 
 def hue_dist(a, b):
@@ -177,11 +224,28 @@ def hue_toward(h, target, amount):
 
 
 def load_image(path):
-    resolved = resolve_path(path)
-    source = find_thumb(resolved) or resolved
-    img = Image.open(source).convert("RGB")
-    img.thumbnail((150, 150), Image.LANCZOS)
-    return img
+    img = Image.open(path)
+    img.load()
+    if getattr(img, "n_frames", 1) > 1:
+        img.seek(0)
+        img.load()
+    rgba = img.convert("RGBA")
+    alpha = np.array(rgba.getchannel("A"))
+    if alpha.size == 0 or alpha.max() == 0:
+        raise ValueError(f"image has no opaque pixels: {path}")
+    if alpha.min() < 255:
+        arr = np.array(rgba)
+        opaque = arr[:, :, 3] >= 16
+        if not np.any(opaque):
+            raise ValueError(f"image has no opaque pixels: {path}")
+        fill = tuple(int(round(float(x))) for x in arr[:, :, :3][opaque].mean(axis=0))
+        bg = Image.new("RGBA", rgba.size, fill + (255,))
+        rgba = Image.alpha_composite(bg, rgba)
+    rgb = rgba.convert("RGB")
+    if rgb.size[0] < 1 or rgb.size[1] < 1:
+        raise ValueError(f"image has no pixels: {path}")
+    rgb.thumbnail((150, 150), Image.LANCZOS)
+    return rgb
 
 
 def sample_palette(img, debug=False):
@@ -242,10 +306,13 @@ def sample_palette(img, debug=False):
 
     pixels_lab = np.stack([L_chan, a_chan, b_chan], axis=1)
 
-    k = 14
+    n = len(pixels_lab)
+    if n == 0:
+        raise ValueError("image has no pixels")
+    k = min(14, n)
     iterations = 14
     rng = np.random.default_rng(42)
-    idx = rng.choice(len(pixels_lab), k, replace=False)
+    idx = rng.choice(n, k, replace=False)
     centers = pixels_lab[idx].copy()
 
     assignments = np.zeros(len(pixels_lab), dtype=np.int32)
@@ -425,9 +492,8 @@ def assign_bg(palette, is_dark, glass, is_pure_black, is_pure_white, is_grayscal
 def assign_fg(palette, bg_h, bg_s, bg_l, bg_rgb, is_dark, is_grayscale):
     if is_grayscale:
         if is_dark:
-            return 0.0, 0.01, 0.88
-        else:
-            return 0.0, 0.01, 0.12
+            return nudge_l(0.0, 0.01, 0.88, 4.5, bg_rgb, False)
+        return nudge_l(0.0, 0.01, 0.12, 7.0, bg_rgb, True)
 
     if is_dark:
         candidates = sorted(palette, key=lambda e: e["l"], reverse=True)
@@ -437,7 +503,6 @@ def assign_fg(palette, bg_h, bg_s, bg_l, bg_rgb, is_dark, is_grayscale):
         s = src["s"]
         l = target_l
         h, s, l = nudge_l(h, s, l, 4.5, bg_rgb, False)
-        l = max(0.72, min(l, 0.91))
     else:
         candidates = sorted(palette, key=lambda e: e["l"])
         src = candidates[0]
@@ -445,7 +510,6 @@ def assign_fg(palette, bg_h, bg_s, bg_l, bg_rgb, is_dark, is_grayscale):
         s = min(src["s"] * 0.60, 0.25)
         l = 0.11
         h, s, l = nudge_l(h, s, l, 7.0, bg_rgb, True)
-        l = max(0.08, min(l, 0.20))
 
     return h, s, l
 
@@ -469,9 +533,8 @@ def assign_dim(bg_h, bg_s, bg_l, fg_l, is_dark, is_grayscale):
 def assign_accent(palette, bg_h, bg_s, bg_l, bg_rgb, is_dark, is_grayscale):
     if is_grayscale:
         if is_dark:
-            return 220.0, 0.22, 0.68
-        else:
-            return 220.0, 0.35, 0.38
+            return nudge_l(220.0, 0.22, 0.68, 3.0, bg_rgb, False)
+        return nudge_l(220.0, 0.35, 0.38, 4.0, bg_rgb, True)
 
     best = None
     best_score = -1.0
@@ -495,7 +558,6 @@ def assign_accent(palette, bg_h, bg_s, bg_l, bg_rgb, is_dark, is_grayscale):
         l = max(0.48, min(l, 0.80))
         cr = 3.0
         h, s, l = nudge_l(h, s, l, cr, bg_rgb, False)
-        l = max(0.45, min(l, 0.82))
     else:
         l = best["l"]
         if l > 0.55:
@@ -503,7 +565,6 @@ def assign_accent(palette, bg_h, bg_s, bg_l, bg_rgb, is_dark, is_grayscale):
         l = max(0.22, min(l, 0.52))
         cr = 4.0
         h, s, l = nudge_l(h, s, l, cr, bg_rgb, True)
-        l = max(0.18, min(l, 0.55))
 
     return h, s, l
 
@@ -557,13 +618,11 @@ def assign_semantic(
         l = max(0.52, min(l, 0.78))
         cr = 3.0
         h, s, l = nudge_l(h, s, l, cr, bg_rgb, False)
-        l = max(0.48, min(l, 0.82))
     else:
         s = max(s, 0.75)
         l = max(0.25, min(l, 0.42))
         cr = 6.0
         h, s, l = nudge_l(h, s, l, cr, bg_rgb, True)
-        l = max(0.22, min(l, 0.45))
 
     return hsl_to_rgb(h, s, l)
 
@@ -602,8 +661,6 @@ def assign_syntax(palette, bg_h, avg_s, bg_rgb, is_dark, is_grayscale):
 
     if is_dark:
         l_default = 0.70
-        l_lo = 0.58
-        l_hi = 0.84
         cr = 4.0
         dim_cr = 2.4
         s_floor = 0.38
@@ -650,7 +707,6 @@ def assign_syntax(palette, bg_h, avg_s, bg_rgb, is_dark, is_grayscale):
             used_hues.append(chosen_h)
             l = l_default
             h, s, l = nudge_l(chosen_h, chosen_s, l, cr, bg_rgb, False)
-            l = max(l_lo, min(l, l_hi))
             assigned.append(to_hex(*hsl_to_rgb(h, s, l)))
 
         result = dict(zip(role_names, assigned))
@@ -662,8 +718,6 @@ def assign_syntax(palette, bg_h, avg_s, bg_rgb, is_dark, is_grayscale):
 
     else:
         l_default = 0.36
-        l_lo = 0.28
-        l_hi = 0.46
         cr = 5.0
         dim_cr = 3.5
         s_floor = 0.62
@@ -705,14 +759,12 @@ def assign_syntax(palette, bg_h, avg_s, bg_rgb, is_dark, is_grayscale):
             used_hues.append(chosen_h)
             l = l_default
             h, s, l = nudge_l(chosen_h, chosen_s, l, cr, bg_rgb, True)
-            l = max(l_lo, min(l, l_hi))
             assigned.append(to_hex(*hsl_to_rgb(h, s, l)))
 
         result = dict(zip(role_names, assigned))
         comm_l = 0.50
         comm_s = max(avg_s * 0.35, 0.08)
         ch, cs, cl = nudge_l(bg_h, comm_s, comm_l, dim_cr, bg_rgb, True)
-        cl = max(0.44, min(cl, 0.56))
         result["syntax_comment"] = to_hex(*hsl_to_rgb(ch, cs, cl))
 
     return result
@@ -760,6 +812,9 @@ def build_theme(img, forced_dark, glass, debug):
     bg_h, bg_s, bg_l = assign_bg(
         palette, is_dark, glass, is_pure_black, is_pure_white, is_grayscale
     )
+    pole_rgb = (255, 255, 255) if is_dark else (0, 0, 0)
+    text_cr = 4.5 if is_dark else 7.0
+    bg_h, bg_s, bg_l = nudge_l(bg_h, bg_s, bg_l, text_cr, pole_rgb, is_dark)
     bg_rgb = hsl_to_rgb(bg_h, bg_s, bg_l)
 
     sf_h, sf_s, sf_l = assign_surface(bg_h, bg_s, bg_l, is_dark)
@@ -849,76 +904,22 @@ def build_theme(img, forced_dark, glass, debug):
     }
 
 
-def fallback(is_dark):
-    if is_dark:
-        return {
-            "bg": "#2d3a2e",
-            "surface": "#38483a",
-            "fg": "#c8d5b9",
-            "dim": "#7a9478",
-            "accent": "#e8b84a",
-            "red": "#c87878",
-            "green": "#78b898",
-            "yellow": "#c8b050",
-            "syntax_keyword": "#c888c8",
-            "syntax_string": "#c8a068",
-            "syntax_func": "#80b0d8",
-            "syntax_type": "#70c0b8",
-            "syntax_const": "#c89068",
-            "syntax_comment": "#6a8468",
-            "syntax_param": "#80b8c8",
-            "syntax_operator": "#88b8d0",
-            "dark": True,
-            "tone_l": 0.25,
-        }
-    return {
-        "bg": "#e8ede0",
-        "surface": "#d8e0cc",
-        "fg": "#2e3828",
-        "dim": "#6e7a62",
-        "accent": "#8b6914",
-        "red": "#9c3428",
-        "green": "#3a6e48",
-        "yellow": "#8c6020",
-        "syntax_keyword": "#7c2878",
-        "syntax_string": "#7c4010",
-        "syntax_func": "#204888",
-        "syntax_type": "#1a6060",
-        "syntax_const": "#803010",
-        "syntax_comment": "#6e7a62",
-        "syntax_param": "#1a5868",
-        "syntax_operator": "#204870",
-        "dark": False,
-        "tone_l": 0.82,
-    }
-
-
 def main():
     args = parse_args()
     glass = args.glass == 1
 
-    resolved = resolve_path(args.wallpaper)
-    cache_key = get_cache_key(resolved, args.dark, args.glass)
-    cached = check_cache(cache_key)
-    if cached:
-        print(cached)
-        return
-
     try:
-        img = load_image(args.wallpaper)
-    except Exception as e:
-        if args.debug:
-            print(f"load error: {e}", file=sys.stderr)
-        print(json.dumps(fallback(args.dark == 1)))
-        return
-
-    try:
+        resolved = resolve_path(args.wallpaper)
+        cache_key = get_cache_key(resolved, args.dark, args.glass)
+        cached = check_cache(cache_key)
+        if cached:
+            print(cached)
+            return
+        img = load_image(resolved)
         theme = build_theme(img, args.dark, glass, args.debug)
     except Exception as e:
-        if args.debug:
-            print(f"build error: {e}", file=sys.stderr)
-        print(json.dumps(fallback(args.dark == 1)))
-        return
+        print(f"iris: {e}", file=sys.stderr)
+        sys.exit(1)
 
     result = json.dumps(theme)
     write_cache(cache_key, result)

@@ -93,9 +93,13 @@ def hyprlock_rgba(hexc, alpha_suffix):
 
 
 def w(path, text):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as fh:
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as fh:
         fh.write(text)
+    os.replace(tmp, path)
 
 
 def retint_preserve_alpha(baked_value, new_rgb_hex):
@@ -112,7 +116,9 @@ def quickshell(p, profile_dir, out):
     baked = os.path.join(profile_dir, "quickshell-theme.json")
     try:
         with open(baked) as fh:
-            base = json.load(fh)
+            loaded = json.load(fh)
+        if isinstance(loaded, dict):
+            base = loaded
     except Exception:
         pass
     base.update(

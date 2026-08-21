@@ -6,7 +6,20 @@
 import argparse
 import json
 import os
+import re
 import sys
+
+HEX6_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+PALETTE_HEX_KEYS = (
+    "fg",
+    "bg",
+    "surface",
+    "dim",
+    "accent",
+    "red",
+    "green",
+    "yellow",
+)
 
 
 def hx(c):
@@ -14,13 +27,38 @@ def hx(c):
 
 
 def w(path, text):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as fh:
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as fh:
         fh.write(text)
+    os.replace(tmp, path)
+
+
+def require_palette(p):
+    if not isinstance(p, dict):
+        print("iris-render: palette must be a JSON object", file=sys.stderr)
+        sys.exit(1)
+    missing = [k for k in PALETTE_HEX_KEYS if k not in p]
+    if missing:
+        print(
+            f"iris-render: missing keys: {', '.join(missing)}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    for k in PALETTE_HEX_KEYS:
+        v = p[k]
+        if not isinstance(v, str) or not HEX6_RE.match(v):
+            print(
+                f"iris-render: {k} is not a #rrggbb color: {v!r}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
 
 def update_ini_section(path, section, body):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     header = f"[{section}]"
     lines = []
     if os.path.exists(path):
@@ -30,8 +68,9 @@ def update_ini_section(path, section, body):
     out = []
     in_section = False
     for line in lines:
-        if line.startswith("[") and line.endswith("]"):
-            in_section = line == header
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            in_section = stripped == header
             if in_section:
                 continue
         if not in_section:
@@ -53,7 +92,9 @@ def quickshell(p, profile_dir, out):
     baked = os.path.join(profile_dir, "quickshell-theme.json")
     try:
         with open(baked) as fh:
-            base = json.load(fh)
+            loaded = json.load(fh)
+        if isinstance(loaded, dict):
+            base = loaded
     except Exception:
         pass
     base.update(
@@ -734,16 +775,24 @@ def obsidian(p, vault):
 """
     snippets = os.path.join(vault, "snippets")
     os.makedirs(snippets, exist_ok=True)
-    with open(os.path.join(snippets, "tinted.css"), "w") as fh:
-        fh.write(css)
+    w(os.path.join(snippets, "tinted.css"), css)
 
     app = os.path.join(vault, "appearance.json")
-    try:
-        with open(app) as fh:
-            a = json.load(fh)
-    except Exception:
+    if os.path.exists(app):
+        try:
+            with open(app) as fh:
+                a = json.load(fh)
+        except json.JSONDecodeError as e:
+            print(f"iris-render: {app} is not valid JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        if not isinstance(a, dict):
+            print(f"iris-render: {app} must be a JSON object", file=sys.stderr)
+            sys.exit(1)
+    else:
         a = {}
     snaps = a.get("enabledCssSnippets", [])
+    if not isinstance(snaps, list):
+        snaps = []
     if "tinted" not in snaps:
         snaps.append("tinted")
     if "code-blocks" not in snaps:
@@ -754,10 +803,7 @@ def obsidian(p, vault):
     a["monospaceFontFamily"] = "IBM Plex Mono"
     a["accentColor"] = p["accent"]
     a["theme"] = "obsidian" if p.get("dark", True) else "moonstone"
-    tmp = app + ".tmp"
-    with open(tmp, "w") as fh:
-        json.dump(a, fh, indent=2)
-    os.replace(tmp, app)
+    w(app, json.dumps(a, indent=2) + "\n")
 
 
 def main():
@@ -768,7 +814,12 @@ def main():
     ap.add_argument("--obsidian-vault", default=None)
     args = ap.parse_args()
 
-    p = json.load(sys.stdin)
+    try:
+        p = json.load(sys.stdin)
+    except json.JSONDecodeError as e:
+        print(f"iris-render: invalid JSON: {e}", file=sys.stderr)
+        sys.exit(1)
+    require_palette(p)
     c = args.config_home
 
     quickshell(
