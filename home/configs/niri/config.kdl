@@ -187,7 +187,7 @@ binds {
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "toggle-bar"; }
     Mod+G hotkey-overlay-title="Toggle Focus/Performance Mode" { spawn "toggle-focus"; }
-    Mod+Alt+V { spawn "noctalia-shell" "ipc" "--any-display" "call" "launcher" "clipboard"; }
+    Mod+Alt+V { spawn "profile-dispatch" "clipboard"; }
     Mod+R { spawn "random-wallpaper"; }
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }

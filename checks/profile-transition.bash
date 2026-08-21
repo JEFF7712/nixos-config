@@ -599,8 +599,11 @@ check_legacy_runtime_regressions() {
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
     "focus mode keeps Noctalia on its normal override"
   assert_log_contains_eventually \
-    "noctalia-shell ipc --any-display call wallpaper random eDP-1 active=noctalia" \
-    "self-themed Noctalia dispatches wallpaper selection through shell IPC"
+    "noctalia msg wallpaper-random eDP-1 active=noctalia" \
+    "self-themed Noctalia dispatches wallpaper selection through noctalia msg"
+  assert_log_contains_eventually \
+    "noctalia msg templates-apply active=noctalia" \
+    "self-themed Noctalia reapplies templates after wallpaper selection"
 
   printf 'off\n' > "$profiles/focus"
   printf 'dark\n' > "$profiles/variant-old"
@@ -758,7 +761,7 @@ printf 'light\n' > "$profiles/variant-new"
 ln -s "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 printf 'mako\n' > "$notification_state"
 
-for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper mako makoctl tmux kitty magick matugen noctalia-shell; do
+for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper mako makoctl tmux kitty magick matugen noctalia-shell noctalia; do
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$COMMAND_LOG"
@@ -911,7 +914,7 @@ active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf 'awww %s active=%s\n' "$*" "$active" >> "$COMMAND_LOG"
 EOF
 
-for command in matugen noctalia-shell; do
+for command in matugen noctalia-shell noctalia; do
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")

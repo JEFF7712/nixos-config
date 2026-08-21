@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # profile-dispatch <action>
 # Routes profile-aware desktop actions to the right backend so niri keybinds
-# stay one-liners. The noctalia bar handles these itself via IPC; everything
-# else uses the generic tools (swayosd, waypaper).
+# stay one-liners. The noctalia bar handles these itself via `noctalia msg`;
+# everything else uses the generic tools (swayosd, waypaper). Clipboard is
+# identical on every profile, so both tables call the same helper rather than
+# a bar-specific command (a shared case before the $BAR branch would hide it
+# from the one-row-per-table convention).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,17 +16,27 @@ ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 BAR="noctalia"
 [ -n "$ACTIVE" ] && BAR=$(profile_bar "$ACTIVE")
 
-# Per action: the noctalia IPC subcommand (appended to `noctalia-shell ipc
-# --any-display call`) and the generic command for every other bar. To add an
-# action, add one row to each table; to add a bar backend, branch on $BAR below.
+clipboard_pick() {
+  local theme selected
+  theme="$HOME/.config/rofi/profile-switcher.rasi"
+  selected=$(cliphist list | rofi -dmenu -i -theme "$theme") || true
+  [ -n "$selected" ] || return 0
+  printf '%s\n' "$selected" | cliphist decode | wl-copy
+}
+
+# Per action: the noctalia 5.0.0 `msg` command (or a helper) and the generic
+# command for every other bar. To add an action, add one row to each table; to
+# add a bar backend, branch on $BAR below.
 declare -A NOCTALIA=(
   [launcher]="vicinae toggle"
-  [wallpaper]="wallpaper toggle"
-  [volume-up]="volume increase"
-  [volume-down]="volume decrease"
-  [volume-mute]="volume muteOutput"
-  [brightness-up]="brightness increase"
-  [brightness-down]="brightness decrease"
+  # panel id unverified; needs a live test on the noctalia profile
+  [wallpaper]="noctalia msg panel-toggle wallpaper"
+  [volume-up]="noctalia msg volume-up"
+  [volume-down]="noctalia msg volume-down"
+  [volume-mute]="noctalia msg volume-mute"
+  [brightness-up]="noctalia msg brightness-up"
+  [brightness-down]="noctalia msg brightness-down"
+  [clipboard]="clipboard_pick"
 )
 declare -A GENERIC=(
   [launcher]="vicinae toggle"
@@ -33,6 +46,7 @@ declare -A GENERIC=(
   [volume-mute]="swayosd-client --output-volume mute-toggle"
   [brightness-up]="swayosd-client --brightness raise --device intel_backlight"
   [brightness-down]="swayosd-client --brightness lower --device intel_backlight"
+  [clipboard]="clipboard_pick"
 )
 
 ACTION="${1:-}"
@@ -47,12 +61,8 @@ fi
 # Word-splitting on the table value is intentional (the commands are trusted
 # constants; $REPO_HOME holds no spaces).
 if [ "$BAR" = "noctalia" ]; then
-  if [ "$ACTION" = "launcher" ]; then
-    ${NOCTALIA[$ACTION]}
-  else
-    # shellcheck disable=SC2086
-    noctalia-shell ipc --any-display call ${NOCTALIA[$ACTION]}
-  fi
+  # shellcheck disable=SC2086
+  ${NOCTALIA[$ACTION]}
 else
   if [ "$ACTION" = "wallpaper" ]; then
     ensure_waypaper_post_command

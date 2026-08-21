@@ -11,7 +11,7 @@ VARIANT=$(cat "$PROFILES_DIR/active-variant" 2>/dev/null || echo "dark")
 if [ "$PROFILE" = "noctalia" ]; then
   stop_video_wallpaper
   while IFS= read -r screen; do
-    noctalia-shell ipc --any-display call wallpaper random "$screen" 2>/dev/null || true
+    noctalia msg wallpaper-random "$screen" 2>/dev/null || true
   done < <(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
   exit 0
 fi

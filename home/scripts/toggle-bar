@@ -31,7 +31,7 @@ toggle_waybar() {
 
 case "$BAR" in
   noctalia)
-    noctalia-shell ipc --any-display call bar toggle
+    noctalia msg bar-toggle
     ;;
   quickshell)
     toggle_quickshell
