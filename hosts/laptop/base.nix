@@ -194,8 +194,10 @@
   programs.nix-agent = {
     enable = true;
     flake = /home/rupan/nixos;
-    # v0.9.1 only emits `--flake <dir>*`, and sudo fnmatch `*` matches `/` and `#`.
-    # Equivalent exact/ERE rules are in extraRules below.
+    # The module's `--flake <dir>*` glob is still too wide: sudo fnmatch `*`
+    # matches `/` and `#`. Keep it off; extraRules below already NOPASSWD
+    # nix-agent's sudo -n argv (exact flake refs, rollback, switch-generation,
+    # profile switch-to-configuration).
     privilegedAutomation.enable = false;
   };
 
