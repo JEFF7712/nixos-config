@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Detects rot in ~/.local/bin: imperative (non-symlink) scripts that hardcode a
-# /nix/store path which has been (or will be) garbage-collected. This is the
-# failure mode that broke the old `codex` bridge — a hand-written wrapper that
-# `exec`'d a store path never registered as a GC root, so an ai-tools bump +
-# `nh clean` left it dangling. Since ~/.local/bin shadows the home-manager
-# profile in PATH, such rot is invisible until the command is run.
+# Detects rot in imperative (non-symlink) files that hardcode a /nix/store path
+# which has been (or will be) garbage-collected. This is the failure mode that
+# broke the old `codex` bridge (a hand-written ~/.local/bin wrapper) and later
+# Mod+Space (a user systemd drop-in pinning vicinae ExecStart to a GC'd path).
+# Those paths are never registered as GC roots, so an update + `nh clean` leaves
+# them dangling. ~/.local/bin shadows the home-manager profile in PATH, and
+# *.service.d drop-ins override the generation-rooted unit, so the rot is
+# invisible until the command or service is run.
 #
 # HM-managed symlinks (into the current generation's store output) are skipped:
 # they are rooted by the live generation and regenerate on every switch.
@@ -15,54 +17,79 @@
 set -euo pipefail
 
 BIN_DIR="${LOCAL_BIN_DIR:-$HOME/.local/bin}"
-
-if [ ! -d "$BIN_DIR" ]; then
-  echo "local-bin-rot: $BIN_DIR does not exist, nothing to check."
-  exit 0
-fi
+DROPIN_DIR="${SYSTEMD_USER_DIR:-$HOME/.config/systemd/user}"
 
 errors=0
 warnings=0
 
-for f in "$BIN_DIR"/*; do
-  # Only imperative regular files. Symlinks are HM out-of-store or profile-rooted.
-  [ -L "$f" ] && continue
-  [ -f "$f" ] || continue
+scan_file() {
+  local f=$1
+  local require_shebang=$2
+  local base roots root
 
-  # Text files only (skip binaries dropped here by installers).
-  head -c 2 "$f" 2>/dev/null | grep -q '#!' || continue
+  [ -L "$f" ] && return 0
+  [ -f "$f" ] || return 0
 
-  # Collect store roots referenced anywhere in the file (shebang + exec lines).
+  if [ "$require_shebang" = 1 ]; then
+    head -c 2 "$f" 2>/dev/null | grep -q '#!' || return 0
+  fi
+
   mapfile -t roots < <(
     grep -oE '/nix/store/[a-z0-9]{32}-[^/[:space:]"'\'':]+' "$f" 2>/dev/null \
       | sed -E 's#(/nix/store/[a-z0-9]{32}-[^/]+).*#\1#' \
       | sort -u
   )
-  [ "${#roots[@]}" -eq 0 ] && continue
+  [ "${#roots[@]}" -eq 0 ] && return 0
 
   base="$(basename "$f")"
+  if [[ "$f" == *.d/* ]]; then
+    base="$(basename "$(dirname "$f")")/$(basename "$f")"
+  fi
+
   for root in "${roots[@]}"; do
     if [ ! -e "$root" ]; then
-      printf 'ERROR  %-22s -> DEAD store path %s\n' "$base" "$root"
+      printf 'ERROR  %-28s -> DEAD store path %s\n' "$base" "$root"
       errors=$((errors + 1))
     else
-      printf 'WARN   %-22s -> unrooted store path %s\n' "$base" "$root"
+      printf 'WARN   %-28s -> unrooted store path %s\n' "$base" "$root"
       warnings=$((warnings + 1))
     fi
   done
-done
+}
+
+if [ -d "$BIN_DIR" ]; then
+  shopt -s nullglob
+  for f in "$BIN_DIR"/*; do
+    scan_file "$f" 1
+  done
+  shopt -u nullglob
+fi
+
+# User drop-ins override HM units. Scan *.service.d/*.conf only — full
+# imperative units (pod-agent etc.) are a different category.
+if [ -d "$DROPIN_DIR" ]; then
+  shopt -s nullglob
+  for d in "$DROPIN_DIR"/*.service.d "$DROPIN_DIR"/*.timer.d "$DROPIN_DIR"/*.slice.d; do
+    [ -d "$d" ] || continue
+    for f in "$d"/*.conf; do
+      scan_file "$f" 0
+    done
+  done
+  shopt -u nullglob
+fi
 
 echo
 if [ "$errors" -gt 0 ]; then
   echo "local-bin-rot: $errors dead reference(s), $warnings unrooted warning(s)."
-  echo "Fix: remove the stale imperative script, or replace it with a home-manager"
-  echo "wrapper / uv venv. Prefer the declarative profile binary over ~/.local/bin."
+  echo "Fix: remove the stale imperative file, or replace it with a home-manager"
+  echo "wrapper / unit. Prefer the declarative profile binary over hardcoded store paths."
   exit 1
 fi
 
 if [ "$warnings" -gt 0 ]; then
   echo "local-bin-rot: no dead references; $warnings unrooted store reference(s)"
-  echo "(will rot on the next package bump + gc). Consider migrating to uv venvs."
+  echo "(will rot on the next package bump + gc). Consider migrating to uv venvs"
+  echo "or a home-manager unit."
 else
   echo "local-bin-rot: clean."
 fi
