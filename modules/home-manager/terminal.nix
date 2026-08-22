@@ -56,10 +56,11 @@
     home.packages = with pkgs; [
       eza
       bat
-      tealdeer
       fzf
       kitty
     ];
+
+    programs.tealdeer.enable = true;
 
     programs.bash = {
       enable = true;
