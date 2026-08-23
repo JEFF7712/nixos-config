@@ -284,13 +284,13 @@ PanelWindow {
 
                 Behavior on color {
                     ColorAnimation {
-                        duration: 240
+                        duration: topbarWindow.hoverMs
                         easing.type: Easing.OutCubic
                     }
                 }
                 Behavior on border.color {
                     ColorAnimation {
-                        duration: 240
+                        duration: topbarWindow.hoverMs
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -376,7 +376,7 @@ PanelWindow {
                 color: mediaMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : mediaMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : topbarWindow.pillBg
                 Behavior on color {
                     ColorAnimation {
-                        duration: 240
+                        duration: topbarWindow.hoverMs
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -385,17 +385,17 @@ PanelWindow {
                 border.color: mediaMouse.containsMouse ? Qt.rgba(mediaPill.tint.r, mediaPill.tint.g, mediaPill.tint.b, 0.55) : topbarWindow.pillBorder
                 Behavior on border.color {
                     ColorAnimation {
-                        duration: 240
+                        duration: topbarWindow.hoverMs
                         easing.type: Easing.OutCubic
                     }
                 }
 
-                scale: mediaPill.flat ? 1.0 : (mediaMouse.pressed ? 0.94 : 1.0)
+                scale: mediaPill.flat ? 1.0 : (mediaMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.94) : 1.0)
                 Behavior on scale {
                     SpringAnimation {
-                        spring: 3
-                        damping: 0.55
-                        mass: 0.8
+                        spring: topbarWindow.dryMotion ? 7 : 3
+                        damping: topbarWindow.dryMotion ? 1.0 : 0.55
+                        mass: topbarWindow.dryMotion ? 0.45 : 0.8
                     }
                 }
 
@@ -406,7 +406,7 @@ PanelWindow {
                     opacity: mediaMouse.containsMouse ? 0.18 : 0.0
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 280
+                            duration: topbarWindow.hoverMs
                             easing.type: Easing.OutCubic
                         }
                     }
@@ -426,7 +426,7 @@ PanelWindow {
                         }
                         Behavior on color {
                             ColorAnimation {
-                                duration: 260
+                                duration: topbarWindow.hoverMs
                                 easing.type: Easing.OutCubic
                             }
                         }
@@ -575,7 +575,7 @@ PanelWindow {
             color: (wsRoot.flat && topbarWindow.showWorkspaceNumbers) ? "transparent" : wsRoot.noNumbers ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, wsRoot.isActive ? 1.0 : wsMouse.containsMouse ? 0.7 : wsRoot.isOccupied ? 0.55 : 0.25) : (wsMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : wsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025))
             Behavior on color {
                 ColorAnimation {
-                    duration: 240
+                    duration: topbarWindow.hoverMs
                     easing.type: Easing.OutCubic
                 }
             }
@@ -584,17 +584,17 @@ PanelWindow {
             border.color: wsRoot.isActive ? "transparent" : wsMouse.containsMouse ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, 0.55) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.16 : 0.06)
             Behavior on border.color {
                 ColorAnimation {
-                    duration: 320
+                    duration: topbarWindow.dryMotion ? 150 : 320
                     easing.type: Easing.OutCubic
                 }
             }
 
-            scale: wsRoot.flat ? 1.0 : (wsMouse.pressed ? 0.94 : (wsMouse.containsMouse ? 1.06 : 1.0))
+            scale: wsRoot.flat ? 1.0 : (wsMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.94) : (topbarWindow.dryMotion ? 1.0 : (wsMouse.containsMouse ? 1.06 : 1.0)))
             Behavior on scale {
                 SpringAnimation {
-                    spring: 3
-                    damping: 0.55
-                    mass: 0.8
+                    spring: topbarWindow.dryMotion ? 7 : 3
+                    damping: topbarWindow.dryMotion ? 1.0 : 0.55
+                    mass: topbarWindow.dryMotion ? 0.45 : 0.8
                 }
             }
 
@@ -605,8 +605,8 @@ PanelWindow {
                 opacity: wsRoot.isActive && (!wsRoot.noNumbers || wsRoot.flat) ? 1.0 : 0.0
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 320
-                        easing.type: Easing.OutQuart
+                        duration: topbarWindow.activeFillMs
+                        easing.type: topbarWindow.dryMotion ? Easing.OutCubic : Easing.OutQuart
                     }
                 }
             }
@@ -621,7 +621,7 @@ PanelWindow {
                     pixelSize: wsRoot.isActive ? 12 : 11
                     weight: wsRoot.isActive ? Font.Bold : Font.Medium
                 }
-                scale: wsMouse.pressed ? 0.9 : (wsMouse.containsMouse ? 1.08 : 1.0)
+                scale: wsMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.9) : (topbarWindow.dryMotion ? 1.0 : (wsMouse.containsMouse ? 1.08 : 1.0))
                 Behavior on scale {
                     SpringAnimation {
                         spring: 4
@@ -631,7 +631,7 @@ PanelWindow {
                 }
                 Behavior on color {
                     ColorAnimation {
-                        duration: 260
+                        duration: topbarWindow.hoverMs
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -694,7 +694,7 @@ PanelWindow {
             color: statMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : statMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : topbarWindow.pillBg
             Behavior on color {
                 ColorAnimation {
-                    duration: 240
+                    duration: topbarWindow.hoverMs
                     easing.type: Easing.OutCubic
                 }
             }
@@ -703,17 +703,17 @@ PanelWindow {
             border.color: statMouse.containsMouse ? Qt.rgba(statRoot.tint.r, statRoot.tint.g, statRoot.tint.b, 0.55) : topbarWindow.pillBorder
             Behavior on border.color {
                 ColorAnimation {
-                    duration: 240
+                    duration: topbarWindow.hoverMs
                     easing.type: Easing.OutCubic
                 }
             }
 
-            scale: statRoot.flat ? 1.0 : (statMouse.pressed ? 0.94 : 1.0)
+            scale: statRoot.flat ? 1.0 : (statMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.94) : 1.0)
             Behavior on scale {
                 SpringAnimation {
-                    spring: 3
-                    damping: 0.55
-                    mass: 0.8
+                    spring: topbarWindow.dryMotion ? 7 : 3
+                    damping: topbarWindow.dryMotion ? 1.0 : 0.55
+                    mass: topbarWindow.dryMotion ? 0.45 : 0.8
                 }
             }
 
@@ -724,7 +724,7 @@ PanelWindow {
                 opacity: statMouse.containsMouse ? 0.18 : 0.0
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 280
+                        duration: topbarWindow.hoverMs
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -741,7 +741,7 @@ PanelWindow {
                     Layout.preferredHeight: 16
                     Layout.alignment: Qt.AlignVCenter
                     readonly property color iconColor: (statRoot.tintIcon || statMouse.containsMouse) ? statRoot.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
-                    scale: statMouse.pressed ? 0.9 : (statMouse.containsMouse ? 1.08 : 1.0)
+                    scale: statMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.9) : (topbarWindow.dryMotion ? 1.0 : (statMouse.containsMouse ? 1.08 : 1.0))
                     transformOrigin: Item.Center
                     Behavior on scale {
                         SpringAnimation {
@@ -765,7 +765,7 @@ PanelWindow {
                         }
                         Behavior on color {
                             ColorAnimation {
-                                duration: 260
+                                duration: topbarWindow.hoverMs
                                 easing.type: Easing.OutCubic
                             }
                         }
@@ -824,7 +824,7 @@ PanelWindow {
                         Behavior on opacity {
                             enabled: !statRoot.slideValue
                             NumberAnimation {
-                                duration: 160
+                                duration: topbarWindow.valueMs
                                 easing.type: Easing.OutCubic
                             }
                         }
