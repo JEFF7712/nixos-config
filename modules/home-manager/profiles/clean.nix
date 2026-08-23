@@ -67,9 +67,7 @@ in
     quickshellTheme = {
       fg = "#ffffff";
       bg = "#66101010";
-      # Popups have no compositor blur (unlike the bar), so they need more
-      # opacity and a darker RGB or wallpaper wash turns them into mid-grey.
-      popupBg = "#ee0a0a0a";
+      popupBg = "#66101010";
       rawBg = "#101010";
       accent = "#ffffff";
       second = "#e8e8e8";
@@ -103,7 +101,7 @@ in
       gtkThemeLight = null;
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
-      kittyOpacity = 0.78;
+      kittyOpacity = 0.4;
     };
 
     wallpaperDir = "${config.assetsPath}/wallpapers/clean";
@@ -167,6 +165,13 @@ in
         layer-rule {
             match namespace="^quickshell-popup$"
             geometry-corner-radius 15
+            opacity 0.9
+            background-effect {
+                blur true
+                xray false
+                noise 0.015
+                saturation 1.25
+            }
         }
 
         layer-rule {
@@ -217,6 +222,19 @@ in
                 xray true
                 noise 0.015
                 saturation 1.2
+            }
+        }
+
+        // Same glass as the bar: 0.4 client fill × 0.9 compositor opacity,
+        // wallpaper-tinted blur (xray is fine on real windows).
+        window-rule {
+            match app-id="kitty"
+            opacity 0.9
+            background-effect {
+                blur true
+                xray true
+                noise 0.015
+                saturation 1.25
             }
         }
       '';
