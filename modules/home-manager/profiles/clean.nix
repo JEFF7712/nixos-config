@@ -76,6 +76,8 @@ in
       barHeight = "38";
       showClockDate = "false";
       popupAnimationStyle = "quickFade";
+      motionStyle = "dry";
+      showWorkspaceIndicator = "false";
       barFont = "JetBrainsMono Nerd Font";
     };
 
