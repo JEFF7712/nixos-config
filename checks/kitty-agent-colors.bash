@@ -15,15 +15,16 @@ assert_eq() {
   fi
 }
 
-# Dark clean-style background: prompt mix must be the first color.
+# Dark clean-style background: Agent prompt/user, Codex pill, Claude fills.
 got="$(python3 "$HELPER" --background '#131415' --print)"
-assert_eq "$got" '#1f2021 #151515 #434344 #292a30 #242428 #474848 #333025' \
-  "dark #131415 prompt/user mixes"
+assert_eq "$got" '#1f2021 #151515 #292a30 #242428 #2f3031 #373737 #262626' \
+  "dark #131415 Agent mixes plus Codex pill plus Claude theme fills"
 
-# Light background uses the light tints first.
+# Light background uses the light tints first, then Codex's black@0.04 blend,
+# then Claude's light theme tokens.
 got="$(python3 "$HELPER" --background '#eceff4' --print)"
-assert_eq "$got" '#e5e7eb #f2f2f2 #ccced2 #d8dadd #e8e8e8 #b9bbc4 #dedac5' \
-  "light #eceff4 prompt/user mixes"
+assert_eq "$got" '#e5e7eb #f2f2f2 #d8dadd #e8e8e8 #e2e5ea #f0f0f0 #f5f5f5' \
+  "light #eceff4 Agent mixes plus Codex pill plus Claude theme fills"
 
 # No colors.conf / no background line: leave kitty.conf untouched.
 mkdir -p "$tmpdir/empty"
@@ -60,7 +61,7 @@ printf 'background_opacity 1.0\ntransparent_background_colors #deadbe\n' \
 . "$REPO_ROOT/home/scripts/profile-common"
 sync_kitty_agent_transparent_colors "$HOME/.config/kitty"
 got="$(sed -n 's/^transparent_background_colors //p' "$HOME/.config/kitty/kitty.conf")"
-assert_eq "$got" '#1f2021 #151515 #434344 #292a30 #242428 #474848 #333025' \
+assert_eq "$got" '#1f2021 #151515 #292a30 #242428 #2f3031 #373737 #262626' \
   "profile-common sync_kitty_agent_transparent_colors"
 
 echo "OK: kitty-agent-colors.bash"

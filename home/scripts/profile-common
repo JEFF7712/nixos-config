@@ -21,9 +21,9 @@ CONFIG_HOME="$HOME/.config"
 OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
 WAYPAPER_POST_COMMAND='$HOME/.local/bin/waypaper-backend-sync'
 
-# Cursor Agent paints prompt/message chrome as mixed ANSI fills. Kitty only
-# tints exact background matches (max 7). Rewrite those colors from the
-# active colors.conf so profile/wallpaper switches stay matched.
+# Cursor Agent, Codex, and Claude paint prompt/message chrome as ANSI fills.
+# Kitty only tints exact background matches (max 7). Rewrite those colors
+# from the active colors.conf so profile/wallpaper switches stay matched.
 sync_kitty_agent_transparent_colors() {
   local kitty_dir="$1"
   local helper

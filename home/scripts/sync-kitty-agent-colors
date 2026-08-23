@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Rewrite kitty transparent_background_colors from the active colors.conf.
 
-Cursor Agent paints prompt/message chrome as mixed ANSI fills. Kitty only
-tints cells whose background matches exactly (max 7 colors). Recompute those
-mixes from the current terminal background so profile switches stay matched.
+Cursor Agent and Codex mix prompt/message chrome from the terminal background.
+Claude Code uses hardcoded theme tokens. Kitty only tints cells whose
+background matches exactly (max 7 colors). Recompute Agent/Codex mixes from
+the current terminal background and pick Claude's dark or light tokens so
+profile switches stay matched.
 """
 from __future__ import annotations
 
@@ -12,17 +14,26 @@ import os
 import re
 import sys
 
-# Cursor Agent constants.ts tints (prompt + user-message + follow-up).
+# Cursor Agent constants.ts tints (prompt + user-message). Follow-up mixes
+# were dropped so Claude's hardcoded fills fit in Kitty's 7-color budget.
 DARK = {
     "prompt": ("#505050", 0.95, "#151515"),
     "user": ("#555566", 0.82, "#242428"),
-    "followup": ("#6a6040", 0.78, "#2e2818"),
 }
 LIGHT = {
     "prompt": ("#d0d0d0", 0.90, "#f2f2f2"),
     "user": ("#b0b0b0", 0.82, "#e8e8e8"),
-    "followup": ("#c8b878", 0.78, "#f5efe0"),
 }
+
+# Codex TUI style.rs user_message_bg: blend white@0.12 on dark, black@0.04 on
+# light (f32 truncating `as u8`). Composer and sent messages share this fill.
+CODEX_DARK_ALPHA = 0.12
+CODEX_LIGHT_ALPHA = 0.04
+
+# Claude Code bundled theme: userMessageBackground + composerSidebarBackground.
+# Dark/light-daltonized variants differ; auto follows colors.conf luminance.
+CLAUDE_DARK = ("#373737", "#262626")
+CLAUDE_LIGHT = ("#f0f0f0", "#f5f5f5")
 
 BG_RE = re.compile(r"^background\s+(#[0-9A-Fa-f]{6})\b", re.MULTILINE)
 LINE_RE = re.compile(r"^transparent_background_colors\b.*$", re.MULTILINE)
@@ -59,10 +70,40 @@ def mix(bg: tuple[int, int, int], tint_hex: str, mix_ratio: float) -> tuple[int,
     )
 
 
+def rust_trunc_channel(fg: int, bg: int, alpha: float) -> int:
+    value = fg * alpha + bg * (1.0 - alpha)
+    if value < 0:
+        return 0
+    if value > 255:
+        return 255
+    return int(value)
+
+
+def rust_blend(
+    fg: tuple[int, int, int], bg: tuple[int, int, int], alpha: float
+) -> tuple[int, int, int]:
+    return (
+        rust_trunc_channel(fg[0], bg[0], alpha),
+        rust_trunc_channel(fg[1], bg[1], alpha),
+        rust_trunc_channel(fg[2], bg[2], alpha),
+    )
+
+
+def codex_is_light(bg: tuple[int, int, int]) -> bool:
+    r, g, b = bg
+    return 0.299 * r + 0.587 * g + 0.114 * b > 128.0
+
+
+def codex_user_message_bg(bg: tuple[int, int, int]) -> tuple[int, int, int]:
+    if codex_is_light(bg):
+        return rust_blend((0, 0, 0), bg, CODEX_LIGHT_ALPHA)
+    return rust_blend((255, 255, 255), bg, CODEX_DARK_ALPHA)
+
+
 def colors_for_background(bg_hex: str) -> list[str]:
     bg = parse_hex(bg_hex)
     light = luminance(bg) > 0.6
-    primary, secondary = (LIGHT, DARK) if light else (DARK, LIGHT)
+    primary = LIGHT if light else DARK
     ordered: list[str] = []
     seen: set[str] = set()
 
@@ -72,12 +113,17 @@ def colors_for_background(bg_hex: str) -> list[str]:
             seen.add(c)
             ordered.append(c)
 
-    for slot in ("prompt", "user", "followup"):
+    # Current-variant Agent fills first (remix on profile/variant switch), then
+    # Codex's shared composer/message pill, then Claude's hardcoded theme
+    # tokens. Opposite-variant mixes used to burn two of the seven slots and
+    # never matched a live TUI. Agent follow-up fills lost the remaining slots.
+    for slot in ("prompt", "user"):
         tint, ratio, fallback = primary[slot]
         add(fmt_hex(mix(bg, tint, ratio)))
         add(fallback)
-        tint, ratio, _fallback = secondary[slot]
-        add(fmt_hex(mix(bg, tint, ratio)))
+    add(fmt_hex(codex_user_message_bg(bg)))
+    for color in CLAUDE_LIGHT if light else CLAUDE_DARK:
+        add(color)
     return ordered[:MAX_COLORS]
 
 
