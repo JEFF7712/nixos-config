@@ -292,7 +292,8 @@ ShellRoot {
 
     readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active
 
-    function showOnly(target) {
+    function showOnly(target, centerX) {
+        target.anchorCenterX = (centerX === undefined || centerX === null) ? -1 : centerX;
         const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
         for (const p of popups) {
             if (p !== target)
@@ -357,14 +358,14 @@ ShellRoot {
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         notificationCount: NotifService.count
-        onVolumeClicked: root.showOnly(volumePopup)
-        onWifiClicked: root.showOnly(wifiPopup)
-        onBluetoothClicked: root.showOnly(bluetoothPopup)
-        onBatteryClicked: root.showOnly(batteryPopup)
-        onClockClicked: root.showOnly(calendarPopup)
-        onNotificationsClicked: root.showOnly(notificationsPopup)
-        onSystemClicked: root.showOnly(systemPopup)
-        onMediaClicked: root.showOnly(mediaPopup)
+        onVolumeClicked: centerX => root.showOnly(volumePopup, centerX)
+        onWifiClicked: centerX => root.showOnly(wifiPopup, centerX)
+        onBluetoothClicked: centerX => root.showOnly(bluetoothPopup, centerX)
+        onBatteryClicked: centerX => root.showOnly(batteryPopup, centerX)
+        onClockClicked: centerX => root.showOnly(calendarPopup, centerX)
+        onNotificationsClicked: centerX => root.showOnly(notificationsPopup, centerX)
+        onSystemClicked: centerX => root.showOnly(systemPopup, centerX)
+        onMediaClicked: centerX => root.showOnly(mediaPopup, centerX)
     }
 
     VolumePopup {
