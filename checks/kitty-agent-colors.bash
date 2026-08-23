@@ -15,16 +15,17 @@ assert_eq() {
   fi
 }
 
-# Dark clean-style background: Agent prompt/user, Codex pill, OpenCode system
-# panel/composer grays plus bundled base, Claude user-message fill.
+# Dark clean-style background: Agent prompt/user, Codex pill, OpenCode panel
+# gray plus bundled base, Claude fills. The composer gray is transparent in
+# the glass theme, so its slot is freed for Claude's second token.
 got="$(python3 "$HELPER" --background '#131415' --print)"
-assert_eq "$got" '#1f2021 #292a30 #2f3031 #222325 #292b2d #0a0a0a #373737' \
+assert_eq "$got" '#1f2021 #292a30 #2f3031 #222325 #0a0a0a #373737 #262626' \
   "dark #131415 Agent mixes plus Codex pill plus OpenCode plus Claude fills"
 
 # Light background uses the light tints first, then Codex's black@0.04 blend,
-# then OpenCode's light system grays and bundled base, then Claude's token.
+# then OpenCode's panel gray and bundled base, then Claude's tokens.
 got="$(python3 "$HELPER" --background '#eceff4' --print)"
-assert_eq "$got" '#e5e7eb #d8dadd #e2e5ea #dcdfe3 #d4d7db #ffffff #f0f0f0' \
+assert_eq "$got" '#e5e7eb #d8dadd #e2e5ea #dcdfe3 #ffffff #f0f0f0 #f5f5f5' \
   "light #eceff4 Agent mixes plus Codex pill plus OpenCode plus Claude fills"
 
 # No colors.conf / no background line: leave kitty.conf untouched.
@@ -62,7 +63,48 @@ printf 'background_opacity 1.0\ntransparent_background_colors #deadbe\n' \
 . "$REPO_ROOT/home/scripts/profile-common"
 sync_kitty_agent_transparent_colors "$HOME/.config/kitty"
 got="$(sed -n 's/^transparent_background_colors //p' "$HOME/.config/kitty/kitty.conf")"
-assert_eq "$got" '#1f2021 #292a30 #2f3031 #222325 #292b2d #0a0a0a #373737' \
+assert_eq "$got" '#1f2021 #292a30 #2f3031 #222325 #0a0a0a #373737 #262626' \
   "profile-common sync_kitty_agent_transparent_colors"
+
+# Glass opencode theme: derived from kitty palette, composer transparent so the
+# fg-drawn half-block band vanishes. Also flips kv theme system->glass.
+export XDG_CONFIG_HOME="$tmpdir/xdg-config"
+export XDG_STATE_HOME="$tmpdir/xdg-state"
+mkdir -p "$tmpdir/theme-live/.config/kitty"
+cat > "$tmpdir/theme-live/.config/kitty/colors.conf" <<'EOF'
+background #131415
+foreground #f2f2f2
+color0  #1e2022
+color1  #e3e5e7
+color2  #c6c8ca
+color3  #c6c8ca
+color4  #c6c8ca
+color5  #c6c8ca
+color6  #c6c8ca
+color7  #f2f2f2
+color8  #5a5f64
+color9  #e3e5e7
+color10 #f2f2f2
+color11 #f2f2f2
+color12 #f2f2f2
+color13 #f2f2f2
+color14 #f2f2f2
+color15 #f4f5f5
+EOF
+printf 'background_opacity 0.4\n' > "$tmpdir/theme-live/.config/kitty/kitty.conf"
+mkdir -p "$XDG_STATE_HOME/opencode"
+printf '{"theme":"system","sidebar":"auto"}\n' > "$XDG_STATE_HOME/opencode/kv.json"
+XDG_CONFIG_HOME="$tmpdir/theme-live/.config" XDG_STATE_HOME="$XDG_STATE_HOME" python3 "$HELPER" "$tmpdir/theme-live/.config/kitty"
+if [ ! -f "$tmpdir/theme-live/.config/opencode/themes/glass.json" ]; then
+  echo "FAIL: glass theme not written" >&2; exit 1
+fi
+got_panel="$(python3 -c "import json;print(json.load(open('$tmpdir/theme-live/.config/opencode/themes/glass.json'))['theme']['backgroundPanel'])")"
+assert_eq "$got_panel" '#222325' "glass theme backgroundPanel grays[2]"
+got_elem="$(python3 -c "import json;print(json.load(open('$tmpdir/theme-live/.config/opencode/themes/glass.json'))['theme']['backgroundElement'])")"
+assert_eq "$got_elem" 'transparent' "glass theme backgroundElement transparent (band gone)"
+got_menu="$(python3 -c "import json;print(json.load(open('$tmpdir/theme-live/.config/opencode/themes/glass.json'))['theme']['backgroundMenu'])")"
+assert_eq "$got_menu" '#222325' "glass theme backgroundMenu mirrors panel"
+got_kv="$(python3 -c "import json;print(json.load(open('$XDG_STATE_HOME/opencode/kv.json'))['theme'])")"
+assert_eq "$got_kv" 'glass' "kv theme system->glass"
 
 echo "OK: kitty-agent-colors.bash"

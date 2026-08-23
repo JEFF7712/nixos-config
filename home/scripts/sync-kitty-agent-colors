@@ -3,15 +3,17 @@
 
 Cursor Agent and Codex mix prompt/message chrome from the terminal background.
 Claude Code uses hardcoded theme fills. OpenCode's "system" theme derives
-panel/element fills from the terminal palette; its bundled theme clears cells
-with fixed steps. Kitty only tints cells whose background matches exactly
-(max 7 colors). Recompute Agent/Codex/OpenCode mixes from the current terminal
-background and pick Claude's dark or light tokens so profile switches stay
-matched.
+panel/element fills from the terminal palette; a generated "glass" theme keeps
+the composer/menu transparent so the half-block border band disappears. The
+bundled "opencode" theme clears cells with fixed steps. Kitty only tints cells
+whose background matches exactly (max 7 colors). Recompute Agent/Codex/OpenCode
+mixes from the current terminal background, pick Claude's dark or light tokens,
+and regenerate the glass theme so profile switches stay matched.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -34,19 +36,25 @@ CODEX_LIGHT_ALPHA = 0.04
 
 # OpenCode theme/index.ts generateSystem (kv default theme "system"): the
 # renderer background is transparent, panels paint grays[2] and the composer/
-# menus paint grays[3], derived from the terminal background at startup.
-OPENCODE_GRAY_SLOTS = (2, 3)
+# menus paint grays[3], derived from the terminal background at startup. The
+# generated "glass" theme mirrors that math but keeps backgroundElement (and
+# renderer background) transparent so the composer is fully glass and the
+# half-block bottom border (fg-drawn, untintable) vanishes. backgroundMenu
+# intentionally reuses the panel gray so the composer's former slot is free
+# for Claude's second token.
+OPENCODE_PANEL_SLOT = 2
 # The bundled "opencode" theme instead clears every cell with fixed steps;
 # only the base background fits the remaining slot.
 OPENCODE_BUNDLED_DARK = "#0a0a0a"
 OPENCODE_BUNDLED_LIGHT = "#ffffff"
 
-# Claude Code bundled theme userMessageBackground. composerSidebarBackground
-# lost its slot to OpenCode's fills; auto follows colors.conf luminance.
-CLAUDE_DARK = "#373737"
-CLAUDE_LIGHT = "#f0f0f0"
+# Claude Code bundled theme userMessageBackground + composerSidebarBackground.
+CLAUDE_DARK = ("#373737", "#262626")
+CLAUDE_LIGHT = ("#f0f0f0", "#f5f5f5")
 
 BG_RE = re.compile(r"^background\s+(#[0-9A-Fa-f]{6})\b", re.MULTILINE)
+FG_RE = re.compile(r"^foreground\s+(#[0-9A-Fa-f]{6})\b", re.MULTILINE)
+COLOR_RE = re.compile(r"^color(\d+)\s+(#[0-9A-Fa-f]{6})\b", re.MULTILINE)
 LINE_RE = re.compile(r"^transparent_background_colors\b.*$", re.MULTILINE)
 MAX_COLORS = 7
 
@@ -133,6 +141,31 @@ def opencode_system_gray(bg: tuple[int, int, int], slot: int, light: bool) -> tu
     )
 
 
+def opencode_muted_text(bg: tuple[int, int, int], light: bool) -> tuple[int, int, int]:
+    lum = 0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]
+    if not light:
+        if lum < 10:
+            gray = 180
+        else:
+            gray = min(int(160 + lum * 0.3), 200)
+    else:
+        if lum > 245:
+            gray = 75
+        else:
+            gray = max(int(100 - (255 - lum) * 0.2), 60)
+    return (gray, gray, gray)
+
+
+def oc_tint(
+    base: tuple[int, int, int], overlay: tuple[int, int, int], alpha: float
+) -> tuple[int, int, int]:
+    return (
+        js_round(base[0] + (overlay[0] - base[0]) * alpha),
+        js_round(base[1] + (overlay[1] - base[1]) * alpha),
+        js_round(base[2] + (overlay[2] - base[2]) * alpha),
+    )
+
+
 def colors_for_background(bg_hex: str) -> list[str]:
     bg = parse_hex(bg_hex)
     light = luminance(bg) > 0.6
@@ -147,17 +180,18 @@ def colors_for_background(bg_hex: str) -> list[str]:
             ordered.append(c)
 
     # Current-variant Agent fills first (remix on profile/variant switch), then
-    # Codex's shared composer/message pill, then OpenCode's derived system-theme
-    # panel/composer fills plus its bundled base, then Claude's user-message
-    # token. Agent fallbacks and Claude's sidebar token lost their slots.
+    # Codex's shared composer/message pill, then OpenCode's derived panel fill
+    # (glass theme keeps the composer transparent, so only the panel gray is
+    # painted), then the bundled opencode base, then Claude's two hardcoded
+    # tokens. Agent fallbacks lost their slots.
     for slot in ("prompt", "user"):
         tint, ratio = primary[slot]
         add(fmt_hex(mix(bg, tint, ratio)))
     add(fmt_hex(codex_user_message_bg(bg)))
-    for slot in OPENCODE_GRAY_SLOTS:
-        add(fmt_hex(opencode_system_gray(bg, slot, light)))
+    add(fmt_hex(opencode_system_gray(bg, OPENCODE_PANEL_SLOT, light)))
     add(OPENCODE_BUNDLED_LIGHT if light else OPENCODE_BUNDLED_DARK)
-    add(CLAUDE_LIGHT if light else CLAUDE_DARK)
+    for color in CLAUDE_LIGHT if light else CLAUDE_DARK:
+        add(color)
     return ordered[:MAX_COLORS]
 
 
@@ -194,6 +228,127 @@ def apply_line(kitty_conf: str, colors: list[str]) -> None:
         fh.write(text)
 
 
+def read_palette(colors_conf: str) -> dict[str, str] | None:
+    try:
+        text = open(colors_conf, encoding="utf-8").read()
+    except OSError:
+        return None
+    bg = BG_RE.search(text)
+    fg = FG_RE.search(text)
+    if not bg or not fg:
+        return None
+    palette: dict[str, str] = {
+        "background": bg.group(1),
+        "foreground": fg.group(1),
+    }
+    for m in COLOR_RE.finditer(text):
+        palette[f"color{m.group(1)}"] = m.group(2)
+    needed = ["color0", "color1", "color2", "color3", "color4", "color5", "color6", "color7", "color9", "color10"]
+    if any(k not in palette for k in needed):
+        return None
+    return palette
+
+
+def write_opencode_glass_theme(palette: dict[str, str], light: bool) -> None:
+    bg = parse_hex(palette["background"])
+    fg = parse_hex(palette["foreground"])
+    grays = {i: opencode_system_gray(bg, i, light) for i in (2, 6, 7, 8)}
+    muted = opencode_muted_text(bg, light)
+    ansi = {k: parse_hex(palette[k]) for k in ("color1", "color2", "color3", "color4", "color5", "color6", "color7", "color9", "color10")}
+    # Map ANSI roles like generateSystem.
+    red, green, yellow = ansi["color1"], ansi["color2"], ansi["color3"]
+    blue, magenta, cyan = ansi["color4"], ansi["color5"], ansi["color6"]
+    white, red_bright, green_bright = ansi["color7"], ansi["color9"], ansi["color10"]
+    diff_alpha = 0.14 if light else 0.22
+    grays2 = grays[2]
+    theme = {
+        "$schema": "https://opencode.ai/theme.json",
+        "theme": {
+            "primary": fmt_hex(cyan),
+            "secondary": fmt_hex(magenta),
+            "accent": fmt_hex(cyan),
+            "error": fmt_hex(red),
+            "warning": fmt_hex(yellow),
+            "success": fmt_hex(green),
+            "info": fmt_hex(cyan),
+            "text": fmt_hex(fg),
+            "textMuted": fmt_hex(muted),
+            "selectedListItemText": fmt_hex(bg),
+            "background": "transparent",
+            "backgroundPanel": fmt_hex(grays[2]),
+            "backgroundElement": "transparent",
+            "backgroundMenu": fmt_hex(grays[2]),
+            "borderSubtle": fmt_hex(grays[6]),
+            "border": fmt_hex(grays[7]),
+            "borderActive": fmt_hex(grays[8]),
+            "diffAdded": fmt_hex(green),
+            "diffRemoved": fmt_hex(red),
+            "diffContext": fmt_hex(grays[7]),
+            "diffHunkHeader": fmt_hex(grays[7]),
+            "diffHighlightAdded": fmt_hex(green_bright),
+            "diffHighlightRemoved": fmt_hex(red_bright),
+            "diffAddedBg": fmt_hex(oc_tint(bg, green, diff_alpha)),
+            "diffRemovedBg": fmt_hex(oc_tint(bg, red, diff_alpha)),
+            "diffContextBg": fmt_hex(grays2),
+            "diffLineNumber": fmt_hex(muted),
+            "diffAddedLineNumberBg": fmt_hex(oc_tint(grays2, green, diff_alpha)),
+            "diffRemovedLineNumberBg": fmt_hex(oc_tint(grays2, red, diff_alpha)),
+            "markdownText": fmt_hex(fg),
+            "markdownHeading": fmt_hex(fg),
+            "markdownLink": fmt_hex(blue),
+            "markdownLinkText": fmt_hex(cyan),
+            "markdownCode": fmt_hex(green),
+            "markdownBlockQuote": fmt_hex(yellow),
+            "markdownEmph": fmt_hex(yellow),
+            "markdownStrong": fmt_hex(fg),
+            "markdownHorizontalRule": fmt_hex(grays[7]),
+            "markdownListItem": fmt_hex(blue),
+            "markdownListEnumeration": fmt_hex(cyan),
+            "markdownImage": fmt_hex(blue),
+            "markdownImageText": fmt_hex(cyan),
+            "markdownCodeBlock": fmt_hex(fg),
+            "syntaxComment": fmt_hex(muted),
+            "syntaxKeyword": fmt_hex(magenta),
+            "syntaxFunction": fmt_hex(blue),
+            "syntaxVariable": fmt_hex(fg),
+            "syntaxString": fmt_hex(green),
+            "syntaxNumber": fmt_hex(yellow),
+            "syntaxType": fmt_hex(cyan),
+            "syntaxOperator": fmt_hex(cyan),
+            "syntaxPunctuation": fmt_hex(fg),
+        },
+    }
+    _ = (white, red_bright)  # keep palette reads explicit; unused beyond diff highlights
+    config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+    out_path = os.path.join(config_home, "opencode", "themes", "glass.json")
+    try:
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as fh:
+            json.dump(theme, fh, indent=2)
+            fh.write("\n")
+    except OSError:
+        return
+
+
+def adopt_opencode_glass_kv() -> None:
+    state_home = os.environ.get("XDG_STATE_HOME", os.path.expanduser("~/.local/state"))
+    kv_path = os.path.join(state_home, "opencode", "kv.json")
+    try:
+        text = open(kv_path, encoding="utf-8").read()
+        data = json.loads(text)
+    except (OSError, json.JSONDecodeError):
+        return
+    if data.get("theme") != "system":
+        return
+    data["theme"] = "glass"
+    try:
+        with open(kv_path, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+            fh.write("\n")
+    except OSError:
+        return
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -218,6 +373,11 @@ def main() -> int:
         sys.stdout.write(" ".join(colors) + "\n")
         return 0
     apply_line(os.path.join(args.kitty_dir, "kitty.conf"), colors)
+    palette = read_palette(os.path.join(args.kitty_dir, "colors.conf"))
+    if palette is not None:
+        light = luminance(parse_hex(palette["background"])) > 0.6
+        write_opencode_glass_theme(palette, light)
+        adopt_opencode_glass_kv()
     return 0
 
 
