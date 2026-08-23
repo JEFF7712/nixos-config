@@ -155,11 +155,6 @@ layer-rule {
   geometry-corner-radius 15
 }
 
-layer-rule {
-  match namespace="^quickshell-notifications$"
-  geometry-corner-radius 14
-}
-
 overview {
   backdrop-color "transparent"
 

@@ -174,17 +174,6 @@ in
         }
 
         layer-rule {
-            match namespace="^quickshell-notifications$"
-            geometry-corner-radius 6
-            background-effect {
-                blur true
-                xray true
-                noise 0.015
-                saturation 1.2
-            }
-        }
-
-        layer-rule {
             match namespace="^swayosd$"
             geometry-corner-radius 10
             background-effect {

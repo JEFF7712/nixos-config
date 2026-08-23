@@ -525,14 +525,17 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        themeSecond: root.themeSecond
         themeWarm: root.themeWarm
-        themeRawBg: root.themeRawBg
         themeBorder: root.barBorderColor
         innerHighlight: root.barInnerHighlight
-        dividerColor: root.dividerColor
+        pillBg: root.pillBg
+        pillBorder: root.pillBorder
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
         barFont: root.barFont
+        barRadius: root.barRadius
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }

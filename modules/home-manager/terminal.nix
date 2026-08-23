@@ -107,6 +107,7 @@
         cc = "cursor .";
         claude = "claude --dangerously-skip-permissions";
         codex = "codex --yolo";
+        opencode = "opencode --auto";
         agent = "env AGENT_CLI_DISABLE_HALF_BLOCK_PROMPT_BAR=true agent --force";
         ci = "$HOME/projects/ci-dashboard.sh";
       };

@@ -31,7 +31,7 @@ PanelWindow {
     // Snap x/y/opacity/scale without Behavior. Must not key off `shown` —
     // openTimer used to clear settle via shown=true in the same tick as the
     // pose change, and Qt applied the final value while Behavior was still
-    // disabled (instant open, close still animated).
+    // disabled (instant open).
     property bool poseLocked: false
     // False until the shell has settled after launch. The startup theme-load
     // flips popupAttachToBar/popupAnimationStyle, whose change handlers call
@@ -49,7 +49,11 @@ PanelWindow {
     readonly property bool unfold: effectiveAnimationStyle === "unfold"
     readonly property bool sideSlide: attachedSlide && edgeSlide
     readonly property bool active: shown || opening || closing
-    readonly property bool mapped: active || warming
+    // niri background-effect blur follows the layer-shell rectangle, not QML
+    // opacity. Holding this surface mapped while the card fades to 0 leaves an
+    // empty rounded blur square after the popup chrome is gone. Unmap as soon
+    // as shown/opening/warming are false — close animation cannot move compositor blur.
+    readonly property bool mapped: shown || opening || warming
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int sideMargin: popupAttachToBar ? barMargin : 10
     readonly property int contentHeight: outerColumn.implicitHeight + 28
@@ -82,7 +86,6 @@ PanelWindow {
 
     function open() {
         root.ready = true;
-        closeTimer.stop();
         openTimer.stop();
         showTimer.stop();
         warmTimer.stop();
@@ -108,18 +111,10 @@ PanelWindow {
         warmTimer.stop();
         root.warming = false;
         root.poseLocked = false;
-        if (root.shown || root.opening) {
-            root.frozenHeight = Math.max(1, root.implicitHeight);
-            root.closing = true;
-            root.opening = false;
-            root.shown = false;
-            closeTimer.restart();
-        } else {
-            root.shown = false;
-            root.opening = false;
-            root.closing = false;
-            root.frozenHeight = 0;
-        }
+        root.shown = false;
+        root.opening = false;
+        root.closing = false;
+        root.frozenHeight = 0;
     }
 
     onPopupAttachToBarChanged: root.prewarm()
@@ -147,7 +142,14 @@ PanelWindow {
         left: root.popupPosition === "left" ? root.sideMargin : 0
     }
     implicitWidth: 300
-    implicitHeight: (root.warming || root.opening || root.closing) ? root.frozenHeight : root.contentHeight
+    implicitHeight: {
+        // If unmap lags, a full-size transparent buffer still gets niri blur.
+        if (root.warming || root.opening)
+            return Math.max(1, root.frozenHeight);
+        if (!root.shown)
+            return 1;
+        return root.contentHeight;
+    }
     exclusiveZone: -1
     color: "transparent"
 
@@ -163,16 +165,6 @@ PanelWindow {
             // (off-screen, Behaviors disabled via poseLocked) so the first click
             // does not also pay layershell surface creation mid-animation.
             root.prewarm();
-        }
-    }
-
-    Timer {
-        id: closeTimer
-        interval: root.motionDuration + 50
-        repeat: false
-        onTriggered: {
-            root.closing = false;
-            root.frozenHeight = 0;
         }
     }
 
