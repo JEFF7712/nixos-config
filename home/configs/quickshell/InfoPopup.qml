@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import "PopupAnchor.js" as PopupAnchor
 
 PanelWindow {
     id: root
@@ -25,6 +26,8 @@ PanelWindow {
     property bool popupAttachToBar: false
     property bool edgeSlide: false
     property string popupAnimationStyle: "softPop"
+    property real anchorCenterX: -1
+    property int frozenLeft: -1
     property bool warming: false
     property bool opening: false
     property bool closing: false
@@ -62,6 +65,13 @@ PanelWindow {
     readonly property real hiddenOpacity: attachedSlide ? 1.0 : floatSlide ? 0.72 : quickFade ? 0.0 : 0.0
     readonly property real hiddenScale: attachedSlide ? 1.0 : quickFade ? 0.985 : unfold ? 0.98 : 0.96
     readonly property int motionDuration: quickFade ? 190 : unfold ? 220 : 180
+    readonly property bool moduleAnchored: !popupAttachToBar && anchorCenterX >= 0 && frozenLeft >= 0
+
+    function freezeAnchor() {
+        const outW = screen ? screen.width : 0;
+        root.frozenLeft = PopupAnchor.clampedLeft(root.anchorCenterX, root.implicitWidth, outW, root.barMargin);
+    }
+
     default property alias body: contentColumn.data
     property alias background: bgContainer.data
 
@@ -90,6 +100,8 @@ PanelWindow {
         showTimer.stop();
         warmTimer.stop();
         root.warming = false;
+        if (!root.attachedSlide)
+            root.freezeAnchor();
         if (root.attachedSlide) {
             root.frozenHeight = Math.max(1, root.contentHeight);
             root.poseLocked = true;
@@ -133,13 +145,13 @@ PanelWindow {
     visible: mapped && root.ready
     anchors {
         top: true
-        right: root.popupPosition === "right"
-        left: root.popupPosition === "left"
+        right: root.moduleAnchored ? false : root.popupPosition === "right"
+        left: root.moduleAnchored ? true : root.popupPosition === "left"
     }
     margins {
         top: root.topMargin
-        right: root.popupPosition === "right" ? root.sideMargin : 0
-        left: root.popupPosition === "left" ? root.sideMargin : 0
+        right: root.moduleAnchored ? 0 : (root.popupPosition === "right" ? root.sideMargin : 0)
+        left: root.moduleAnchored ? root.frozenLeft : (root.popupPosition === "left" ? root.sideMargin : 0)
     }
     implicitWidth: 300
     implicitHeight: {
@@ -223,7 +235,7 @@ PanelWindow {
             y: root.shown ? 0 : root.hiddenY
             opacity: root.shown ? 1.0 : root.hiddenOpacity
             scale: root.shown ? 1.0 : root.hiddenScale
-            transformOrigin: root.popupPosition === "left" ? Item.TopLeft : Item.TopRight
+            transformOrigin: root.attachedSlide ? (root.popupPosition === "left" ? Item.TopLeft : Item.TopRight) : Item.Top
             Behavior on x {
                 enabled: !root.poseLocked
                 NumberAnimation {

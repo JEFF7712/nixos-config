@@ -77,6 +77,8 @@ ShellRoot {
     property bool flatMode: false
     property bool showBarDividers: true
     property string moduleAnimationStyle: "fade"
+    property string motionStyle: "default"
+    property bool showWorkspaceIndicator: true
     property bool popupAttachToBar: false
     property string popupAnimationStyle: "softPop"
     property color dividerColor: "#1affffff"
@@ -119,6 +121,8 @@ ShellRoot {
         root.flatMode = false;
         root.showBarDividers = true;
         root.moduleAnimationStyle = "fade";
+        root.motionStyle = "default";
+        root.showWorkspaceIndicator = true;
         // popupAttachToBar / popupAnimationStyle are applied at the end of
         // applyTheme only when they actually change — resetting them here would
         // flip false→true on every sharp wallpaper retheme and prewarm-flash
@@ -205,6 +209,10 @@ ShellRoot {
                 root.showBarDividers = theme.showBarDividers === "true";
             if (theme.moduleAnimationStyle)
                 root.moduleAnimationStyle = theme.moduleAnimationStyle;
+            if (theme.motionStyle)
+                root.motionStyle = theme.motionStyle;
+            if (theme.showWorkspaceIndicator)
+                root.showWorkspaceIndicator = theme.showWorkspaceIndicator === "true";
             if (theme.dividerColor)
                 root.dividerColor = theme.dividerColor;
             if (theme.barBorder)
@@ -292,7 +300,8 @@ ShellRoot {
 
     readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active
 
-    function showOnly(target) {
+    function showOnly(target, centerX) {
+        target.anchorCenterX = (centerX === undefined || centerX === null) ? -1 : centerX;
         const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
         for (const p of popups) {
             if (p !== target)
@@ -351,20 +360,22 @@ ShellRoot {
         flatMode: root.flatMode
         showBarDividers: root.showBarDividers
         moduleAnimationStyle: root.moduleAnimationStyle
+        motionStyle: root.motionStyle
+        showWorkspaceIndicator: root.showWorkspaceIndicator
         dividerColor: root.dividerColor
         barBorderColor: root.barBorderColor
         barInnerHighlight: root.barInnerHighlight
         pillBg: root.pillBg
         pillBorder: root.pillBorder
         notificationCount: NotifService.count
-        onVolumeClicked: root.showOnly(volumePopup)
-        onWifiClicked: root.showOnly(wifiPopup)
-        onBluetoothClicked: root.showOnly(bluetoothPopup)
-        onBatteryClicked: root.showOnly(batteryPopup)
-        onClockClicked: root.showOnly(calendarPopup)
-        onNotificationsClicked: root.showOnly(notificationsPopup)
-        onSystemClicked: root.showOnly(systemPopup)
-        onMediaClicked: root.showOnly(mediaPopup)
+        onVolumeClicked: centerX => root.showOnly(volumePopup, centerX)
+        onWifiClicked: centerX => root.showOnly(wifiPopup, centerX)
+        onBluetoothClicked: centerX => root.showOnly(bluetoothPopup, centerX)
+        onBatteryClicked: centerX => root.showOnly(batteryPopup, centerX)
+        onClockClicked: centerX => root.showOnly(calendarPopup, centerX)
+        onNotificationsClicked: centerX => root.showOnly(notificationsPopup, centerX)
+        onSystemClicked: centerX => root.showOnly(systemPopup, centerX)
+        onMediaClicked: centerX => root.showOnly(mediaPopup, centerX)
     }
 
     VolumePopup {
