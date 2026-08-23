@@ -237,6 +237,7 @@ PanelWindow {
             StatPill {
                 visible: topbarWindow.showSystem
                 icon: ""
+                iconSource: Qt.resolvedUrl("nixos-snowflake.png")
                 value: ""
                 tint: topbarWindow.themeAccent
                 tintIcon: true
@@ -642,6 +643,7 @@ PanelWindow {
     component StatPill: Item {
         id: statRoot
         property string icon
+        property url iconSource
         property string value
         property color tint
         property bool tintIcon: false
@@ -653,6 +655,7 @@ PanelWindow {
         readonly property bool flat: topbarWindow.flatMode
         readonly property bool hasValue: statRoot.value !== ""
         readonly property bool slideValue: topbarWindow.moduleAnimationStyle === "slide"
+        readonly property bool hasIconImage: statRoot.iconSource.toString() !== ""
 
         width: statContent.implicitWidth + (flat ? 16 : 22)
         height: flat ? topbarWindow.barHeight : 26
@@ -710,30 +713,35 @@ PanelWindow {
             RowLayout {
                 id: statContent
                 anchors.centerIn: parent
-                spacing: 6
+                spacing: statRoot.hasValue ? 6 : 0
 
                 Item {
+                    id: statIconBox
                     Layout.preferredWidth: 16
                     Layout.preferredHeight: 16
+                    Layout.alignment: Qt.AlignVCenter
+                    readonly property color iconColor: (statRoot.tintIcon || statMouse.containsMouse) ? statRoot.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
+                    scale: statMouse.pressed ? 0.9 : (statMouse.containsMouse ? 1.08 : 1.0)
+                    transformOrigin: Item.Center
+                    Behavior on scale {
+                        SpringAnimation {
+                            spring: 4
+                            damping: 0.5
+                            mass: 0.7
+                        }
+                    }
 
                     Text {
                         id: statIcon
-                        anchors.centerIn: parent
-                        width: parent.width
+                        visible: !statRoot.hasIconImage
+                        anchors.fill: parent
                         text: statRoot.icon
                         horizontalAlignment: Text.AlignHCenter
-                        color: (statRoot.tintIcon || statMouse.containsMouse) ? statRoot.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
+                        verticalAlignment: Text.AlignVCenter
+                        color: statIconBox.iconColor
                         font {
                             family: topbarWindow.barFont
                             pixelSize: 12
-                        }
-                        scale: statMouse.pressed ? 0.9 : (statMouse.containsMouse ? 1.08 : 1.0)
-                        Behavior on scale {
-                            SpringAnimation {
-                                spring: 4
-                                damping: 0.5
-                                mass: 0.7
-                            }
                         }
                         Behavior on color {
                             ColorAnimation {
@@ -741,6 +749,20 @@ PanelWindow {
                                 easing.type: Easing.OutCubic
                             }
                         }
+                    }
+
+                    Image {
+                        id: statIconImage
+                        visible: statRoot.hasIconImage
+                        anchors.centerIn: parent
+                        width: 14
+                        height: 14
+                        source: statRoot.iconSource
+                        fillMode: Image.PreserveAspectFit
+                        sourceSize.width: 64
+                        sourceSize.height: 64
+                        smooth: true
+                        asynchronous: false
                     }
                 }
 
