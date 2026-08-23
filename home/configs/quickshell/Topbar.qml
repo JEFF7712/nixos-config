@@ -65,14 +65,21 @@ PanelWindow {
         return -1;
     }
 
-    signal wifiClicked
-    signal volumeClicked
-    signal bluetoothClicked
-    signal batteryClicked
-    signal clockClicked
-    signal notificationsClicked
-    signal systemClicked
-    signal mediaClicked
+    signal wifiClicked(real anchorCenterX)
+    signal volumeClicked(real anchorCenterX)
+    signal bluetoothClicked(real anchorCenterX)
+    signal batteryClicked(real anchorCenterX)
+    signal clockClicked(real anchorCenterX)
+    signal notificationsClicked(real anchorCenterX)
+    signal systemClicked(real anchorCenterX)
+    signal mediaClicked(real anchorCenterX)
+
+    function pillCenterX(item) {
+        if (!item || !item.visible)
+            return -1;
+        const p = item.mapToItem(barRoot, item.width / 2, 0);
+        return topbarWindow.barMargin + p.x;
+    }
 
     function networkIcon() {
         return topbarWindow.networkService.connected ? "󰖩" : "󰖪";
@@ -127,6 +134,7 @@ PanelWindow {
     color: "transparent"
 
     Rectangle {
+        id: barRoot
         anchors.fill: parent
         radius: topbarWindow.barRadius
         color: topbarWindow.themeBg
@@ -193,55 +201,61 @@ PanelWindow {
             spacing: topbarWindow.flatMode ? 0 : 6
 
             StatPill {
+                id: volumePill
                 visible: topbarWindow.showVolume
                 icon: topbarWindow.volumeIcon()
                 value: (!topbarWindow.audioService.available || topbarWindow.audioService.muted || topbarWindow.audioService.volumePercent === 100 || topbarWindow.audioService.volumePercent === 0) ? "" : topbarWindow.audioService.volumePercent + "%"
                 tint: topbarWindow.audioService.muted ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4) : topbarWindow.themeAccent
-                onActivated: topbarWindow.volumeClicked()
+                onActivated: topbarWindow.volumeClicked(topbarWindow.pillCenterX(volumePill))
                 onMiddleClicked: topbarWindow.audioService.toggleMute()
                 onRightClicked: topbarWindow.audioService.openMixer()
                 onScrolled: delta => topbarWindow.audioService.adjustVolume(delta)
             }
             StatPill {
+                id: networkPill
                 visible: topbarWindow.showNetwork
                 icon: topbarWindow.networkIcon()
                 value: ""
                 tint: topbarWindow.themeSecond
-                onActivated: topbarWindow.wifiClicked()
+                onActivated: topbarWindow.wifiClicked(topbarWindow.pillCenterX(networkPill))
                 onRightClicked: topbarWindow.networkService.openSettings()
             }
             StatPill {
+                id: bluetoothPill
                 visible: topbarWindow.showBluetooth
                 icon: "󰂯"
                 value: ""
                 tint: topbarWindow.themeSecond
-                onActivated: topbarWindow.bluetoothClicked()
+                onActivated: topbarWindow.bluetoothClicked(topbarWindow.pillCenterX(bluetoothPill))
                 onRightClicked: topbarWindow.bluetoothService.openManager()
             }
             StatPill {
+                id: batteryPill
                 visible: topbarWindow.showBattery
                 icon: topbarWindow.batteryIcon()
                 value: !topbarWindow.powerService.available || topbarWindow.powerService.chargePercent === 100 ? "" : topbarWindow.powerService.chargePercent + "%"
                 tint: topbarWindow.themeAccent
-                onActivated: topbarWindow.batteryClicked()
+                onActivated: topbarWindow.batteryClicked(topbarWindow.pillCenterX(batteryPill))
                 onRightClicked: topbarWindow.powerService.cycleProfile(1)
                 onScrolled: delta => topbarWindow.powerService.cycleProfile(delta > 0 ? 1 : -1)
             }
             StatPill {
+                id: notifPill
                 visible: topbarWindow.showNotifications && topbarWindow.notificationCount > 0
                 icon: "󰂚"
                 value: topbarWindow.notificationCount > 9 ? "9+" : (topbarWindow.notificationCount > 0 ? topbarWindow.notificationCount.toString() : "")
                 tint: topbarWindow.notificationCount > 0 ? topbarWindow.themeAccent : topbarWindow.themeSecond
-                onActivated: topbarWindow.notificationsClicked()
+                onActivated: topbarWindow.notificationsClicked(topbarWindow.pillCenterX(notifPill))
             }
             StatPill {
+                id: systemPill
                 visible: topbarWindow.showSystem
                 icon: ""
                 iconSource: Qt.resolvedUrl("nixos-snowflake.png")
                 value: ""
                 tint: topbarWindow.themeAccent
                 tintIcon: true
-                onActivated: topbarWindow.systemClicked()
+                onActivated: topbarWindow.systemClicked(topbarWindow.pillCenterX(systemPill))
                 onRightClicked: topbarWindow.systemService.lock()
             }
         }
@@ -325,7 +339,7 @@ PanelWindow {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: topbarWindow.clockClicked()
+                onClicked: topbarWindow.clockClicked(topbarWindow.pillCenterX(clockArea))
             }
         }
 
@@ -462,7 +476,7 @@ PanelWindow {
                     if (mouse.button === Qt.MiddleButton)
                         topbarWindow.mediaService.togglePlaying();
                     else
-                        topbarWindow.mediaClicked();
+                        topbarWindow.mediaClicked(topbarWindow.pillCenterX(mediaPill));
                 }
                 onWheel: event => {
                     if (event.angleDelta.y > 0)
