@@ -15,16 +15,17 @@ assert_eq() {
   fi
 }
 
-# Dark clean-style background: Agent prompt/user, Codex pill, Claude fills.
+# Dark clean-style background: Agent prompt/user, Codex pill, OpenCode system
+# panel/composer grays plus bundled base, Claude user-message fill.
 got="$(python3 "$HELPER" --background '#131415' --print)"
-assert_eq "$got" '#1f2021 #151515 #292a30 #242428 #2f3031 #373737 #262626' \
-  "dark #131415 Agent mixes plus Codex pill plus Claude theme fills"
+assert_eq "$got" '#1f2021 #292a30 #2f3031 #222325 #292b2d #0a0a0a #373737' \
+  "dark #131415 Agent mixes plus Codex pill plus OpenCode plus Claude fills"
 
 # Light background uses the light tints first, then Codex's black@0.04 blend,
-# then Claude's light theme tokens.
+# then OpenCode's light system grays and bundled base, then Claude's token.
 got="$(python3 "$HELPER" --background '#eceff4' --print)"
-assert_eq "$got" '#e5e7eb #f2f2f2 #d8dadd #e8e8e8 #e2e5ea #f0f0f0 #f5f5f5' \
-  "light #eceff4 Agent mixes plus Codex pill plus Claude theme fills"
+assert_eq "$got" '#e5e7eb #d8dadd #e2e5ea #dcdfe3 #d4d7db #ffffff #f0f0f0' \
+  "light #eceff4 Agent mixes plus Codex pill plus OpenCode plus Claude fills"
 
 # No colors.conf / no background line: leave kitty.conf untouched.
 mkdir -p "$tmpdir/empty"
@@ -61,7 +62,7 @@ printf 'background_opacity 1.0\ntransparent_background_colors #deadbe\n' \
 . "$REPO_ROOT/home/scripts/profile-common"
 sync_kitty_agent_transparent_colors "$HOME/.config/kitty"
 got="$(sed -n 's/^transparent_background_colors //p' "$HOME/.config/kitty/kitty.conf")"
-assert_eq "$got" '#1f2021 #151515 #292a30 #242428 #2f3031 #373737 #262626' \
+assert_eq "$got" '#1f2021 #292a30 #2f3031 #222325 #292b2d #0a0a0a #373737' \
   "profile-common sync_kitty_agent_transparent_colors"
 
 echo "OK: kitty-agent-colors.bash"

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Notifications
+import "NotifAction.js" as NotifAction
 
 // One PanelWindow per toast so niri glasses each chip like InfoPopup
 // (namespace quickshell-popup) without blurring the gaps as one rectangle.
@@ -342,9 +343,11 @@ Scope {
 
                                 delegate: Rectangle {
                                     required property var modelData
-                                    width: actLabel.implicitWidth + 16
+                                    readonly property string actText: NotifAction.label(modelData.text, modelData.identifier)
+
+                                    implicitWidth: Math.max(52, actLabel.implicitWidth + 16)
                                     height: 22
-                                    radius: root.pillRadius
+                                    radius: root.flatMode ? 0 : 6
                                     color: actMouse.containsMouse ? Qt.rgba(toast.accent.r, toast.accent.g, toast.accent.b, 0.18) : root.pillBg
                                     border.width: root.flatMode ? 0 : 1
                                     border.color: actMouse.containsMouse ? Qt.rgba(toast.accent.r, toast.accent.g, toast.accent.b, 0.55) : root.pillBorder
@@ -359,7 +362,7 @@ Scope {
                                     Text {
                                         id: actLabel
                                         anchors.centerIn: parent
-                                        text: modelData.text || modelData.identifier
+                                        text: parent.actText
                                         color: actMouse.containsMouse ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.75)
                                         font {
                                             family: root.barFont

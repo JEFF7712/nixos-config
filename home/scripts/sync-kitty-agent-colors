@@ -2,10 +2,12 @@
 """Rewrite kitty transparent_background_colors from the active colors.conf.
 
 Cursor Agent and Codex mix prompt/message chrome from the terminal background.
-Claude Code uses hardcoded theme tokens. Kitty only tints cells whose
-background matches exactly (max 7 colors). Recompute Agent/Codex mixes from
-the current terminal background and pick Claude's dark or light tokens so
-profile switches stay matched.
+Claude Code uses hardcoded theme fills. OpenCode's "system" theme derives
+panel/element fills from the terminal palette; its bundled theme clears cells
+with fixed steps. Kitty only tints cells whose background matches exactly
+(max 7 colors). Recompute Agent/Codex/OpenCode mixes from the current terminal
+background and pick Claude's dark or light tokens so profile switches stay
+matched.
 """
 from __future__ import annotations
 
@@ -14,15 +16,15 @@ import os
 import re
 import sys
 
-# Cursor Agent constants.ts tints (prompt + user-message). Follow-up mixes
-# were dropped so Claude's hardcoded fills fit in Kitty's 7-color budget.
+# Cursor Agent constants.ts tints (prompt + user-message). Follow-up mixes and
+# the static prompt/user fallbacks were dropped for Kitty's 7-color budget.
 DARK = {
-    "prompt": ("#505050", 0.95, "#151515"),
-    "user": ("#555566", 0.82, "#242428"),
+    "prompt": ("#505050", 0.95),
+    "user": ("#555566", 0.82),
 }
 LIGHT = {
-    "prompt": ("#d0d0d0", 0.90, "#f2f2f2"),
-    "user": ("#b0b0b0", 0.82, "#e8e8e8"),
+    "prompt": ("#d0d0d0", 0.90),
+    "user": ("#b0b0b0", 0.82),
 }
 
 # Codex TUI style.rs user_message_bg: blend white@0.12 on dark, black@0.04 on
@@ -30,10 +32,19 @@ LIGHT = {
 CODEX_DARK_ALPHA = 0.12
 CODEX_LIGHT_ALPHA = 0.04
 
-# Claude Code bundled theme: userMessageBackground + composerSidebarBackground.
-# Dark/light-daltonized variants differ; auto follows colors.conf luminance.
-CLAUDE_DARK = ("#373737", "#262626")
-CLAUDE_LIGHT = ("#f0f0f0", "#f5f5f5")
+# OpenCode theme/index.ts generateSystem (kv default theme "system"): the
+# renderer background is transparent, panels paint grays[2] and the composer/
+# menus paint grays[3], derived from the terminal background at startup.
+OPENCODE_GRAY_SLOTS = (2, 3)
+# The bundled "opencode" theme instead clears every cell with fixed steps;
+# only the base background fits the remaining slot.
+OPENCODE_BUNDLED_DARK = "#0a0a0a"
+OPENCODE_BUNDLED_LIGHT = "#ffffff"
+
+# Claude Code bundled theme userMessageBackground. composerSidebarBackground
+# lost its slot to OpenCode's fills; auto follows colors.conf luminance.
+CLAUDE_DARK = "#373737"
+CLAUDE_LIGHT = "#f0f0f0"
 
 BG_RE = re.compile(r"^background\s+(#[0-9A-Fa-f]{6})\b", re.MULTILINE)
 LINE_RE = re.compile(r"^transparent_background_colors\b.*$", re.MULTILINE)
@@ -100,6 +111,28 @@ def codex_user_message_bg(bg: tuple[int, int, int]) -> tuple[int, int, int]:
     return rust_blend((255, 255, 255), bg, CODEX_DARK_ALPHA)
 
 
+def opencode_system_gray(bg: tuple[int, int, int], slot: int, light: bool) -> tuple[int, int, int]:
+    # generateGrayScale: luminance-weighted scale-up on dark (scale-down on
+    # light), with flat-gray fallbacks near black/white. Math.floor rounding.
+    factor = slot / 12
+    lum = 0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]
+    if light:
+        if lum > 245:
+            gray = int(255 - factor * 0.4 * 255)
+            return (gray, gray, gray)
+        ratio = 1 - factor * 0.4
+        return (int(bg[0] * ratio), int(bg[1] * ratio), int(bg[2] * ratio))
+    if lum < 10:
+        gray = int(factor * 0.4 * 255)
+        return (gray, gray, gray)
+    ratio = (lum + (255 - lum) * factor * 0.4) / lum
+    return (
+        int(min(bg[0] * ratio, 255)),
+        int(min(bg[1] * ratio, 255)),
+        int(min(bg[2] * ratio, 255)),
+    )
+
+
 def colors_for_background(bg_hex: str) -> list[str]:
     bg = parse_hex(bg_hex)
     light = luminance(bg) > 0.6
@@ -114,16 +147,17 @@ def colors_for_background(bg_hex: str) -> list[str]:
             ordered.append(c)
 
     # Current-variant Agent fills first (remix on profile/variant switch), then
-    # Codex's shared composer/message pill, then Claude's hardcoded theme
-    # tokens. Opposite-variant mixes used to burn two of the seven slots and
-    # never matched a live TUI. Agent follow-up fills lost the remaining slots.
+    # Codex's shared composer/message pill, then OpenCode's derived system-theme
+    # panel/composer fills plus its bundled base, then Claude's user-message
+    # token. Agent fallbacks and Claude's sidebar token lost their slots.
     for slot in ("prompt", "user"):
-        tint, ratio, fallback = primary[slot]
+        tint, ratio = primary[slot]
         add(fmt_hex(mix(bg, tint, ratio)))
-        add(fallback)
     add(fmt_hex(codex_user_message_bg(bg)))
-    for color in CLAUDE_LIGHT if light else CLAUDE_DARK:
-        add(color)
+    for slot in OPENCODE_GRAY_SLOTS:
+        add(fmt_hex(opencode_system_gray(bg, slot, light)))
+    add(OPENCODE_BUNDLED_LIGHT if light else OPENCODE_BUNDLED_DARK)
+    add(CLAUDE_LIGHT if light else CLAUDE_DARK)
     return ordered[:MAX_COLORS]
 
 

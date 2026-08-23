@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
@@ -42,6 +43,10 @@ PanelWindow {
     property bool showNotifications: true
     property bool showSystem: true
     property string barFont: "JetBrainsMono Nerd Font"
+    // Proportional Nerd Fonts give icons a 1em advance but draw past it
+    // (wifi ink is ~1.5em), so AlignHCenter parks the glyph right of the
+    // pill. Mono/Symbols variants keep ink inside the cell.
+    property string iconFont: "Symbols Nerd Font Mono"
     property bool flatMode: false
     property bool showBarDividers: true
     property string moduleAnimationStyle: "fade"
@@ -392,10 +397,11 @@ PanelWindow {
 
                 scale: mediaPill.flat ? 1.0 : (mediaMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.94) : 1.0)
                 Behavior on scale {
+                    enabled: !mediaPill.flat && !topbarWindow.dryMotion
                     SpringAnimation {
-                        spring: topbarWindow.dryMotion ? 7 : 3
-                        damping: topbarWindow.dryMotion ? 1.0 : 0.55
-                        mass: topbarWindow.dryMotion ? 0.45 : 0.8
+                        spring: 3
+                        damping: 0.55
+                        mass: 0.8
                     }
                 }
 
@@ -421,8 +427,8 @@ PanelWindow {
                         text: mediaPill.playing ? "󰏤" : "󰐊"
                         color: mediaMouse.containsMouse ? mediaPill.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
                         font {
-                            family: topbarWindow.barFont
-                            pixelSize: 12
+                            family: topbarWindow.iconFont
+                            pixelSize: 10
                         }
                         Behavior on color {
                             ColorAnimation {
@@ -591,10 +597,11 @@ PanelWindow {
 
             scale: wsRoot.flat ? 1.0 : (wsMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.94) : (topbarWindow.dryMotion ? 1.0 : (wsMouse.containsMouse ? 1.06 : 1.0)))
             Behavior on scale {
+                enabled: !wsRoot.flat && !topbarWindow.dryMotion
                 SpringAnimation {
-                    spring: topbarWindow.dryMotion ? 7 : 3
-                    damping: topbarWindow.dryMotion ? 1.0 : 0.55
-                    mass: topbarWindow.dryMotion ? 0.45 : 0.8
+                    spring: 3
+                    damping: 0.55
+                    mass: 0.8
                 }
             }
 
@@ -621,8 +628,17 @@ PanelWindow {
                     pixelSize: wsRoot.isActive ? 12 : 11
                     weight: wsRoot.isActive ? Font.Bold : Font.Medium
                 }
-                scale: wsMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.9) : (topbarWindow.dryMotion ? 1.0 : (wsMouse.containsMouse ? 1.08 : 1.0))
+                scale: {
+                    if (topbarWindow.dryMotion)
+                        return 1.0;
+                    if (wsMouse.pressed)
+                        return 0.9;
+                    if (wsMouse.containsMouse)
+                        return 1.08;
+                    return 1.0;
+                }
                 Behavior on scale {
+                    enabled: !topbarWindow.dryMotion
                     SpringAnimation {
                         spring: 4
                         damping: 0.5
@@ -710,10 +726,11 @@ PanelWindow {
 
             scale: statRoot.flat ? 1.0 : (statMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.94) : 1.0)
             Behavior on scale {
+                enabled: !statRoot.flat && !topbarWindow.dryMotion
                 SpringAnimation {
-                    spring: topbarWindow.dryMotion ? 7 : 3
-                    damping: topbarWindow.dryMotion ? 1.0 : 0.55
-                    mass: topbarWindow.dryMotion ? 0.45 : 0.8
+                    spring: 3
+                    damping: 0.55
+                    mass: 0.8
                 }
             }
 
@@ -741,48 +758,79 @@ PanelWindow {
                     Layout.preferredHeight: 16
                     Layout.alignment: Qt.AlignVCenter
                     readonly property color iconColor: (statRoot.tintIcon || statMouse.containsMouse) ? statRoot.tint : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.75)
-                    scale: statMouse.pressed ? (topbarWindow.dryMotion ? 0.98 : 0.9) : (topbarWindow.dryMotion ? 1.0 : (statMouse.containsMouse ? 1.08 : 1.0))
-                    transformOrigin: Item.Center
-                    Behavior on scale {
-                        SpringAnimation {
-                            spring: 4
-                            damping: 0.5
-                            mass: 0.7
-                        }
+                    readonly property real glyphScale: {
+                        if (topbarWindow.dryMotion)
+                            return 1.0;
+                        if (statMouse.pressed)
+                            return 0.9;
+                        if (statMouse.containsMouse)
+                            return 1.08;
+                        return 1.0;
                     }
 
-                    Text {
-                        id: statIcon
-                        visible: !statRoot.hasIconImage
+                    // Scale the glyph, not the layout item — a spring on a
+                    // RowLayout child retriggers layout and the scale pumps to infinity.
+                    Item {
                         anchors.fill: parent
-                        text: statRoot.icon
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: statIconBox.iconColor
-                        font {
-                            family: topbarWindow.barFont
-                            pixelSize: 12
-                        }
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: topbarWindow.hoverMs
-                                easing.type: Easing.OutCubic
+                        scale: statIconBox.glyphScale
+                        transformOrigin: Item.Center
+                        Behavior on scale {
+                            enabled: !topbarWindow.dryMotion
+                            SpringAnimation {
+                                spring: 4
+                                damping: 0.5
+                                mass: 0.7
                             }
                         }
-                    }
 
-                    Image {
-                        id: statIconImage
-                        visible: statRoot.hasIconImage
-                        anchors.centerIn: parent
-                        width: 14
-                        height: 14
-                        source: statRoot.iconSource
-                        fillMode: Image.PreserveAspectFit
-                        sourceSize.width: 64
-                        sourceSize.height: 64
-                        smooth: true
-                        asynchronous: false
+                        Text {
+                            id: statIcon
+                            visible: !statRoot.hasIconImage
+                            anchors.fill: parent
+                            text: statRoot.icon
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            color: statIconBox.iconColor
+                            font {
+                                family: topbarWindow.iconFont
+                                pixelSize: 10
+                            }
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: topbarWindow.hoverMs
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+                        }
+
+                        Image {
+                            id: statIconImage
+                            visible: false
+                            anchors.centerIn: parent
+                            width: 14
+                            height: 14
+                            source: statRoot.iconSource
+                            fillMode: Image.PreserveAspectFit
+                            sourceSize.width: 64
+                            sourceSize.height: 64
+                            smooth: true
+                            asynchronous: false
+                        }
+
+                        MultiEffect {
+                            visible: statRoot.hasIconImage
+                            anchors.fill: statIconImage
+                            source: statIconImage
+                            autoPaddingEnabled: false
+                            colorization: 1
+                            colorizationColor: statIconBox.iconColor
+                            Behavior on colorizationColor {
+                                ColorAnimation {
+                                    duration: topbarWindow.hoverMs
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+                        }
                     }
                 }
 
