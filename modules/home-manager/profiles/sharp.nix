@@ -1,12 +1,11 @@
 { pkgs, config, ... }:
 
 let
-  waybar = import ../../../lib/desktop-profiles/waybar.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 
   # Neutral greys only. One role mapping serves dark and light; `rofiText`
-  # and `hoverBg` are the two slots that differ beyond the palette itself.
+  # is the slot that differs beyond the palette itself.
   dark = rec {
     title = "Sharp dark";
     bg0 = "#0a0a0a";
@@ -19,7 +18,6 @@ let
     accent = "#e0e0e0";
     err = "#5c5c5c";
     rofiText = fg1;
-    hoverBg = "rgba(255,255,255,0.06)";
   };
 
   light = rec {
@@ -34,7 +32,6 @@ let
     accent = "#1a1a1a";
     err = "#a3a3a3";
     rofiText = fg0;
-    hoverBg = "rgba(0,0,0,0.06)";
   };
 
   alpha = a: c: "#${a}${builtins.substring 1 6 c}";
@@ -212,20 +209,6 @@ let
       };
     };
 
-  mkMako =
-    p:
-    theme.mkMakoConfig {
-      background = p.bg0;
-      text = p.fg1;
-      border = p.bg3;
-      lowBorder = p.bg2;
-      highBackground = p.bg1;
-      highBorder = p.err;
-      highText = p.fg0;
-      borderSize = 1;
-      borderRadius = 0;
-    };
-
   mkQuickshell = p: {
     fg = p.fg0;
     bg = alpha "cc" p.bg0;
@@ -252,21 +235,6 @@ let
     popupAttachToBar = "true";
     popupAnimationStyle = "attachedSlide";
   };
-
-  mkWaybarStyle =
-    p:
-    waybar.mkFlatStyle {
-      fg = p.fg1;
-      activeText = p.fg0;
-      activeUnderline = p.fg0;
-      clockColor = p.fg1;
-      performanceColor = p.fg2;
-      balancedColor = p.fg1;
-      powerSaverColor = p.fg2;
-      warningColor = p.accent;
-      criticalColor = p.fg0;
-      inherit (p) hoverBg;
-    };
 in
 {
   desktopProfiles.profiles.sharp = {
@@ -291,9 +259,6 @@ in
 
     quickshellTheme = mkQuickshell dark;
     quickshellThemeLight = mkQuickshell light;
-
-    makoConfig = mkMako dark;
-    makoConfigLight = mkMako light;
 
     cursor = {
       theme = "Bibata-Modern-Ice";
@@ -379,7 +344,7 @@ in
         }
 
         layer-rule {
-            match namespace="^mako$"
+            match namespace="^quickshell-notifications$"
             geometry-corner-radius 0
         }
       '';
@@ -387,11 +352,5 @@ in
 
     colors = mkColors dark;
     colorsLight = mkColors light;
-
-    waybar = {
-      config = waybar.mkConfig { scriptDir = "${config.repoPath}/home/scripts"; };
-      style = mkWaybarStyle dark;
-    };
-    waybarLight.style = mkWaybarStyle light;
   };
 }

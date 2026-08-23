@@ -19,6 +19,7 @@ wallpaper-script-check:
   bash checks/profile-manifest.bash
   bash checks/profile-transition.bash
   bash checks/profile-gsettings.bash
+  bash checks/kitty-agent-colors.bash
 
 check-local-bin:
   bash checks/local-bin-rot.bash

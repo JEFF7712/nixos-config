@@ -2,8 +2,7 @@
 #
 # A profile built with mkStaticProfile is mostly just a palette: the canonical
 # roles below feed default mappings for every theme slot (gtk, qt6, kitty,
-# fish, starship, rofi, btop, tmux, hyprlock, cava, mako, quickshell,
-# waybar). Anything a
+# fish, starship, rofi, btop, tmux, hyprlock, cava, quickshell). Anything a
 # theme does differently goes in `overrides.<slot>` (an attrset of builder
 # args, or a function `palette: attrset` for per-variant values).
 #
@@ -14,10 +13,9 @@
 #   accent, accent2                             gray    disabled secondary
 #   red orange yellow green aqua blue purple    grad{Low,Mid,High}
 #   onAccent / onError  ink tones on accent/error backgrounds
-#   title, barBg (rgba), barShadow (rgba), plus any extra keys overrides need
+#   title, plus any extra keys overrides need
 let
   theme = import ./theme-builders.nix;
-  waybar = import ./waybar.nix;
 
   alpha = a: c: "#${a}${builtins.substring 1 6 c}";
 
@@ -55,8 +53,6 @@ let
       gradMid = p.gradMid or yellow;
       gradHigh = p.gradHigh or red;
       title = p.title or "";
-      barBg = p.barBg or "rgba(0, 0, 0, 0.6)";
-      barShadow = p.barShadow or "rgba(0, 0, 0, 0.45)";
     }
     // p;
 
@@ -254,7 +250,6 @@ let
   mkStaticProfile =
     {
       palette,
-      scriptDir,
       wallpaperDir,
       paletteLight ? null,
       wallpaperDirLight ? null,
@@ -264,8 +259,6 @@ let
       appearance ? { },
       niri ? { },
       quickshell ? { },
-      waybarStyle ? "floating", # "floating" | "pill" | "flat"
-      waybarConfig ? { },
       overrides ? { },
       runtime ? { },
     }:
@@ -295,115 +288,6 @@ let
           pillBorder = alpha "1d" r.bg1;
         }
         // applyOv quickshell r;
-
-      # mako wants #RRGGBBAA (alpha last), unlike the Qt #AARRGGBB `alpha` helper.
-      makoAlpha = a: c: "#${builtins.substring 1 6 c}${a}";
-
-      hexDigit = "0123456789abcdef";
-      hexMap = {
-        "0" = 0;
-        "1" = 1;
-        "2" = 2;
-        "3" = 3;
-        "4" = 4;
-        "5" = 5;
-        "6" = 6;
-        "7" = 7;
-        "8" = 8;
-        "9" = 9;
-        "a" = 10;
-        "b" = 11;
-        "c" = 12;
-        "d" = 13;
-        "e" = 14;
-        "f" = 15;
-        "A" = 10;
-        "B" = 11;
-        "C" = 12;
-        "D" = 13;
-        "E" = 14;
-        "F" = 15;
-      };
-      hex2ToInt = s: hexMap.${builtins.substring 0 1 s} * 16 + hexMap.${builtins.substring 1 1 s};
-      intToHex2 =
-        n:
-        let
-          c = if n > 255 then 255 else n;
-          hi = c / 16;
-          lo = c - hi * 16;
-        in
-        "${builtins.substring hi 1 hexDigit}${builtins.substring lo 1 hexDigit}";
-
-      # Qt #AARRGGBB -> mako #RRGGBBAA, raising alpha by `bump` (clamped to ff)
-      # so notifications sit slightly more opaque than the bar they match.
-      barBgToMako =
-        bump: c:
-        if builtins.stringLength c == 9 then
-          "#${builtins.substring 3 6 c}${intToHex2 (hex2ToInt (builtins.substring 1 2 c) + bump)}"
-        else
-          c;
-
-      mkMakoFor =
-        r:
-        let
-          # Match the quickshell bar background, a touch more opaque (+0x1a alpha).
-          barBg = barBgToMako 26 (mkQs r).bg;
-        in
-        theme.mkMakoConfig (
-          {
-            background = barBg;
-            text = r.fg1;
-            border = makoAlpha "59" r.accent;
-            lowBorder = makoAlpha "26" r.fg3;
-            highBackground = barBg;
-            highBorder = r.red;
-            highText = r.fg0;
-            progressColor = makoAlpha "2e" r.accent;
-          }
-          // applyOv (overrides.mako or { }) r
-        );
-
-      waybarStyleFn =
-        {
-          floating = waybar.mkFloatingStyle;
-          pill = waybar.mkPillStyle;
-          flat = waybar.mkFlatStyle;
-        }
-        .${waybarStyle};
-
-      waybarArgsFor =
-        r:
-        (
-          if waybarStyle == "flat" then
-            {
-              fg = r.fg1;
-              activeText = r.fg0;
-              activeUnderline = r.accent;
-              clockColor = r.fg1;
-              performanceColor = r.red;
-              balancedColor = r.accent;
-              powerSaverColor = r.green;
-              warningColor = r.yellow;
-              criticalColor = r.red;
-            }
-          else
-            {
-              windowBg = r.barBg;
-              primary = r.accent;
-              borderColor = r.bg2;
-              shadowColor = r.barShadow;
-              activeBg = r.bg2;
-              hoverColor = r.orange;
-              clockColor = r.accent;
-              textColor = r.fg1;
-              performanceColor = r.red;
-              balancedColor = r.accent;
-              powerSaverColor = r.green;
-              warningColor = r.yellow;
-              criticalColor = r.red;
-            }
-        )
-        // applyOv (overrides.waybarStyle or { }) r;
     in
     {
       inherit
@@ -428,20 +312,7 @@ let
       // niri;
 
       quickshellTheme = mkQs d;
-      makoConfig = mkMakoFor d;
       colors = mkColorsFor d overrides;
-
-      waybar = {
-        config = waybar.mkConfig (
-          {
-            inherit scriptDir;
-            floating = waybarStyle != "flat";
-            pill = waybarStyle == "pill";
-          }
-          // waybarConfig
-        );
-        style = waybarStyleFn (waybarArgsFor d);
-      };
     }
     // (
       if l == null then
@@ -449,9 +320,7 @@ let
       else
         {
           quickshellThemeLight = mkQs l;
-          makoConfigLight = mkMakoFor l;
           colorsLight = mkColorsFor l overrides;
-          waybarLight.style = waybarStyleFn (waybarArgsFor l);
         }
     );
 in

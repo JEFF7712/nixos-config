@@ -64,22 +64,6 @@ stop_bar() {
         return 1
       fi
       ;;
-    waybar)
-      pkill -x waybar >/dev/null 2>&1 || true
-      for _ in $(seq 1 20); do
-        pgrep -x waybar >/dev/null 2>&1 || break
-        sleep 0.1
-      done
-      if pgrep -x waybar >/dev/null 2>&1; then
-        echo "Error: waybar did not stop." >&2
-        return 1
-      fi
-      stop_mako
-      if ! wait_for_mako_shutdown; then
-        echo "Error: Mako did not stop." >&2
-        return 1
-      fi
-      ;;
     quickshell)
       pkill -f "$quickshell_pattern" >/dev/null 2>&1 || true
       for _ in $(seq 1 20); do
@@ -90,18 +74,12 @@ stop_bar() {
         echo "Error: quickshell did not stop." >&2
         return 1
       fi
-      stop_mako
-      if ! wait_for_mako_shutdown; then
-        echo "Error: Mako did not stop." >&2
-        return 1
-      fi
       ;;
   esac
 }
 
 stop_all_bars() {
   stop_bar noctalia
-  stop_bar waybar
   stop_bar quickshell
 }
 
@@ -109,47 +87,14 @@ start_bar() {
   local bar="$1"
   case "$bar" in
     noctalia)
-      stop_mako
-      wait_for_mako_shutdown
       systemctl --user stop awww >/dev/null 2>&1 || true
       systemctl --user start noctalia-shell >/dev/null 2>&1
       ;;
-    waybar)
-      systemctl --user start awww >/dev/null 2>&1 || true
-      waybar 9>&- >/dev/null 2>&1 &
-      start_mako
-      if [ "$(read_state "$FOCUS_FILE" off)" = on ]; then
-        for _ in $(seq 1 15); do
-          makoctl mode -a dnd >/dev/null 2>&1 && break
-          sleep 0.1
-        done
-      fi
-      ;;
     quickshell)
       systemctl --user start awww >/dev/null 2>&1 || true
-      stop_mako
-      wait_for_mako_shutdown
       quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 9>&- >/dev/null 2>&1 &
       ;;
   esac
-}
-
-stage_bar_files() {
-  local bar="$1" profile_dir="$2" variant="$3" stage_dir="$4"
-  local stage_config="$stage_dir/home/.config" style mako_config profile
-  [ "$bar" = waybar ] || return 0
-  profile=$(basename "$profile_dir")
-  mkdir -p "$stage_config/waybar" "$stage_config/mako"
-  install -m 644 "$(profile_manifest_artifact "$profile" "$variant" waybar.config)" \
-    "$stage_config/waybar/config.jsonc"
-  style=$(profile_manifest_artifact "$profile" "$variant" "waybar.$variant")
-  if [ -s "$style" ]; then
-    install -m 644 "$style" "$stage_config/waybar/style.css"
-  fi
-  mako_config=$(profile_manifest_artifact "$profile" "$variant" "mako.$variant")
-  if [ -s "$mako_config" ]; then
-    install -m 644 "$mako_config" "$stage_config/mako/config"
-  fi
 }
 
 maybe_fail_stage() {
@@ -170,9 +115,6 @@ verify_bar() {
       noctalia)
         systemctl --user is-active --quiet noctalia-shell >/dev/null 2>&1 \
           && notification_owner_is noctalia && return 0
-        ;;
-      waybar)
-        pgrep -x waybar >/dev/null 2>&1 && notification_owner_is mako && return 0
         ;;
       quickshell)
         pgrep -f "$quickshell_pattern" >/dev/null 2>&1 \
@@ -716,7 +658,6 @@ commit_transaction() {
   trap - EXIT INT TERM HUP
 }
 
-stage_bar_files "$TARGET_BAR" "$PROFILES_DIR/$TARGET" "$TARGET_VARIANT" "$TRANSACTION_DIR"
 stage_profile_core_files "$PROFILES_DIR/$TARGET" "$TARGET_VARIANT" "$TRANSACTION_DIR"
 collect_staged_files
 

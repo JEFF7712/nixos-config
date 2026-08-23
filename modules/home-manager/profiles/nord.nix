@@ -45,8 +45,6 @@ let
     aqua = nord7;
     blue = nord9;
     purple = nord15;
-    barBg = "rgba(46, 52, 64, 0.6)";
-    barShadow = "rgba(36, 41, 51, 0.45)";
   };
 
   overrides = {
@@ -103,25 +101,12 @@ let
       surface = "#171b22";
       surfaceAlt = r.bg0;
     };
-    mako = _: {
-      font = "Iosevka Nerd Font 11";
-      borderSize = 1;
-      borderRadius = 0;
-      padding = 10;
-      margin = 6;
-    };
-    waybarStyle = r: {
-      hoverColor = r.aqua;
-      clockColor = r.fg1;
-    };
   };
 in
 {
   desktopProfiles.profiles.nord = static.mkStaticProfile {
     inherit palette overrides;
     bar = "quickshell";
-    waybarStyle = "floating";
-    scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.assetsPath}/wallpapers/nord";
 
     quickshell = r: {

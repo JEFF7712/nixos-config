@@ -127,10 +127,6 @@ let
       manifest.transition.defaultBar or null == "quickshell" && !(manifest.artifacts ? quickshell.dark)
     then
       builtins.throw "profile '${name}': quickshell bar has no dark theme artifact"
-    else if
-      manifest.transition.defaultBar or null == "waybar" && !(manifest.artifacts ? waybar.config)
-    then
-      builtins.throw "profile '${name}': waybar has no config artifact"
     else if legacy != [ ] then
       builtins.throw "profile '${name}': legacy artifacts rendered: ${builtins.concatStringsSep ", " legacy}"
     else if !(builtins.match ".*animations[[:space:]]*\\{.*" niriOverrides != null) then

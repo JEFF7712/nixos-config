@@ -75,8 +75,8 @@ Singleton {
         }
     }
 
-    // Focus mode (toggle-focus) writes on/off here; mirror mako's dnd behaviour
-    // by suppressing toasts while still recording to history.
+    // Focus mode (toggle-focus) writes on/off here; suppress toasts while
+    // still recording to history.
     FileView {
         path: Quickshell.env("HOME") + "/.config/desktop-profiles/focus"
         watchChanges: true

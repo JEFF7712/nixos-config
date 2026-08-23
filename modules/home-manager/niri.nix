@@ -87,8 +87,6 @@
         waypaper
         rofi
         python3Packages.pywal
-        mako
-        waybar
         ia-writer-quattro
         swayosd
         quickshell

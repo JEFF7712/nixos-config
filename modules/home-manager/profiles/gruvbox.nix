@@ -32,8 +32,6 @@ let
     comment = "#7c6f64";
     onAccent = "#282828";
     onError = "#fbf1c7";
-    barBg = "rgba(40, 40, 40, 0.6)";
-    barShadow = "rgba(29, 32, 33, 0.45)";
   };
 
   light = rec {
@@ -61,15 +59,12 @@ let
     comment = "#a89984";
     onAccent = "#282828";
     onError = "#fbf1c7";
-    barBg = "rgba(251, 241, 199, 0.85)";
-    barShadow = "rgba(189, 174, 147, 0.45)";
   };
 in
 {
   desktopProfiles.profiles.gruvbox = static.mkStaticProfile {
     palette = dark;
     paletteLight = light;
-    scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.assetsPath}/wallpapers/gruvbox";
 
     cursor = {
@@ -135,7 +130,7 @@ in
         }
 
         layer-rule {
-            match namespace="^mako$"
+            match namespace="^quickshell-notifications$"
             geometry-corner-radius 0
         }
       '';
@@ -174,16 +169,6 @@ in
         inputRadius = 0;
         elementRadius = 0;
         iconRadius = 0;
-      };
-
-      mako = p: {
-        border = p.accent;
-        lowBorder = p.bg3;
-        highBorder = p.orange;
-        borderSize = 2;
-        borderRadius = 0;
-        padding = 10;
-        margin = 6;
       };
     };
   };

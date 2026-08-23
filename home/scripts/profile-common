@@ -21,6 +21,18 @@ CONFIG_HOME="$HOME/.config"
 OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
 WAYPAPER_POST_COMMAND='$HOME/.local/bin/waypaper-backend-sync'
 
+# Cursor Agent paints prompt/message chrome as mixed ANSI fills. Kitty only
+# tints exact background matches (max 7). Rewrite those colors from the
+# active colors.conf so profile/wallpaper switches stay matched.
+sync_kitty_agent_transparent_colors() {
+  local kitty_dir="$1"
+  local helper
+  helper="$(dirname "$PROFILE_COMMON_PATH")/sync-kitty-agent-colors"
+  [ -x "$helper" ] || return 0
+  command -v python3 >/dev/null 2>&1 || return 0
+  python3 "$helper" "$kitty_dir" >/dev/null 2>&1 || true
+}
+
 write_profile_value_atomic() {
   local path="$1" value="$2" tmp
   tmp=$(mktemp "$path.XXXXXX")
@@ -447,7 +459,8 @@ apply_wallpaper_theme() {
   [ -s "$PROFILES_DIR/runtime-cava-colors" ] \
     && replace_cava_color_section "$PROFILES_DIR/runtime-cava-colors"
 
-  # Reload consumers that don't watch their color files.
+  # Remix Cursor Agent prompt fills to the new Kitty background, then reload.
+  sync_kitty_agent_transparent_colors "$CONFIG_HOME/kitty"
   pkill -USR1 -x kitty 2>/dev/null || true
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
   if [ -f "$CONFIG_HOME/btop/btop.conf" ] && grep -q '^color_theme = ' "$CONFIG_HOME/btop/btop.conf"; then
@@ -534,48 +547,9 @@ ensure_waypaper_post_command() {
 }
 
 # profile_bar <profile>
-# The bar to run for a profile: a runtime override (bar-<profile> state file,
-# written by switch-bar) wins over the profile manifest default.
+# The bar to run for a profile, from the profile manifest.
 profile_bar() {
-  local name="$1" ov="$PROFILES_DIR/bar-$1"
-
-  if [ -s "$ov" ]; then
-    cat "$ov"
-  else
-    profile_manifest_bar "$name"
-  fi
-}
-
-# Nix wraps mako; the process name is ".mako-wrapped", so a plain
-# `pgrep/pkill -x mako` never matches.
-mako_running() {
-  pgrep -x '\.?mako(-wrapped)?' >/dev/null 2>&1
-}
-
-stop_mako() {
-  pkill -x '\.?mako(-wrapped)?' 2>/dev/null || true
-}
-
-wait_for_mako_shutdown() {
-  local attempts="${1:-20}"
-  for _ in $(seq 1 "$attempts"); do
-    mako_running || return 0
-    sleep 0.1
-  done
-  return 1
-}
-
-start_mako() {
-  mako_running || {
-    mako 9>&- 2>/dev/null &
-    disown 2>/dev/null || true
-  }
-}
-
-restart_mako() {
-  stop_mako
-  wait_for_mako_shutdown 10 || true
-  start_mako
+  profile_manifest_bar "$1"
 }
 
 # pick_variant_file <variant> <dark-file> <light-file>
@@ -681,17 +655,6 @@ apply_profile_font_files() {
     sed -i -E "s|font:[[:space:]]*\"[^\"]+ [0-9]+\";|font:                        \"$ui_font $ui_size\";|g" \
       "$config_root/rofi/profile-switcher.rasi"
   fi
-
-  if [ -f "$config_root/waybar/style.css" ]; then
-    sed -i -E \
-      -e "s|font-family: [^;]+;|font-family: \"$ui_font\", \"Symbols Nerd Font\";|g" \
-      -e "s|font-size: [0-9]+px;|font-size: ${ui_size}px;|g" \
-      "$config_root/waybar/style.css"
-  fi
-
-  if [ -f "$config_root/mako/config" ]; then
-    sed -i "s|^font=.*|font=$ui_font $ui_size|" "$config_root/mako/config"
-  fi
 }
 
 apply_profile_appearance() {
@@ -744,6 +707,7 @@ apply_profile_appearance_files() {
 
   if [ -f "$config_root/kitty/kitty.conf" ]; then
     sed -i "s|^background_opacity .*|background_opacity $kitty_opacity|" "$config_root/kitty/kitty.conf"
+    sync_kitty_agent_transparent_colors "$config_root/kitty"
   fi
 }
 
@@ -771,8 +735,6 @@ stage_profile_core_files() {
     .config/qt6ct/qt6ct.conf
     .config/kitty/kitty.conf
     .config/rofi/profile-switcher.rasi
-    .config/waybar/style.css
-    .config/mako/config
   )
 
   for relative in "${mutable[@]}"; do
@@ -911,6 +873,7 @@ copy_profile_colors() {
   [ -s "$qt6" ] && install -m 644 "$qt6" "$CONFIG_HOME/qt6ct/colors/noctalia.conf"
   [ -s "$qt6" ] && install -m 644 "$qt6" "$CONFIG_HOME/qt5ct/colors/noctalia.conf"
   [ -s "$kitty" ] && install -m 644 "$kitty" "$CONFIG_HOME/kitty/colors.conf"
+  [ -s "$kitty" ] && sync_kitty_agent_transparent_colors "$CONFIG_HOME/kitty"
   [ -s "$rofi" ] && install -m 644 "$rofi" "$CONFIG_HOME/rofi/profile-switcher.rasi"
   [ -s "$fish" ] && install -m 644 "$fish" "$CONFIG_HOME/fish/conf.d/matugen_theme.fish"
   [ -s "$starship" ] && install -m 644 "$starship" "$HOME/.config/starship_matugen.toml"

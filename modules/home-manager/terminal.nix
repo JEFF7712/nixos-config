@@ -107,12 +107,15 @@
         cc = "cursor .";
         claude = "claude --dangerously-skip-permissions";
         codex = "codex --yolo";
-        agent = "agent --force";
+        agent = "env AGENT_CLI_DISABLE_HALF_BLOCK_PROMPT_BAR=true agent --force";
         ci = "$HOME/projects/ci-dashboard.sh";
       };
       interactiveShellInit = ''
         set fish_greeting ""
         set -gx STARSHIP_CONFIG $HOME/.config/starship_matugen.toml
+        # Cursor Agent's ▄/▀ prompt padding is opaque foreground; Kitty can only
+        # tint matching cell backgrounds. Keep the bar as a background fill.
+        set -gx AGENT_CLI_DISABLE_HALF_BLOCK_PROMPT_BAR true
       '';
     };
 

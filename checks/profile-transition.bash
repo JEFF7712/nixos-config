@@ -9,7 +9,7 @@ profiles="$home/.config/desktop-profiles"
 bin_dir="$tmpdir/bin"
 log="$tmpdir/commands.log"
 real_jq="$(command -v jq)"
-bar_state="$tmpdir/waybar.state"
+bar_state="$tmpdir/bar.state"
 notification_state="$tmpdir/notification.state"
 persistent_pid_dir="$tmpdir/persistent-pids"
 export PROFILE_THEME_SELECTOR="$REPO_ROOT/home/scripts/select-quickshell-theme"
@@ -109,24 +109,24 @@ stop_fixture_jobs() {
 
 trap 'stop_fixture_jobs; stop_persistent_children; rm -rf "$tmpdir"' EXIT
 
-check_waybar_readiness_fake() {
+check_quickshell_readiness_fake() {
   printf 'stopped\n' > "$bar_state"
   : > "$log"
   if COMMAND_LOG="$log" BAR_STATE="$bar_state" XDG_CONFIG_HOME="$home/.config" PATH="$bin_dir" \
-    "$bin_dir/pgrep" -f waybar; then
-    printf 'FAIL: stopped Waybar reported ready\n' >&2
+    "$bin_dir/pgrep" -f "quickshell.*quickshell/shell.qml"; then
+    printf 'FAIL: stopped Quickshell reported ready\n' >&2
     exit 1
   fi
-  if grep -Fq 'verify-waybar' "$log"; then
-    printf 'FAIL: stopped Waybar emitted a readiness verification\n' >&2
+  if grep -Fq 'verify-quickshell' "$log"; then
+    printf 'FAIL: stopped Quickshell emitted a readiness verification\n' >&2
     exit 1
   fi
 
-  printf 'started\n' > "$bar_state"
+  printf 'quickshell-started\n' > "$bar_state"
   COMMAND_LOG="$log" BAR_STATE="$bar_state" XDG_CONFIG_HOME="$home/.config" PATH="$bin_dir" \
-    "$bin_dir/pgrep" -f waybar
-  assert_eq "verify-waybar active=old" "$(tail -n 1 "$log")" \
-    "started Waybar emits the unique readiness verification"
+    "$bin_dir/pgrep" -f "quickshell.*quickshell/shell.qml"
+  assert_eq "verify-quickshell active=old" "$(tail -n 1 "$log")" \
+    "started Quickshell emits the unique readiness verification"
 }
 
 check_public_delegation() {
@@ -254,8 +254,8 @@ check_variant_resolves_after_lock() {
   printf 'dark\n' > "$profiles/active-variant"
   printf 'dark\n' > "$profiles/variant-old"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'started\n' > "$bar_state"
-  printf 'mako\n' > "$notification_state"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
   : > "$log"
 
   mkdir -p "$hook"
@@ -300,8 +300,8 @@ check_lock_contention_is_nonblocking() {
   printf 'dark\n' > "$profiles/active-variant"
   printf 'dark\n' > "$profiles/variant-old"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'started\n' > "$bar_state"
-  printf 'mako\n' > "$notification_state"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
 
   mkdir -p "$hook"
   PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR="$hook" \
@@ -349,8 +349,8 @@ check_post_commit_adapter_isolation() {
   printf 'light\n' > "$profiles/variant-new"
   printf 'off\n' > "$profiles/focus"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'started\n' > "$bar_state"
-  printf 'mako\n' > "$notification_state"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
   : > "$log"
 
   HOME="$home" XDG_CONFIG_HOME="$home/.config" \
@@ -366,7 +366,7 @@ check_post_commit_adapter_isolation() {
   assert_eq "$profiles/new/niri-overrides.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
     "application adapter failure preserves the committed Niri override"
-  assert_eq started "$(cat "$bar_state")" \
+  assert_eq quickshell-started "$(cat "$bar_state")" \
     "application adapter failure preserves the committed bar"
   assert_log_contains 'notify-send Desktop Profile Switched to new' \
     "a failed application adapter does not prevent later adapters"
@@ -415,7 +415,7 @@ check_snapshot_failure() {
   local failure="$1" expected_status="$2" before after status runtime_dir
   runtime_dir="$tmpdir/runtime-$failure"
   mkdir -p "$runtime_dir"
-  printf 'started\n' > "$bar_state"
+  printf 'quickshell-started\n' > "$bar_state"
   : > "$log"
   before=$(tar -C "$home" -cf - . | sha256sum)
   set +e
@@ -544,13 +544,13 @@ check_legacy_runtime_regressions() {
   printf 'light\n' > "$profiles/active-variant"
   printf 'dark\n' > "$profiles/variant-old"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'started\n' > "$bar_state"
-  printf 'mako\n' > "$notification_state"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
   active_stat=$(stat -c '%i:%Y' "$profiles/active")
   variant_stat=$(stat -c '%i:%Y' "$profiles/active-variant")
   preference_stat=$(stat -c '%i:%Y' "$profiles/variant-old")
   run_legacy_transition valid-startup startup
-  assert_eq '* { color: old-light; }' "$(cat "$home/.config/waybar/style.css")" \
+  assert_eq 'gtk-old-light' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
     "startup reapplies the valid active variant"
   assert_eq old "$(cat "$profiles/active")" \
     "valid startup preserves the active preference"
@@ -565,29 +565,25 @@ check_legacy_runtime_regressions() {
   assert_eq "$preference_stat" "$(stat -c '%i:%Y' "$profiles/variant-old")" \
     "valid startup does not replace the per-profile preference file"
 
-  printf 'quickshell\n' > "$profiles/bar-old"
   printf 'old\n' > "$profiles/active"
   printf 'dark\n' > "$profiles/active-variant"
   printf 'dark\n' > "$profiles/variant-old"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'started\n' > "$bar_state"
-  printf 'mako\n' > "$notification_state"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
   run_legacy_transition reapply-override reapply
   assert_log_contains 'systemctl --user stop noctalia-shell' \
-    "reapply stops Noctalia when a bar override may have changed"
-  assert_log_contains 'pkill -x waybar' \
-    "reapply stops Waybar when a bar override may have changed"
+    "reapply stops Noctalia even when the target bar is Quickshell"
   assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
-    "reapply stops Quickshell when a bar override may have changed"
-  rm -f "$profiles/bar-old"
+    "reapply stops Quickshell so it can restart cleanly"
 
   printf 'on\n' > "$profiles/focus"
   printf 'old\n' > "$profiles/active"
   printf 'dark\n' > "$profiles/active-variant"
   printf 'dark\n' > "$profiles/variant-new"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'started\n' > "$bar_state"
-  printf 'mako\n' > "$notification_state"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
   run_legacy_transition focus-on switch new
   assert_eq "$profiles/new/niri-overrides-focus.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
@@ -624,7 +620,6 @@ check_legacy_runtime_regressions() {
   mkdir -p "$home/.config/matugen"
   printf 'fixture\n' > "$home/.config/matugen/config-new.toml"
   printf 'light\n' > "$profiles/variant-new"
-  printf 'quickshell\n' > "$profiles/bar-new"
   run_legacy_transition wallpaper-themed switch new
   assert_log_contains_eventually \
     "matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c $home/.config/matugen/config-new.toml active=new" \
@@ -632,10 +627,10 @@ check_legacy_runtime_regressions() {
   assert_log_not_contains \
     "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
     "wallpaper theme does not kill Quickshell to repaint"
-  # After switch from waybar→quickshell there is exactly one topbar launch from start_bar;
-  # wallpaper theming must not launch shell.qml again.
+  # qs→qs keeps the live topbar (SAME_QUICKSHELL); wallpaper theming must not
+  # launch shell.qml as a side effect of the palette adapter.
   launch_count=$(grep -c "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml " "$log" || true)
-  assert_eq "1" "$launch_count" \
+  assert_eq "0" "$launch_count" \
     "wallpaper theme does not relaunch Quickshell after start_bar"
   [ -s "$profiles/quickshell-theme-reload" ] \
     || { printf 'FAIL: missing quickshell-theme-reload stamp after wallpaper theme\n' >&2; exit 1; }
@@ -644,7 +639,7 @@ check_legacy_runtime_regressions() {
   log="$suite_log"
 }
 
-mkdir -p "$profiles" "$bin_dir" "$home/.config/waybar" "$persistent_pid_dir"
+mkdir -p "$profiles" "$bin_dir" "$persistent_pid_dir"
 
 for utility in awk bash basename cat chmod cp cut date dirname env find flock grep head install ln mkdir \
   mktemp mv paste readlink realpath rm rmdir sed seq sha256sum shuf sleep sort stat tail tar touch tr xargs; do
@@ -656,7 +651,7 @@ for profile in old new; do
   profile_dir="$profiles/$profile"
   wallpaper_dir="$profile_dir/wallpapers"
   mkdir -p "$wallpaper_dir"
-  printf '{"bar":"waybar","selfThemed":false,"hasLightVariant":true,"cursor":"default","cursorSize":24}\n' \
+  printf '{"bar":"quickshell","selfThemed":false,"hasLightVariant":true,"cursor":"default","cursorSize":24}\n' \
     > "$profile_dir/meta.json"
   printf '{}\n' > "$profile_dir/runtime.json"
   printf 'old-or-new-dark\n' > "$profile_dir/kitty-colors.conf"
@@ -674,11 +669,8 @@ for profile in old new; do
   printf 'starship-%s-dark\n' "$profile" > "$profile_dir/starship.toml"
   printf 'starship-%s-light\n' "$profile" > "$profile_dir/starship-light.toml"
   printf 'layout { gaps 8; }\n' > "$profile_dir/niri-overrides.kdl"
-  printf '{"profile":"%s"}\n' "$profile" > "$profile_dir/waybar-config.jsonc"
-  printf '* { color: %s-dark; }\n' "$profile" > "$profile_dir/waybar-style.css"
-  printf '* { color: %s-light; }\n' "$profile" > "$profile_dir/waybar-style-light.css"
-  printf 'font=old 8\nprofile=%s-dark\n' "$profile" > "$profile_dir/mako-config"
-  printf 'font=old 8\nprofile=%s-light\n' "$profile" > "$profile_dir/mako-config-light"
+  printf '{"payload":"%s-dark"}\n' "$profile" > "$profile_dir/quickshell-theme.json"
+  printf '{"payload":"%s-light"}\n' "$profile" > "$profile_dir/quickshell-theme-light.json"
   printf '%s\n' "$wallpaper_dir" > "$profile_dir/wallpaper-dir"
   printf '%s\n' "$wallpaper_dir" > "$profile_dir/wallpaper-dir-light"
   touch "$wallpaper_dir/wallpaper.png"
@@ -701,7 +693,7 @@ for profile in old new; do
         obsidianWallpaperTheme: false
       },
       transition: {
-        defaultBar: "waybar",
+        defaultBar: "quickshell",
         cursor: {theme: "fixture-cursor", size: 28},
         fonts: {ui: {family: "Fixture UI", size: 12}, mono: {family: "Fixture Mono", size: 15}},
         appearance: {gtkTheme: "fixture-dark", gtkThemeLight: "fixture-light", iconTheme: "fixture-icons-dark", iconThemeLight: "fixture-icons-light", kittyOpacity: 0.8}
@@ -712,8 +704,7 @@ for profile in old new; do
       },
       artifacts: {
         niri: {default: "niri-overrides.kdl", focus: "niri-overrides-focus.kdl"},
-        waybar: {config: "waybar-config.jsonc", dark: "waybar-style.css", light: "waybar-style-light.css"},
-        mako: {dark: "mako-config", light: "mako-config-light"}
+        quickshell: {dark: "quickshell-theme.json", light: "quickshell-theme-light.json"}
       }
     }' > "$profiles/$profile/manifest.json"
   rm "$profiles/$profile/meta.json" "$profiles/$profile/runtime.json" \
@@ -742,26 +733,24 @@ for profile in old new qs noc; do
 done
 
 mkdir -p "$home/.config/gtk-3.0" "$home/.config/gtk-4.0" \
-  "$home/.config/qt5ct/colors" "$home/.config/qt6ct/colors" "$home/.config/kitty" \
-  "$home/.config/mako"
+  "$home/.config/qt5ct/colors" "$home/.config/qt6ct/colors" "$home/.config/kitty"
 printf '[Settings]\ngtk-font-name=Old 9\ngtk-theme-name=old-theme\ngtk-cursor-theme-name=old-cursor\n' \
   > "$home/.config/gtk-3.0/settings.ini"
 cp "$home/.config/gtk-3.0/settings.ini" "$home/.config/gtk-4.0/settings.ini"
 printf 'font_family family="Old Mono"\nfont_size 9\nbackground_opacity 1.0\n' \
   > "$home/.config/kitty/kitty.conf"
-cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
-cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
-cp "$profiles/old/mako-config" "$home/.config/mako/config"
-chmod 640 "$home/.config/waybar/config.jsonc"
+cp "$profiles/old/gtk-3.0.css" "$home/.config/gtk-3.0/noctalia.css"
+cp "$profiles/old/gtk-4.0.css" "$home/.config/gtk-4.0/noctalia.css"
+chmod 640 "$home/.config/gtk-3.0/noctalia.css"
 
 printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-old"
 printf 'light\n' > "$profiles/variant-new"
 ln -s "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf 'mako\n' > "$notification_state"
+printf 'quickshell\n' > "$notification_state"
 
-for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper mako makoctl tmux kitty magick matugen noctalia-shell noctalia; do
+for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper tmux kitty magick matugen noctalia-shell noctalia; do
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$COMMAND_LOG"
@@ -833,38 +822,13 @@ if [ -n "${PKILL_COUNT_FILE:-}" ]; then
   printf '%s\n' "$count" > "$PKILL_COUNT_FILE"
 fi
 case " $* " in
-  *" waybar "*)
-    [ -n "${IGNORE_FIRST_BAR_STOP:-}" ] && [ "${count:-0}" -eq 1 ] || printf 'stopped\n' > "$BAR_STATE"
-    ;;
   *" quickshell"*"quickshell/shell.qml"*)
-    [ -n "${IGNORE_FIRST_BAR_STOP:-}" ] && [ "${count:-0}" -eq 1 ] || printf 'stopped\n' > "$BAR_STATE"
-    ;;
-  *" \\.?mako(-wrapped)? "*)
-    if [ -n "${MAKO_STOP_POLLS:-}" ]; then
-      printf 'mako-stopping:%s\n' "$MAKO_STOP_POLLS" > "$NOTIFICATION_STATE"
-    else
-      printf 'none\n' > "$NOTIFICATION_STATE"
+    if ! { [ -n "${IGNORE_FIRST_BAR_STOP:-}" ] && [ "${count:-0}" -eq 1 ]; }; then
+      printf 'stopped\n' > "$BAR_STATE"
+      [ "$(cat "$NOTIFICATION_STATE")" != quickshell ] || printf 'none\n' > "$NOTIFICATION_STATE"
     fi
     ;;
 esac
-EOF
-
-cat > "$bin_dir/waybar" <<'EOF'
-#!/usr/bin/env bash
-if [ -n "${START_COUNT_FILE:-}" ]; then
-  count=$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)
-  printf '%s\n' "$((count + 1))" > "$START_COUNT_FILE"
-fi
-printf 'started\n' > "$BAR_STATE"
-active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
-printf 'waybar start active=%s\n' "$active" >> "$COMMAND_LOG"
-if [ -n "${PERSISTENT_CHILDREN:-}" ]; then
-  mkdir -p "$PERSISTENT_PID_DIR"
-  pid_file="$PERSISTENT_PID_DIR/waybar"
-  printf '%s\n' "$$" > "$pid_file"
-  trap 'rm -f "$pid_file"' EXIT
-  sleep 5
-fi
 EOF
 
 cat > "$bin_dir/quickshell" <<'EOF'
@@ -895,7 +859,7 @@ fi
 case "$*" in
   *quickshell-switcher/shell.qml*) exit 0 ;;
 esac
-if [ "$(cat "$NOTIFICATION_STATE")" = none ] && [ -z "${FAIL_NOTIFICATION_OWNER:-}" ]; then
+if [ -z "${FAIL_NOTIFICATION_OWNER:-}" ]; then
   printf 'quickshell-started\n' > "$BAR_STATE"
   printf 'quickshell\n' > "$NOTIFICATION_STATE"
 fi
@@ -922,53 +886,15 @@ printf '%s %s active=%s\n' "$(basename "$0")" "$*" "$active" >> "$COMMAND_LOG"
 EOF
 done
 
-cat > "$bin_dir/mako" <<'EOF'
-#!/usr/bin/env bash
-printf 'mako %s\n' "$*" >> "$COMMAND_LOG"
-[ -n "${FAIL_NOTIFICATION_OWNER:-}" ] || printf 'mako\n' > "$NOTIFICATION_STATE"
-if [ -n "${PERSISTENT_CHILDREN:-}" ]; then
-  mkdir -p "$PERSISTENT_PID_DIR"
-  pid_file="$PERSISTENT_PID_DIR/mako"
-  printf '%s\n' "$$" > "$pid_file"
-  trap 'rm -f "$pid_file"' EXIT
-  sleep 5
-fi
-EOF
-
 cat > "$bin_dir/pgrep" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 state=$(cat "$BAR_STATE")
-if [[ " $* " == *" \\.?mako(-wrapped)? "* ]]; then
-  notification=$(cat "$NOTIFICATION_STATE")
-  case "$notification" in
-    mako)
-      printf 'pgrep-mako active\n' >> "$COMMAND_LOG"
-      exit 0
-      ;;
-    mako-stopping:*)
-      polls=${notification##*:}
-      printf 'pgrep-mako stopping=%s\n' "$polls" >> "$COMMAND_LOG"
-      if [ "$polls" -gt 1 ]; then
-        printf 'mako-stopping:%s\n' "$((polls - 1))" > "$NOTIFICATION_STATE"
-        exit 0
-      fi
-      printf 'none\n' > "$NOTIFICATION_STATE"
-      exit 1
-      ;;
-    *) exit 1 ;;
-  esac
-fi
 if [ -n "${FAIL_FIRST_BAR_START:-}" ] && [ "$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)" = 1 ]; then
   printf 'pgrep %s active=%s state=%s\n' "$*" "$active" "$state" >> "$COMMAND_LOG"
   exit 1
 fi
 case " $* :$state" in
-  *" waybar "*:started)
-    printf 'pgrep %s\n' "$*" >> "$COMMAND_LOG"
-    printf 'verify-waybar active=%s\n' "$active" >> "$COMMAND_LOG"
-    exit 0
-    ;;
   *" quickshell"*"quickshell/shell.qml"*:quickshell-started)
     printf 'pgrep %s\n' "$*" >> "$COMMAND_LOG"
     printf 'verify-quickshell active=%s\n' "$active" >> "$COMMAND_LOG"
@@ -986,7 +912,6 @@ cat > "$bin_dir/busctl" <<'EOF'
 printf 'busctl %s\n' "$*" >> "$COMMAND_LOG"
 [ "$*" = '--user status org.freedesktop.Notifications' ] || exit 1
 case "$(cat "$NOTIFICATION_STATE")" in
-  mako | mako-stopping:*) printf 'mako notification server\n' ;;
   quickshell) printf 'quickshell notification server\n' ;;
   noctalia) printf 'noctalia-shell notification server\n' ;;
   *) exit 1 ;;
@@ -1000,7 +925,9 @@ exec "$REAL_JQ" "$@"
 EOF
 
 find "$bin_dir" -maxdepth 1 -type f -exec chmod +x {} +
-check_waybar_readiness_fake
+check_quickshell_readiness_fake
+printf 'stopped\n' > "$bar_state"
+printf 'none\n' > "$notification_state"
 : > "$log"
 
 check_snapshot_failure payload 23
@@ -1033,20 +960,18 @@ assert_eq "light" "$(cat "$profiles/variant-new")" "target variant preference is
 assert_eq "$profiles/new/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "Niri override points to the target profile"
-assert_log_contains "verify-waybar active=old" \
+assert_log_contains "verify-quickshell active=old" \
   "post-start target bar readiness is verified before active profile commit"
-assert_eq '* { color: new-light; }' "$(cat "$home/.config/waybar/style.css")" \
-  "old-to-new Waybar switch installs the target variant style"
-assert_eq 'font=Fixture UI 12
-profile=new-light' "$(cat "$home/.config/mako/config")" \
-  "old-to-new Waybar switch transforms the target Mako config"
+assert_eq 'gtk-new-light' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
+  "old-to-new switch installs the target variant GTK colors"
 
 printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
-cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
-chmod 640 "$home/.config/waybar/config.jsonc"
+cp "$profiles/old/gtk-3.0.css" "$home/.config/gtk-3.0/noctalia.css"
+chmod 640 "$home/.config/gtk-3.0/noctalia.css"
+printf 'stopped\n' > "$bar_state"
+printf 'none\n' > "$notification_state"
 printf '0\n' > "$tmpdir/start-count"
 printf '0\n' > "$tmpdir/niri-count"
 : > "$log"
@@ -1066,22 +991,20 @@ assert_eq "dark" "$(cat "$profiles/active-variant")" "rollback restores active v
 assert_eq "$profiles/old/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "rollback restores the previous Niri override"
-assert_eq '{"profile":"old"}' "$(cat "$home/.config/waybar/config.jsonc")" \
-  "rollback restores the previous Waybar config exactly"
-assert_eq '* { color: old-dark; }' "$(cat "$home/.config/waybar/style.css")" \
-  "rollback restores the previous Waybar style exactly"
+assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
+  "rollback restores the previous GTK colors exactly"
 assert_eq "2" "$(cat "$tmpdir/start-count")" \
   "rollback stops the target and restarts the previous bar"
 assert_eq "1" "$(grep -Fc 'niri msg action load-config-file' "$log")" \
   "rollback reloads Niri after restoring the previous override"
-assert_log_contains "verify-waybar active=old" "rollback verifies the previous bar"
+assert_log_contains "verify-quickshell active=old" "rollback verifies the previous bar"
 if ! grep -Fq 'rollback: Niri reload failed' "$rollback_output"; then
   printf 'FAIL: rollback did not diagnose its injected Niri reload failure\n' >&2
   cat "$rollback_output" >&2
   exit 1
 fi
-assert_mode 640 "$home/.config/waybar/config.jsonc" \
-  "rollback restores the previous Waybar config mode"
+assert_mode 640 "$home/.config/gtk-3.0/noctalia.css" \
+  "rollback restores the previous GTK color file mode"
 assert_eq "light" "$(cat "$profiles/variant-new")" \
   "rollback restores the target per-profile preference"
 
@@ -1091,9 +1014,9 @@ printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'light\n' > "$profiles/variant-new"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
-cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
-printf 'started\n' > "$bar_state"
+cp "$profiles/old/gtk-3.0.css" "$home/.config/gtk-3.0/noctalia.css"
+cp "$profiles/old/gtk-4.0.css" "$home/.config/gtk-4.0/noctalia.css"
+printf 'quickshell-started\n' > "$bar_state"
 printf '0\n' > "$tmpdir/niri-count"
 : > "$log"
 set +e
@@ -1112,17 +1035,17 @@ assert_eq "$profiles/old/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "Niri rollback restores the previous override"
 assert_eq 2 "$(cat "$tmpdir/niri-count")" "Niri rollback reloads the restored override"
-assert_log_contains "verify-waybar active=old" "Niri rollback recovers the previous bar"
+assert_log_contains "verify-quickshell active=old" "Niri rollback recovers the previous bar"
 
 # A staging failure must restore every snapshotted path and recover the old runtime.
 printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'light\n' > "$profiles/variant-new"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf '{"profile":"old-stage"}\n' > "$home/.config/waybar/config.jsonc"
-chmod 600 "$home/.config/waybar/config.jsonc"
-rm -f "$home/.config/waybar/style.css"
-printf 'started\n' > "$bar_state"
+printf 'gtk-old-stage\n' > "$home/.config/gtk-3.0/noctalia.css"
+chmod 600 "$home/.config/gtk-3.0/noctalia.css"
+rm -f "$home/.config/kitty/colors.conf"
+printf 'quickshell-started\n' > "$bar_state"
 printf '0\n' > "$tmpdir/start-count"
 : > "$log"
 stage_output="$tmpdir/stage.out"
@@ -1130,7 +1053,7 @@ set +e
 HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$tmpdir/runtime" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-  PROFILE_TRANSITION_FAIL_STAGE_PATH="$home/.config/waybar/style.css" \
+  PROFILE_TRANSITION_FAIL_STAGE_PATH="$home/.config/kitty/colors.conf" \
   "$REPO_ROOT/home/scripts/profile-transition" switch new >"$stage_output" 2>&1
 stage_status=$?
 set -e
@@ -1145,15 +1068,15 @@ assert_eq light "$(cat "$profiles/variant-new")" "staging rollback restores targ
 assert_eq "$profiles/old/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "staging rollback restores the Niri symlink"
-assert_eq '{"profile":"old-stage"}' "$(cat "$home/.config/waybar/config.jsonc")" \
+assert_eq 'gtk-old-stage' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
   "staging rollback restores file bytes"
-assert_mode 600 "$home/.config/waybar/config.jsonc" "staging rollback restores file mode"
-[ ! -e "$home/.config/waybar/style.css" ] || {
+assert_mode 600 "$home/.config/gtk-3.0/noctalia.css" "staging rollback restores file mode"
+[ ! -e "$home/.config/kitty/colors.conf" ] || {
   printf 'FAIL: staging rollback restores a missing path\n' >&2
   exit 1
 }
-assert_log_not_contains "pkill -x waybar" "staging failure occurs before old Waybar shutdown"
-assert_log_not_contains "verify-waybar active=old" "staging failure needs no bar recovery"
+assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" "staging failure occurs before old bar shutdown"
+assert_log_not_contains "verify-quickshell active=old" "staging failure needs no bar recovery"
 if find "$tmpdir/runtime" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
   printf 'FAIL: staging rollback left a transaction directory behind\n' >&2
   exit 1
@@ -1165,17 +1088,17 @@ printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'light\n' > "$profiles/variant-new"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf '{"profile":"old-secondary"}\n' > "$home/.config/waybar/config.jsonc"
-printf '* { color: old-secondary; }\n' > "$home/.config/waybar/style.css"
-printf 'started\n' > "$bar_state"
+printf 'gtk-old-secondary\n' > "$home/.config/gtk-3.0/noctalia.css"
+printf 'gtk4-old-secondary\n' > "$home/.config/gtk-4.0/noctalia.css"
+printf 'quickshell-started\n' > "$bar_state"
 : > "$log"
 secondary_output="$tmpdir/secondary.out"
 set +e
 HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$tmpdir/runtime" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-  PROFILE_TRANSITION_FAIL_INSTALL_PATH="$home/.config/waybar/style.css" \
-  PROFILE_TRANSITION_FAIL_RESTORE_PATH="$home/.config/waybar/config.jsonc" \
+  PROFILE_TRANSITION_FAIL_INSTALL_PATH="$home/.config/gtk-4.0/noctalia.css" \
+  PROFILE_TRANSITION_FAIL_RESTORE_PATH="$home/.config/gtk-3.0/noctalia.css" \
   PROFILE_TRANSITION_FAILURE_STATUS=42 \
   "$REPO_ROOT/home/scripts/profile-transition" switch new >"$secondary_output" 2>&1
 secondary_status=$?
@@ -1187,11 +1110,11 @@ assert_eq light "$(cat "$profiles/variant-new")" "later preference restore still
 assert_eq "$profiles/old/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "later Niri symlink restore still runs"
-assert_eq '* { color: old-secondary; }' "$(cat "$home/.config/waybar/style.css")" \
+assert_eq 'gtk4-old-secondary' "$(cat "$home/.config/gtk-4.0/noctalia.css")" \
   "later file restore still runs"
 assert_log_contains "niri msg action load-config-file" "Niri recovery continues after restore failure"
-assert_log_contains "verify-waybar active=old" "bar recovery continues after restore failure"
-grep -Fq "rollback: restore $home/.config/waybar/config.jsonc failed" "$secondary_output" || {
+assert_log_contains "verify-quickshell active=old" "bar recovery continues after restore failure"
+grep -Fq "rollback: restore $home/.config/gtk-3.0/noctalia.css failed" "$secondary_output" || {
   printf 'FAIL: secondary restoration failure was not diagnosed\n' >&2
   cat "$secondary_output" >&2
   exit 1
@@ -1202,9 +1125,9 @@ printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-new"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
-cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
-printf 'started\n' > "$bar_state"
+cp "$profiles/old/gtk-3.0.css" "$home/.config/gtk-3.0/noctalia.css"
+cp "$profiles/old/gtk-4.0.css" "$home/.config/gtk-4.0/noctalia.css"
+printf 'quickshell-started\n' > "$bar_state"
 : > "$log"
 set +e
 HOME="$home" XDG_CONFIG_HOME="$home/.config" \
@@ -1221,7 +1144,7 @@ assert_eq dark "$(cat "$profiles/variant-new")" "partial commit restores target 
 assert_eq "$profiles/old/niri-overrides.kdl" \
   "$(readlink "$profiles/active-niri-overrides.kdl")" \
   "partial commit restores Niri override"
-assert_log_contains "verify-waybar active=old" "partial commit recovers the previous bar"
+assert_log_contains "verify-quickshell active=old" "partial commit recovers the previous bar"
 assert_pending_cleared "partial commit rollback"
 
 # Once all preferences are durable, a signal may clean transaction storage but
@@ -1230,9 +1153,10 @@ printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'light\n' > "$profiles/variant-new"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-cp "$profiles/old/waybar-config.jsonc" "$home/.config/waybar/config.jsonc"
-cp "$profiles/old/waybar-style.css" "$home/.config/waybar/style.css"
-printf 'started\n' > "$bar_state"
+cp "$profiles/old/gtk-3.0.css" "$home/.config/gtk-3.0/noctalia.css"
+cp "$profiles/old/gtk-4.0.css" "$home/.config/gtk-4.0/noctalia.css"
+printf 'stopped\n' > "$bar_state"
+printf 'none\n' > "$notification_state"
 printf '0\n' > "$tmpdir/start-count"
 : > "$log"
 set +e
@@ -1266,26 +1190,10 @@ HOME="$home" XDG_CONFIG_HOME="$home/.config" \
 PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
 BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
   "$REPO_ROOT/home/scripts/profile-transition" startup old
-assert_eq "* { color: old-dark; }" "$(cat "$home/.config/waybar/style.css")" \
+assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
   "explicit startup target restores its saved variant"
 assert_eq "new" "$(cat "$profiles/active")" "startup preserves active preference"
 assert_eq "light" "$(cat "$profiles/active-variant")" "startup preserves variant preference"
-
-printf 'old\n' > "$profiles/active"
-printf 'dark\n' > "$profiles/active-variant"
-ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf 'started\n' > "$bar_state"
-printf '0\n' > "$tmpdir/pkill-count"
-: > "$log"
-if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-  PKILL_COUNT_FILE="$tmpdir/pkill-count" IGNORE_FIRST_BAR_STOP=1 \
-  "$REPO_ROOT/home/scripts/profile-transition" switch new >/dev/null 2>&1; then
-  printf 'FAIL: transition continued while Waybar remained running\n' >&2
-  exit 1
-fi
-assert_eq "old" "$(cat "$profiles/active")" "Waybar shutdown failure aborts before commit"
 
 printf 'qs\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
@@ -1298,7 +1206,7 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
   PKILL_COUNT_FILE="$tmpdir/pkill-count" IGNORE_FIRST_BAR_STOP=1 \
-  "$REPO_ROOT/home/scripts/profile-transition" switch old >/dev/null 2>&1; then
+  "$REPO_ROOT/home/scripts/profile-transition" switch noc >/dev/null 2>&1; then
   printf 'FAIL: transition continued while Quickshell remained running\n' >&2
   exit 1
 fi
@@ -1328,20 +1236,18 @@ assert_log_contains "verify-noctalia active=noc" "rollback verifies restarted No
 # the target rather than the previous bar.
 printf 'on\n' > "$profiles/focus"
 qs_wallpaper_backups=()
-for previous in old qs noc; do
+for previous in qs noc; do
   case "$previous" in
-    old) previous_state=started ;;
     qs) previous_state=quickshell-started ;;
     noc) previous_state=noctalia-started ;;
   esac
-  for target in old qs noc; do
+  for target in qs noc; do
     printf '%s\n' "$previous" > "$profiles/active"
     printf 'dark\n' > "$profiles/active-variant"
     printf 'dark\n' > "$profiles/variant-$target"
     ln -sfn "$profiles/$previous/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
     printf '%s\n' "$previous_state" > "$bar_state"
     case "$previous" in
-      old) printf 'mako\n' > "$notification_state" ;;
       qs) printf 'quickshell\n' > "$notification_state" ;;
       noc) printf 'noctalia\n' > "$notification_state" ;;
     esac
@@ -1369,7 +1275,6 @@ for previous in old qs noc; do
     fi
 
     case "$previous" in
-      old) assert_log_contains 'pkill -x waybar' "Waybar is stopped from $previous to $target" ;;
       qs)
         if [ "$target" = qs ]; then
           assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
@@ -1383,26 +1288,14 @@ for previous in old qs noc; do
         "Noctalia is stopped from $previous to $target" ;;
     esac
     case "$target" in
-      old)
-        assert_log_contains 'pgrep -x waybar' "Waybar readiness uses pgrep from $previous"
-        assert_log_contains 'systemctl --user start awww' "Waybar starts awww from $previous"
-        assert_log_contains_eventually 'mako ' "Waybar starts Mako from $previous"
-        assert_log_contains 'makoctl mode -a dnd' "Waybar rearms focus DND from $previous"
-        assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
-          "Waybar verifies notification ownership from $previous"
-        ;;
       qs)
         assert_log_contains "pgrep -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
           "Quickshell readiness uses the exact topbar from $previous"
         if [ "$previous" = qs ]; then
           assert_log_not_contains 'systemctl --user start awww' \
             "same-bar Quickshell does not re-run start_bar awww from $previous"
-          assert_log_not_contains "pkill -x \\.?mako(-wrapped)?" \
-            "same-bar Quickshell does not stop Mako via start_bar from $previous"
         else
           assert_log_contains 'systemctl --user start awww' "Quickshell starts awww from $previous"
-          assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Quickshell stops Mako from $previous"
-          assert_log_not_contains 'makoctl mode -a dnd' "Quickshell does not rearm focus DND from $previous"
           assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
             "Quickshell verifies notification ownership from $previous"
         fi
@@ -1411,8 +1304,6 @@ for previous in old qs noc; do
         assert_log_contains 'systemctl --user is-active --quiet noctalia-shell' \
           "Noctalia readiness uses systemctl from $previous"
         assert_log_contains 'systemctl --user stop awww' "Noctalia stops awww from $previous"
-        assert_log_contains "pkill -x \\.?mako(-wrapped)?" "Noctalia stops Mako from $previous"
-        assert_log_not_contains 'makoctl mode -a dnd' "Noctalia does not rearm focus DND from $previous"
         assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
           "Noctalia verifies notification ownership from $previous"
         ;;
@@ -1449,28 +1340,18 @@ assert_pending_cleared "same-bar switch"
 assert_selector_ignores_frozen_env '{"payload":"qs2-dark"}' qs dark \
   "same-bar switch selector follows committed qs2, not the launch-time identity"
 
-assert_eq '{"profile":"old"}' "$(cat "$home/.config/waybar/config.jsonc")" \
-  "Waybar config is installed as a writable target file"
-assert_eq '* { color: old-dark; }' "$(cat "$home/.config/waybar/style.css")" \
-  "Waybar style is installed as a writable target file"
-assert_eq 'profile=old-dark' "$(tail -n 1 "$home/.config/mako/config")" \
-  "Waybar Mako config is installed transactionally"
-assert_mode 644 "$home/.config/waybar/config.jsonc" "Waybar config remains writable"
-assert_mode 644 "$home/.config/waybar/style.css" "Waybar style remains writable"
-assert_mode 644 "$home/.config/mako/config" "Mako config remains writable"
 assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
   "core GTK color file is installed"
+assert_mode 644 "$home/.config/gtk-3.0/noctalia.css" "GTK color file remains writable"
 assert_log_not_contains 'apply_vicinae' "core staging excludes best-effort application adapters"
 
-# Quickshell cannot claim org.freedesktop.Notifications until Mako has released
-# it. The transition must wait for that release rather than committing a bar
-# process whose notification server never came up.
+# Pending Quickshell identity is read from transition files, not process env.
 printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 printf 'light\n' > "$profiles/variant-qs"
 ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf 'started\n' > "$bar_state"
-printf 'mako\n' > "$notification_state"
+printf 'stopped\n' > "$bar_state"
+printf 'none\n' > "$notification_state"
 printf '{"payload":"qs-runtime-dark"}\n' > "$profiles/runtime-quickshell-theme.json"
 printf 'qs\n' > "$profiles/runtime-theme-profile"
 rm -f "$profiles/runtime-theme-variant"
@@ -1500,14 +1381,14 @@ printf 'dark\n' > "$profiles/runtime-theme-variant"
 : > "$log"
 HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" MAKO_STOP_POLLS=3 \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
   "$REPO_ROOT/home/scripts/profile-transition" switch qs
 assert_eq quickshell "$(cat "$notification_state")" \
-  "Quickshell starts only after Mako releases notification ownership"
+  "Quickshell claims notification ownership after start"
 assert_log_contains \
   "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=old active_variant=dark theme=qs theme_variant=light selected={\"payload\":\"qs-light\"} env_target= env_variant=" \
   "Quickshell selects the pending light payload instead of the stale dark runtime override"
-assert_pending_cleared "waybar to Quickshell switch"
+assert_pending_cleared "Quickshell pending-identity switch"
 
 printf 'qs\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
@@ -1538,8 +1419,8 @@ assert_selector_ignores_frozen_env '{"payload":"qs-light"}' qs dark \
 
 printf 'dark\n' > "$profiles/active-variant"
 printf 'dark\n' > "$profiles/variant-qs"
-printf 'quickshell-started\n' > "$bar_state"
-printf 'mako\n' > "$notification_state"
+printf 'stopped\n' > "$bar_state"
+printf 'none\n' > "$notification_state"
 printf '0\n' > "$tmpdir/start-count"
 rm -f "$profiles/quickshell-theme-reload"
 : > "$log"
@@ -1564,34 +1445,6 @@ assert_log_contains \
   "Quickshell rollback restarts the old dark runtime theme"
 assert_pending_cleared "Quickshell variant rollback"
 
-# A Waybar-to-Waybar transition must wait for the old Mako process to disappear
-# before deciding whether to launch its replacement. A stale owner string is not
-# enough: the replacement fake must remain alive after commit.
-printf 'old\n' > "$profiles/active"
-printf 'dark\n' > "$profiles/active-variant"
-ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf 'started\n' > "$bar_state"
-printf 'mako\n' > "$notification_state"
-rm -rf "$persistent_pid_dir"
-mkdir -p "$persistent_pid_dir"
-: > "$log"
-HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-  MAKO_STOP_POLLS=3 PERSISTENT_CHILDREN=1 \
-  "$REPO_ROOT/home/scripts/profile-transition" switch new
-for _ in $(seq 1 20); do
-  [ -f "$persistent_pid_dir/mako" ] && break
-  sleep 0.05
-done
-[ -f "$persistent_pid_dir/mako" ] || {
-  printf 'FAIL: Waybar transition did not leave a replacement Mako running\n' >&2
-  exit 1
-}
-assert_eq mako "$(cat "$notification_state")" \
-  "Waybar replacement Mako owns notifications after commit"
-stop_persistent_children
-
 # A ready bar process is insufficient when its notification owner is absent.
 printf 'noc\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
@@ -1603,43 +1456,21 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
   PROFILE_TRANSITION_VERIFY_ATTEMPTS=5 FAIL_NOTIFICATION_OWNER=1 \
-  "$REPO_ROOT/home/scripts/profile-transition" switch old >/dev/null 2>&1; then
-  printf 'FAIL: transition committed Waybar without its notification owner\n' >&2
+  "$REPO_ROOT/home/scripts/profile-transition" switch qs >/dev/null 2>&1; then
+  printf 'FAIL: transition committed Quickshell without its notification owner\n' >&2
   exit 1
 fi
 assert_eq noc "$(cat "$profiles/active")" \
   "notification ownership failure rolls back active profile"
 
-# Spawned bars and notification daemons outlive the engine, but must not retain
-# its flock file descriptor and block the next transition.
+# Spawned bars outlive the engine, but must not retain its flock file
+# descriptor and block the next transition.
 printf 'noc\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 printf 'noctalia-started\n' > "$bar_state"
 printf 'noctalia\n' > "$notification_state"
 rm -rf "$persistent_pid_dir"
-mkdir -p "$persistent_pid_dir"
-HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" PERSISTENT_CHILDREN=1 \
-  "$REPO_ROOT/home/scripts/profile-transition" switch old
-for _ in $(seq 1 20); do
-  [ -f "$persistent_pid_dir/waybar" ] && [ -f "$persistent_pid_dir/mako" ] && break
-  sleep 0.05
-done
-[ -f "$persistent_pid_dir/waybar" ] && [ -f "$persistent_pid_dir/mako" ] || {
-  printf 'FAIL: persistent Waybar and Mako fakes did not remain running\n' >&2
-  exit 1
-}
-if ! flock -n "$tmpdir/profile.lock" true; then
-  printf 'FAIL: persistent bar child retained the transition lock\n' >&2
-  exit 1
-fi
-stop_persistent_children
-
-printf 'old\n' > "$profiles/active"
-printf 'started\n' > "$bar_state"
-printf 'mako\n' > "$notification_state"
 mkdir -p "$persistent_pid_dir"
 HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
@@ -1654,7 +1485,7 @@ done
   exit 1
 }
 if ! flock -n "$tmpdir/profile.lock" true; then
-  printf 'FAIL: persistent Quickshell child retained the transition lock\n' >&2
+  printf 'FAIL: persistent bar child retained the transition lock\n' >&2
   exit 1
 fi
 stop_persistent_children

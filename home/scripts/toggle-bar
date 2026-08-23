@@ -20,23 +20,11 @@ toggle_quickshell() {
   fi
 }
 
-toggle_waybar() {
-  if pgrep -x waybar >/dev/null 2>&1; then
-    pkill -x waybar 2>/dev/null || true
-  else
-    waybar >/dev/null 2>&1 &
-    disown
-  fi
-}
-
 case "$BAR" in
   noctalia)
     noctalia msg bar-toggle
     ;;
   quickshell)
     toggle_quickshell
-    ;;
-  waybar)
-    toggle_waybar
     ;;
 esac

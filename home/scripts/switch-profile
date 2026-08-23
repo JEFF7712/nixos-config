@@ -45,9 +45,7 @@ profile_status() {
   bar=$(profile_bar "$active")
   self=$(profile_manifest_capability "$active" selfThemed)
 
-  bar_note=""
-  [ -s "$PROFILES_DIR/bar-$active" ] && bar_note=" [override]"
-  echo "Profile: $active (variant: $variant, bar: $bar$bar_note, self-themed: $self)"
+  echo "Profile: $active (variant: $variant, bar: $bar, self-themed: $self)"
 
   case "$bar" in
     noctalia)
@@ -57,15 +55,9 @@ profile_status() {
         mark fail "noctalia-shell service"
       fi
       ;;
-    waybar)
-      pgrep -x waybar >/dev/null 2>&1 && mark ok "waybar" || mark fail "waybar"
-      mako_running && mark ok "mako" || mark fail "mako"
-      ;;
     quickshell)
       pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 \
         && mark ok "quickshell topbar" || mark fail "quickshell topbar"
-      # Quickshell owns notifications natively; mako must NOT be running (it would
-      # steal the org.freedesktop.Notifications bus name).
       if busctl --user status org.freedesktop.Notifications 2>/dev/null | grep -qi quickshell; then
         mark ok "notification server"
       else

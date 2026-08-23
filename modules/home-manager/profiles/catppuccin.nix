@@ -4,7 +4,7 @@
 # mapping. Catppuccin layers surfaces as crust < mantle < base < surface0..2,
 # so bg0=base with mantle/crust as darker extras (bgDim=crust) and surface2 as
 # an extra above bg3=surface1. Variant-specific slots (fish*, starship*,
-# rofiPlaceholder, bar*) are palette keys. Mocha replaces the derived kitty
+# rofiPlaceholder) are palette keys. Mocha replaces the derived kitty
 # theme with a custom monochrome pink/purple scheme (applied post-build, since
 # Latte keeps the derived one).
 let
@@ -44,10 +44,6 @@ let
     starshipSuccess = "#f2cdcd";
     starshipDirectory = "#b4befe";
     rofiPlaceholder = "#45475a";
-    barPrimary = "#f5c2e7";
-    barCritical = "#f5c2e7";
-    barBg = "rgba(24, 24, 37, 0.6)";
-    barShadow = "rgba(17, 17, 27, 0.45)";
   };
 
   light = {
@@ -81,10 +77,6 @@ let
     starshipSuccess = "#8839ef";
     starshipDirectory = "#1e66f5";
     rofiPlaceholder = "#acb0be";
-    barPrimary = "#8839ef";
-    barCritical = "#d20f39";
-    barBg = "rgba(239, 241, 245, 0.85)";
-    barShadow = "rgba(220, 224, 232, 0.6)";
   };
 
   overrides = {
@@ -151,10 +143,6 @@ let
     tmux = r: {
       border = r.bg3;
     };
-    waybarStyle = r: {
-      primary = r.barPrimary;
-      criticalColor = r.barCritical;
-    };
   };
 
   built = static.mkStaticProfile {
@@ -162,8 +150,6 @@ let
     paletteLight = light;
     inherit overrides;
     bar = "quickshell";
-    waybarStyle = "pill";
-    scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.assetsPath}/wallpapers/catppuccin";
 
     quickshell = r: {

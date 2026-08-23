@@ -94,7 +94,6 @@ in
           "clean"
           "noctalia"
           "quickshell"
-          "waybar"
         ];
         description = "Which bar to run for this profile.";
       };
@@ -421,34 +420,6 @@ in
 
       colors = colorOptions;
       colorsLight = colorOptions;
-
-      waybar = {
-        config = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-        style = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-      };
-
-      waybarLight = {
-        style = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-        };
-      };
-
-      makoConfig = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-      };
-
-      makoConfigLight = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-      };
 
       runtime = lib.mkOption {
         type = lib.types.attrsOf lib.types.anything;

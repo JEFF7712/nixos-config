@@ -8,6 +8,11 @@
 
 let
   cfg = config.programs.noctalia;
+  kittyAgentColorsHook = pkgs.writeShellScript "kitty-agent-colors-reload" ''
+    ${pkgs.python3}/bin/python3 ${config.repoPath}/home/scripts/sync-kitty-agent-colors \
+      ${config.home.homeDirectory}/.config/kitty >/dev/null 2>&1 || true
+    ${pkgs.procps}/bin/pkill -USR1 kitty || true
+  '';
 in
 {
   options.noctalia.enable = lib.mkEnableOption "enable noctalia";
@@ -115,7 +120,7 @@ in
               kitty = {
                 input_path = "~/.config/noctalia/templates/kitty.conf";
                 output_path = "~/.config/kitty/colors.conf";
-                post_hook = "${pkgs.procps}/bin/pkill -USR1 kitty";
+                post_hook = "${kittyAgentColorsHook}";
               };
               fish = {
                 input_path = "~/.config/noctalia/templates/fish.fish";

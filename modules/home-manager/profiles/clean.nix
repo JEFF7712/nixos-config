@@ -106,19 +106,6 @@ in
 
     wallpaperDir = "${config.assetsPath}/wallpapers/clean";
 
-    makoConfig = theme.mkMakoConfig {
-      # match the clean bar (#66101010), a touch more opaque
-      background = "#10101080";
-      text = fg1;
-      border = "#ffffff66";
-      lowBorder = "#ffffff44";
-      highBackground = "#1a1a1ab3";
-      highBorder = "#ffffffaa";
-      highText = fg0;
-      borderSize = 1;
-      borderRadius = 6;
-    };
-
     niri = {
       animations = animations.snappy;
       gaps = 12;
@@ -187,7 +174,7 @@ in
         }
 
         layer-rule {
-            match namespace="^mako$"
+            match namespace="^quickshell-notifications$"
             geometry-corner-radius 6
             background-effect {
                 blur true

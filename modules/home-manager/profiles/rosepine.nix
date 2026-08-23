@@ -32,8 +32,6 @@ let
     onError = "#191724";
     gradLow = "#9ccfd8";
     highlightMed = "#403d52";
-    barBg = "rgba(25, 23, 36, 0.6)";
-    barShadow = "rgba(16, 14, 24, 0.45)";
   };
 
   light = {
@@ -59,8 +57,6 @@ let
     onError = "#faf4ed";
     gradLow = "#56949f";
     highlightMed = "#dfdad9";
-    barBg = "rgba(250, 244, 237, 0.85)";
-    barShadow = "rgba(223, 218, 217, 0.5)";
   };
 
   overrides = {
@@ -121,11 +117,6 @@ let
       muted = r.fg2;
       surface = r.bg0;
     };
-    waybarStyle = r: {
-      borderColor = r.highlightMed;
-      hoverColor = r.accent2;
-      clockColor = r.accent2;
-    };
   };
 in
 {
@@ -134,8 +125,6 @@ in
     paletteLight = light;
     inherit overrides;
     bar = "quickshell";
-    waybarStyle = "pill";
-    scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.assetsPath}/wallpapers/rosepine";
 
     quickshell = r: {

@@ -83,23 +83,6 @@ in
             // lib.optionalAttrs (profile.quickshellThemeLight != null) {
               light = "quickshell-theme-light.json";
             };
-        }
-        // lib.optionalAttrs (profile.waybar.config != null) {
-          waybar = {
-            config = "waybar-config.jsonc";
-            dark = "waybar-style.css";
-          }
-          // lib.optionalAttrs (profileFiles.hasLight profile) {
-            light = if profile.waybarLight.style != null then "waybar-style-light.css" else "waybar-style.css";
-          };
-        }
-        // lib.optionalAttrs (profile.makoConfig != null || profile.makoConfigLight != null) {
-          mako =
-            lib.optionalAttrs (profile.makoConfig != null) { dark = "mako-config"; }
-            // lib.optionalAttrs (profile.makoConfigLight != null) { light = "mako-config-light"; }
-            // lib.optionalAttrs (
-              profileFiles.hasLight profile && profile.makoConfigLight == null && profile.makoConfig != null
-            ) { light = "mako-config"; };
         };
       };
     in

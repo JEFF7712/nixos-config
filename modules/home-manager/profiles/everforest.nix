@@ -1,8 +1,8 @@
 { pkgs, config, ... }:
 
 # Everforest Hard (dark + light) on the static-profile default mapping.
-# `bg5` (bright terminal black) and `makoLow` (low-urgency notification
-# border) are extra palette keys outside the canonical roles.
+# `bg5` (bright terminal black) is an extra palette key outside the canonical
+# roles.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
@@ -27,9 +27,6 @@ let
     blue = "#7fbbb3";
     purple = "#d699b6";
     bg5 = "#4f5b58";
-    makoLow = "#495156";
-    barBg = "rgba(39, 46, 51, 0.6)";
-    barShadow = "rgba(20, 24, 27, 0.45)";
   };
 
   light = {
@@ -52,9 +49,6 @@ let
     blue = "#3a94c5";
     purple = "#df69ba";
     bg5 = "#bec5b2";
-    makoLow = "#e6e2cc";
-    barBg = "rgba(255, 249, 232, 0.85)";
-    barShadow = "rgba(190, 197, 178, 0.45)";
   };
 
   overrides = {
@@ -96,14 +90,6 @@ let
     tmux = r: {
       inactive = r.fg3;
     };
-    mako = r: {
-      lowBorder = r.makoLow;
-    };
-    waybarStyle = r: {
-      hoverColor = r.yellow;
-      clockColor = r.yellow;
-      powerSaverColor = r.aqua;
-    };
   };
 in
 {
@@ -112,8 +98,6 @@ in
     paletteLight = light;
     inherit overrides;
     bar = "quickshell";
-    waybarStyle = "floating";
-    scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.assetsPath}/wallpapers/everforest";
 
     quickshell = r: {

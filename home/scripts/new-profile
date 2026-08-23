@@ -57,14 +57,11 @@ let
     blue = "#7aa2f7";
     purple = "#bb9af7";
     accent = blue;
-    barBg = "rgba(26, 27, 38, 0.6)";
-    barShadow = "rgba(0, 0, 0, 0.45)";
   };
 in
 {
   desktopProfiles.profiles.__NAME__ = static.mkStaticProfile {
     palette = dark;
-    scriptDir = "${config.repoPath}/home/scripts";
     wallpaperDir = "${config.assetsPath}/wallpapers/__NAME__";
 
     cursor = {

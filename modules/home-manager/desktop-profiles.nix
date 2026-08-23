@@ -64,10 +64,6 @@ in
           message = "desktopProfiles.profiles.${name}: bar \"${p.bar}\" requires quickshellTheme.";
         }
         {
-          assertion = p.bar == "waybar" -> p.waybar.config != null;
-          message = "desktopProfiles.profiles.${name}: bar \"waybar\" requires waybar.config.";
-        }
-        {
           assertion =
             profileFiles.hasLight p -> (p.quickshellTheme == null -> p.quickshellThemeLight == null);
           message = "desktopProfiles.profiles.${name}: defines quickshellThemeLight without a quickshellTheme.";
@@ -175,6 +171,7 @@ in
             "$dir/wallpaper-dir" "$dir/wallpaper-dir-light"
         fi
       done
+      $DRY_RUN_CMD rm -f "$PROFILES_DIR"/bar-*
 
       if [ -e "$ACTIVE_FILE" ]; then
         ACTIVE="$(cat "$ACTIVE_FILE")"
@@ -249,6 +246,8 @@ in
 
       CFG="${config.repoPath}/home/configs"
       sync_live_config "$CFG/kitty"   "$HOME/.config/kitty"   "colors.conf"
+      ${pkgs.python3}/bin/python3 ${config.repoPath}/home/scripts/sync-kitty-agent-colors \
+        "$HOME/.config/kitty" >/dev/null || true
       sync_live_config "$CFG/gtk-3.0" "$HOME/.config/gtk-3.0" "noctalia.css settings.ini"
       sync_live_config "$CFG/gtk-4.0" "$HOME/.config/gtk-4.0" "noctalia.css settings.ini"
       sync_live_config "$CFG/qt5ct"   "$HOME/.config/qt5ct"   "colors/noctalia.conf"

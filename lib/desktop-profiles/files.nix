@@ -308,45 +308,26 @@ let
         ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides false profile;
         ".config/desktop-profiles/${name}/niri-overrides-focus.kdl".text =
           generateNiriOverrides true profile;
-      }
-      // lib.optionalAttrs (profile.makoConfig != null) {
-        ".config/desktop-profiles/${name}/mako-config".text = profile.makoConfig;
       };
 
-      lightFiles =
-        lib.optionalAttrs (hasLight profile) {
-          ".config/desktop-profiles/${name}/gtk-3.0-light.css".text = orEmpty profile.colorsLight.gtk3;
-          ".config/desktop-profiles/${name}/gtk-4.0-light.css".text = orEmpty profile.colorsLight.gtk4;
-          ".config/desktop-profiles/${name}/qt6ct-light.conf".text = orEmpty profile.colorsLight.qt6;
-          ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
-          ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
-          ".config/desktop-profiles/${name}/starship-light.toml".text = ''
-            scan_timeout = 100
-            ${orEmpty profile.colorsLight.starship}
-          '';
-          ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
-          ".config/desktop-profiles/${name}/btop-light.theme".text = orEmpty profile.colorsLight.btop;
-          ".config/desktop-profiles/${name}/tmux-colors-light.conf".text = orEmpty profile.colorsLight.tmux;
-          ".config/desktop-profiles/${name}/hyprlock-colors-light.conf".text =
-            orEmpty profile.colorsLight.hyprlock;
-          ".config/desktop-profiles/${name}/cava-colors-light".text = orEmpty profile.colorsLight.cava;
-          ".config/desktop-profiles/${name}/zathura-colors-light".text = orEmpty profile.colorsLight.zathura;
-        }
-        // lib.optionalAttrs (profile.makoConfigLight != null) {
-          ".config/desktop-profiles/${name}/mako-config-light".text = profile.makoConfigLight;
-        };
-
-      # Materialized regardless of the active bar choice so switching a
-      # profile's bar is a one-line change with no stale or missing files.
-      waybarFiles = lib.optionalAttrs (profile.waybar.config != null) (
-        {
-          ".config/desktop-profiles/${name}/waybar-config.jsonc".text = profile.waybar.config;
-          ".config/desktop-profiles/${name}/waybar-style.css".text = orEmpty profile.waybar.style;
-        }
-        // lib.optionalAttrs (profile.waybarLight.style != null) {
-          ".config/desktop-profiles/${name}/waybar-style-light.css".text = profile.waybarLight.style;
-        }
-      );
+      lightFiles = lib.optionalAttrs (hasLight profile) {
+        ".config/desktop-profiles/${name}/gtk-3.0-light.css".text = orEmpty profile.colorsLight.gtk3;
+        ".config/desktop-profiles/${name}/gtk-4.0-light.css".text = orEmpty profile.colorsLight.gtk4;
+        ".config/desktop-profiles/${name}/qt6ct-light.conf".text = orEmpty profile.colorsLight.qt6;
+        ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
+        ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
+        ".config/desktop-profiles/${name}/starship-light.toml".text = ''
+          scan_timeout = 100
+          ${orEmpty profile.colorsLight.starship}
+        '';
+        ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
+        ".config/desktop-profiles/${name}/btop-light.theme".text = orEmpty profile.colorsLight.btop;
+        ".config/desktop-profiles/${name}/tmux-colors-light.conf".text = orEmpty profile.colorsLight.tmux;
+        ".config/desktop-profiles/${name}/hyprlock-colors-light.conf".text =
+          orEmpty profile.colorsLight.hyprlock;
+        ".config/desktop-profiles/${name}/cava-colors-light".text = orEmpty profile.colorsLight.cava;
+        ".config/desktop-profiles/${name}/zathura-colors-light".text = orEmpty profile.colorsLight.zathura;
+      };
 
       quickshellFiles =
         lib.optionalAttrs (profile.quickshellTheme != null) {
@@ -358,7 +339,7 @@ let
             builtins.toJSON profile.quickshellThemeLight;
         };
     in
-    base // lightFiles // waybarFiles // quickshellFiles;
+    base // lightFiles // quickshellFiles;
 in
 {
   inherit
