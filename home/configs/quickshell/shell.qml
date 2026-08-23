@@ -77,6 +77,8 @@ ShellRoot {
     property bool flatMode: false
     property bool showBarDividers: true
     property string moduleAnimationStyle: "fade"
+    property string motionStyle: "default"
+    property bool showWorkspaceIndicator: true
     property bool popupAttachToBar: false
     property string popupAnimationStyle: "softPop"
     property color dividerColor: "#1affffff"
@@ -119,6 +121,8 @@ ShellRoot {
         root.flatMode = false;
         root.showBarDividers = true;
         root.moduleAnimationStyle = "fade";
+        root.motionStyle = "default";
+        root.showWorkspaceIndicator = true;
         // popupAttachToBar / popupAnimationStyle are applied at the end of
         // applyTheme only when they actually change — resetting them here would
         // flip false→true on every sharp wallpaper retheme and prewarm-flash
@@ -205,6 +209,10 @@ ShellRoot {
                 root.showBarDividers = theme.showBarDividers === "true";
             if (theme.moduleAnimationStyle)
                 root.moduleAnimationStyle = theme.moduleAnimationStyle;
+            if (theme.motionStyle)
+                root.motionStyle = theme.motionStyle;
+            if (theme.showWorkspaceIndicator)
+                root.showWorkspaceIndicator = theme.showWorkspaceIndicator === "true";
             if (theme.dividerColor)
                 root.dividerColor = theme.dividerColor;
             if (theme.barBorder)
@@ -352,6 +360,8 @@ ShellRoot {
         flatMode: root.flatMode
         showBarDividers: root.showBarDividers
         moduleAnimationStyle: root.moduleAnimationStyle
+        motionStyle: root.motionStyle
+        showWorkspaceIndicator: root.showWorkspaceIndicator
         dividerColor: root.dividerColor
         barBorderColor: root.barBorderColor
         barInnerHighlight: root.barInnerHighlight

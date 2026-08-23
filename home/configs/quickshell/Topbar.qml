@@ -45,6 +45,12 @@ PanelWindow {
     property bool flatMode: false
     property bool showBarDividers: true
     property string moduleAnimationStyle: "fade"
+    property string motionStyle: "default"
+    property bool showWorkspaceIndicator: true
+    readonly property bool dryMotion: motionStyle === "dry"
+    readonly property int hoverMs: dryMotion ? 150 : 240
+    readonly property int valueMs: dryMotion ? 120 : 160
+    readonly property int activeFillMs: dryMotion ? 150 : 320
     property color dividerColor: "#1affffff"
     property color barBorderColor: "#3dffffff"
     property color barInnerHighlight: "#0fffffff"
@@ -175,7 +181,7 @@ PanelWindow {
 
             Rectangle {
                 id: wsIndicator
-                visible: topbarWindow.showWorkspaceNumbers && !topbarWindow.flatMode
+                visible: topbarWindow.showWorkspaceNumbers && !topbarWindow.flatMode && topbarWindow.showWorkspaceIndicator
                 width: 18
                 height: 2
                 radius: 1
