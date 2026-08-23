@@ -67,7 +67,9 @@ in
     quickshellTheme = {
       fg = "#ffffff";
       bg = "#66101010";
-      popupBg = "#cc101010";
+      # Popups have no compositor blur (unlike the bar), so they need more
+      # opacity and a darker RGB or wallpaper wash turns them into mid-grey.
+      popupBg = "#ee0a0a0a";
       rawBg = "#101010";
       accent = "#ffffff";
       second = "#e8e8e8";
@@ -76,6 +78,7 @@ in
       barHeight = "38";
       showClockDate = "false";
       popupAnimationStyle = "quickFade";
+      barFont = "JetBrainsMono Nerd Font";
     };
 
     cursor = {
@@ -90,8 +93,8 @@ in
         size = 11;
       };
       mono = {
-        family = "Iosevka Nerd Font";
-        size = 14;
+        family = "JetBrainsMono Nerd Font";
+        size = 13;
       };
     };
 

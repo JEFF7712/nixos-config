@@ -11,7 +11,7 @@ profiles_dir="$tmpdir/profiles"
 profile_dir="$profiles_dir/clean"
 mkdir -p "$config_home" "$profile_dir"
 
-# Baked quickshell theme (as clean.nix ships it): #66/#cc alpha-prefixed ARGB
+# Baked quickshell theme (as clean.nix ships it): #66/#ee alpha-prefixed ARGB
 # panel colors plus a plain rawBg/accent. temperature-render must retint the
 # RGB portion only and leave the alpha prefixes untouched.
 cat > "$profile_dir/quickshell-theme.json" <<'EOF'
@@ -19,7 +19,7 @@ cat > "$profile_dir/quickshell-theme.json" <<'EOF'
   "barHeight": "38",
   "fg": "#ffffff",
   "bg": "#66101010",
-  "popupBg": "#cc101010",
+  "popupBg": "#ee0a0a0a",
   "rawBg": "#101010",
   "accent": "#ffffff"
 }
@@ -80,7 +80,17 @@ quickshell_out="$profiles_dir/runtime-quickshell-theme.json"
   echo "FAIL: quickshell runtime theme was not written" >&2
   exit 1
 }
-assert_contains '"#66' "$quickshell_out" "quickshell keeps the baked #66 alpha prefix"
+assert_contains '"#66' "$quickshell_out" "quickshell keeps the baked #66 bar alpha prefix"
+assert_contains '"#ee' "$quickshell_out" "quickshell keeps the baked #ee popup alpha prefix"
+
+# Popups keep their baked RGB lightness (#0a0a0a), not bg0 (#141414). Sharing
+# the bar's retinted RGB would mean the mapping was lifted through bg0 again.
+bg_hex=$(jq -r '.bg' "$quickshell_out")
+popup_hex=$(jq -r '.popupBg' "$quickshell_out")
+if [ "${bg_hex: -6}" = "${popup_hex: -6}" ]; then
+  printf 'FAIL: popupBg RGB %s should stay darker than bar bg RGB %s\n' "$popup_hex" "$bg_hex" >&2
+  exit 1
+fi
 
 gtk_out="$config_home/gtk-3.0/noctalia.css"
 [ -f "$gtk_out" ] || {

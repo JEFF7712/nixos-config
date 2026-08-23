@@ -70,7 +70,10 @@ def tint(anchor_hex, sat, hue, invert):
 def build_palette(seed, mode):
     hue = seed_hue(seed)
     invert = mode == "light"
-    return {name: tint(hexc, sat, hue, invert) for name, (hexc, sat) in ANCHORS.items()}
+    palette = {
+        name: tint(hexc, sat, hue, invert) for name, (hexc, sat) in ANCHORS.items()
+    }
+    return palette, hue, invert
 
 
 def rgb_ints(hexc):
@@ -111,7 +114,17 @@ def retint_preserve_alpha(baked_value, new_rgb_hex):
     return f"#{alpha}{new_rgb}"
 
 
-def quickshell(p, profile_dir, out):
+def retint_baked_rgb(baked_value, sat, hue, invert, fallback_rgb):
+    # Same alpha-preserve as retint_preserve_alpha, but hue-tint the baked
+    # RGB's own lightness. Popups are darker than bg0; mapping them through
+    # bg0 was lifting clean's charcoal panels to mid-grey.
+    baked = (baked_value or "").lstrip("#")
+    alpha = baked[:-6] if len(baked) > 6 else ""
+    src = f"#{baked[-6:]}" if len(baked) >= 6 else fallback_rgb
+    return f"#{alpha}{tint(src, sat, hue, invert).lstrip('#')}"
+
+
+def quickshell(p, profile_dir, out, hue, invert):
     base = {}
     baked = os.path.join(profile_dir, "quickshell-theme.json")
     try:
@@ -121,11 +134,14 @@ def quickshell(p, profile_dir, out):
             base = loaded
     except Exception:
         pass
+    popup_sat = ANCHORS["bg0"][1]
     base.update(
         {
             "fg": p["fg0"],
             "bg": retint_preserve_alpha(base.get("bg"), p["bg0"]),
-            "popupBg": retint_preserve_alpha(base.get("popupBg"), p["bg0"]),
+            "popupBg": retint_baked_rgb(
+                base.get("popupBg"), popup_sat, hue, invert, p["bg0"]
+            ),
             "rawBg": retint_preserve_alpha(base.get("rawBg"), p["bg0"]),
             "accent": p["accent"],
             "second": p["fg2"],
@@ -522,7 +538,7 @@ def main():
     args = ap.parse_args()
 
     try:
-        p = build_palette(args.seed, args.mode)
+        p, hue, invert = build_palette(args.seed, args.mode)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
@@ -533,6 +549,8 @@ def main():
         p,
         args.profile_dir,
         os.path.join(args.profiles_dir, "runtime-quickshell-theme.json"),
+        hue,
+        invert,
     )
     kitty(p, os.path.join(c, "kitty/colors.conf"))
     gtk(
