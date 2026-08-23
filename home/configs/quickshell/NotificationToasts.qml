@@ -34,9 +34,12 @@ Scope {
     readonly property int enterY: popupAnimationStyle === "quickFade" ? -4 : 0
     readonly property int fadeMs: popupAnimationStyle === "quickFade" ? 190 : 180
 
-    property var toasts: []
     property int now: 0
     property int layoutGen: 0
+
+    ListModel {
+        id: toastModel
+    }
 
     function urgencyAccent(notification) {
         const u = NotifService.urgencyName(notification);
@@ -65,30 +68,33 @@ Scope {
 
     function pushToast(notification) {
         const ms = timeoutFor(notification);
-        const entry = {
+        notification.closed.connect(() => root.hideToast(notification));
+        toastModel.insert(0, {
             notif: notification,
             expireAt: ms > 0 ? Date.now() + ms : 0
-        };
-        notification.closed.connect(() => root.hideToast(notification));
-        const next = [entry].concat(root.toasts);
-        root.toasts = next.slice(0, root.maxVisible);
+        });
+        while (toastModel.count > root.maxVisible)
+            toastModel.remove(toastModel.count - 1);
     }
 
     function hideToast(notification) {
-        root.toasts = root.toasts.filter(t => t.notif !== notification);
+        for (let i = 0; i < toastModel.count; i++) {
+            if (toastModel.get(i).notif === notification) {
+                toastModel.remove(i);
+                return;
+            }
+        }
     }
 
     function prune() {
         const live = NotifService.model.values;
         const t = Date.now();
         root.now = t;
-        root.toasts = root.toasts.filter(entry => {
-            if (!entry.notif || live.indexOf(entry.notif) === -1)
-                return false;
-            if (entry.expireAt > 0 && t >= entry.expireAt)
-                return false;
-            return true;
-        });
+        for (let i = toastModel.count - 1; i >= 0; i--) {
+            const row = toastModel.get(i);
+            if (!row.notif || live.indexOf(row.notif) === -1 || (row.expireAt > 0 && t >= row.expireAt))
+                toastModel.remove(i);
+        }
     }
 
     function stackOffset(index) {
@@ -109,7 +115,7 @@ Scope {
     }
 
     Timer {
-        running: root.toasts.length > 0
+        running: toastModel.count > 0
         interval: 250
         repeat: true
         onTriggered: root.prune()
@@ -117,14 +123,14 @@ Scope {
 
     Instantiator {
         id: toastRepeater
-        model: root.toasts
+        model: toastModel
 
         PanelWindow {
             id: toast
-            required property var modelData
+            required property var notif
+            required property var expireAt
             required property int index
 
-            readonly property var notif: modelData ? modelData.notif : null
             readonly property bool valid: notif !== null
             readonly property color accent: valid ? root.urgencyAccent(notif) : root.themeAccent
             readonly property string summaryRaw: valid ? notif.summary : ""
@@ -142,12 +148,20 @@ Scope {
             visible: valid
             color: "transparent"
             exclusiveZone: -1
+            property int extraTop: root.stackOffset(index)
+            Behavior on extraTop {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+            }
+
             anchors {
                 top: true
                 right: true
             }
             margins {
-                top: root.topMargin + root.stackOffset(toast.index)
+                top: root.topMargin + extraTop
                 right: root.sideMargin
             }
             implicitWidth: 340
@@ -218,10 +232,10 @@ Scope {
                     onContainsMouseChanged: {
                         if (!toast.valid)
                             return;
-                        if (containsMouse && modelData.expireAt > 0)
-                            modelData.expireAt = 0;
-                        else if (!containsMouse && modelData.expireAt === 0 && root.timeoutFor(toast.notif) > 0)
-                            modelData.expireAt = Date.now() + root.timeoutFor(toast.notif);
+                        if (containsMouse && toast.expireAt > 0)
+                            toastModel.setProperty(toast.index, "expireAt", 0);
+                        else if (!containsMouse && toast.expireAt === 0 && root.timeoutFor(toast.notif) > 0)
+                            toastModel.setProperty(toast.index, "expireAt", Date.now() + root.timeoutFor(toast.notif));
                     }
                 }
 
