@@ -61,7 +61,7 @@
       url = "github:jacopone/code-cursor-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Prebuilt OpenCode from GitHub releases, updated daily. Dedicated
+    # Daily-updated LLM agent binaries (OpenCode, pi, …). Dedicated
     # opencode-nix flakes (dan-online, GutMutCode) are archived or stale;
     # this is the maintained analog of sadjow/claude-code-nix.
     opencode-nix = {

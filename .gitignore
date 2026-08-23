@@ -11,6 +11,7 @@
 /.venv
 /.claude
 /.codex
+/.pi
 /.worktrees
 /.superpowers
 __pycache__/

@@ -82,6 +82,7 @@
       # systemd --user and every descendant via /proc/<pid>/environ.
       codexCli = inputs.codex-cli-nix.packages.${system}.default;
       opencodeCli = inputs.opencode-nix.packages.${system}.opencode;
+      piCli = inputs.opencode-nix.packages.${system}.pi;
     in
     {
       home.packages =
@@ -96,6 +97,7 @@
         ])
         ++ [
           opencodeCli
+          piCli
           codexCli
           claudeCode
           claudeCodex
