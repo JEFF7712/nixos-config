@@ -119,6 +119,7 @@ in
         "claude-code-nix"
         "codex-cli-nix"
         "code-cursor-nix"
+        "opencode-nix"
       ];
     };
 

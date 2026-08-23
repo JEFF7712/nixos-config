@@ -172,7 +172,7 @@ run_pipeline() {
     --commit-message "flake.lock: $variant auto-update"
   )
   if [[ $variant == ai ]]; then
-    args+=(--input claude-code-nix --input codex-cli-nix --input code-cursor-nix)
+    args+=(--input claude-code-nix --input codex-cli-nix --input code-cursor-nix --input opencode-nix)
   fi
   if [[ -n $eval_failure ]]; then
     args+=(--eval-failure "$eval_failure")
@@ -218,7 +218,7 @@ setup_case() {
 }
 
 update_weekly="nix flake update --flake path:$repo"
-update_ai="nix flake update --flake path:$repo claude-code-nix codex-cli-nix code-cursor-nix"
+update_ai="nix flake update --flake path:$repo claude-code-nix codex-cli-nix code-cursor-nix opencode-nix"
 commit_weekly="git -C $repo commit -m flake.lock:\ weekly\ auto-update -- flake.lock"
 rebuild="nixos-rebuild switch --flake path:$repo#laptop --option max-jobs 2 --option cores 8"
 

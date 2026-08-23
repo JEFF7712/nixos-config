@@ -81,11 +81,11 @@
       # sessions only). A session-wide export leaks the PAT into
       # systemd --user and every descendant via /proc/<pid>/environ.
       codexCli = inputs.codex-cli-nix.packages.${system}.default;
+      opencodeCli = inputs.opencode-nix.packages.${system}.opencode;
     in
     {
       home.packages =
         (with pkgs; [
-          opencode
           mcp-nixos
           poppler-utils
           pandoc
@@ -95,6 +95,7 @@
           claude-code-proxy
         ])
         ++ [
+          opencodeCli
           codexCli
           claudeCode
           claudeCodex

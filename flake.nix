@@ -61,6 +61,13 @@
       url = "github:jacopone/code-cursor-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Prebuilt OpenCode from GitHub releases, updated daily. Dedicated
+    # opencode-nix flakes (dan-online, GutMutCode) are archived or stale;
+    # this is the maintained analog of sadjow/claude-code-nix.
+    opencode-nix = {
+      url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.11.0";
     compchem-cctop = {
       url = "github:JEFF7712/cctop";
