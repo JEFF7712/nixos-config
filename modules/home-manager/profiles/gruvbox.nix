@@ -93,9 +93,9 @@ in
 
     niri = {
       animations = animations.snappy;
-      gaps = 6;
+      gaps = 8;
       borderOff = false;
-      borderWidth = 2;
+      borderWidth = 1;
       focusRingOff = true;
       shadowSoftness = 0;
       shadowSpread = 0;
@@ -138,8 +138,8 @@ in
 
     quickshell = p: {
       barFont = "Hack Nerd Font";
-      bg = "#ee282828";
-      popupBg = "#ee282828";
+      bg = p.bg0;
+      popupBg = p.bg0;
       barRadius = "0";
       barHeight = "30";
       barMargin = "0";

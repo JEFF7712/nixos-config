@@ -120,6 +120,9 @@ let
     window-rule {
         geometry-corner-radius ${toString profile.niri.cornerRadius}
         clip-to-geometry true
+        // Outline only. Default niri fills the border/focus-ring behind CSD-less
+        // windows, so a translucent window reads as a whole-window accent tint.
+        draw-border-with-background false
         background-effect {
             blur ${if (focus || !profile.niri.blur) then "false" else "true"}
         }
