@@ -10,6 +10,9 @@ fmt-check:
 shell-check:
   git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b' -- home/scripts checks | xargs -r shellcheck -S error
 
+lid-close-check:
+  bash checks/lid-close-action.bash
+
 wallpaper-script-check:
   bash checks/wallpaper-scripts.bash
   bash checks/iris-render.bash
@@ -85,6 +88,7 @@ check:
   just check-flake-update
   just fmt-check
   just shell-check
+  just lid-close-check
   just wallpaper-script-check
   just xhisper-check
   just qml-lint

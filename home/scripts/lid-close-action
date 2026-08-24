@@ -1,37 +1,45 @@
 #!/usr/bin/env bash
-# Lid close: suspend unless Stasis reports an idle inhibit, in which case
-# only blank the displays so downloads/video/caffeine can keep running.
+# Lid close: suspend unless the user asked to stay awake. Idle-only
+# inhibitors (Firefox/Twitter autoplay, mpv, D-Bus screensaver inhibit)
+# pause the idle plan while the lid is open; they must not keep the
+# laptop on. Stay-awake is caffeine (Manual Pause) or Stasis
+# suspend_inhibit_* matches.
 set -euo pipefail
 
 stasis_field() {
-  local key="$1"
-  printf '%s\n' "$stasis_info" | awk -F': *' -v key="$key" '
+  local info="$1"
+  local key="$2"
+  printf '%s\n' "$info" | awk -F': *' -v key="$key" '
     $1 == key { print $2; exit }
   '
 }
 
+lid_close_should_skip_suspend() {
+  local stasis_info="$1"
+  local key count
+
+  case "$(stasis_field "$stasis_info" "Manual Pause")" in
+    yes) return 0 ;;
+  esac
+
+  for key in \
+    "Apps Blocking Suspend" \
+    "Media Players Blocking Suspend"; do
+    count="$(stasis_field "$stasis_info" "$key")"
+    if [[ "${count:-0}" =~ ^[1-9][0-9]*$ ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+if [[ "${LID_CLOSE_ACTION_LIB:-0}" == 1 ]]; then
+  return 0 2>/dev/null || exit 0
+fi
+
 stasis_info="$(stasis info 2>/dev/null || true)"
 
-inhibited=false
-case "$(stasis_field "Manual Pause")" in
-  yes) inhibited=true ;;
-esac
-case "$(stasis_field "D-Bus Inhibiting")" in
-  yes) inhibited=true ;;
-esac
-
-for key in \
-  "Apps Inhibiting" \
-  "Media Players Playing" \
-  "Apps Blocking Suspend" \
-  "Media Players Blocking Suspend"; do
-  count="$(stasis_field "$key")"
-  if [[ "${count:-0}" =~ ^[1-9][0-9]*$ ]]; then
-    inhibited=true
-  fi
-done
-
-if [[ "$inhibited" == true ]]; then
+if lid_close_should_skip_suspend "$stasis_info"; then
   niri msg action power-off-monitors || true
   exit 0
 fi

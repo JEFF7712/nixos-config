@@ -43,6 +43,9 @@
         enable_dbus_inhibit true
         monitor_media true
         ignore_remote_media true
+        # Empty on purpose: browser autoplay (Twitter/X in Firefox) is an
+        # idle inhibit, not a stay-awake. lid-close-action only honors these
+        # lists plus caffeine (stasis toggle-inhibit / Manual Pause).
         suspend_inhibit_media [ ]
         inhibit_apps [
           "vlc"
