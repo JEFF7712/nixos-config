@@ -71,7 +71,6 @@ in
     home.packages = with pkgs; [
       networkmanagerapplet
       vesktop
-      pywalfox-native
       pkgs-stable.zoom
       pkgs-stable.calibre
       zed-editor
@@ -146,6 +145,12 @@ in
 
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+      // Browser Console (Ctrl+Shift+J), where Ctrl+Alt+R restarts Firefox with
+      // session restore. userChrome.css is only parsed at startup, so a restart
+      // is the only way a desktop-profile switch reaches a running Firefox;
+      // this just makes it two keystrokes instead of losing the session.
+      user_pref("devtools.chrome.enabled", true);
+      user_pref("devtools.debugger.remote-enabled", true);
     '';
 
     xdg.desktopEntries.spotify = {

@@ -86,7 +86,6 @@
         adw-gtk3
         waypaper
         rofi
-        python3Packages.pywal
         ia-writer-quattro
         swayosd
         quickshell

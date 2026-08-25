@@ -210,23 +210,6 @@ apply_wallpaper_adapter() {
   fi
 }
 
-refresh_pywal() {
-  local theme
-  command -v wal >/dev/null 2>&1 || return 0
-  theme=$(profile_runtime_string "$TARGET_RUNTIME" "$TARGET_VARIANT" pywal)
-  [ -n "$theme" ] || theme=base16-nord
-  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    wal --theme "$theme" -q 2>/dev/null || true
-    command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
-  else
-    (
-      wal --theme "$theme" -q 2>/dev/null || true
-      command -v pywalfox >/dev/null 2>&1 && pywalfox update 2>/dev/null || true
-    ) 9>&- &
-    disown 2>/dev/null || true
-  fi
-}
-
 restart_swayosd() {
   if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
     systemctl --user restart swayosd 2>/dev/null || true
@@ -315,12 +298,13 @@ dispatch_post_commit_adapters() {
       run_post_commit_adapter hyprlock apply_hyprlock_colors "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter cava apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter vicinae apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"
-      run_post_commit_adapter firefox write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
       run_post_commit_adapter swayosd restart_swayosd
-      run_post_commit_adapter pywal refresh_pywal
       run_post_commit_adapter kitty reload_kitty
     fi
     run_post_commit_adapter gtk nudge_gtk_reload
+    # Not in the branch above: self-themed profiles have no baked firefox colors
+    # but do have a live palette (noctalia colors.json) to fall back on.
+    run_post_commit_adapter firefox write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
     run_post_commit_adapter zed apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     run_post_commit_adapter vesktop apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     run_post_commit_adapter obsidian apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"

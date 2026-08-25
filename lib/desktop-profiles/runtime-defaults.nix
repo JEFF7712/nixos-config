@@ -21,7 +21,6 @@ in
       text = "76, 79, 105";
       accentHsl = "hsl(266, 85%, 58%)";
     };
-    pywal.dark = "base16-nord";
     zed.dark = {
       theme = "Catppuccin Mocha (Blur)";
       icon = "Catppuccin Mocha";
@@ -45,7 +44,6 @@ in
       text = "216, 222, 233";
       accentHsl = "hsl(193, 43%, 78%)";
     };
-    pywal.dark = "base16-nord";
     zed.dark = {
       theme = "Nord Dark";
       icon = "Zed (Default)";
@@ -80,7 +78,6 @@ in
       text = "60, 56, 54";
       accentHsl = "hsl(38, 80%, 39%)";
     };
-    pywal.dark = "base16-gruvbox-dark-hard";
     zed.dark = {
       theme = "Gruvbox Dark";
       icon = "Material Icon Theme";
@@ -111,7 +108,6 @@ in
       text = "87, 82, 121";
       accentHsl = "hsl(270, 21%, 57%)";
     };
-    pywal.dark = "base16-rose-pine";
     zed.dark = {
       theme = "Rosé Pine";
       icon = "Zed (Default)";
@@ -142,7 +138,6 @@ in
       text = "92, 106, 114";
       accentHsl = "hsl(75, 99%, 32%)";
     };
-    pywal.dark = "base16-everforest";
     zed.dark = {
       theme = "Everforest Dark Hard (blur)";
       icon = "Material Icon Theme";
@@ -173,7 +168,6 @@ in
       text = "20, 20, 20";
       accentHsl = "hsl(0, 0%, 10%)";
     };
-    pywal.dark = "base16-grayscale";
     zed.dark = {
       theme = "Transparent Prism";
       icon = "Zed (Default)";
@@ -199,7 +193,6 @@ in
       text = "216, 216, 216";
       accentHsl = "hsl(0, 0%, 93%)";
     };
-    pywal.dark = "base16-grayscale";
     zed.dark = {
       theme = "Transparent Prism";
       icon = "Zed (Default)";

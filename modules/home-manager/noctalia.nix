@@ -13,6 +13,12 @@ let
       ${config.home.homeDirectory}/.config/kitty >/dev/null 2>&1 || true
     ${pkgs.procps}/bin/pkill -USR1 kitty || true
   '';
+  # noctalia templates only expose `.hex`, but DownToneUI consumes "r, g, b"
+  # triplets so its alpha overlays work. The template stages the palette and
+  # this hook converts it; the shared writer keeps one source of truth.
+  firefoxGlobalsHook = pkgs.writeShellScript "firefox-globals-reload" ''
+    ${config.repoPath}/home/scripts/firefox-globals >/dev/null 2>&1 || true
+  '';
 in
 {
   options.noctalia.enable = lib.mkEnableOption "enable noctalia";
@@ -91,6 +97,12 @@ in
       set -g fish_color_autosuggestion {{colors.on_surface_variant.default.hex}}
     '';
 
+    xdg.configFile."noctalia/templates/firefox-palette".text = ''
+      surface={{colors.surface.default.hex}}
+      on_surface={{colors.on_surface.default.hex}}
+      primary={{colors.primary.default.hex}}
+    '';
+
     xdg.configFile."noctalia/templates/starship.toml".text = ''
       scan_timeout = 100
       format = "$all"
@@ -130,6 +142,11 @@ in
                 input_path = "~/.config/noctalia/templates/starship.toml";
                 output_path = "~/.config/starship_matugen.toml";
               };
+              firefox = {
+                input_path = "~/.config/noctalia/templates/firefox-palette";
+                output_path = "~/.config/desktop-profiles/runtime-firefox-palette";
+                post_hook = "${firefoxGlobalsHook}";
+              };
             };
           };
         };
@@ -149,7 +166,7 @@ in
           ghostty = false;
           kcolorscheme = false;
           mango = false;
-          pywalfox = true;
+          pywalfox = false;
           spicetify = false;
           telegram = false;
           vicinae = false;

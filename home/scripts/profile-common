@@ -18,6 +18,8 @@ VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
 FOCUS_FILE="$PROFILES_DIR/focus"
 CONFIG_HOME="$HOME/.config"
+NOCTALIA_COLORS="$CONFIG_HOME/noctalia/colors.json"
+NOCTALIA_FIREFOX_PALETTE="$PROFILES_DIR/runtime-firefox-palette"
 OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
 WAYPAPER_POST_COMMAND='$HOME/.local/bin/waypaper-backend-sync'
 
@@ -468,6 +470,10 @@ apply_wallpaper_theme() {
   fi
   reload_zathura_theme
   nudge_gtk_reload
+  # Firefox parses userChrome.css and its @imports once at startup, so this only
+  # stages the colors: they land on the next start, or on a chrome reload
+  # (Browser Console Ctrl+Alt+R with nglayout.debug.disable_xul_cache).
+  write_firefox_globals "$PROFILES_DIR/$profile/manifest.json" "$variant"
 
   # spicetify re-patches xpui and may relaunch Spotify; keep it off the critical
   # path. On a profile switch this is the only spicetify apply (the switch tail
@@ -1240,25 +1246,115 @@ restore_cava_noctalia_theme() {
   rm -f "$tmp"
 }
 
+# hex_to_rgb_triplet <#rrggbb>
+# Prints "r, g, b" — the form the DownToneUI vars are consumed as
+# (rgb(var(--dtui-theme-main-color))), so alpha overlays keep working.
+hex_to_rgb_triplet() {
+  local hex="${1#\#}"
+  [ "${#hex}" -ge 6 ] || return 1
+  printf '%d, %d, %d\n' "$((16#${hex:0:2}))" "$((16#${hex:2:2}))" "$((16#${hex:4:2}))"
+}
+
+# hex_mix_triplet <#rrggbb> <#rrggbb> <ratio>
+# Prints "r, g, b" for base mixed <ratio> of the way toward the second color.
+hex_mix_triplet() {
+  local a="${1#\#}" b="${2#\#}" t="$3"
+  [ "${#a}" -ge 6 ] && [ "${#b}" -ge 6 ] || return 1
+  awk -v ar="$((16#${a:0:2}))" -v ag="$((16#${a:2:2}))" -v ab="$((16#${a:4:2}))" \
+    -v br="$((16#${b:0:2}))" -v bg="$((16#${b:2:2}))" -v bb="$((16#${b:4:2}))" \
+    -v t="$t" 'BEGIN {
+      printf "%d, %d, %d\n", ar + (br - ar) * t + 0.5, ag + (bg - ag) * t + 0.5, ab + (bb - ab) * t + 0.5
+    }'
+}
+
+# firefox_globals_from_palette <bg-hex> <fg-hex> <accent-hex>
+# Prints the five _globals.css values as TSV. Secondary is derived: the dynamic
+# engines expose one surface, DownToneUI wants a raised one for chrome/menus.
+firefox_globals_from_palette() {
+  local bg="$1" fg="$2" accent="$3" h s l
+  [ -n "$(hex_accent_or_empty "$bg")" ] || return 1
+  [ -n "$(hex_accent_or_empty "$fg")" ] || return 1
+  [ -n "$(hex_accent_or_empty "$accent")" ] || return 1
+  read -r h s l < <(hex_to_hsl "$accent") || return 1
+  printf '%s\t%s\t%s\t%s\t%s\n' \
+    "$(hex_to_rgb_triplet "$bg")" \
+    "$(hex_mix_triplet "$bg" "$fg" 0.06)" \
+    "$(hex_to_rgb_triplet "$accent")" \
+    "$(hex_to_rgb_triplet "$fg")" \
+    "hsl($h, $s%, $l%)"
+}
+
+# firefox_globals_payload <profile> <variant>
+# Static profiles carry firefox colors in the manifest. The dynamic ones don't:
+# `tinted`/`sharp` regenerate a palette per wallpaper (runtime-quickshell-theme.json,
+# written by both the iris and matugen engines) and `noctalia` is self-themed, with
+# noctalia-shell owning the palette in its own colors.json.
+firefox_globals_payload() {
+  local profile="$1" variant="$2"
+  local firefox main sec accent text accent_hsl rt bg fg acc
+
+  firefox=$(profile_manifest_adapter "$profile" "$variant" firefox 2>/dev/null || true)
+  if [ -n "$firefox" ]; then
+    # One jq for all five firefox colors; keeps the per-key variant→dark fallback
+    # that profile_runtime_value applied individually.
+    IFS=$'\t' read -r main sec accent text accent_hsl < <(
+      jq -r '
+        def g($k): (.[$k] // "");
+        [g("main"), g("secondary"), g("accent"), g("text"), g("accentHsl")] | @tsv
+      ' <<< "$firefox" 2>/dev/null
+    ) || true
+    if [ -n "$main" ]; then
+      printf '%s\t%s\t%s\t%s\t%s\n' "$main" "$sec" "$accent" "$text" "$accent_hsl"
+      return 0
+    fi
+  fi
+
+  rt="$PROFILES_DIR/runtime-quickshell-theme.json"
+  if [ -s "$rt" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null || true)" = "$profile" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-variant" 2>/dev/null || true)" = "$variant" ]; then
+    IFS=$'\t' read -r bg fg acc < <(
+      jq -r '[(.rawBg // ""), (.fg // ""), (.accent // "")] | @tsv' "$rt" 2>/dev/null
+    ) || true
+    firefox_globals_from_palette "$bg" "$fg" "$acc" && return 0
+  fi
+
+  if [ "$(profile_manifest_capability "$profile" selfThemed)" = "true" ]; then
+    # Preferred: the palette noctalia's own template staged, which is rendered in
+    # lockstep with the post_hook that calls back here. colors.json is the
+    # fallback for the first switch, before that template has ever run.
+    if [ -s "$NOCTALIA_FIREFOX_PALETTE" ]; then
+      bg=$(sed -n 's/^surface=//p' "$NOCTALIA_FIREFOX_PALETTE" | head -1)
+      fg=$(sed -n 's/^on_surface=//p' "$NOCTALIA_FIREFOX_PALETTE" | head -1)
+      acc=$(sed -n 's/^primary=//p' "$NOCTALIA_FIREFOX_PALETTE" | head -1)
+      firefox_globals_from_palette "$bg" "$fg" "$acc" && return 0
+    fi
+    if [ -s "$NOCTALIA_COLORS" ]; then
+      IFS=$'\t' read -r bg fg acc < <(
+        jq -r '[(.mSurface // ""), (.mOnSurface // ""), (.mPrimary // "")] | @tsv' \
+          "$NOCTALIA_COLORS" 2>/dev/null
+      ) || true
+      firefox_globals_from_palette "$bg" "$fg" "$acc" && return 0
+    fi
+  fi
+
+  return 1
+}
+
 # write_firefox_globals <runtime-file> <variant>
 # Regenerates the Sidebery/DownToneUI _globals.css from the profile runtime colors.
 write_firefox_globals() {
   local runtime_file="$1" variant="$2"
-  local globals main sec accent text accent_hsl scheme firefox
+  local globals main sec accent text accent_hsl scheme profile
 
   [ -n "$FIREFOX_CHROME" ] || return 0
   globals="$FIREFOX_CHROME/DownToneUI/_globals.css"
   [ -d "$(dirname "$globals")" ] || return 0
 
   [ -f "$runtime_file" ] || return 0
-  # One jq for all five firefox colors; keeps the per-key variant→dark fallback
-  # that profile_runtime_value applied individually.
-  firefox=$(profile_runtime_string "$runtime_file" "$variant" firefox)
+  profile=$(basename "$(dirname "$runtime_file")")
   IFS=$'\t' read -r main sec accent text accent_hsl < <(
-    jq -r '
-      def g($k): (.[$k] // "");
-      [g("main"), g("secondary"), g("accent"), g("text"), g("accentHsl")] | @tsv
-    ' <<< "$firefox" 2>/dev/null
+    firefox_globals_payload "$profile" "$variant"
   ) || true
   [ -n "$main" ] || return 0
 
