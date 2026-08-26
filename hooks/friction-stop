@@ -4,20 +4,23 @@ set -euo pipefail
 # shellcheck source=common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
-agent_hooks_load || exit 0
+agent_hooks_load || {
+  printf '%s\n' '{}'
+  exit 0
+}
 
 status=$(jq -r '.status // empty' <<<"$HOOK_INPUT")
 if [ -n "$status" ] && [ "$status" != "completed" ]; then
-  exit 0
+  agent_hooks_ok_exit
 fi
 
 log=$(agent_hooks_friction_log "$HOOK_SESSION_ID")
 fired=$(agent_hooks_friction_fired "$HOOK_SESSION_ID")
 
-[ -s "$log" ] || exit 0
+[ -s "$log" ] || agent_hooks_ok_exit
 if [ -e "$fired" ]; then
   rm -f "$log"
-  exit 0
+  agent_hooks_ok_exit
 fi
 : >"$fired"
 

@@ -4,7 +4,10 @@ set -euo pipefail
 # shellcheck source=common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
-agent_hooks_load || exit 0
+agent_hooks_load || {
+  printf '%s\n' '{}'
+  exit 0
+}
 
 format_file() {
   local file=$1
@@ -60,8 +63,8 @@ if [ -n "$parse_errors" ]; then
   blocked=$(agent_hooks_emit_block "$parse_errors")
   if [ -n "$blocked" ]; then
     printf '%s\n' "$blocked"
-  else
-    log_parse_friction "$(printf '%s' "$parse_errors" | tr '\n' ' ' | head -c 200)"
+    exit 0
   fi
+  log_parse_friction "$(printf '%s' "$parse_errors" | tr '\n' ' ' | head -c 200)"
 fi
-exit 0
+agent_hooks_ok_exit

@@ -5,11 +5,14 @@ set -euo pipefail
 # shellcheck source=common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
-agent_hooks_load || exit 0
-agent_hooks_in_repo_cwd || exit 0
+agent_hooks_load || {
+  printf '%s\n' '{}'
+  exit 0
+}
+agent_hooks_in_repo_cwd || agent_hooks_ok_exit
 
 cmd=$(agent_hooks_shell_command)
-[ -n "$cmd" ] || exit 0
+[ -n "$cmd" ] || agent_hooks_ok_exit
 
 if agent_hooks_is_shotgun_git_add "$cmd"; then
   agent_hooks_emit_deny \
@@ -24,5 +27,6 @@ if agent_hooks_needs_no_ext_diff "$cmd"; then
   fi
   agent_hooks_emit_deny \
     "This repo's git diff uses difftastic. Re-run with --no-ext-diff after the subcommand, e.g. git diff --no-ext-diff."
+  exit 0
 fi
-exit 0
+agent_hooks_ok_exit

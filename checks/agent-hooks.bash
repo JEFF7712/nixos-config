@@ -8,6 +8,25 @@ fail() {
   exit 1
 }
 
+# Cursor CLI treats empty stdout as a failed hook; no-ops must print JSON.
+assert_ok_json() {
+  local out=$1 event=$2
+  case "$event" in
+    preToolUse)
+      printf '%s\n' "$out" | jq -e '.permission == "allow"' >/dev/null \
+        || fail "expected preToolUse allow JSON, got: $out"
+      ;;
+    PreToolUse)
+      printf '%s\n' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "allow"' >/dev/null \
+        || fail "expected PreToolUse allow JSON, got: $out"
+      ;;
+    *)
+      printf '%s\n' "$out" | jq -e '. == {}' >/dev/null \
+        || fail "expected empty-object JSON, got: $out"
+      ;;
+  esac
+}
+
 tmp_nix=
 cleanup() {
   if [ -n "${tmp_nix:-}" ]; then
@@ -28,7 +47,7 @@ fmt_out=$(
     '{hook_event_name:"PostToolUse",session_id:"hook-test-fmt",tool_input:{file_path:$f}}' |
     hooks/after-edit
 )
-[ -z "$fmt_out" ] || fail "after-edit printed on a valid file: $fmt_out"
+assert_ok_json "$fmt_out" PostToolUse
 grep -Fq '{ foo = 1; }' "$tmp_nix" || fail "after-edit did not nixfmt $tmp_nix"
 git -C . diff --cached --quiet -- "$tmp_nix" && fail "after-edit did not stage new file $tmp_nix"
 git -C . restore --staged -- "$tmp_nix"
@@ -48,7 +67,7 @@ cursor_parse=$(
     NIXOS_AGENT_FRICTION_PREFIX=/tmp/nixos-agent-hooks-test \
     hooks/after-edit
 )
-[ -z "$cursor_parse" ] || fail "afterFileEdit parse check printed: $cursor_parse"
+assert_ok_json "$cursor_parse" afterFileEdit
 [ -s /tmp/nixos-agent-hooks-test-hook-test-cursor-parse.log ] \
   || fail "afterFileEdit parse error was not logged as friction"
 rm -f /tmp/nixos-agent-hooks-test-hook-test-cursor-parse.log
@@ -59,7 +78,7 @@ rm -f "$prefix-$sid.log" "$prefix-$sid.fired"
 
 log_cmd() {
   local payload=$1
-  printf '%s\n' "$payload" | NIXOS_AGENT_FRICTION_PREFIX=$prefix hooks/friction-log
+  printf '%s\n' "$payload" | NIXOS_AGENT_FRICTION_PREFIX=$prefix hooks/friction-log >/dev/null
 }
 
 log_cmd "$(
@@ -97,7 +116,7 @@ aborted=$(
   printf '%s\n' '{"hook_event_name":"stop","status":"aborted","conversation_id":"hook-test-friction"}' |
     NIXOS_AGENT_FRICTION_PREFIX=$prefix hooks/friction-stop
 )
-[ -z "$aborted" ] || fail "friction-stop nudged on abort: $aborted"
+assert_ok_json "$aborted" stop
 [ -s "$prefix-$sid.log" ] || fail "friction-stop consumed the log on abort"
 
 cursor_stop=$(
@@ -112,7 +131,7 @@ cursor_again=$(
   printf '%s\n' '{"hook_event_name":"stop","status":"completed","conversation_id":"hook-test-friction"}' |
     NIXOS_AGENT_FRICTION_PREFIX=$prefix hooks/friction-stop
 )
-[ -z "$cursor_again" ] || fail "friction-stop looped after firing: $cursor_again"
+assert_ok_json "$cursor_again" stop
 rm -f "$prefix-$sid.log" "$prefix-$sid.fired"
 
 printf '%s\n' 'just eval laptop' >"$prefix-$sid.log"
@@ -171,7 +190,7 @@ allow_add=$(
       '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git add hosts/laptop/base.nix"}}'
   )"
 )
-[ -z "$allow_add" ] || fail "before-shell blocked a specific git add: $allow_add"
+assert_ok_json "$allow_add" preToolUse
 
 allow_dot_file=$(
   run_before_shell "$(
@@ -179,7 +198,7 @@ allow_dot_file=$(
       '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git add ./hosts/laptop/base.nix"}}'
   )"
 )
-[ -z "$allow_dot_file" ] || fail "before-shell blocked git add ./file: $allow_dot_file"
+assert_ok_json "$allow_dot_file" preToolUse
 
 rewrite_diff=$(
   run_before_shell "$(
@@ -221,7 +240,7 @@ skip_flagged=$(
       '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git --no-ext-diff diff"}}'
   )"
 )
-[ -z "$skip_flagged" ] || fail "before-shell rewrote an already-flagged git diff: $skip_flagged"
+assert_ok_json "$skip_flagged" preToolUse
 
 skip_status=$(
   run_before_shell "$(
@@ -229,14 +248,14 @@ skip_status=$(
       '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git status"}}'
   )"
 )
-[ -z "$skip_status" ] || fail "before-shell touched git status: $skip_status"
+assert_ok_json "$skip_status" preToolUse
 
 outside_add=$(
   run_before_shell "$(
     jq -n '{hook_event_name:"preToolUse",cwd:"/tmp",tool_input:{command:"git add ."}}'
   )"
 )
-[ -z "$outside_add" ] || fail "before-shell applied repo policy outside the repo: $outside_add"
+assert_ok_json "$outside_add" preToolUse
 
 cursor_ctx=$(
   printf '%s\n' '{"hook_event_name":"sessionStart","session_id":"hook-test-session"}' |

@@ -5,15 +5,18 @@ set -euo pipefail
 # shellcheck source=common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
-agent_hooks_load || exit 0
+agent_hooks_load || {
+  printf '%s\n' '{}'
+  exit 0
+}
 
-command -v just >/dev/null 2>&1 || exit 0
+command -v just >/dev/null 2>&1 || agent_hooks_ok_exit
 
 ctx=$(
   just --justfile "$REPO_ROOT/justfile" --working-directory "$REPO_ROOT" agent-context \
     2>/dev/null
-) || exit 0
-[ -n "$ctx" ] || exit 0
+) || agent_hooks_ok_exit
+[ -n "$ctx" ] || agent_hooks_ok_exit
 
 agent_hooks_emit_additional_context "Auto-injected session context (just agent-context):
 $ctx"

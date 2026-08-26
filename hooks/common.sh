@@ -277,6 +277,27 @@ agent_hooks_rewrite_no_ext_diff() {
   sed -E 's/(^|&&|\|\||;|\||&)([[:space:]]*git[[:space:]]+([^[:space:]|&;]+[[:space:]]+)*)diff([[:space:]]|$)/\1\2diff --no-ext-diff\4/g' <<<"$cmd"
 }
 
+# Always print JSON. Cursor CLI classifies empty stdout as a failed hook
+# (errorClass empty_stdout) even when the process exits 0.
+agent_hooks_emit_ok() {
+  case "${HOOK_EVENT_NAME:-}" in
+    beforeShellExecution | preToolUse)
+      jq -n '{permission:"allow"}'
+      ;;
+    PreToolUse)
+      jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'
+      ;;
+    *)
+      jq -n '{}'
+      ;;
+  esac
+}
+
+agent_hooks_ok_exit() {
+  agent_hooks_emit_ok
+  exit 0
+}
+
 agent_hooks_emit_deny() {
   local reason=$1
   case "${HOOK_EVENT_NAME:-}" in
