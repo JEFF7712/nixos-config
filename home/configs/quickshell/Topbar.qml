@@ -2,8 +2,11 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Services.SystemTray
 import Quickshell.Wayland
+import Quickshell.Widgets
 import "services" as Services
+import "TrayFilter.js" as TrayFilter
 
 PanelWindow {
     id: topbarWindow
@@ -42,6 +45,7 @@ PanelWindow {
     property bool showBattery: true
     property bool showNotifications: true
     property bool showSystem: true
+    property bool showTray: true
     property string barFont: "JetBrainsMono Nerd Font"
     // Proportional Nerd Fonts give icons a 1em advance but draw past it
     // (wifi ink is ~1.5em), so AlignHCenter parks the glyph right of the
@@ -90,6 +94,19 @@ PanelWindow {
             return -1;
         const p = item.mapToItem(barRoot, item.width / 2, 0);
         return topbarWindow.barMargin + p.x;
+    }
+
+    function trayIconSource(icon) {
+        if (!icon)
+            return "";
+        const marker = "?path=";
+        const idx = String(icon).indexOf(marker);
+        if (idx < 0)
+            return icon;
+        const name = icon.substring(0, idx);
+        const dir = icon.substring(idx + marker.length);
+        const file = name.slice(name.lastIndexOf("/") + 1);
+        return "file://" + dir + "/" + file;
     }
 
     function networkIcon() {
@@ -157,6 +174,48 @@ PanelWindow {
             anchors.margins: 1
             radius: parent.radius - 1
             color: topbarWindow.barInnerHighlight
+        }
+
+        Item {
+            id: trayArea
+            visible: topbarWindow.showTray && trayRepeater.count > 0
+            anchors.left: workspacesArea.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: visible && !topbarWindow.flatMode ? (workspacesArea.visible ? 14 : 0) : 0
+            width: visible ? trayRow.implicitWidth + (topbarWindow.flatMode ? 16 : 22) : 0
+            height: visible ? (topbarWindow.flatMode ? topbarWindow.barHeight : 26) : 0
+            clip: true
+
+            Rectangle {
+                anchors.fill: parent
+                radius: topbarWindow.flatMode ? 0 : 10
+                color: topbarWindow.pillBg
+                border.width: topbarWindow.flatMode ? 0 : 1
+                border.color: topbarWindow.pillBorder
+            }
+
+            Row {
+                id: trayRow
+                anchors.centerIn: parent
+                spacing: topbarWindow.flatMode ? 8 : 6
+
+                Repeater {
+                    id: trayRepeater
+                    model: ScriptModel {
+                        values: TrayFilter.visibleItems(SystemTray.items.values)
+                    }
+                    delegate: TrayIcon {}
+                }
+            }
+
+            Rectangle {
+                visible: trayArea.visible && topbarWindow.flatMode && topbarWindow.showBarDividers
+                width: 1
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                color: topbarWindow.dividerColor
+            }
         }
 
         Item {
@@ -502,7 +561,7 @@ PanelWindow {
 
         RowLayout {
             visible: topbarWindow.showActiveWindow
-            anchors.left: workspacesArea.right
+            anchors.left: trayArea.right
             anchors.right: rightGroup.left
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: 14
@@ -548,6 +607,102 @@ PanelWindow {
                         easing.type: Easing.OutCubic
                     }
                 }
+            }
+        }
+    }
+
+    component TrayIcon: Item {
+        id: trayRoot
+        required property var modelData
+
+        width: 16
+        height: 16
+
+        readonly property var trayItem: trayRoot.modelData
+        readonly property bool hovered: trayMouse.containsMouse
+        readonly property bool pressed: trayMouse.pressed
+
+        function toggleMenu() {
+            const item = trayRoot.trayItem;
+            if (!item || !item.hasMenu)
+                return;
+            if (trayMenu.visible)
+                trayMenu.close();
+            else
+                trayMenu.open();
+        }
+
+        IconImage {
+            id: trayGlyph
+            anchors.fill: parent
+            source: topbarWindow.trayIconSource(trayRoot.trayItem ? trayRoot.trayItem.icon : "")
+            implicitSize: 16
+            mipmap: true
+            opacity: trayRoot.hovered ? 1.0 : 0.82
+            scale: {
+                if (topbarWindow.dryMotion)
+                    return 1.0;
+                if (trayRoot.pressed)
+                    return 0.9;
+                if (trayRoot.hovered)
+                    return 1.08;
+                return 1.0;
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: topbarWindow.hoverMs
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on scale {
+                enabled: !topbarWindow.dryMotion
+                SpringAnimation {
+                    spring: 4
+                    damping: 0.5
+                    mass: 0.7
+                }
+            }
+        }
+
+        QsMenuAnchor {
+            id: trayMenu
+            menu: trayRoot.trayItem && trayRoot.trayItem.hasMenu ? trayRoot.trayItem.menu : null
+            anchor.window: topbarWindow
+            anchor.item: trayRoot
+            anchor.edges: Edges.Bottom | Edges.Left
+            anchor.gravity: Edges.Bottom | Edges.Left
+        }
+
+        MouseArea {
+            id: trayMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+            onClicked: mouse => {
+                const item = trayRoot.trayItem;
+                if (!item)
+                    return;
+                if (mouse.button === Qt.MiddleButton) {
+                    item.secondaryActivate();
+                    return;
+                }
+                if (mouse.button === Qt.RightButton) {
+                    if (item.hasMenu)
+                        trayRoot.toggleMenu();
+                    else
+                        item.secondaryActivate();
+                    return;
+                }
+                if (item.onlyMenu)
+                    trayRoot.toggleMenu();
+                else
+                    item.activate();
+            }
+            onWheel: event => {
+                if (trayRoot.trayItem)
+                    trayRoot.trayItem.scroll(event.angleDelta.y, false);
+                event.accepted = true;
             }
         }
     }

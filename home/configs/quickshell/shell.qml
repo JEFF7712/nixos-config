@@ -1,3 +1,4 @@
+//@ pragma UseQApplication
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -73,6 +74,7 @@ ShellRoot {
     property bool showBattery: true
     property bool showNotifications: true
     property bool showSystem: true
+    property bool showTray: true
     property string barFont: "JetBrainsMono Nerd Font"
     property bool flatMode: false
     property bool showBarDividers: true
@@ -117,6 +119,7 @@ ShellRoot {
         root.showBattery = true;
         root.showNotifications = true;
         root.showSystem = true;
+        root.showTray = true;
         root.barFont = "JetBrainsMono Nerd Font";
         root.flatMode = false;
         root.showBarDividers = true;
@@ -201,6 +204,8 @@ ShellRoot {
                 root.showNotifications = theme.showNotifications === "true";
             if (theme.showSystem)
                 root.showSystem = theme.showSystem === "true";
+            if (theme.showTray)
+                root.showTray = theme.showTray === "true";
             if (theme.barFont)
                 root.barFont = theme.barFont;
             if (theme.flatMode)
@@ -356,6 +361,7 @@ ShellRoot {
         showBattery: root.showBattery
         showNotifications: root.showNotifications
         showSystem: root.showSystem
+        showTray: root.showTray
         barFont: root.barFont
         flatMode: root.flatMode
         showBarDividers: root.showBarDividers
