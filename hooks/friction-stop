@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Stop — if this session hit validation/build friction in this repo (logged by
+# friction-log, or a Cursor-side Nix parse error from after-edit), surface it
+# once. Silent when the session was clean. The .fired sentinel is also the
+# stop-loop guard: every agent continues the turn when this hook returns a
+# nudge.
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+agent_hooks_load || exit 0
+
+status=$(jq -r '.status // empty' <<<"$HOOK_INPUT")
+if [ -n "$status" ] && [ "$status" != "completed" ]; then
+  exit 0
+fi
+
+log=$(agent_hooks_friction_log "$HOOK_SESSION_ID")
+fired=$(agent_hooks_friction_fired "$HOOK_SESSION_ID")
+
+[ -s "$log" ] || exit 0
+if [ -e "$fired" ]; then
+  rm -f "$log"
+  exit 0
+fi
+: >"$fired"
+
+signals=$(sort -u "$log" | sed 's/^/  - /')
+rm -f "$log"
+
+msg="Validation friction this session in this repo:
+$signals
+If this exposed missing docs, a weak check, a brittle script, or unclear
+validation, run agent-self-improve --check and fix the smallest agent-facing
+doc/check/script before finishing. If it was just a transient mistake, ignore."
+
+agent_hooks_emit_stop_nudge "$msg"
+exit 0

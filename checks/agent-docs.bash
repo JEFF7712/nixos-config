@@ -35,6 +35,12 @@ require_backtick_in_claude() {
 require_file AGENT_MAP.md
 require_file CLAUDE.md
 require_file docs/agent-self-improvement.md
+require_file hooks/after-edit
+require_file hooks/friction-log
+require_file hooks/friction-stop
+require_file .cursor/hooks.json
+require_file .claude/settings.json
+require_file .codex/hooks.json
 
 # AGENT_MAP must route the core surfaces, cover validation, and point to closeout.
 require_match 'NixOS module' AGENT_MAP.md
@@ -43,10 +49,20 @@ require_match 'desktop profile' AGENT_MAP.md
 require_match 'just eval' AGENT_MAP.md
 require_match 'just check' AGENT_MAP.md
 require_match 'agent-self-improve' AGENT_MAP.md
+require_match 'hooks/' AGENT_MAP.md
 
 # Self-improvement protocol must keep its triggers and the closeout command.
 require_match 'agent-self-improve --check' docs/agent-self-improvement.md
 require_match 'hurdle' docs/agent-self-improvement.md
+require_match 'hooks/friction-stop' docs/agent-self-improvement.md
+
+# Shared agent hooks must stay wired from Cursor, Claude, and Codex configs.
+require_match 'hooks/' CLAUDE.md
+for hook_config in .cursor/hooks.json .claude/settings.json .codex/hooks.json; do
+  require_match 'hooks/after-edit' "$hook_config"
+  require_match 'hooks/friction-log' "$hook_config"
+  require_match 'hooks/friction-stop' "$hook_config"
+done
 
 # agent-context recipe must exist and surface validation + closeout guidance.
 require_match '^agent-context:' justfile

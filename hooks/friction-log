@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Record failed just/nix/nh/nixos-rebuild commands in this repo so
+# friction-stop can nudge agent-self-improve once at the end of the turn.
+# Claude/Cursor fire this on dedicated failure events; Codex fires PostToolUse
+# for Bash including failures, so we require a non-zero exit there.
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+agent_hooks_load || exit 0
+agent_hooks_in_repo_cwd || exit 0
+agent_hooks_tool_failed || exit 0
+
+cmd=$(jq -r '.tool_input.command // empty' <<<"$HOOK_INPUT")
+[ -n "$cmd" ] || exit 0
+agent_hooks_is_validation_command "$cmd" || exit 0
+
+printf '%s\n' "$(printf '%s' "$cmd" | tr '\n' ' ' | head -c 200)" \
+  >>"$(agent_hooks_friction_log "$HOOK_SESSION_ID")"
+exit 0

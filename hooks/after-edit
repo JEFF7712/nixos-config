@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# After a file edit: format with this repo's formatters, parse-check .nix, and
+# stage newly created files so flake eval can see them. Shared by Cursor,
+# Claude, and Codex. Fail-open except for a Nix parse error, which blocks
+# Claude/Codex immediately and is logged as friction for Cursor.
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+agent_hooks_load || exit 0
+
+format_file() {
+  local file=$1
+  case "$file" in
+    *.nix)
+      if command -v nixfmt >/dev/null 2>&1; then
+        nixfmt "$file" >/dev/null 2>&1 || true
+      fi
+      ;;
+    *.qml)
+      if command -v qmlformat >/dev/null 2>&1; then
+        qmlformat -i "$file" >/dev/null 2>&1 || true
+      fi
+      ;;
+    *.py)
+      if command -v ruff >/dev/null 2>&1; then
+        ruff format "$file" >/dev/null 2>&1 || true
+      fi
+      ;;
+  esac
+}
+
+stage_if_new() {
+  local file=$1
+  git -C "$REPO_ROOT" ls-files --error-unmatch "$file" >/dev/null 2>&1 && return 0
+  git -C "$REPO_ROOT" add -- "$file" >/dev/null 2>&1 || true
+}
+
+log_parse_friction() {
+  local reason=$1
+  local log
+  log=$(agent_hooks_friction_log "$HOOK_SESSION_ID")
+  printf '%s\n' "$reason" >>"$log"
+}
+
+parse_errors=""
+while IFS= read -r file; do
+  [ -f "$file" ] || continue
+  format_file "$file"
+  case "$file" in
+    *.nix)
+      if ! err=$(nix-instantiate --parse "$file" 2>&1 1>/dev/null); then
+        parse_errors+="Nix parse error in ${file#"$REPO_ROOT"/} — fix before continuing:
+$err
+"
+      fi
+      ;;
+  esac
+  stage_if_new "$file"
+done < <(agent_hooks_touched_files)
+
+if [ -n "$parse_errors" ]; then
+  blocked=$(agent_hooks_emit_block "$parse_errors")
+  if [ -n "$blocked" ]; then
+    printf '%s\n' "$blocked"
+  else
+    log_parse_friction "$(printf '%s' "$parse_errors" | tr '\n' ' ' | head -c 200)"
+  fi
+fi
+exit 0

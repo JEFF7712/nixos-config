@@ -27,7 +27,7 @@ Hurdle trigger:
 
 Update target:
   If durable friction appeared, make the smallest useful change to AGENT_MAP.md,
-  docs/, checks/agent-*.bash, home/scripts/, or justfile.
+  docs/, checks/agent-*.bash, home/scripts/, hooks/, or justfile.
 
 Closeout:
   Validate any improvement. If no useful change exists, say so directly.

@@ -30,7 +30,7 @@ nix develop ./shells[#c|#python|#cbe|#ml|#homelab]   # dev shells (ml default; s
 
 Before broad repo search, read `AGENT_MAP.md` and run `just agent-context`.
 
-Run `agent-self-improve --check` when a session hits durable friction (validation you could not immediately explain, unclear ownership, missing or weak docs/checks, time spent hunting conventions), not as a per-session ritual (`home/scripts/agent-self-improve --check` if `~/.local/bin` is not on PATH). In Claude Code a `Stop` hook also surfaces failed `just`/`nix` runs as a nudge. If friction appeared, fix the smallest relevant agent-facing doc, check, script, or `just` recipe; a clean session needs no closeout note.
+Run `agent-self-improve --check` when a session hits durable friction (validation you could not immediately explain, unclear ownership, missing or weak docs/checks, time spent hunting conventions), not as a per-session ritual (`home/scripts/agent-self-improve --check` if `~/.local/bin` is not on PATH). Shared repo hooks in `hooks/` (wired from `.cursor/hooks.json`, `.claude/settings.json`, and `.codex/hooks.json`) format/parse-check/stage new files after edits and surface failed `just`/`nix` runs on Stop. If friction appeared, fix the smallest relevant agent-facing doc, check, script, or `just` recipe; a clean session needs no closeout note.
 
 Commit history here is disposable — when asked to commit, commit freely (batching unrelated changes is fine); don't fuss over one-logical-change discipline. Relaxes the global commit rules for this repo only.
 

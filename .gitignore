@@ -9,8 +9,10 @@
 /result
 /docs/superpowers/
 /.venv
-/.claude
-/.codex
+/.claude/*
+!/.claude/settings.json
+/.codex/*
+!/.codex/hooks.json
 /.pi
 /.worktrees
 /.superpowers

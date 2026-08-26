@@ -964,6 +964,9 @@ assert_log_contains "verify-quickshell active=old" \
   "post-start target bar readiness is verified before active profile commit"
 assert_eq 'gtk-new-light' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
   "old-to-new switch installs the target variant GTK colors"
+assert_eq $'$font = Fixture UI\n$mono_font = Fixture Mono' \
+  "$(cat "$home/.config/hypr/profile-font.conf")" \
+  "switch installs hyprlock profile fonts"
 
 printf 'old\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"

@@ -8,7 +8,7 @@ fmt-check:
   nix fmt -- --fail-on-change --no-cache
 
 shell-check:
-  git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b' -- home/scripts checks | xargs -r shellcheck -S error
+  git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b' -- home/scripts checks hooks | xargs -r shellcheck -S error
 
 lid-close-check:
   bash checks/lid-close-action.bash
@@ -17,9 +17,11 @@ wallpaper-script-check:
   bash checks/wallpaper-scripts.bash
   bash checks/iris-render.bash
   bash checks/temperature-render.bash
+  bash checks/sharp-matugen.bash
   bash checks/merge-ini-section.bash
   bash checks/spicetify-theme.bash
   bash checks/profile-manifest.bash
+  bash checks/lock-screen.bash
   bash checks/profile-transition.bash
   bash checks/profile-gsettings.bash
   bash checks/kitty-agent-colors.bash

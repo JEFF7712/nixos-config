@@ -2,7 +2,32 @@
 # Wrapper that locks with noctalia when active, hyprlock otherwise.
 set -euo pipefail
 
-ACTIVE_FILE="$HOME/.config/desktop-profiles/active"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/profile-manifest"
+
+DEFAULT_LOCK_FONT="JetBrainsMono Nerd Font"
+
+hyprlock_font_var() {
+  local file="$1" name="$2"
+  [ -r "$file" ] || return 0
+  awk -F ' = ' -v name="$name" '$1 == name { print $2; exit }' "$file"
+}
+
+resolve_lock_fonts() {
+  local profile="$1"
+  local font_file="$2"
+  local ui_font mono_font loaded
+  ui_font=$(profile_manifest_font_family "$profile" ui "$DEFAULT_LOCK_FONT")
+  mono_font=$(profile_manifest_font_family "$profile" mono "$DEFAULT_LOCK_FONT")
+  loaded=$(hyprlock_font_var "$font_file" '$font')
+  [ -n "$loaded" ] && ui_font="$loaded"
+  loaded=$(hyprlock_font_var "$font_file" '$mono_font')
+  [ -n "$loaded" ] && mono_font="$loaded"
+  printf '%s\t%s\n' "$ui_font" "$mono_font"
+}
+
+ACTIVE_FILE="$PROFILES_DIR/active"
 PROFILE=""
 [ -f "$ACTIVE_FILE" ] && PROFILE=$(cat "$ACTIVE_FILE")
 
@@ -12,10 +37,10 @@ if [ "$PROFILE" = "noctalia" ]; then
   # locked. `noctalia-shell` survives only as the systemd unit name.
   exec noctalia msg session lock
 else
-  PROFILES_DIR="$HOME/.config/desktop-profiles"
   PROFILE_DIR="$PROFILES_DIR/$PROFILE"
   THEME_FILE="$PROFILE_DIR/quickshell-theme.json"
   WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
+  FONT_FILE="$HOME/.config/hypr/profile-font.conf"
   CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/hyprlock"
   RUNTIME_CONFIG="$CACHE_DIR/profile.conf"
 
@@ -90,10 +115,14 @@ else
   panel=$(theme_value popupBg "#cc171b22")
   error=$(theme_value warm "#bf616a")
   wallpaper=$(current_wallpaper)
+  IFS=$'\t' read -r ui_font mono_font < <(resolve_lock_fonts "$PROFILE" "$FONT_FILE")
+  ui_font="${ui_font:-$DEFAULT_LOCK_FONT}"
+  mono_font="${mono_font:-$DEFAULT_LOCK_FONT}"
 
   mkdir -p "$CACHE_DIR"
   cat > "$RUNTIME_CONFIG" <<EOF
-\$font = JetBrainsMono Nerd Font
+\$font = $ui_font
+\$mono_font = $mono_font
 \$fg = $(rgb_color "$fg" "eceff4")
 \$muted = $(rgb_color "$muted" "aeb7c5")
 \$accent = $(rgb_color "$accent" "88c0d0")
@@ -172,7 +201,7 @@ input-field {
     check_color = \$fg
     fail_color = \$error
 
-    font_family = \$font
+    font_family = \$mono_font
     placeholder_text = <span></span>
     fail_text = \$PAMFAIL
     check_text = Checking...

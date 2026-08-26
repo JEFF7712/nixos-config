@@ -1,0 +1,41 @@
+{
+  "description": "Repo agent hooks: format/parse/stage after edits; nudge on validation friction.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(git rev-parse --show-toplevel)/hooks/after-edit\"",
+            "timeout": 30,
+            "statusMessage": "Formatting and parse-checking edit"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(git rev-parse --show-toplevel)/hooks/friction-log\"",
+            "timeout": 5,
+            "statusMessage": "Recording validation friction"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(git rev-parse --show-toplevel)/hooks/friction-stop\"",
+            "timeout": 10,
+            "statusMessage": "Checking session friction"
+          }
+        ]
+      }
+    ]
+  }
+}

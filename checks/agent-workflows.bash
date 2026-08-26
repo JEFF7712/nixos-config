@@ -26,6 +26,11 @@ require_executable checks/agent-invariants.bash
 require_executable home/scripts/new-nixos-module
 require_executable home/scripts/new-home-module
 require_executable home/scripts/agent-self-improve
+require_executable hooks/after-edit
+require_executable hooks/friction-log
+require_executable hooks/friction-stop
+
+bash checks/agent-hooks.bash
 
 git_metadata_fixture=checks/.git/agent-invariants-hardcoded-path-test
 mkdir -p "${git_metadata_fixture%/*}"

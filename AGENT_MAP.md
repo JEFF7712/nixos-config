@@ -24,6 +24,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Change LUKS reinstall prep | `docs/luks-reinstall.md`, `hosts/laptop-crypt/`, `hosts/laptop/disko.nix` | disko layout, crypt host, runbook | `just eval laptop-crypt` + build `vmWithDisko` for layout changes |
 | Change Obsidian vault fonts/CSS | `modules/home-manager/obsidian.nix`, `home/configs/obsidian/` | snippet CSS, custom-font-loader JSON, activation merge in module + `profile-common` / `iris-render.py` | `just fmt-check && just eval laptop` |
 | Change agent tooling | `modules/home-manager/ai-tools.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md` | `just check-agent-docs && just eval laptop` |
+| Change agent hooks | `hooks/`, `.cursor/hooks.json`, `.claude/settings.json`, `.codex/hooks.json` | shared `hooks/` scripts only; keep the three configs pointing at the same commands | `just check-agent-workflows && just shell-check` |
 | Change agent invariants or scaffolds | `checks/agent-invariants.bash`, `checks/agent-workflows.bash`, `home/scripts/new-*module` | invariant checker, workflow test, scaffold scripts | `just check-agent-workflows && just shell-check` |
 | Change agent self-improvement behavior | `docs/agent-self-improvement.md`, `AGENT_MAP.md`, `checks/agent-*.bash` | protocol doc, agent checks, helper scripts | `just check-agent-docs && just check-agent-workflows` |
 
@@ -42,6 +43,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 - Do not use `git add .`; stage the specific files changed.
 - `git diff` renders through difftastic here; pass `--no-ext-diff` whenever you need a real unified patch (`git apply`, hunk staging, or any machine parsing).
 - Use `new-nixos-module <name>` and `new-home-module <name>` for new auto-discovered modules.
+- Repo agent hooks live in `hooks/` and are wired from `.cursor/hooks.json`, `.claude/settings.json`, and `.codex/hooks.json`. Do not fork per-agent copies of the scripts.
 
 ## Validation
 
@@ -55,7 +57,7 @@ Run the smallest command that proves the touched surface; the "Validate" column 
 
 ## Session Closeout
 
-Run `agent-self-improve --check` when a session hits durable friction (unexplained validation failures, unclear ownership, missing or weak docs/checks, time hunting conventions), not as a per-session ritual (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH). In Claude Code a `Stop` hook surfaces failed `just`/`nix` runs as a nudge. If friction appeared, fix the smallest relevant doc, check, script, or `just` recipe; a clean session needs no note. Full protocol: `docs/agent-self-improvement.md`.
+Run `agent-self-improve --check` when a session hits durable friction (unexplained validation failures, unclear ownership, missing or weak docs/checks, time hunting conventions), not as a per-session ritual (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH). Shared `hooks/` Stop hooks (Cursor, Claude, Codex) surface failed `just`/`nix` runs as a nudge. If friction appeared, fix the smallest relevant doc, check, script, or `just` recipe; a clean session needs no note. Full protocol: `docs/agent-self-improvement.md`.
 
 ## Search Shortcuts
 

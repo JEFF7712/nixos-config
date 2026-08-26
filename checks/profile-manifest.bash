@@ -67,7 +67,16 @@ assert_eq "$profile_dir/light.css" "$(profile_manifest_artifact sharp light gtk3
 assert_eq Comfy "$(profile_manifest_adapter sharp dark spicetify | jq -r .theme)" "adapter data"
 assert_eq $'dark\nlight' "$(profile_manifest_variants sharp)" "variant list"
 
+assert_eq "JetBrainsMono Nerd Font" "$(profile_manifest_font_family sharp ui)" \
+  "empty fonts block uses the default UI family"
+assert_eq "Fallback Mono" "$(profile_manifest_font_family sharp mono "Fallback Mono")" \
+  "empty fonts block uses the provided fallback"
 cp "$profile_dir/manifest.json" "$tmpdir/valid.json"
+jq '.transition.fonts = {ui: {family: "IBM Plex Sans", size: 11}, mono: {family: "Iosevka Nerd Font", size: 14}}' \
+  "$tmpdir/valid.json" > "$profile_dir/manifest.json"
+assert_eq "IBM Plex Sans" "$(profile_manifest_font_family sharp ui)" "UI family from the manifest"
+assert_eq "Iosevka Nerd Font" "$(profile_manifest_font_family sharp mono)" "mono family from the manifest"
+cp "$tmpdir/valid.json" "$profile_dir/manifest.json"
 
 printf 'managed fixture\n' > "$tmpdir/store-artifact"
 ln -s "$tmpdir/store-artifact" "$profile_dir/managed.css"

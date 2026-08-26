@@ -77,6 +77,20 @@ profile_manifest_transition_json() {
   _profile_manifest_jq "$1" --arg key "$2" '.transition[$key]'
 }
 
+profile_manifest_font_family() {
+  local profile="$1"
+  local kind="${2:-ui}"
+  local fallback="${3:-JetBrainsMono Nerd Font}"
+  local family=""
+  family=$(jq -r --arg kind "$kind" --arg fallback "$fallback" \
+    '.transition.fonts[$kind].family // $fallback' \
+    "$(profile_manifest_path "$profile")" 2>/dev/null) || true
+  if [ -z "$family" ] || [ "$family" = "null" ]; then
+    family="$fallback"
+  fi
+  printf '%s\n' "$family"
+}
+
 profile_manifest_wallpaper_dir() {
   _profile_manifest_jq "$1" --arg variant "$2" '.variants[$variant].wallpaperDirectory'
 }
@@ -109,6 +123,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     bar) profile_manifest_bar "$@" ;;
     capability) profile_manifest_capability "$@" ;;
     transition) profile_manifest_transition_json "$@" ;;
+    font-family) profile_manifest_font_family "$@" ;;
     wallpaper-dir) profile_manifest_wallpaper_dir "$@" ;;
     artifact) profile_manifest_artifact "$@" ;;
     adapter) profile_manifest_adapter "$@" ;;

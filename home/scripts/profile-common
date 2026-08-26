@@ -612,6 +612,15 @@ set_gtk_setting() {
   fi
 }
 
+write_hyprlock_font_file() {
+  local config_root="$1" ui_font="$2" mono_font="$3"
+  mkdir -p "$config_root/hypr"
+  cat > "$config_root/hypr/profile-font.conf" <<EOF
+\$font = $ui_font
+\$mono_font = $mono_font
+EOF
+}
+
 apply_profile_fonts() {
   local config_root="$1"
   local profile="$2" fonts
@@ -639,8 +648,15 @@ apply_profile_font_files() {
     jq -r '[.ui.family, .ui.size, .mono.family, .mono.size] | @tsv' <<< "$fonts"
   )
 
+  ui_font="${ui_font:-JetBrainsMono Nerd Font}"
+  mono_font="${mono_font:-JetBrainsMono Nerd Font}"
+  ui_size="${ui_size:-11}"
+  mono_size="${mono_size:-14}"
+
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-font-name "$ui_font $ui_size"
   set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-font-name "$ui_font $ui_size"
+
+  write_hyprlock_font_file "$config_root" "$ui_font" "$mono_font"
 
   for qt_conf in "$config_root/qt5ct/qt5ct.conf" "$config_root/qt6ct/qt6ct.conf"; do
     [ -f "$qt_conf" ] || continue

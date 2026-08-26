@@ -5,10 +5,10 @@
 #   try-font <mono-family> [ui-family] [mono-size] [ui-size]
 #   ui-family defaults to mono-family; sizes default to 14 (mono) / 11 (ui).
 #
-# Applies to kitty, GTK (3/4 + gsettings), the rofi profile switcher and the
-# quickshell bar. This is transient: switching/​reapplying a profile or (for
-# wallpaperTheming profiles) the next wallpaper change restores the profile's
-# real fonts. Make a choice permanent in modules/home-manager/profiles/<p>.nix.
+# Applies to kitty, GTK (3/4 + gsettings), the rofi profile switcher, the
+# hyprlock font file, and the quickshell bar. This is transient: switching/​reapplying
+# a profile or (for wallpaperTheming profiles) the next wallpaper change restores
+# the profile's real fonts. Make a choice permanent in modules/home-manager/profiles/<p>.nix.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,6 +25,7 @@ gsettings set org.gnome.desktop.interface document-font-name "$UI $UI_SIZE" 2>/d
 gsettings set org.gnome.desktop.interface monospace-font-name "$MONO $MONO_SIZE" 2>/dev/null || true
 set_gtk_setting "$CONFIG_HOME/gtk-3.0/settings.ini" gtk-font-name "$UI $UI_SIZE"
 set_gtk_setting "$CONFIG_HOME/gtk-4.0/settings.ini" gtk-font-name "$UI $UI_SIZE"
+write_hyprlock_font_file "$CONFIG_HOME" "$UI" "$MONO"
 
 # kitty
 if [ -f "$CONFIG_HOME/kitty/kitty.conf" ]; then
