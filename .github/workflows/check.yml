@@ -24,7 +24,7 @@ jobs:
         run: nix fmt -- --fail-on-change --no-cache
       - name: Agent checks
         run: |
-          nix shell nixpkgs#just nixpkgs#ripgrep nixpkgs#fd nixpkgs#shellcheck -c \
+          nix shell nixpkgs#just nixpkgs#ripgrep nixpkgs#fd nixpkgs#shellcheck nixpkgs#nixfmt nixpkgs#jq -c \
             bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check'
       - name: Profile and wallpaper checks
         run: |

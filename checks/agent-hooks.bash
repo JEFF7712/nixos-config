@@ -17,6 +17,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
+command -v jq >/dev/null 2>&1 || fail "jq is required to test agent hooks"
+command -v nixfmt >/dev/null 2>&1 || fail "nixfmt is required to test after-edit formatting"
+
 tmp_nix=$(mktemp --suffix=.nix "$PWD/checks/.agent-hooks-XXXXXX")
 
 printf '{foo=1;}\n' >"$tmp_nix"

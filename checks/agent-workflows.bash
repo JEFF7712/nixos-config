@@ -29,6 +29,8 @@ require_executable home/scripts/agent-self-improve
 require_executable hooks/after-edit
 require_executable hooks/friction-log
 require_executable hooks/friction-stop
+require_match 'nixpkgs#nixfmt' .github/workflows/check.yml
+require_match 'nixpkgs#jq' .github/workflows/check.yml
 
 bash checks/agent-hooks.bash
 
