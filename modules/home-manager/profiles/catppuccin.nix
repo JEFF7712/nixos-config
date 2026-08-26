@@ -7,6 +7,7 @@ let
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
+  motionPresets = import ../../../lib/desktop-profiles/motion.nix;
   inherit (static) alpha;
 
   dark = {
@@ -182,6 +183,7 @@ let
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
       kittyCursorTrail = trails.glide;
+      motion = motionPresets.glide;
     };
 
     niri = {

@@ -106,18 +106,28 @@ assert_eq "$got_kv" 'glass' "kv theme system->glass"
 
 # apply_profile_appearance_files writes cursor_trail from the profile manifest.
 mkdir -p "$HOME/.config/desktop-profiles/sharp"
-printf '%s\n' '{"schemaVersion":1,"name":"sharp","capabilities":{"selfThemed":false},"transition":{"defaultBar":"quickshell","cursor":{"theme":"x","size":24},"fonts":{"ui":{"family":"x","size":11},"mono":{"family":"x","size":14}},"appearance":{"gtkTheme":"adw-gtk3-dark","iconTheme":"Papirus-Dark","kittyOpacity":0.5,"kittyCursorTrail":{"delayMs":1,"decayMin":0.04,"decayMax":0.12,"startThreshold":1}}},"variants":{"dark":{"wallpaperDirectory":"/x","adapters":{},"artifacts":{}}},"artifacts":{}}' \
+printf '%s\n' '{"schemaVersion":1,"name":"sharp","capabilities":{"selfThemed":false},"transition":{"defaultBar":"quickshell","cursor":{"theme":"x","size":24},"fonts":{"ui":{"family":"x","size":11},"mono":{"family":"x","size":14}},"appearance":{"gtkTheme":"adw-gtk3-dark","iconTheme":"Papirus-Dark","kittyOpacity":0.5,"kittyCursorTrail":{"delayMs":1,"decayMin":0.04,"decayMax":0.12,"startThreshold":1,"blinkInterval":"0.5 ease-in-out","visualBellDuration":0.08},"motion":{"wallpaperType":"fade","wallpaperDuration":0.35,"hyprlockFade":2,"hyprlockDots":1,"osdMs":70,"launcherFadeMs":90}}},"variants":{"dark":{"wallpaperDirectory":"/x","adapters":{},"artifacts":{}}},"artifacts":{}}' \
   > "$HOME/.config/desktop-profiles/sharp/manifest.json"
-printf 'background_opacity 1.0\ncursor_trail 3\ncursor_trail_decay 0.1 0.4\ncursor_trail_start_threshold 2\n' \
+printf 'background_opacity 1.0\ncursor_trail 3\ncursor_trail_decay 0.1 0.4\ncursor_trail_start_threshold 2\ncursor_blink_interval -1\nvisual_bell_duration 0.0\n' \
   > "$HOME/.config/kitty/kitty.conf"
 apply_profile_appearance_files "$HOME/.config" sharp dark
+assert_eq "$(profile_launcher_fade_ms sharp 2>/dev/null)" "90" \
+  "launcher fade reads motion.launcherFadeMs without bash :-{} jq breakage"
 assert_eq "$(sed -n 's/^cursor_trail //p' "$HOME/.config/kitty/kitty.conf")" "1" \
   "appearance apply writes snappy cursor_trail"
 assert_eq "$(sed -n 's/^cursor_trail_decay //p' "$HOME/.config/kitty/kitty.conf")" "0.04 0.12" \
   "appearance apply writes snappy decay"
 assert_eq "$(sed -n 's/^cursor_trail_start_threshold //p' "$HOME/.config/kitty/kitty.conf")" "1" \
   "appearance apply writes snappy threshold"
+assert_eq "$(sed -n 's/^cursor_blink_interval //p' "$HOME/.config/kitty/kitty.conf")" "0.5 ease-in-out" \
+  "appearance apply writes snappy blink"
+assert_eq "$(sed -n 's/^visual_bell_duration //p' "$HOME/.config/kitty/kitty.conf")" "0.08" \
+  "appearance apply writes snappy visual bell"
 assert_eq "$(sed -n 's/^background_opacity //p' "$HOME/.config/kitty/kitty.conf")" "0.5" \
   "appearance apply still writes kittyOpacity"
+grep -q 'animation = fadeIn, 1, 2, smooth' "$HOME/.config/hypr/profile-motion.conf" \
+  || { echo "FAIL: hyprlock snappy fade not written" >&2; exit 1; }
+grep -q -- '--osd-motion-ms: 70ms' "$HOME/.config/swayosd-motion.css" \
+  || { echo "FAIL: osd snappy motion not written" >&2; exit 1; }
 
 echo "OK: kitty-agent-colors.bash"

@@ -19,7 +19,7 @@ BAR="noctalia"
 clipboard_pick() {
   local theme selected
   theme="$HOME/.config/rofi/profile-switcher.rasi"
-  selected=$(cliphist list | rofi -dmenu -i -theme "$theme") || true
+  selected=$(cliphist list | rofi -dmenu -i -normal-window -theme "$theme") || true
   [ -n "$selected" ] || return 0
   printf '%s\n' "$selected" | cliphist decode | wl-copy
 }

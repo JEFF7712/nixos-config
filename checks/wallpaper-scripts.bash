@@ -274,6 +274,24 @@ if [ -e "$themed_flag" ]; then
   exit 1
 fi
 
+mkdir -p "$profiles_dir/sharp"
+printf 'sharp\n' > "$profiles_dir/active"
+printf '%s\n' '{"schemaVersion":1,"name":"sharp","transition":{"appearance":{"motion":{"wallpaperType":"fade","wallpaperDuration":0.35}}}}' \
+  > "$profiles_dir/sharp/manifest.json"
+: > "$log_file"
+awww() {
+  printf 'awww %s\n' "$*" >> "$COMMAND_LOG"
+}
+apply_wallpaper_theme() { :; }
+COMMAND_LOG="$log_file" set_wallpaper "$tmpdir/seed.png"
+unset -f awww apply_wallpaper_theme
+if ! grep -Fq -- '--transition-type fade --transition-duration 0.35' "$log_file"; then
+  printf 'FAIL: set_wallpaper did not use appearance.motion wallpaper timing\n%s\n' \
+    "$(cat "$log_file")" >&2
+  exit 1
+fi
+printf 'tinted\n' > "$profiles_dir/active"
+
 apostrophe_wp="$tmpdir/o'reilly.png"
 touch "$apostrophe_wp"
 cat > "$config_dir/waypaper/config.ini" <<EOF

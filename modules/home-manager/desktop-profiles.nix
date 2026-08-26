@@ -247,6 +247,15 @@ in
         sync_live_config "$CFG/firefox/chrome" "$ff/chrome" "DownToneUI/_globals.css"
         break
       done
+
+      if [ ! -e "$HOME/.config/hypr/profile-motion.conf" ]; then
+        $DRY_RUN_CMD install -Dm644 "$CFG/hypr/profile-motion.conf" \
+          "$HOME/.config/hypr/profile-motion.conf"
+      fi
+      if [ ! -e "$HOME/.config/swayosd-motion.css" ]; then
+        $DRY_RUN_CMD install -Dm644 "$CFG/swayosd-motion.css" \
+          "$HOME/.config/swayosd-motion.css"
+      fi
     '';
   };
 }

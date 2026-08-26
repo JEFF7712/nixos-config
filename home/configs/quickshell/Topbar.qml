@@ -86,6 +86,15 @@ PanelWindow {
     signal notificationsClicked(real anchorCenterX)
     signal systemClicked(real anchorCenterX)
     signal mediaClicked(real anchorCenterX)
+    // Predictive layershell prewarm before click (InfoPopup.prewarm).
+    signal wifiHovered
+    signal volumeHovered
+    signal bluetoothHovered
+    signal batteryHovered
+    signal clockHovered
+    signal notificationsHovered
+    signal systemHovered
+    signal mediaHovered
 
     function pillCenterX(item) {
         if (!item || !item.visible)
@@ -275,6 +284,7 @@ PanelWindow {
                 value: (!topbarWindow.audioService.available || topbarWindow.audioService.muted || topbarWindow.audioService.volumePercent === 100 || topbarWindow.audioService.volumePercent === 0) ? "" : topbarWindow.audioService.volumePercent + "%"
                 tint: topbarWindow.audioService.muted ? Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.4) : topbarWindow.themeAccent
                 onActivated: topbarWindow.volumeClicked(topbarWindow.pillCenterX(volumePill))
+                onHovered: topbarWindow.volumeHovered()
                 onMiddleClicked: topbarWindow.audioService.toggleMute()
                 onRightClicked: topbarWindow.audioService.openMixer()
                 onScrolled: delta => topbarWindow.audioService.adjustVolume(delta)
@@ -286,6 +296,7 @@ PanelWindow {
                 value: ""
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.wifiClicked(topbarWindow.pillCenterX(networkPill))
+                onHovered: topbarWindow.wifiHovered()
                 onRightClicked: topbarWindow.networkService.openSettings()
             }
             StatPill {
@@ -295,6 +306,7 @@ PanelWindow {
                 value: ""
                 tint: topbarWindow.themeSecond
                 onActivated: topbarWindow.bluetoothClicked(topbarWindow.pillCenterX(bluetoothPill))
+                onHovered: topbarWindow.bluetoothHovered()
                 onRightClicked: topbarWindow.bluetoothService.openManager()
             }
             StatPill {
@@ -304,6 +316,7 @@ PanelWindow {
                 value: !topbarWindow.powerService.available || topbarWindow.powerService.chargePercent === 100 ? "" : topbarWindow.powerService.chargePercent + "%"
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.batteryClicked(topbarWindow.pillCenterX(batteryPill))
+                onHovered: topbarWindow.batteryHovered()
                 onRightClicked: topbarWindow.powerService.cycleProfile(1)
                 onScrolled: delta => topbarWindow.powerService.cycleProfile(delta > 0 ? 1 : -1)
             }
@@ -314,6 +327,7 @@ PanelWindow {
                 value: topbarWindow.notificationCount > 9 ? "9+" : (topbarWindow.notificationCount > 0 ? topbarWindow.notificationCount.toString() : "")
                 tint: topbarWindow.notificationCount > 0 ? topbarWindow.themeAccent : topbarWindow.themeSecond
                 onActivated: topbarWindow.notificationsClicked(topbarWindow.pillCenterX(notifPill))
+                onHovered: topbarWindow.notificationsHovered()
             }
             StatPill {
                 id: systemPill
@@ -324,6 +338,7 @@ PanelWindow {
                 tint: topbarWindow.themeAccent
                 tintIcon: true
                 onActivated: topbarWindow.systemClicked(topbarWindow.pillCenterX(systemPill))
+                onHovered: topbarWindow.systemHovered()
                 onRightClicked: topbarWindow.systemService.lock()
             }
         }
@@ -408,6 +423,8 @@ PanelWindow {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: topbarWindow.clockClicked(topbarWindow.pillCenterX(clockArea))
+                onContainsMouseChanged: if (containsMouse)
+                    topbarWindow.clockHovered()
             }
         }
 
@@ -547,6 +564,8 @@ PanelWindow {
                     else
                         topbarWindow.mediaClicked(topbarWindow.pillCenterX(mediaPill));
                 }
+                onContainsMouseChanged: if (containsMouse)
+                    topbarWindow.mediaHovered()
                 onWheel: event => {
                     if (event.angleDelta.y > 0)
                         topbarWindow.mediaService.next();
@@ -837,6 +856,7 @@ PanelWindow {
         property color tint
         property bool tintIcon: false
         signal activated
+        signal hovered
         signal middleClicked
         signal rightClicked
         signal scrolled(int delta)
@@ -1048,6 +1068,8 @@ PanelWindow {
                 else
                     statRoot.activated();
             }
+            onContainsMouseChanged: if (containsMouse)
+                statRoot.hovered()
             onWheel: event => {
                 statRoot.scrolled(event.angleDelta.y);
                 event.accepted = true;

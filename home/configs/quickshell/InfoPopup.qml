@@ -47,31 +47,60 @@ PanelWindow {
     readonly property bool sideSlide: attachedSlide && edgeSlide
     readonly property bool active: shown || opening || closing
     // niri blur follows the layer-shell rect, not QML opacity — unmap with the chrome.
-    readonly property bool mapped: shown || opening || warming
+    readonly property bool mapped: shown || opening || warming || closing
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int sideMargin: popupAttachToBar ? barMargin : 10
     readonly property int contentHeight: outerColumn.implicitHeight + 28
+    // Prefer frozen height while mapping so hiddenY is not -1 from collapsed implicitHeight.
+    readonly property int slideHideHeight: Math.max(1, frozenHeight > 0 ? frozenHeight : contentHeight)
     readonly property int hiddenX: sideSlide ? (popupPosition === "left" ? -card.width : card.width) : 0
-    readonly property int hiddenY: sideSlide ? 0 : attachedSlide ? -card.height : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
+    readonly property int hiddenY: sideSlide ? 0 : attachedSlide ? -slideHideHeight : floatSlide ? -10 : unfold ? -24 : quickFade ? -2 : -4
     readonly property real hiddenOpacity: attachedSlide ? 1.0 : floatSlide ? 0.72 : quickFade ? 0.0 : 0.0
     readonly property real hiddenScale: attachedSlide ? 1.0 : quickFade ? 0.985 : unfold ? 0.98 : 0.96
     readonly property int motionDuration: quickFade ? 190 : unfold ? 220 : 180
     readonly property bool moduleAnchored: !popupAttachToBar && anchorCenterX >= 0 && frozenLeft >= 0
+    readonly property int warmPulseMs: 200
+    readonly property int keepWarmMs: 1500
 
     function freezeAnchor() {
         const outW = screen ? screen.width : 0;
         root.frozenLeft = PopupAnchor.clampedLeft(root.anchorCenterX, root.implicitWidth, outW, root.barMargin);
     }
 
+    function warmHeight() {
+        // Attached slide needs full height (card clipped off-screen). Soft styles
+        // stay at 1px while idle-warm to avoid a full-size niri blur ghost.
+        return root.attachedSlide ? Math.max(1, root.contentHeight) : 1;
+    }
+
+    function clearWarm() {
+        root.warming = false;
+        root.poseLocked = false;
+        if (!root.active)
+            root.frozenHeight = 0;
+        warmTimer.interval = root.warmPulseMs;
+    }
+
+    function enterKeepWarm() {
+        // 1px keep-warm: surface stays hot for reopen without a full-size blur ghost.
+        root.closing = false;
+        root.frozenHeight = 1;
+        root.poseLocked = true;
+        root.warming = true;
+        warmTimer.interval = root.keepWarmMs;
+        warmTimer.restart();
+    }
+
     default property alias body: contentColumn.data
     property alias background: bgContainer.data
 
     function prewarm() {
-        if (root.suppressPrewarm || !root.ready || !root.attachedSlide || root.active)
+        if (root.suppressPrewarm || !root.ready || root.active)
             return;
-        root.frozenHeight = Math.max(1, root.contentHeight);
+        root.frozenHeight = root.warmHeight();
         root.poseLocked = true;
         root.warming = true;
+        warmTimer.interval = root.warmPulseMs;
         warmTimer.restart();
     }
 
@@ -80,9 +109,11 @@ PanelWindow {
             return;
         warmTimer.stop();
         root.warming = false;
+        root.closing = false;
         root.poseLocked = false;
         if (!root.active)
             root.frozenHeight = 0;
+        warmTimer.interval = root.warmPulseMs;
     }
 
     function open() {
@@ -91,39 +122,42 @@ PanelWindow {
         showTimer.stop();
         warmTimer.stop();
         root.warming = false;
+        root.closing = false;
         if (!root.attachedSlide)
             root.freezeAnchor();
-        if (root.attachedSlide) {
-            root.frozenHeight = Math.max(1, root.contentHeight);
-            root.poseLocked = true;
-            root.opening = true;
-            root.closing = false;
-            root.shown = false;
-            openTimer.restart();
-            return;
-        }
-        root.poseLocked = false;
-        root.closing = false;
-        root.opening = false;
-        root.shown = true;
-        root.frozenHeight = 0;
+        // Two-tick settle for every style: unlock Behaviors, then flip shown.
+        // Same-tick unlock+show can still snap (Behavior enable races the pose bind).
+        root.frozenHeight = Math.max(1, root.contentHeight);
+        root.poseLocked = true;
+        root.opening = true;
+        root.shown = false;
+        openTimer.restart();
     }
+
     function close() {
         openTimer.stop();
         showTimer.stop();
         warmTimer.stop();
-        root.warming = false;
-        root.poseLocked = false;
-        root.shown = false;
+
+        if (!root.shown && !root.opening) {
+            root.closing = false;
+            root.clearWarm();
+            return;
+        }
+
+        // Instant unmap. Niri blur follows the layershell rect, not the card —
+        // an animated close leaves an empty blur field after the chrome is gone.
         root.opening = false;
         root.closing = false;
-        root.frozenHeight = 0;
+        root.shown = false;
+        root.poseLocked = true;
+        root.enterKeepWarm();
     }
 
     onPopupAttachToBarChanged: root.prewarm()
     onPopupAnimationStyleChanged: root.prewarm()
     function toggle() {
-        if (root.shown)
+        if (root.shown || root.opening)
             root.close();
         else
             root.open();
@@ -147,7 +181,7 @@ PanelWindow {
     implicitWidth: 300
     implicitHeight: {
         // If unmap lags, a full-size transparent buffer still gets niri blur.
-        if (root.warming || root.opening)
+        if (root.warming || root.opening || root.closing)
             return Math.max(1, root.frozenHeight);
         if (!root.shown)
             return 1;
@@ -170,13 +204,9 @@ PanelWindow {
 
     Timer {
         id: warmTimer
-        interval: 120
+        interval: root.warmPulseMs
         repeat: false
-        onTriggered: {
-            root.warming = false;
-            root.poseLocked = false;
-            root.frozenHeight = 0;
-        }
+        onTriggered: root.clearWarm()
     }
 
     // Two ticks: unlock Behaviors, then flip shown so the open animation runs.
@@ -235,7 +265,7 @@ PanelWindow {
                 enabled: !root.poseLocked
                 NumberAnimation {
                     duration: root.motionDuration
-                    easing.type: Easing.InOutCubic
+                    easing.type: Easing.OutCubic
                 }
             }
             Behavior on opacity {

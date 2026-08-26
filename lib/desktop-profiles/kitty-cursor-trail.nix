@@ -7,6 +7,8 @@
     decayMin = 0.1;
     decayMax = 0.4;
     startThreshold = 2;
+    blinkInterval = "-1";
+    visualBellDuration = 0.0;
   };
 
   snappy = {
@@ -14,6 +16,8 @@
     decayMin = 0.04;
     decayMax = 0.12;
     startThreshold = 1;
+    blinkInterval = "0.5 ease-in-out";
+    visualBellDuration = 0.08;
   };
 
   glide = {
@@ -21,6 +25,8 @@
     decayMin = 0.08;
     decayMax = 0.28;
     startThreshold = 2;
+    blinkInterval = "0.65 ease-in-out";
+    visualBellDuration = 0.12;
   };
 
   soft = {
@@ -28,5 +34,7 @@
     decayMin = 0.16;
     decayMax = 0.55;
     startThreshold = 2;
+    blinkInterval = "0.9 ease-in-out";
+    visualBellDuration = 0.2;
   };
 }

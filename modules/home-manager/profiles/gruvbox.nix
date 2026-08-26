@@ -5,6 +5,7 @@ let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
+  motionPresets = import ../../../lib/desktop-profiles/motion.nix;
 
   dark = rec {
     title = "Gruvbox Dark";
@@ -89,6 +90,7 @@ in
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
       kittyCursorTrail = trails.snappy;
+      motion = motionPresets.snappy;
     };
 
     niri = {

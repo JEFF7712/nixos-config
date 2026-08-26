@@ -108,7 +108,18 @@ let
         && trail ? delayMs
         && trail ? decayMin
         && trail ? decayMax
-        && trail ? startThreshold;
+        && trail ? startThreshold
+        && trail ? blinkInterval
+        && trail ? visualBellDuration;
+      motion = manifest.transition.appearance.motion or null;
+      motionOk =
+        builtins.isAttrs motion
+        && motion ? wallpaperType
+        && motion ? wallpaperDuration
+        && motion ? hyprlockFade
+        && motion ? hyprlockDots
+        && motion ? osdMs
+        && motion ? launcherFadeMs;
     in
     if manifest.schemaVersion or null != 1 then
       builtins.throw "profile '${name}': unsupported manifest schema version"
@@ -132,10 +143,20 @@ let
       builtins.throw "profile '${name}': legacy artifacts rendered: ${builtins.concatStringsSep ", " legacy}"
     else if !(builtins.match ".*animations[[:space:]]*\\{.*" niriOverrides != null) then
       builtins.throw "profile '${name}': niri-overrides.kdl has no animations block"
+    else if !(builtins.match ".*overview-open-close.*" niriOverrides != null) then
+      builtins.throw "profile '${name}': niri-overrides.kdl is missing overview-open-close"
+    else if !(builtins.match ".*window-resize.*" niriOverrides != null) then
+      builtins.throw "profile '${name}': niri-overrides.kdl is missing window-resize"
+    else if !(builtins.match ".*screenshot-ui-open.*" niriOverrides != null) then
+      builtins.throw "profile '${name}': niri-overrides.kdl is missing screenshot-ui-open"
+    else if !(builtins.match ".*exit-confirmation-open-close.*" niriOverrides != null) then
+      builtins.throw "profile '${name}': niri-overrides.kdl is missing exit-confirmation-open-close"
     else if !(builtins.match ".*animations[[:space:]]*\\{[[:space:]]*off.*" niriFocus != null) then
       builtins.throw "profile '${name}': niri-overrides-focus.kdl does not disable animations"
     else if !trailOk then
-      builtins.throw "profile '${name}': appearance.kittyCursorTrail is missing delayMs/decayMin/decayMax/startThreshold"
+      builtins.throw "profile '${name}': appearance.kittyCursorTrail is missing delayMs/decayMin/decayMax/startThreshold/blinkInterval/visualBellDuration"
+    else if !motionOk then
+      builtins.throw "profile '${name}': appearance.motion is missing wallpaper/hyprlock/osd/launcher fields"
     else if (!self) && empties != [ ] then
       builtins.throw "profile '${name}': empty color files: ${builtins.concatStringsSep ", " empties}"
     else if missingVicinaeThemes != [ ] then

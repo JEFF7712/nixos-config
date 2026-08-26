@@ -509,7 +509,11 @@ check_legacy_runtime_regressions() {
     PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
       PROFILE_TRANSITION_TEST_COMPLETION_FILE="$completion" \
       FIXTURE_ADAPTER_CHILD_DIR="$adapter_children" \
-      run_fixture_transition "$@" >"$output" 2>&1
+      run_fixture_transition "$@" >"$output" 2>&1 || {
+      printf 'FAIL: legacy scenario %s transition exited %s\n' "$name" "$?" >&2
+      cat "$output" >&2
+      exit 1
+    }
     [ -e "$completion" ] || {
       printf 'FAIL: legacy scenario %s did not signal adapter completion\n' "$name" >&2
       exit 1

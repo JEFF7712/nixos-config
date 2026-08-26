@@ -100,6 +100,45 @@ rec {
         epsilon = 0.0001;
       };
     };
+    "window-resize" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 1200;
+        epsilon = 0.0001;
+      };
+    };
+    "config-notification-open-close" = {
+      spring = {
+        dampingRatio = 0.7;
+        stiffness = 1300;
+        epsilon = 0.001;
+      };
+    };
+    "exit-confirmation-open-close" = {
+      spring = {
+        dampingRatio = 0.75;
+        stiffness = 900;
+        epsilon = 0.01;
+      };
+    };
+    "screenshot-ui-open" = {
+      durationMs = 110;
+      curve = "ease-out-quad";
+    };
+    "overview-open-close" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 1250;
+        epsilon = 0.0001;
+      };
+    };
+    "recent-windows-close" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 1200;
+        epsilon = 0.001;
+      };
+    };
   };
 
   glide = default // {
@@ -132,6 +171,45 @@ rec {
         epsilon = 0.0001;
       };
     };
+    "window-resize" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 740;
+        epsilon = 0.0001;
+      };
+    };
+    "config-notification-open-close" = {
+      spring = {
+        dampingRatio = 0.6;
+        stiffness = 900;
+        epsilon = 0.001;
+      };
+    };
+    "exit-confirmation-open-close" = {
+      spring = {
+        dampingRatio = 0.6;
+        stiffness = 480;
+        epsilon = 0.01;
+      };
+    };
+    "screenshot-ui-open" = {
+      durationMs = 180;
+      curve = "ease-out-quad";
+    };
+    "overview-open-close" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 760;
+        epsilon = 0.0001;
+      };
+    };
+    "recent-windows-close" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 760;
+        epsilon = 0.001;
+      };
+    };
   };
 
   soft = default // {
@@ -162,6 +240,45 @@ rec {
         dampingRatio = 1.0;
         stiffness = 650;
         epsilon = 0.0001;
+      };
+    };
+    "window-resize" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 580;
+        epsilon = 0.0001;
+      };
+    };
+    "config-notification-open-close" = {
+      spring = {
+        dampingRatio = 0.55;
+        stiffness = 750;
+        epsilon = 0.001;
+      };
+    };
+    "exit-confirmation-open-close" = {
+      spring = {
+        dampingRatio = 0.55;
+        stiffness = 400;
+        epsilon = 0.01;
+      };
+    };
+    "screenshot-ui-open" = {
+      durationMs = 240;
+      curve = "ease-out-quad";
+    };
+    "overview-open-close" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 600;
+        epsilon = 0.0001;
+      };
+    };
+    "recent-windows-close" = {
+      spring = {
+        dampingRatio = 1.0;
+        stiffness = 600;
+        epsilon = 0.001;
       };
     };
   };

@@ -15,7 +15,7 @@ ShellRoot {
     Services.MediaService {
         id: mediaService
         audioService: audioService
-        detailedMonitoring: mediaPopup.shown
+        detailedMonitoring: mediaPopup.active || mediaPopup.warming
     }
 
     Services.CavaService {
@@ -26,12 +26,12 @@ ShellRoot {
 
     Services.PowerService {
         id: powerService
-        detailedMonitoring: batteryPopup.shown
+        detailedMonitoring: batteryPopup.active || batteryPopup.warming
     }
 
     Services.SystemService {
         id: systemService
-        detailedMonitoring: systemPopup.shown
+        detailedMonitoring: systemPopup.active || systemPopup.warming
     }
 
     Services.NiriService {
@@ -40,12 +40,12 @@ ShellRoot {
 
     Services.NetworkService {
         id: networkService
-        scanningRequested: wifiPopup.shown
+        scanningRequested: wifiPopup.active || wifiPopup.warming
     }
 
     Services.BluetoothService {
         id: bluetoothService
-        detailedMonitoring: bluetoothPopup.shown
+        detailedMonitoring: bluetoothPopup.active || bluetoothPopup.warming
     }
 
     property color themeFg: "#ffffff"
@@ -299,6 +299,7 @@ ShellRoot {
     }
 
     readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active
+    readonly property bool anyPopupWarming: volumePopup.warming || wifiPopup.warming || bluetoothPopup.warming || batteryPopup.warming || calendarPopup.warming || notificationsPopup.warming || systemPopup.warming || mediaPopup.warming
 
     function showOnly(target, centerX) {
         target.anchorCenterX = (centerX === undefined || centerX === null) ? -1 : centerX;
@@ -377,6 +378,14 @@ ShellRoot {
         onNotificationsClicked: centerX => root.showOnly(notificationsPopup, centerX)
         onSystemClicked: centerX => root.showOnly(systemPopup, centerX)
         onMediaClicked: centerX => root.showOnly(mediaPopup, centerX)
+        onVolumeHovered: volumePopup.prewarm()
+        onWifiHovered: wifiPopup.prewarm()
+        onBluetoothHovered: bluetoothPopup.prewarm()
+        onBatteryHovered: batteryPopup.prewarm()
+        onClockHovered: calendarPopup.prewarm()
+        onNotificationsHovered: notificationsPopup.prewarm()
+        onSystemHovered: systemPopup.prewarm()
+        onMediaHovered: mediaPopup.prewarm()
     }
 
     VolumePopup {
@@ -554,16 +563,21 @@ ShellRoot {
 
     PanelWindow {
         id: catcher
-        visible: root.anyPopupShown
+        // Warm a tiny surface on hover/prewarm; expand only while a popup is interactive
+        // so we do not cover the desktop (or steal clicks) during idle warm.
+        readonly property bool interactive: root.anyPopupShown
+        visible: catcher.interactive || root.anyPopupWarming
         anchors {
             top: true
-            bottom: true
+            bottom: catcher.interactive
             left: true
-            right: true
+            right: catcher.interactive
         }
         margins {
             top: 64
         }
+        implicitWidth: catcher.interactive ? 0 : 1
+        implicitHeight: catcher.interactive ? 0 : 1
         exclusiveZone: -1
         color: "transparent"
         WlrLayershell.namespace: "quickshell-catcher"
@@ -572,6 +586,7 @@ ShellRoot {
 
         MouseArea {
             anchors.fill: parent
+            enabled: catcher.interactive
             onClicked: root.closeAll()
         }
     }

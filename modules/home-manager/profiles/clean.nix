@@ -4,6 +4,7 @@ let
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
+  motionPresets = import ../../../lib/desktop-profiles/motion.nix;
 
   bg0 = "#141414";
   bg1 = "#202020";
@@ -106,6 +107,7 @@ in
       iconThemeLight = "Papirus-Dark";
       kittyOpacity = 0.4;
       kittyCursorTrail = trails.snappy;
+      motion = motionPresets.snappy;
     };
 
     wallpaperDir = "${config.assetsPath}/wallpapers/clean";

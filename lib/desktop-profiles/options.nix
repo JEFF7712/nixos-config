@@ -52,6 +52,47 @@ let
         type = lib.types.ints.positive;
         description = "Minimum cell distance before a trail starts.";
       };
+      blinkInterval = lib.mkOption {
+        type = lib.types.str;
+        default = "-1";
+        description = "Kitty cursor_blink_interval (seconds, optional easing). -1 = system default.";
+      };
+      visualBellDuration = lib.mkOption {
+        type = lib.types.float;
+        default = 0.0;
+        description = "Kitty visual_bell_duration in seconds. 0 disables.";
+      };
+    };
+  };
+
+  defaultMotion = (import ./motion.nix).default;
+
+  motionType = lib.types.submodule {
+    options = {
+      wallpaperType = lib.mkOption {
+        type = lib.types.str;
+        description = "awww --transition-type (fade, grow, wipe, ...).";
+      };
+      wallpaperDuration = lib.mkOption {
+        type = lib.types.float;
+        description = "awww --transition-duration in seconds.";
+      };
+      hyprlockFade = lib.mkOption {
+        type = lib.types.ints.positive;
+        description = "hyprlock fadeIn/fadeOut speed (1 = 100ms).";
+      };
+      hyprlockDots = lib.mkOption {
+        type = lib.types.ints.positive;
+        description = "hyprlock inputFieldDots speed (1 = 100ms).";
+      };
+      osdMs = lib.mkOption {
+        type = lib.types.ints.positive;
+        description = "SwayOSD CSS transition duration in milliseconds.";
+      };
+      launcherFadeMs = lib.mkOption {
+        type = lib.types.ints.positive;
+        description = "Stored launcher fade hint. Rofi uses niri window-open via -normal-window; Vicinae is layer-shell so this is written as launcher_window.fade_ms.";
+      };
     };
   };
 
@@ -309,6 +350,14 @@ in
           description = ''
             Kitty cursor_trail motion. Use the snappy/glide/soft presets from
             lib/desktop-profiles/kitty-cursor-trail.nix to match niri.animations.
+          '';
+        };
+        motion = lib.mkOption {
+          type = motionType;
+          default = defaultMotion;
+          description = ''
+            Wallpaper, lock, OSD, and launcher timings. Use presets from
+            lib/desktop-profiles/motion.nix to match niri.animations.
           '';
         };
       };

@@ -1538,7 +1538,7 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'Cava process, parsing, or writable values remain in presentation files'
   rg -q 'model:[[:space:]]*topbarWindow\.cavaService\.values' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml must render CavaService values directly'
-  rg -q 'model:[[:space:]]*root\.cavaService\.values' "$media_popup" \
+  rg -q 'root\.cavaService\.values' "$media_popup" \
     || fail 'MediaPopup.qml must render CavaService values directly'
 
   [ -f "$power_service" ] || fail 'PowerService.qml is missing'

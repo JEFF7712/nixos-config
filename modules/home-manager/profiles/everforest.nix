@@ -5,6 +5,7 @@ let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
+  motionPresets = import ../../../lib/desktop-profiles/motion.nix;
 
   dark = {
     title = "Everforest Dark Hard";
@@ -132,6 +133,7 @@ in
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
       kittyCursorTrail = trails.glide;
+      motion = motionPresets.glide;
     };
 
     niri = {

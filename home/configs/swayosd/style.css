@@ -1,10 +1,12 @@
 @import url("../gtk-3.0/noctalia.css");
+@import url("../swayosd-motion.css");
 
 window#osd {
   border-radius: 0;
   border: none;
   background: alpha(@window_bg_color, 0.85);
   min-width: 160px;
+  transition: opacity var(--osd-motion-ms, 120ms) ease-out;
 }
 
 window#osd #container {
@@ -44,6 +46,7 @@ window#osd segment {
   border-radius: 0;
   border: none;
   background: alpha(@accent_color, 0.35);
+  transition: min-width var(--osd-motion-ms, 120ms) ease-out;
 }
 
 window#osd progress,
@@ -52,6 +55,7 @@ window#osd segment.active {
   border-radius: 0;
   border: none;
   background: @accent_color;
+  transition: min-width var(--osd-motion-ms, 120ms) ease-out;
 }
 
 window#osd segment {

@@ -6,6 +6,7 @@ let
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
+  motionPresets = import ../../../lib/desktop-profiles/motion.nix;
 
   # Soft fallback palettes until matugen runs (dark = charcoal, light = cream).
   dark = rec {
@@ -266,6 +267,7 @@ in
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
       kittyCursorTrail = trails.soft;
+      motion = motionPresets.soft;
     };
 
     wallpaperDir = "${config.assetsPath}/wallpapers/tinted";

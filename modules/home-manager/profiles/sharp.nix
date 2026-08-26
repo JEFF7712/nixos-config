@@ -4,6 +4,7 @@ let
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
+  motionPresets = import ../../../lib/desktop-profiles/motion.nix;
 
   # Neutral greys; `rofiText` is the only slot that differs beyond the palette.
   dark = rec {
@@ -276,6 +277,7 @@ in
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
       kittyCursorTrail = trails.snappy;
+      motion = motionPresets.snappy;
     };
 
     wallpaperDir = "${config.assetsPath}/wallpapers/sharp";

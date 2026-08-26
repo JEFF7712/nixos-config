@@ -154,7 +154,17 @@ set_wallpaper() {
       stop_video_wallpaper
       systemctl --user start awww 2>/dev/null || true
       wait_for_awww 20 || true
-      if ! awww img "$wallpaper" --transition-type fade --transition-duration 1; then
+      local transition_type="fade" transition_duration="1" appearance profile
+      profile=$(cat "$ACTIVE_FILE" 2>/dev/null || true)
+      if [ -n "$profile" ]; then
+        appearance=$(profile_manifest_transition_json "$profile" appearance 2>/dev/null || true)
+        if [ -n "$appearance" ]; then
+          transition_type=$(jq -r '.motion.wallpaperType // "fade"' <<< "$appearance")
+          transition_duration=$(jq -r '.motion.wallpaperDuration // 1' <<< "$appearance")
+        fi
+      fi
+      if ! awww img "$wallpaper" --transition-type "$transition_type" \
+        --transition-duration "$transition_duration"; then
         printf 'set_wallpaper: awww img failed\n' >&2
         return 1
       fi
@@ -625,6 +635,34 @@ set_kitty_conf_key() {
   fi
 }
 
+write_hyprlock_motion() {
+  local dest="$1" fade="$2" dots="$3"
+  mkdir -p "$(dirname "$dest")"
+  cat > "$dest" <<EOF
+animations {
+    enabled = true
+    bezier = smooth, 0.22, 1, 0.36, 1
+    animation = fadeIn, 1, $fade, smooth
+    animation = fadeOut, 1, $fade, smooth
+    animation = inputFieldDots, 1, $dots, smooth
+}
+EOF
+}
+
+write_osd_motion() {
+  local dest="$1" ms="$2"
+  mkdir -p "$(dirname "$dest")"
+  printf '* { --osd-motion-ms: %sms; }\n' "$ms" > "$dest"
+}
+
+profile_launcher_fade_ms() {
+  local profile="$1" appearance
+  appearance=$(profile_manifest_transition_json "$profile" appearance 2>/dev/null || true)
+  # Bash ${var:-{}} ends the expansion at the first closing brace, so a set value
+  # gets a trailing literal } and breaks jq; quote the empty-object default.
+  jq -r '.motion.launcherFadeMs // 140' <<< "${appearance:-"{}"}"
+}
+
 write_hyprlock_font_file() {
   local config_root="$1" ui_font="$2" mono_font="$3"
   mkdir -p "$config_root/hypr"
@@ -719,9 +757,12 @@ apply_profile_appearance_files() {
 
   local gtk_theme icon_theme kitty_opacity
   local trail_delay trail_decay_min trail_decay_max trail_threshold
+  local blink_interval visual_bell
+  local hypr_fade hypr_dots osd_ms
   appearance=$(profile_manifest_transition_json "$profile" appearance)
   IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity \
-    trail_delay trail_decay_min trail_decay_max trail_threshold < <(
+    trail_delay trail_decay_min trail_decay_max trail_threshold \
+    blink_interval visual_bell hypr_fade hypr_dots osd_ms < <(
     jq -r --arg variant "$variant" '
       [ (if $variant == "light" then (.gtkThemeLight // .gtkTheme) else .gtkTheme end),
         (if $variant == "light" then (.iconThemeLight // .iconTheme) else .iconTheme end),
@@ -729,7 +770,12 @@ apply_profile_appearance_files() {
         (.kittyCursorTrail.delayMs // 3),
         (.kittyCursorTrail.decayMin // 0.1),
         (.kittyCursorTrail.decayMax // 0.4),
-        (.kittyCursorTrail.startThreshold // 2) ] | @tsv' <<< "$appearance"
+        (.kittyCursorTrail.startThreshold // 2),
+        (.kittyCursorTrail.blinkInterval // "-1"),
+        (.kittyCursorTrail.visualBellDuration // 0),
+        (.motion.hyprlockFade // 4),
+        (.motion.hyprlockDots // 2),
+        (.motion.osdMs // 120) ] | @tsv' <<< "$appearance"
   )
 
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
@@ -753,8 +799,13 @@ apply_profile_appearance_files() {
       "$trail_decay_min $trail_decay_max"
     set_kitty_conf_key "$config_root/kitty/kitty.conf" cursor_trail_start_threshold \
       "$trail_threshold"
+    set_kitty_conf_key "$config_root/kitty/kitty.conf" cursor_blink_interval "$blink_interval"
+    set_kitty_conf_key "$config_root/kitty/kitty.conf" visual_bell_duration "$visual_bell"
     sync_kitty_agent_transparent_colors "$config_root/kitty"
   fi
+
+  write_hyprlock_motion "$config_root/hypr/profile-motion.conf" "$hypr_fade" "$hypr_dots"
+  write_osd_motion "$config_root/swayosd-motion.css" "$osd_ms"
 }
 
 apply_profile_cursor_files() {
@@ -780,6 +831,8 @@ stage_profile_core_files() {
     .config/qt5ct/qt5ct.conf
     .config/qt6ct/qt6ct.conf
     .config/kitty/kitty.conf
+    .config/hypr/profile-motion.conf
+    .config/swayosd-motion.css
     .config/rofi/profile-switcher.rasi
   )
 
@@ -1000,11 +1053,14 @@ write_vicinae_settings() {
   local settings tmp rounding shadow material opacity
   # A notch under Vicinae's 770x480 / 10.5pt defaults so the launcher reads
   # smaller without changing the aspect ratio.
-  local size=9 width=620 height=386
+  local size=9 width=620 height=386 fade_ms=140
+  local profile
 
   settings="$CONFIG_HOME/vicinae/settings.json"
   IFS=$'\t' read -r rounding shadow material opacity < <(vicinae_window_style_from_qs "$qs_theme")
   [ -n "$family" ] || family="JetBrainsMono Nerd Font"
+  profile=$(cat "$ACTIVE_FILE" 2>/dev/null || true)
+  [ -z "$profile" ] || fade_ms=$(profile_launcher_fade_ms "$profile")
 
   mkdir -p "$(dirname "$settings")"
   tmp=$(mktemp "$settings.XXXXXX")
@@ -1017,6 +1073,7 @@ write_vicinae_settings() {
     --argjson shadow "$shadow" \
     --arg material "$material" \
     --argjson opacity "$opacity" \
+    --argjson fade_ms "$fade_ms" \
     '{
       close_on_focus_loss: true,
       pop_to_root_on_close: true,
@@ -1027,6 +1084,7 @@ write_vicinae_settings() {
         opacity: $opacity,
         material: $material,
         rounding: $rounding,
+        fade_ms: $fade_ms,
         compact_mode: { enabled: true },
         layer_shell: { enabled: true },
         size: { width: $width, height: $height },
