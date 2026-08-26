@@ -25,7 +25,7 @@ if [ -f "$CONFIG_HOME/kitty/kitty.conf" ]; then
     -e "s|^font_family .*|font_family      family=\"$MONO\"|" \
     -e "s|^font_size .*|font_size $MONO_SIZE|" \
     "$CONFIG_HOME/kitty/kitty.conf"
-  pkill -USR1 -x kitty 2>/dev/null || true
+  pkill -USR1 kitty 2>/dev/null || true
 fi
 
 # rofi profile switcher

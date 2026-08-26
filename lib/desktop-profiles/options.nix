@@ -32,6 +32,28 @@ let
     || (animation.spring == null && animation.durationMs != null && animation.curve != null);
 
   defaultNiriAnimations = (import ./niri-animations.nix).default;
+  defaultKittyCursorTrail = (import ./kitty-cursor-trail.nix).default;
+
+  kittyCursorTrailType = lib.types.submodule {
+    options = {
+      delayMs = lib.mkOption {
+        type = lib.types.ints.unsigned;
+        description = "cursor_trail trigger delay in milliseconds (0 disables).";
+      };
+      decayMin = lib.mkOption {
+        type = lib.types.float;
+        description = "Fastest cursor_trail_decay in seconds.";
+      };
+      decayMax = lib.mkOption {
+        type = lib.types.float;
+        description = "Slowest cursor_trail_decay in seconds.";
+      };
+      startThreshold = lib.mkOption {
+        type = lib.types.ints.positive;
+        description = "Minimum cell distance before a trail starts.";
+      };
+    };
+  };
 
   colorOptions = {
     gtk3 = lib.mkOption {
@@ -280,6 +302,14 @@ in
         kittyOpacity = lib.mkOption {
           type = lib.types.float;
           default = 1.0;
+        };
+        kittyCursorTrail = lib.mkOption {
+          type = kittyCursorTrailType;
+          default = defaultKittyCursorTrail;
+          description = ''
+            Kitty cursor_trail motion. Use the snappy/glide/soft presets from
+            lib/desktop-profiles/kitty-cursor-trail.nix to match niri.animations.
+          '';
         };
       };
 

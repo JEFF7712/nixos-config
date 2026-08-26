@@ -104,4 +104,20 @@ assert_eq "$got_menu" '#222325' "glass theme backgroundMenu mirrors panel"
 got_kv="$(python3 -c "import json;print(json.load(open('$XDG_STATE_HOME/opencode/kv.json'))['theme'])")"
 assert_eq "$got_kv" 'glass' "kv theme system->glass"
 
+# apply_profile_appearance_files writes cursor_trail from the profile manifest.
+mkdir -p "$HOME/.config/desktop-profiles/sharp"
+printf '%s\n' '{"schemaVersion":1,"name":"sharp","capabilities":{"selfThemed":false},"transition":{"defaultBar":"quickshell","cursor":{"theme":"x","size":24},"fonts":{"ui":{"family":"x","size":11},"mono":{"family":"x","size":14}},"appearance":{"gtkTheme":"adw-gtk3-dark","iconTheme":"Papirus-Dark","kittyOpacity":0.5,"kittyCursorTrail":{"delayMs":1,"decayMin":0.04,"decayMax":0.12,"startThreshold":1}}},"variants":{"dark":{"wallpaperDirectory":"/x","adapters":{},"artifacts":{}}},"artifacts":{}}' \
+  > "$HOME/.config/desktop-profiles/sharp/manifest.json"
+printf 'background_opacity 1.0\ncursor_trail 3\ncursor_trail_decay 0.1 0.4\ncursor_trail_start_threshold 2\n' \
+  > "$HOME/.config/kitty/kitty.conf"
+apply_profile_appearance_files "$HOME/.config" sharp dark
+assert_eq "$(sed -n 's/^cursor_trail //p' "$HOME/.config/kitty/kitty.conf")" "1" \
+  "appearance apply writes snappy cursor_trail"
+assert_eq "$(sed -n 's/^cursor_trail_decay //p' "$HOME/.config/kitty/kitty.conf")" "0.04 0.12" \
+  "appearance apply writes snappy decay"
+assert_eq "$(sed -n 's/^cursor_trail_start_threshold //p' "$HOME/.config/kitty/kitty.conf")" "1" \
+  "appearance apply writes snappy threshold"
+assert_eq "$(sed -n 's/^background_opacity //p' "$HOME/.config/kitty/kitty.conf")" "0.5" \
+  "appearance apply still writes kittyOpacity"
+
 echo "OK: kitty-agent-colors.bash"

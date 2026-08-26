@@ -4,6 +4,7 @@
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
+  trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
   inherit (static) alpha;
 
   nord0 = "#2e3440";
@@ -148,6 +149,7 @@ in
       gtkThemeLight = null;
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
+      kittyCursorTrail = trails.snappy;
     };
 
     niri = {

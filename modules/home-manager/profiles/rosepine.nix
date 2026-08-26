@@ -4,6 +4,7 @@
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
+  trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
   inherit (static) alpha;
 
   dark = {
@@ -162,6 +163,7 @@ in
       gtkThemeLight = "adw-gtk3";
       iconTheme = "Papirus-Dark";
       iconThemeLight = "Papirus-Dark";
+      kittyCursorTrail = trails.soft;
     };
 
     niri = {

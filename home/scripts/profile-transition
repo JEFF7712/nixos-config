@@ -230,10 +230,6 @@ start_profile_switcher() {
   fi
 }
 
-reload_kitty() {
-  pkill -USR1 -x kitty 2>/dev/null || true
-}
-
 send_profile_notification() {
   notify-send "Desktop Profile" "Switched to $TARGET"
 }
@@ -299,8 +295,8 @@ dispatch_post_commit_adapters() {
       run_post_commit_adapter cava apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter vicinae apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"
       run_post_commit_adapter swayosd restart_swayosd
-      run_post_commit_adapter kitty reload_kitty
     fi
+    run_post_commit_adapter kitty reload_kitty
     run_post_commit_adapter gtk nudge_gtk_reload
     # Not in the branch above: self-themed profiles have no baked firefox colors
     # but do have a live palette (noctalia colors.json) to fall back on.

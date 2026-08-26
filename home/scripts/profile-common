@@ -35,6 +35,11 @@ sync_kitty_agent_transparent_colors() {
   python3 "$helper" "$kitty_dir" >/dev/null 2>&1 || true
 }
 
+reload_kitty() {
+  # Nix wraps the binary; comm is `.kitty-wrapped`, so `pkill -x kitty` never matches.
+  pkill -USR1 kitty 2>/dev/null || true
+}
+
 write_profile_value_atomic() {
   local path="$1" value="$2" tmp
   tmp=$(mktemp "$path.XXXXXX")
@@ -461,7 +466,7 @@ apply_wallpaper_theme() {
 
   # Remix Cursor Agent prompt fills to the new Kitty background, then reload.
   sync_kitty_agent_transparent_colors "$CONFIG_HOME/kitty"
-  pkill -USR1 -x kitty 2>/dev/null || true
+  reload_kitty
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
   if [ -f "$CONFIG_HOME/btop/btop.conf" ] && grep -q '^color_theme = ' "$CONFIG_HOME/btop/btop.conf"; then
     sed -i 's|^color_theme = .*|color_theme = "profile"|' "$CONFIG_HOME/btop/btop.conf"
@@ -610,6 +615,16 @@ set_gtk_setting() {
   fi
 }
 
+set_kitty_conf_key() {
+  local conf="$1" key="$2" value="$3"
+  [ -f "$conf" ] || return 0
+  if grep -q "^${key}[[:space:]]" "$conf"; then
+    sed -i "s|^${key}[[:space:]].*|${key} ${value}|" "$conf"
+  else
+    printf '%s %s\n' "$key" "$value" >> "$conf"
+  fi
+}
+
 write_hyprlock_font_file() {
   local config_root="$1" ui_font="$2" mono_font="$3"
   mkdir -p "$config_root/hypr"
@@ -703,12 +718,18 @@ apply_profile_appearance_files() {
   local variant="${3:-dark}"
 
   local gtk_theme icon_theme kitty_opacity
+  local trail_delay trail_decay_min trail_decay_max trail_threshold
   appearance=$(profile_manifest_transition_json "$profile" appearance)
-  IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity < <(
+  IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity \
+    trail_delay trail_decay_min trail_decay_max trail_threshold < <(
     jq -r --arg variant "$variant" '
       [ (if $variant == "light" then (.gtkThemeLight // .gtkTheme) else .gtkTheme end),
         (if $variant == "light" then (.iconThemeLight // .iconTheme) else .iconTheme end),
-        .kittyOpacity ] | @tsv' <<< "$appearance"
+        .kittyOpacity,
+        (.kittyCursorTrail.delayMs // 3),
+        (.kittyCursorTrail.decayMin // 0.1),
+        (.kittyCursorTrail.decayMax // 0.4),
+        (.kittyCursorTrail.startThreshold // 2) ] | @tsv' <<< "$appearance"
   )
 
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
@@ -727,6 +748,11 @@ apply_profile_appearance_files() {
 
   if [ -f "$config_root/kitty/kitty.conf" ]; then
     sed -i "s|^background_opacity .*|background_opacity $kitty_opacity|" "$config_root/kitty/kitty.conf"
+    set_kitty_conf_key "$config_root/kitty/kitty.conf" cursor_trail "$trail_delay"
+    set_kitty_conf_key "$config_root/kitty/kitty.conf" cursor_trail_decay \
+      "$trail_decay_min $trail_decay_max"
+    set_kitty_conf_key "$config_root/kitty/kitty.conf" cursor_trail_start_threshold \
+      "$trail_threshold"
     sync_kitty_agent_transparent_colors "$config_root/kitty"
   fi
 }

@@ -102,6 +102,13 @@ let
       badVicinaeThemes = builtins.filter (f: (pf ? ${f}) && vicinaeThemeBad f) vicinaeThemeFiles;
       niriOverrides = pf."niri-overrides.kdl" or "";
       niriFocus = pf."niri-overrides-focus.kdl" or "";
+      trail = manifest.transition.appearance.kittyCursorTrail or null;
+      trailOk =
+        builtins.isAttrs trail
+        && trail ? delayMs
+        && trail ? decayMin
+        && trail ? decayMax
+        && trail ? startThreshold;
     in
     if manifest.schemaVersion or null != 1 then
       builtins.throw "profile '${name}': unsupported manifest schema version"
@@ -127,6 +134,8 @@ let
       builtins.throw "profile '${name}': niri-overrides.kdl has no animations block"
     else if !(builtins.match ".*animations[[:space:]]*\\{[[:space:]]*off.*" niriFocus != null) then
       builtins.throw "profile '${name}': niri-overrides-focus.kdl does not disable animations"
+    else if !trailOk then
+      builtins.throw "profile '${name}': appearance.kittyCursorTrail is missing delayMs/decayMin/decayMax/startThreshold"
     else if (!self) && empties != [ ] then
       builtins.throw "profile '${name}': empty color files: ${builtins.concatStringsSep ", " empties}"
     else if missingVicinaeThemes != [ ] then
