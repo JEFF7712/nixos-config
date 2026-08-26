@@ -36,8 +36,10 @@ require_file AGENT_MAP.md
 require_file CLAUDE.md
 require_file docs/agent-self-improvement.md
 require_file hooks/after-edit
+require_file hooks/before-shell
 require_file hooks/friction-log
 require_file hooks/friction-stop
+require_file hooks/session-start
 require_file .cursor/hooks.json
 require_file .claude/settings.json
 require_file .codex/hooks.json
@@ -60,14 +62,23 @@ require_match 'hooks/friction-stop' docs/agent-self-improvement.md
 require_match 'hooks/' CLAUDE.md
 for hook_config in .cursor/hooks.json .claude/settings.json .codex/hooks.json; do
   require_match 'hooks/after-edit' "$hook_config"
+  require_match 'hooks/before-shell' "$hook_config"
   require_match 'hooks/friction-log' "$hook_config"
   require_match 'hooks/friction-stop' "$hook_config"
+  require_match 'hooks/session-start' "$hook_config"
 done
 
 # agent-context recipe must exist and surface validation + closeout guidance.
+# SessionStart injects it; agent docs must not tell agents to run it first.
 require_match '^agent-context:' justfile
 require_match 'Suggested validation' justfile
 require_match 'agent-self-improve' justfile
+require_match 'hooks/session-start' CLAUDE.md
+require_match 'hooks/before-shell' CLAUDE.md
+if rg -q 'run `just agent-context`' CLAUDE.md AGENTS.md AGENT_MAP.md; then
+  echo "session-start injects agent-context; don't tell agents to run it first" >&2
+  exit 1
+fi
 
 # CLAUDE.md must name every host, imported overlay, and profile module.
 # Reverse overlay/profile checks use backtick tokens on those listing lines so

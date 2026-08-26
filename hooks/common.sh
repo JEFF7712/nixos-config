@@ -142,3 +142,186 @@ agent_hooks_emit_stop_nudge() {
   jq -n --arg c "$msg" \
     '{hookSpecificOutput: {hookEventName: "Stop", additionalContext: $c}}'
 }
+
+agent_hooks_shell_command() {
+  jq -r '.command // .tool_input.command // empty' <<<"$HOOK_INPUT"
+}
+
+agent_hooks_trim() {
+  local s=$1
+  s=${s#"${s%%[![:space:]]*}"}
+  s=${s%"${s##*[![:space:]]}"}
+  printf '%s' "$s"
+}
+
+agent_hooks_shell_segments() {
+  printf '%s\n' "$1" | sed -E 's/&&/\n/g; s/\|\|/\n/g; s/;/\n/g; s/\|/\n/g; s/&/\n/g'
+}
+
+agent_hooks_strip_env_prefix() {
+  local segment=$1
+  while [[ $segment =~ ^[A-Za-z_][A-Za-z0-9_]*=([^[:space:]]*)[[:space:]]+(.*)$ ]]; do
+    segment=${BASH_REMATCH[2]}
+  done
+  printf '%s' "$segment"
+}
+
+# True when this git-add argv is shotgun staging (. / -A / --all / *).
+agent_hooks_git_add_args_are_shotgun() {
+  local arg saw_dd=0
+  for arg in "$@"; do
+    if [ "$saw_dd" -eq 0 ]; then
+      case "$arg" in
+        --) saw_dd=1 ; continue ;;
+        -A | --all) return 0 ;;
+        -*) continue ;;
+      esac
+    fi
+    case "$arg" in
+      . | ./ | '*' | './*') return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# $1 is one shell segment. True when it is `git … add` with shotgun pathspecs.
+agent_hooks_git_add_is_shotgun_segment() {
+  local -a words
+  local i=1 n
+  read -r -a words <<<"$1" || return 1
+  n=${#words[@]}
+  [ "$n" -gt 0 ] || return 1
+  [ "${words[0]}" = git ] || return 1
+  while [ "$i" -lt "$n" ]; do
+    case ${words[i]} in
+      add)
+        i=$((i + 1))
+        agent_hooks_git_add_args_are_shotgun "${words[@]:i}"
+        return $?
+        ;;
+      -C | -c | --git-dir | --work-tree | --namespace | --config-env | --super-prefix)
+        i=$((i + 2))
+        ;;
+      -*)
+        i=$((i + 1))
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
+  return 1
+}
+
+agent_hooks_is_shotgun_git_add() {
+  local segment
+  while IFS= read -r segment; do
+    segment=$(agent_hooks_trim "$segment")
+    [ -n "$segment" ] || continue
+    segment=$(agent_hooks_strip_env_prefix "$segment")
+    agent_hooks_git_add_is_shotgun_segment "$segment" && return 0
+  done < <(agent_hooks_shell_segments "$1")
+  return 1
+}
+
+# $1 is one shell segment. True when the git subcommand is `diff`.
+agent_hooks_git_diff_segment() {
+  local -a words
+  local i=1 n
+  read -r -a words <<<"$1" || return 1
+  n=${#words[@]}
+  [ "$n" -gt 0 ] || return 1
+  [ "${words[0]}" = git ] || return 1
+  while [ "$i" -lt "$n" ]; do
+    case ${words[i]} in
+      diff) return 0 ;;
+      -C | -c | --git-dir | --work-tree | --namespace | --config-env | --super-prefix)
+        i=$((i + 2))
+        ;;
+      -*)
+        i=$((i + 1))
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
+  return 1
+}
+
+agent_hooks_needs_no_ext_diff() {
+  local segment
+  [[ $1 == *--no-ext-diff* ]] && return 1
+  while IFS= read -r segment; do
+    segment=$(agent_hooks_trim "$segment")
+    [ -n "$segment" ] || continue
+    segment=$(agent_hooks_strip_env_prefix "$segment")
+    agent_hooks_git_diff_segment "$segment" && return 0
+  done < <(agent_hooks_shell_segments "$1")
+  return 1
+}
+
+# Insert git --no-ext-diff at the start of each git invocation.
+agent_hooks_rewrite_no_ext_diff() {
+  local cmd=$1
+  [[ $cmd == *--no-ext-diff* ]] && {
+    printf '%s' "$cmd"
+    return 0
+  }
+  sed -E 's/(^|&&|\|\||;|\||&)([[:space:]]*)git[[:space:]]+/\1\2git --no-ext-diff /g' <<<"$cmd"
+}
+
+agent_hooks_emit_deny() {
+  local reason=$1
+  case "${HOOK_EVENT_NAME:-}" in
+    beforeShellExecution | preToolUse)
+      jq -n --arg r "$reason" \
+        '{permission:"deny",agent_message:$r,user_message:$r}'
+      ;;
+    PreToolUse)
+      jq -n --arg r "$reason" \
+        '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+      ;;
+    *)
+      jq -n --arg r "$reason" '{decision:"block",reason:$r}'
+      ;;
+  esac
+}
+
+# Rewrite the shell command. Prints JSON and returns 0 when the event
+# supports it; returns 1 so the caller can deny with a retry instead.
+agent_hooks_emit_rewrite_command() {
+  local new_cmd=$1
+  local input
+  input=$(jq -c '.tool_input // {}' <<<"$HOOK_INPUT")
+  case "${HOOK_EVENT_NAME:-}" in
+    preToolUse)
+      jq -n --arg cmd "$new_cmd" --argjson input "$input" \
+        '{permission:"allow",updated_input:($input + {command:$cmd})}'
+      ;;
+    PreToolUse)
+      jq -n --arg cmd "$new_cmd" --argjson input "$input" \
+        '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow",updatedInput:($input + {command:$cmd})}}'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+agent_hooks_emit_additional_context() {
+  local ctx=$1
+  case "${HOOK_EVENT_NAME:-}" in
+    sessionStart)
+      jq -n --arg c "$ctx" '{additional_context:$c}'
+      ;;
+    SessionStart)
+      jq -n --arg c "$ctx" \
+        '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$c}}'
+      ;;
+    *)
+      jq -n --arg c "$ctx" \
+        '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$c}}'
+      ;;
+  esac
+}

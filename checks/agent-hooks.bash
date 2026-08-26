@@ -132,3 +132,111 @@ claude_nudge=$(
 printf '%s\n' "$claude_nudge" | jq -e '.hookSpecificOutput.additionalContext | test("Validation friction")' >/dev/null \
   || fail "Claude stop nudge missing: $claude_nudge"
 rm -f "$prefix-$sid.log" "$prefix-$sid.fired"
+
+run_before_shell() {
+  local payload=$1
+  printf '%s\n' "$payload" | hooks/before-shell
+}
+
+deny_add=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git add ."}}'
+  )"
+)
+printf '%s\n' "$deny_add" | jq -e '.permission == "deny" and (.agent_message | test("git add"))' >/dev/null \
+  || fail "Cursor before-shell did not deny git add .: $deny_add"
+
+deny_all=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"PreToolUse",cwd:$cwd,tool_input:{command:"git add -A"}}'
+  )"
+)
+printf '%s\n' "$deny_all" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null \
+  || fail "Claude before-shell did not deny git add -A: $deny_all"
+
+deny_all_long=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"PreToolUse",cwd:$cwd,tool_input:{command:"git add --all && just eval laptop"}}'
+  )"
+)
+printf '%s\n' "$deny_all_long" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null \
+  || fail "before-shell did not deny git add --all: $deny_all_long"
+
+allow_add=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git add hosts/laptop/base.nix"}}'
+  )"
+)
+[ -z "$allow_add" ] || fail "before-shell blocked a specific git add: $allow_add"
+
+allow_dot_file=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git add ./hosts/laptop/base.nix"}}'
+  )"
+)
+[ -z "$allow_dot_file" ] || fail "before-shell blocked git add ./file: $allow_dot_file"
+
+rewrite_diff=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git diff --cached",working_directory:"'"$PWD"'"}}'
+  )"
+)
+printf '%s\n' "$rewrite_diff" | jq -e '
+  .permission == "allow"
+  and (.updated_input.command | test("git --no-ext-diff diff --cached"))
+  and .updated_input.working_directory != null
+' >/dev/null || fail "Cursor before-shell did not rewrite git diff: $rewrite_diff"
+
+rewrite_compound=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"PreToolUse",cwd:$cwd,tool_input:{command:"git status && git diff HEAD"}}'
+  )"
+)
+printf '%s\n' "$rewrite_compound" | jq -e '
+  .hookSpecificOutput.permissionDecision == "allow"
+  and (.hookSpecificOutput.updatedInput.command | test("git --no-ext-diff diff HEAD"))
+' >/dev/null || fail "before-shell did not rewrite compound git diff: $rewrite_compound"
+
+skip_flagged=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git --no-ext-diff diff"}}'
+  )"
+)
+[ -z "$skip_flagged" ] || fail "before-shell rewrote an already-flagged git diff: $skip_flagged"
+
+skip_status=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"preToolUse",cwd:$cwd,tool_input:{command:"git status"}}'
+  )"
+)
+[ -z "$skip_status" ] || fail "before-shell touched git status: $skip_status"
+
+outside_add=$(
+  run_before_shell "$(
+    jq -n '{hook_event_name:"preToolUse",cwd:"/tmp",tool_input:{command:"git add ."}}'
+  )"
+)
+[ -z "$outside_add" ] || fail "before-shell applied repo policy outside the repo: $outside_add"
+
+cursor_ctx=$(
+  printf '%s\n' '{"hook_event_name":"sessionStart","session_id":"hook-test-session"}' |
+    hooks/session-start
+)
+printf '%s\n' "$cursor_ctx" | jq -e '.additional_context | test("Suggested validation")' >/dev/null \
+  || fail "Cursor session-start missing agent-context: $cursor_ctx"
+
+claude_ctx=$(
+  printf '%s\n' '{"hook_event_name":"SessionStart","session_id":"hook-test-session"}' |
+    hooks/session-start
+)
+printf '%s\n' "$claude_ctx" | jq -e '.hookSpecificOutput.additionalContext | test("just agent-context")' >/dev/null \
+  || fail "Claude session-start missing agent-context: $claude_ctx"

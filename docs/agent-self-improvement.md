@@ -18,7 +18,7 @@ Prefer durable changes that make the next agent faster or less error-prone:
 - `checks/agent-*.bash` for machine-checkable repo conventions.
 - `home/scripts/new-*` or other helper scripts for repeated edit patterns.
 - `justfile` for stable command entrypoints.
-- `hooks/` for agent lifecycle behavior that should stay identical across Cursor, Claude, and Codex.
+- `hooks/` for agent lifecycle behavior that should stay identical across Cursor, Claude, and Codex (`session-start`, `before-shell`, `after-edit`, `friction-log`, `friction-stop`).
 
 ## Rules
 

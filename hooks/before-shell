@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Before a shell command: deny shotgun git add, and rewrite git diff so
+# difftastic does not break patch parsing. Shared by Cursor, Claude, and Codex.
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+agent_hooks_load || exit 0
+agent_hooks_in_repo_cwd || exit 0
+
+cmd=$(agent_hooks_shell_command)
+[ -n "$cmd" ] || exit 0
+
+if agent_hooks_is_shotgun_git_add "$cmd"; then
+  agent_hooks_emit_deny \
+    "Do not use git add . / git add -A / git add --all. Stage the specific files changed; hooks/after-edit already stages newly created files."
+  exit 0
+fi
+
+if agent_hooks_needs_no_ext_diff "$cmd"; then
+  rewritten=$(agent_hooks_rewrite_no_ext_diff "$cmd")
+  if [ "$rewritten" != "$cmd" ] && agent_hooks_emit_rewrite_command "$rewritten"; then
+    exit 0
+  fi
+  agent_hooks_emit_deny \
+    "This repo's git diff uses difftastic. Re-run with --no-ext-diff, e.g. git --no-ext-diff diff."
+fi
+exit 0

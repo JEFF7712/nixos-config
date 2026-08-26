@@ -1,6 +1,19 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [
+      {
+        "command": "hooks/session-start",
+        "timeout": 15
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "hooks/before-shell",
+        "matcher": "Shell",
+        "timeout": 5
+      }
+    ],
     "afterFileEdit": [
       {
         "command": "hooks/after-edit",

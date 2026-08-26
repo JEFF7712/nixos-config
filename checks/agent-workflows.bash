@@ -27,8 +27,10 @@ require_executable home/scripts/new-nixos-module
 require_executable home/scripts/new-home-module
 require_executable home/scripts/agent-self-improve
 require_executable hooks/after-edit
+require_executable hooks/before-shell
 require_executable hooks/friction-log
 require_executable hooks/friction-stop
+require_executable hooks/session-start
 require_match 'nixpkgs#nixfmt' .github/workflows/check.yml
 require_match 'nixpkgs#jq' .github/workflows/check.yml
 

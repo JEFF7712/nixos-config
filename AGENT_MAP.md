@@ -40,10 +40,10 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 - Prefer existing helpers in `lib/desktop-profiles/` before adding profile-specific generated file logic.
 - Keep generated or mutable desktop config under `home/configs/` or `home/scripts/`, not inline in unrelated modules.
 - The Quickshell bar is launched from `home/configs/quickshell/shell.qml` by `profile-transition` and `toggle-bar`; it has no `xdg.configFile` or `home.file` entry and is not in `sync_live_config`.
-- Do not use `git add .`; stage the specific files changed.
-- `git diff` renders through difftastic here; pass `--no-ext-diff` whenever you need a real unified patch (`git apply`, hunk staging, or any machine parsing).
+- Do not use `git add .` / `git add -A` / `git add --all`; `hooks/before-shell` denies those. Stage the specific files changed (`hooks/after-edit` already stages newly created files).
+- `git diff` renders through difftastic here; `hooks/before-shell` injects `--no-ext-diff` on agent `git diff`. Pass it yourself for a real unified patch outside the agent (`git apply`, hunk staging, or any machine parsing).
 - Use `new-nixos-module <name>` and `new-home-module <name>` for new auto-discovered modules.
-- Repo agent hooks live in `hooks/` and are wired from `.cursor/hooks.json`, `.claude/settings.json`, and `.codex/hooks.json`. Do not fork per-agent copies of the scripts.
+- Repo agent hooks live in `hooks/` and are wired from `.cursor/hooks.json`, `.claude/settings.json`, and `.codex/hooks.json`. Do not fork per-agent copies of the scripts. SessionStart injects `just agent-context`; do not run that recipe first.
 
 ## Validation
 
