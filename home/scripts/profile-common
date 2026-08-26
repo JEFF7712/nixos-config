@@ -810,9 +810,11 @@ EOF
 # Restore target comes from settings.ini (written by apply_profile_appearance),
 # not the live gsettings value. An interrupted nudge used to leave gtk-theme on
 # the Adwaita sentinel; the next nudge then treated Adwaita as intentional and
-# Waypaper/GTK3 apps stayed stuck on the light theme.
+# Waypaper/GTK3 apps stayed stuck on the light theme. Concurrent wallpaper
+# applies can overlap the 0.15s window too, so serialize with a lock and
+# restore from EXIT/INT/TERM/HUP so a killed sleep cannot leave Adwaita live.
 nudge_gtk_reload() {
-  local gs real sentinel settings_file settings_theme
+  local gs real sentinel settings_file settings_theme lock
   gs=$(command -v gsettings) || return 0
   settings_file="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
   settings_theme=$(
@@ -835,9 +837,21 @@ nudge_gtk_reload() {
   else
     sentinel="Adwaita"
   fi
-  "$gs" set org.gnome.desktop.interface gtk-theme "$sentinel" 2>/dev/null || true
-  sleep 0.15
-  "$gs" set org.gnome.desktop.interface gtk-theme "$real" 2>/dev/null || true
+  lock="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/nudge-gtk-reload.lock"
+  (
+    restored=0
+    restore() {
+      [ "$restored" = 1 ] && return 0
+      "$gs" set org.gnome.desktop.interface gtk-theme "$real" 2>/dev/null || true
+      restored=1
+    }
+    trap restore EXIT INT TERM HUP
+    flock 8
+    "$gs" set org.gnome.desktop.interface gtk-theme "$sentinel" 2>/dev/null || true
+    sleep 0.15
+    restore
+    trap - EXIT INT TERM HUP
+  ) 8>"$lock"
   return 0
 }
 
@@ -941,22 +955,40 @@ vicinae_window_style_from_qs() {
   printf '%s\t%s\t%s\t%s\n' "$rounding" "$shadow" "$material" "$opacity"
 }
 
+# Profile launcher font: bar face when the qs theme has one, else mono, else UI.
+vicinae_font_family() {
+  local profile="$1" qs_theme="$2"
+  local fonts family bar_font
+
+  fonts=$(profile_manifest_transition_json "$profile" fonts)
+  family=$(jq -r '.mono.family // .ui.family // empty' <<< "$fonts" 2>/dev/null || true)
+  if [ -s "$qs_theme" ]; then
+    bar_font=$(jq -r '.barFont // empty' "$qs_theme" 2>/dev/null || true)
+    [ -n "$bar_font" ] && family="$bar_font"
+  fi
+  printf '%s\n' "$family"
+}
+
 # Write ~/.config/vicinae/settings.json (pure JSON — Vicinae may rewrite as
 # JSONC later, so never jq-merge the live file).
 write_vicinae_settings() {
-  local family="$1" size="$2" qs_theme="$3"
+  local family="$1" qs_theme="$2"
   local settings tmp rounding shadow material opacity
+  # A notch under Vicinae's 770x480 / 10.5pt defaults so the launcher reads
+  # smaller without changing the aspect ratio.
+  local size=9 width=620 height=386
 
   settings="$CONFIG_HOME/vicinae/settings.json"
   IFS=$'\t' read -r rounding shadow material opacity < <(vicinae_window_style_from_qs "$qs_theme")
   [ -n "$family" ] || family="JetBrainsMono Nerd Font"
-  [ -n "$size" ] || size=11
 
   mkdir -p "$(dirname "$settings")"
   tmp=$(mktemp "$settings.XXXXXX")
   jq -n \
     --arg family "$family" \
     --argjson size "$size" \
+    --argjson width "$width" \
+    --argjson height "$height" \
     --argjson rounding "$rounding" \
     --argjson shadow "$shadow" \
     --arg material "$material" \
@@ -973,6 +1005,7 @@ write_vicinae_settings() {
         rounding: $rounding,
         compact_mode: { enabled: true },
         layer_shell: { enabled: true },
+        size: { width: $width, height: $height },
         client_side_decorations: {
           enabled: true,
           border_width: 1,
@@ -991,7 +1024,7 @@ write_vicinae_settings() {
 
 apply_vicinae_theme() {
   local profile_dir="$1"
-  local dark_src light_src theme_dir family size profile fonts
+  local dark_src light_src theme_dir family profile
   local qs_theme variant
 
   dark_src="$profile_dir/vicinae-theme-dark.toml"
@@ -1005,9 +1038,6 @@ apply_vicinae_theme() {
   install -m 644 "$light_src" "$theme_dir/desktop-profile-light.toml"
 
   profile=$(basename "$profile_dir")
-  fonts=$(profile_manifest_transition_json "$profile" fonts)
-  IFS=$'\t' read -r family size < <(jq -r '[.ui.family, .ui.size] | @tsv' <<< "$fonts") || true
-
   variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
   qs_theme="$profile_dir/quickshell-theme.json"
   [ "$variant" = "light" ] && [ -s "$profile_dir/quickshell-theme-light.json" ] \
@@ -1017,7 +1047,8 @@ apply_vicinae_theme() {
     && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null || true)" = "$profile" ] \
     && qs_theme="$PROFILES_DIR/runtime-quickshell-theme.json"
 
-  write_vicinae_settings "$family" "$size" "$qs_theme"
+  family=$(vicinae_font_family "$profile" "$qs_theme")
+  write_vicinae_settings "$family" "$qs_theme"
   systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
 }
 
@@ -1041,7 +1072,7 @@ apply_vicinae_runtime_theme() {
   local theme_json="$PROFILES_DIR/runtime-quickshell-theme.json"
   local theme_dir="${XDG_DATA_HOME:-$HOME/.local/share}/vicinae/themes"
   local out raw_bg popup_bg fg secondary accent warm fresh red
-  local accent_fg hover_bg accent_hex family size fonts
+  local accent_fg hover_bg accent_hex family
 
   [ -s "$theme_json" ] || return 0
 
@@ -1128,9 +1159,8 @@ bar = "$accent"
 spinner = "$accent"
 EOF
 
-  fonts=$(profile_manifest_transition_json "$profile" fonts)
-  IFS=$'\t' read -r family size < <(jq -r '[.ui.family, .ui.size] | @tsv' <<< "$fonts") || true
-  write_vicinae_settings "$family" "$size" "$theme_json"
+  family=$(vicinae_font_family "$profile" "$theme_json")
+  write_vicinae_settings "$family" "$theme_json"
   systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
 }
 
