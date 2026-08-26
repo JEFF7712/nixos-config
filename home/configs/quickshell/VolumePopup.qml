@@ -107,8 +107,8 @@ InfoPopup {
             anchors.leftMargin: 12
             anchors.rightMargin: 12
             height: 6
-            radius: 3
-            color: root.pillBg
+            radius: root.flatMode ? 0 : 3
+            color: root.flatMode ? Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.15) : root.pillBg
 
             Rectangle {
                 anchors.left: parent.left
@@ -116,7 +116,7 @@ InfoPopup {
                 width: parent.width * root.volumePercent() / 100
                 height: parent.height
                 radius: parent.radius
-                color: root.muted ? Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.34) : Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.72)
+                color: root.muted ? Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.34) : root.flatMode ? root.themeAccent : Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.72)
                 Behavior on width {
                     NumberAnimation {
                         duration: 180
@@ -132,6 +132,7 @@ InfoPopup {
             }
 
             Rectangle {
+                visible: !root.flatMode
                 width: 12
                 height: 12
                 radius: 6
@@ -233,6 +234,8 @@ InfoPopup {
         height: parent.height
 
         function backgroundColor() {
+            if (buttonRoot.flatMode)
+                return "transparent";
             if (buttonRoot.active)
                 return Qt.rgba(buttonRoot.themeAccent.r, buttonRoot.themeAccent.g, buttonRoot.themeAccent.b, 0.18);
             if (buttonMouse.pressed)
@@ -249,7 +252,7 @@ InfoPopup {
         }
 
         function foregroundColor(alpha) {
-            if (buttonRoot.active)
+            if (buttonRoot.active || (buttonRoot.flatMode && (buttonMouse.containsMouse || buttonMouse.pressed)))
                 return buttonRoot.themeAccent;
             return Qt.rgba(buttonRoot.themeFg.r, buttonRoot.themeFg.g, buttonRoot.themeFg.b, alpha);
         }
@@ -258,7 +261,7 @@ InfoPopup {
             anchors.fill: parent
             radius: buttonRoot.flatMode ? 0 : 6
             color: buttonRoot.backgroundColor()
-            border.width: 1
+            border.width: buttonRoot.flatMode ? 0 : 1
             border.color: buttonRoot.borderColor()
             Behavior on color {
                 ColorAnimation {

@@ -348,7 +348,7 @@ Scope {
                                     implicitWidth: Math.max(52, actLabel.implicitWidth + 16)
                                     height: 22
                                     radius: root.flatMode ? 0 : 6
-                                    color: actMouse.containsMouse ? Qt.rgba(toast.accent.r, toast.accent.g, toast.accent.b, 0.18) : root.pillBg
+                                    color: root.flatMode ? "transparent" : actMouse.containsMouse ? Qt.rgba(toast.accent.r, toast.accent.g, toast.accent.b, 0.18) : root.pillBg
                                     border.width: root.flatMode ? 0 : 1
                                     border.color: actMouse.containsMouse ? Qt.rgba(toast.accent.r, toast.accent.g, toast.accent.b, 0.55) : root.pillBorder
 
@@ -363,7 +363,7 @@ Scope {
                                         id: actLabel
                                         anchors.centerIn: parent
                                         text: parent.actText
-                                        color: actMouse.containsMouse ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.75)
+                                        color: actMouse.containsMouse ? (root.flatMode ? root.themeAccent : root.themeFg) : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.75)
                                         font {
                                             family: root.barFont
                                             pixelSize: 10

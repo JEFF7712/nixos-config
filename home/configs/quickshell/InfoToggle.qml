@@ -4,6 +4,7 @@ Item {
     id: root
     property string label: ""
     property bool checked: false
+    property bool flatMode: false
     property color themeFg: "#ffffff"
     property color themeAccent: "#ffffff"
     property color themeRawBg: "#141414"
@@ -30,9 +31,9 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: 32
         height: 16
-        radius: 8
+        radius: root.flatMode ? 0 : 8
         color: root.checked ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.85) : root.dividerColor
-        border.width: 1
+        border.width: root.flatMode ? 0 : 1
         border.color: root.checked ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.4) : root.dividerColor
         Behavior on color {
             ColorAnimation {
@@ -51,11 +52,12 @@ Item {
             id: knob
             width: 12
             height: 12
-            radius: 6
+            radius: root.flatMode ? 0 : 6
             anchors.verticalCenter: parent.verticalCenter
             x: root.checked ? parent.width - width - 2 : 2
             color: root.checked ? root.themeRawBg : root.themeFg
             Behavior on x {
+                enabled: !root.flatMode
                 SpringAnimation {
                     spring: 4
                     damping: 0.55

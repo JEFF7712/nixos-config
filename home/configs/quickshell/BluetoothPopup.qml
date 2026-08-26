@@ -34,6 +34,8 @@ InfoPopup {
     }
 
     function rowBackgroundColor(pressed, hovered) {
+        if (root.flatMode)
+            return "transparent";
         if (pressed)
             return Qt.rgba(1, 1, 1, 0.08);
         if (hovered)
@@ -69,6 +71,7 @@ InfoPopup {
                 width: 32
                 label: ""
                 checked: root.bluetoothService.enabled
+                flatMode: root.flatMode
                 themeFg: root.themeFg
                 themeAccent: root.themeAccent
                 themeRawBg: root.themeRawBg
@@ -126,7 +129,7 @@ InfoPopup {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: 6
                 text: model.connected ? "󰂱" : "󰂯"
-                color: model.connected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
+                color: model.connected || (root.flatMode && rowMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
                 font {
                     family: "JetBrainsMono Nerd Font"
                     pixelSize: 12
@@ -144,7 +147,7 @@ InfoPopup {
                 Text {
                     width: parent.width
                     text: model.name
-                    color: model.connected ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
+                    color: model.connected || (root.flatMode && rowMouse.containsMouse) ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
                     font {
                         family: "JetBrainsMono Nerd Font"
                         pixelSize: 10

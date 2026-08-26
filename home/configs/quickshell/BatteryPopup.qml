@@ -120,6 +120,7 @@ InfoPopup {
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         pillBg: root.pillBg
+        flatMode: root.flatMode
     }
 
     MeterRow {
@@ -130,6 +131,7 @@ InfoPopup {
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         pillBg: root.pillBg
+        flatMode: root.flatMode
     }
 
     Rectangle {
@@ -164,8 +166,8 @@ InfoPopup {
                 Rectangle {
                     anchors.fill: parent
                     radius: root.flatMode ? 0 : 6
-                    color: parent.selected ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.18) : profileMouse.pressed ? Qt.rgba(1, 1, 1, 0.08) : profileMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : root.pillBg
-                    border.width: 1
+                    color: root.flatMode ? "transparent" : parent.selected ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.18) : profileMouse.pressed ? Qt.rgba(1, 1, 1, 0.08) : profileMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : root.pillBg
+                    border.width: root.flatMode ? 0 : 1
                     border.color: parent.selected ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.38) : root.pillBorder
                     Behavior on color {
                         ColorAnimation {
@@ -187,7 +189,7 @@ InfoPopup {
 
                     Text {
                         text: modelData.icon
-                        color: parent.parent.selected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.64)
+                        color: parent.parent.selected || (root.flatMode && profileMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.64)
                         font {
                             family: "JetBrainsMono Nerd Font"
                             pixelSize: 11
@@ -196,7 +198,7 @@ InfoPopup {
 
                     Text {
                         text: modelData.label
-                        color: parent.parent.selected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.74)
+                        color: parent.parent.selected || (root.flatMode && profileMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.74)
                         font {
                             family: "JetBrainsMono Nerd Font"
                             pixelSize: 9
@@ -225,6 +227,7 @@ InfoPopup {
     InfoToggle {
         label: root.powerService.idleInhibited ? "idle inhibit on" : "idle inhibit off"
         checked: root.powerService.idleInhibited
+        flatMode: root.flatMode
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         themeRawBg: root.themeRawBg
@@ -243,6 +246,7 @@ InfoPopup {
         label: root.powerService.chargeLimit >= 100 ? "charge limit off" : "charge limit " + root.powerService.chargeLimit + "%"
         checked: root.powerService.chargeLimit < 100
         visible: root.powerService.thresholdWritable
+        flatMode: root.flatMode
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         themeRawBg: root.themeRawBg
@@ -258,6 +262,7 @@ InfoPopup {
         property color themeFg: "#ffffff"
         property color themeAccent: "#ffffff"
         property color pillBg: Qt.rgba(1, 1, 1, 0.05)
+        property bool flatMode: false
 
         width: parent.width
         height: 24
@@ -281,8 +286,8 @@ InfoPopup {
             anchors.leftMargin: 12
             anchors.rightMargin: 12
             height: 4
-            radius: 2
-            color: rowRoot.pillBg
+            radius: rowRoot.flatMode ? 0 : 2
+            color: rowRoot.flatMode ? Qt.rgba(rowRoot.themeFg.r, rowRoot.themeFg.g, rowRoot.themeFg.b, 0.15) : rowRoot.pillBg
 
             Rectangle {
                 anchors.left: parent.left
@@ -290,7 +295,7 @@ InfoPopup {
                 width: parent.width * Math.max(0, Math.min(100, rowRoot.amount)) / 100
                 height: parent.height
                 radius: parent.radius
-                color: Qt.rgba(rowRoot.themeAccent.r, rowRoot.themeAccent.g, rowRoot.themeAccent.b, 0.72)
+                color: rowRoot.flatMode ? rowRoot.themeAccent : Qt.rgba(rowRoot.themeAccent.r, rowRoot.themeAccent.g, rowRoot.themeAccent.b, 0.72)
                 Behavior on width {
                     NumberAnimation {
                         duration: 180

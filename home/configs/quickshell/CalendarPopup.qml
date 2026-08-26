@@ -119,6 +119,8 @@ InfoPopup {
             return root.themeAccent;
         if (isSelected)
             return Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.28);
+        if (root.flatMode)
+            return "transparent";
         if (pressed)
             return Qt.rgba(1, 1, 1, 0.12);
         if (hovered)
@@ -126,9 +128,11 @@ InfoPopup {
         return "transparent";
     }
 
-    function dayTextColor(cell, isToday) {
+    function dayTextColor(cell, isToday, hovered) {
         if (isToday)
             return root.themeRawBg;
+        if (root.flatMode && hovered && cell.current)
+            return root.themeAccent;
         if (!cell.current)
             return Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.22);
         if (cell.weekend)
@@ -284,11 +288,11 @@ InfoPopup {
                     visible: modelData.kind === "day"
                     width: 26
                     height: 26
-                    radius: root.flatMode ? 5 : 9
+                    radius: root.flatMode ? 0 : 9
                     color: root.dayBackgroundColor(parent.isToday, parent.isSelected, dayMouse.pressed, dayMouse.containsMouse)
-                    border.width: parent.isToday || parent.isSelected || dayMouse.containsMouse ? 1 : 0
+                    border.width: parent.isToday || parent.isSelected || (!root.flatMode && dayMouse.containsMouse) ? 1 : 0
                     border.color: parent.isToday ? root.themeAccent : Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.34)
-                    scale: dayMouse.pressed ? 0.92 : (dayMouse.containsMouse ? 1.05 : 1.0)
+                    scale: root.flatMode ? 1.0 : (dayMouse.pressed ? 0.92 : (dayMouse.containsMouse ? 1.05 : 1.0))
 
                     Behavior on color {
                         ColorAnimation {
@@ -303,6 +307,7 @@ InfoPopup {
                         }
                     }
                     Behavior on scale {
+                        enabled: !root.flatMode
                         SpringAnimation {
                             spring: 4
                             damping: 0.58
@@ -315,7 +320,7 @@ InfoPopup {
                     anchors.centerIn: dayBg
                     visible: modelData.kind === "day"
                     text: modelData.day || ""
-                    color: root.dayTextColor(modelData, parent.isToday)
+                    color: root.dayTextColor(modelData, parent.isToday, dayMouse.containsMouse)
                     font {
                         family: "JetBrainsMono Nerd Font"
                         pixelSize: 10
@@ -370,9 +375,9 @@ InfoPopup {
             anchors.verticalCenter: parent.verticalCenter
             width: statusText.implicitWidth + 16
             height: 20
-            radius: root.flatMode ? 4 : 7
+            radius: root.flatMode ? 0 : 7
             color: Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.12)
-            border.width: 1
+            border.width: root.flatMode ? 0 : 1
             border.color: Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.2)
 
             Text {
@@ -405,6 +410,8 @@ InfoPopup {
         height: 28
 
         function backgroundColor() {
+            if (buttonRoot.flatMode)
+                return "transparent";
             if (buttonRoot.active) {
                 return Qt.rgba(buttonRoot.themeAccent.r, buttonRoot.themeAccent.g, buttonRoot.themeAccent.b, 0.18);
             }
@@ -417,9 +424,9 @@ InfoPopup {
 
         Rectangle {
             anchors.fill: parent
-            radius: buttonRoot.flatMode ? 5 : 8
+            radius: buttonRoot.flatMode ? 0 : 8
             color: buttonRoot.backgroundColor()
-            border.width: 1
+            border.width: buttonRoot.flatMode ? 0 : 1
             border.color: buttonRoot.active || buttonMouse.containsMouse ? Qt.rgba(buttonRoot.themeAccent.r, buttonRoot.themeAccent.g, buttonRoot.themeAccent.b, 0.36) : buttonRoot.pillBorder
             Behavior on color {
                 ColorAnimation {
@@ -438,7 +445,7 @@ InfoPopup {
         Text {
             anchors.centerIn: parent
             text: buttonRoot.label
-            color: buttonRoot.active ? buttonRoot.themeAccent : buttonRoot.themeFg
+            color: buttonRoot.active || (buttonRoot.flatMode && buttonMouse.containsMouse) ? buttonRoot.themeAccent : buttonRoot.themeFg
             font {
                 family: "JetBrainsMono Nerd Font"
                 pixelSize: buttonRoot.wide ? 9 : 15

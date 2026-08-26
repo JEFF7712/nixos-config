@@ -17,6 +17,11 @@ InfoPopup {
 
     readonly property real displayedPosition: root.seeking ? root.seekPosition : root.mediaService.positionSeconds
     readonly property real seekFrac: root.mediaService.lengthSeconds > 0 ? Math.max(0, Math.min(1, root.displayedPosition / root.mediaService.lengthSeconds)) : 0
+    readonly property int coverRadius: root.flatMode ? 0 : 12
+    readonly property real cavaRadius: root.flatMode ? 0 : 1.5
+    readonly property int trackRadius: root.flatMode ? 0 : 3
+    readonly property int thumbRadius: root.flatMode ? 0 : 5
+    readonly property bool artBackdrop: !root.flatMode && bgArtSrc.status === Image.Ready
 
     function fmt(sec) {
         if (!sec || sec < 0)
@@ -60,12 +65,12 @@ InfoPopup {
                 blurMax: 48
                 brightness: -0.05
                 saturation: 0.1
-                visible: bgArtSrc.status === Image.Ready
+                visible: root.artBackdrop
             }
             Rectangle {
                 anchors.fill: parent
                 color: root.themeBg
-                opacity: bgArtSrc.status === Image.Ready ? 0.82 : 1.0
+                opacity: root.artBackdrop ? 0.82 : 1.0
             }
         },
         Item {
@@ -90,9 +95,9 @@ InfoPopup {
             anchors.centerIn: parent
             width: 120
             height: 120
-            radius: 12
+            radius: root.coverRadius
             color: Qt.rgba(root.pillBg.r, root.pillBg.g, root.pillBg.b, 0.6)
-            border.width: 1
+            border.width: root.flatMode ? 0 : 1
             border.color: root.pillBorder
             clip: true
 
@@ -166,19 +171,20 @@ InfoPopup {
     Item {
         width: parent.width
         height: 22
-        visible: root.mediaService.playing && root.cavaService.values.length > 0
 
         Row {
             anchors.centerIn: parent
             height: 20
             spacing: 3
+            opacity: root.cavaService.values.length > 0 ? 1 : 0.35
             Repeater {
-                model: root.cavaService.values
+                model: Math.max(12, root.cavaService.values.length)
                 delegate: Rectangle {
+                    readonly property int barValue: index < root.cavaService.values.length ? root.cavaService.values[index] : 0
                     width: 3
-                    radius: 1.5
+                    radius: root.cavaRadius
                     anchors.bottom: parent.bottom
-                    height: Math.max(2, Math.min(20, (modelData / 100) * 20))
+                    height: Math.max(2, Math.min(20, (barValue / 100) * 20))
                     color: root.themeAccent
                     Behavior on height {
                         NumberAnimation {
@@ -228,21 +234,21 @@ InfoPopup {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 3
+                radius: root.trackRadius
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.15)
             }
             Rectangle {
                 id: seekFill
                 height: parent.height
                 width: parent.width * root.seekFrac
-                radius: 3
+                radius: root.trackRadius
                 color: root.themeAccent
             }
             Rectangle {
-                visible: root.mediaService.canSeek
+                visible: !root.flatMode && root.mediaService.canSeek
                 width: 10
                 height: 10
-                radius: 5
+                radius: root.thumbRadius
                 color: root.themeAccent
                 anchors.verticalCenter: parent.verticalCenter
                 x: Math.max(0, Math.min(parent.width - width, seekFill.width - width / 2))
@@ -340,20 +346,21 @@ InfoPopup {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 3
+                radius: root.trackRadius
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.15)
             }
             Rectangle {
                 id: volFill
                 height: parent.height
                 width: parent.width * root.mediaService.effectiveVolume
-                radius: 3
+                radius: root.trackRadius
                 color: root.themeAccent
             }
             Rectangle {
+                visible: !root.flatMode
                 width: 10
                 height: 10
-                radius: 5
+                radius: root.thumbRadius
                 color: root.themeAccent
                 anchors.verticalCenter: parent.verticalCenter
                 x: Math.max(0, Math.min(parent.width - width, volFill.width - width / 2))
@@ -385,9 +392,9 @@ InfoPopup {
 
         Rectangle {
             anchors.fill: parent
-            radius: width / 2
-            color: btnMouse.pressed ? Qt.rgba(1, 1, 1, 0.18) : btnMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : (btn.primary || btn.active) ? root.pillBg : "transparent"
-            border.width: 1
+            radius: root.flatMode ? 0 : width / 2
+            color: root.flatMode ? "transparent" : btnMouse.pressed ? Qt.rgba(1, 1, 1, 0.18) : btnMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : (btn.primary || btn.active) ? root.pillBg : "transparent"
+            border.width: root.flatMode ? 0 : 1
             border.color: (btn.active || btnMouse.containsMouse) ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.5) : root.pillBorder
             Behavior on color {
                 ColorAnimation {
@@ -399,8 +406,9 @@ InfoPopup {
                     duration: 160
                 }
             }
-            scale: btnMouse.pressed ? 0.92 : 1.0
+            scale: root.flatMode ? 1.0 : (btnMouse.pressed ? 0.92 : 1.0)
             Behavior on scale {
+                enabled: !root.flatMode
                 SpringAnimation {
                     spring: 4
                     damping: 0.55

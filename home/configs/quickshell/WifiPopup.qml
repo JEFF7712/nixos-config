@@ -77,6 +77,7 @@ InfoPopup {
                 width: 32
                 label: ""
                 checked: root.networkService.wifiEnabled
+                flatMode: root.flatMode
                 themeFg: root.themeFg
                 themeAccent: root.themeAccent
                 themeRawBg: root.themeRawBg
@@ -118,7 +119,7 @@ InfoPopup {
             Rectangle {
                 anchors.fill: parent
                 radius: root.flatMode ? 0 : 6
-                color: rowMouse.pressed ? Qt.rgba(1, 1, 1, 0.08) : rowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                color: root.flatMode ? "transparent" : rowMouse.pressed ? Qt.rgba(1, 1, 1, 0.08) : rowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
                 Behavior on color {
                     ColorAnimation {
                         duration: 140
@@ -133,7 +134,7 @@ InfoPopup {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: 6
                 text: root.signalIcon(model.signal)
-                color: networkRow.activeNetwork ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
+                color: networkRow.activeNetwork || (root.flatMode && rowMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
                 font {
                     family: "JetBrainsMono Nerd Font"
                     pixelSize: 12
@@ -151,7 +152,7 @@ InfoPopup {
                 Text {
                     width: parent.width
                     text: model.ssid
-                    color: networkRow.activeNetwork ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
+                    color: networkRow.activeNetwork || (root.flatMode && rowMouse.containsMouse) ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
                     font {
                         family: "JetBrainsMono Nerd Font"
                         pixelSize: 10

@@ -87,6 +87,7 @@ InfoPopup {
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         pillBg: root.pillBg
+        flatMode: root.flatMode
     }
 
     ResourceRow {
@@ -96,6 +97,7 @@ InfoPopup {
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         pillBg: root.pillBg
+        flatMode: root.flatMode
     }
 
     ResourceRow {
@@ -105,6 +107,7 @@ InfoPopup {
         themeFg: root.themeFg
         themeAccent: root.themeAccent
         pillBg: root.pillBg
+        flatMode: root.flatMode
     }
 
     Rectangle {
@@ -178,6 +181,7 @@ InfoPopup {
         property color themeFg: "#ffffff"
         property color themeAccent: "#ffffff"
         property color pillBg: Qt.rgba(1, 1, 1, 0.05)
+        property bool flatMode: false
 
         width: parent.width
         height: 24
@@ -201,8 +205,8 @@ InfoPopup {
             anchors.leftMargin: 12
             anchors.rightMargin: 12
             height: 4
-            radius: 2
-            color: rowRoot.pillBg
+            radius: rowRoot.flatMode ? 0 : 2
+            color: rowRoot.flatMode ? Qt.rgba(rowRoot.themeFg.r, rowRoot.themeFg.g, rowRoot.themeFg.b, 0.15) : rowRoot.pillBg
 
             Rectangle {
                 anchors.left: parent.left
@@ -210,7 +214,7 @@ InfoPopup {
                 width: parent.width * Math.max(0, Math.min(100, rowRoot.amount)) / 100
                 height: parent.height
                 radius: parent.radius
-                color: Qt.rgba(rowRoot.themeAccent.r, rowRoot.themeAccent.g, rowRoot.themeAccent.b, 0.72)
+                color: rowRoot.flatMode ? rowRoot.themeAccent : Qt.rgba(rowRoot.themeAccent.r, rowRoot.themeAccent.g, rowRoot.themeAccent.b, 0.72)
                 Behavior on width {
                     NumberAnimation {
                         duration: 180
@@ -249,7 +253,7 @@ InfoPopup {
         Rectangle {
             anchors.fill: parent
             radius: root.flatMode ? 0 : 6
-            color: actionMouse.pressed ? Qt.rgba(1, 1, 1, 0.08) : actionMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+            color: root.flatMode ? "transparent" : actionMouse.pressed ? Qt.rgba(1, 1, 1, 0.08) : actionMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
             Behavior on color {
                 ColorAnimation {
                     duration: 140
@@ -264,7 +268,7 @@ InfoPopup {
             anchors.leftMargin: 6
             anchors.verticalCenter: parent.verticalCenter
             text: actionRoot.icon
-            color: actionRoot.warm ? actionRoot.themeAccent : Qt.rgba(actionRoot.themeFg.r, actionRoot.themeFg.g, actionRoot.themeFg.b, 0.68)
+            color: actionRoot.warm || (root.flatMode && actionMouse.containsMouse) ? actionRoot.themeAccent : Qt.rgba(actionRoot.themeFg.r, actionRoot.themeFg.g, actionRoot.themeFg.b, 0.68)
             font {
                 family: "JetBrainsMono Nerd Font"
                 pixelSize: 12
@@ -276,7 +280,7 @@ InfoPopup {
             anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             text: actionRoot.label
-            color: actionRoot.warm ? actionRoot.themeAccent : Qt.rgba(actionRoot.themeFg.r, actionRoot.themeFg.g, actionRoot.themeFg.b, 0.86)
+            color: actionRoot.warm || (root.flatMode && actionMouse.containsMouse) ? actionRoot.themeAccent : Qt.rgba(actionRoot.themeFg.r, actionRoot.themeFg.g, actionRoot.themeFg.b, 0.86)
             font {
                 family: "JetBrainsMono Nerd Font"
                 pixelSize: 11

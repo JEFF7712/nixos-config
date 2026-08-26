@@ -148,9 +148,9 @@ InfoPopup {
                     anchors.verticalCenter: parent.verticalCenter
                     width: badge.implicitWidth + 10
                     height: 15
-                    radius: 7
+                    radius: root.flatMode ? 0 : 7
                     color: root.pillBg
-                    border.width: 1
+                    border.width: root.flatMode ? 0 : 1
                     border.color: root.pillBorder
                     visible: groupItem.modelData.items.length > 1
 
@@ -204,7 +204,7 @@ InfoPopup {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 2
                         height: parent.height - 12
-                        radius: 1
+                        radius: root.flatMode ? 0 : 1
                         color: notifItem.accentColor
                         opacity: NotifService.urgencyName(notifItem.modelData) === "normal" ? 0.0 : 0.7
                     }
