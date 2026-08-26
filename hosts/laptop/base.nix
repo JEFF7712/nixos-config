@@ -13,8 +13,7 @@
 
   nix = {
     package = pkgs.nix;
-    # No channels; pin registry + NIX_PATH to the locked nixpkgs so ad-hoc
-    # `nix run`/`nix-shell -p` match the running system's rev.
+    # Pin registry + NIX_PATH to locked nixpkgs so ad-hoc `nix run` matches the system.
     channel.enable = false;
     registry.nixpkgs.flake = inputs.nixpkgs;
     nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
@@ -23,8 +22,7 @@
         "nix-command"
         "flakes"
       ];
-      # `auto` OOM'd this ~31G box. 2 jobs x 8 cores still saturates the CPU;
-      # oom-protection is the backstop if one build overshoots.
+      # `auto` OOM'd this ~31G box. oom-protection is the backstop.
       max-jobs = 2;
       cores = 8;
       max-substitution-jobs = 16;
@@ -36,6 +34,7 @@
   secrets.enable = true;
   secureboot.enable = true;
   niri.enable = true;
+  niri-greeter.enable = true;
   general-laptop.enable = true;
   oom-protection.enable = true;
   asus-numpad.enable = true;
@@ -61,15 +60,14 @@
     ollama.package = pkgs.ollama-cuda;
   };
 
-  # `just vm`: strip hardware-bound pieces and set a password, since the real
-  # one is imperative state the VM image doesn't have.
+  # `just vm`: strip hardware-bound pieces; the real password is imperative state.
   virtualisation.vmVariant = {
     virtualisation = {
       memorySize = 8192;
       cores = 8;
     };
     nvidia.enable = lib.mkForce false;
-    # docker.nix enables this too; without the nvidia driver it fails an assert.
+    # docker.nix enables this; without the nvidia driver it fails an assert.
     hardware.nvidia-container-toolkit.enable = lib.mkForce false;
     # The VM's host key can't decrypt secrets.yaml; sops would fail activation.
     secrets.enable = lib.mkForce false;
@@ -84,7 +82,7 @@
     ln -sf ${pkgs.bash}/bin/bash /bin/bash
   '';
   users.users.rupan.shell = pkgs.fish;
-  users.users.rupan.ignoreShellProgramCheck = true;
+  programs.fish.enable = true;
 
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
@@ -108,8 +106,7 @@
   };
   services.asusd.enable = true;
   zramSwap.enable = true;
-  # logind cannot see idle inhibit, so lid handling stays in Stasis
-  # (lid-close-action). Docked stays ignore for an external display.
+  # logind cannot see idle inhibit; lid handling stays in Stasis (lid-close-action).
   services.logind.settings.Login = {
     HandleLidSwitch = "ignore";
     HandleLidSwitchDocked = "ignore";
@@ -124,11 +121,14 @@
   };
 
   boot = {
-    # Use the systemd-boot EFI boot loader.
     loader.systemd-boot.enable = true;
     # Brief flash instead of the ~5s default; hold a key to catch it.
     loader.timeout = 3;
-    # zram is RAM-speed, so swap into it aggressively and skip readahead.
+    # `e` at the boot menu would append init=/bin/sh (defeats secure boot / LUKS).
+    loader.systemd-boot.editor = false;
+    # /tmp is on root and nothing prunes it (nix builds, chromium sockets, agent scratch).
+    tmp.cleanOnBoot = true;
+    # zram is RAM-speed: swap aggressively, skip readahead.
     kernel.sysctl = {
       "vm.swappiness" = 180;
       "vm.page-cluster" = 0;
@@ -156,16 +156,14 @@
       "rd.udev.log_level=3"
     ];
   };
-  networking.hostName = "laptop-nixos"; # Define your hostname.
+  networking.hostName = "laptop-nixos";
 
-  # Configure network connections interactively with nmcli or nmtui.
   networking.networkmanager.enable = true;
   # Don't block boot on the network being fully up (~5s off graphical.target).
   systemd.services.NetworkManager-wait-online.enable = false;
 
-  # Router advertises a default route but IPv6 egress blackholes: dual-stack
-  # hosts cost a ~10s AAAA timeout each. Any entry replaces glibc's table, so
-  # these are the RFC 6724 defaults with IPv4 moved above global v6.
+  # Router advertises v6 but egress blackholes (~10s AAAA timeout). RFC 6724
+  # defaults with IPv4 moved above global v6; any table replaces glibc's.
   networking.getaddrinfo.precedence = {
     "::1/128" = 50;
     "::ffff:0:0/96" = 45;
@@ -176,9 +174,19 @@
 
   time.timeZone = "America/Chicago";
 
-  services.printing.enable = true;
+  services.printing = {
+    enable = true;
+    drivers = [ pkgs.gutenprint ];
+  };
 
   services.libinput.enable = true;
+
+  # Journals had grown to 3.3G against the ~4G default cap.
+  services.journald.extraConfig = "SystemMaxUse=1G";
+
+  # sudo is 4750 root:wheel instead of world-executable; nothing outside wheel
+  # has any business invoking it here.
+  security.sudo.execWheelOnly = true;
 
   users.users.rupan = {
     isNormalUser = true;
@@ -186,28 +194,19 @@
       "wheel"
       "networkmanager"
     ];
-    packages = with pkgs; [
-      tree
-    ];
   };
 
   programs.nix-agent = {
     enable = true;
     flake = /home/rupan/nixos;
-    # The module's `--flake <dir>*` glob is still too wide: sudo fnmatch `*`
-    # matches `/` and `#`. Keep it off; extraRules below already NOPASSWD
-    # nix-agent's sudo -n argv (exact flake refs, rollback, switch-generation,
-    # profile switch-to-configuration).
+    # Module `--flake <dir>*` glob is too wide (fnmatch `*` matches `/` and `#`).
     privilegedAutomation.enable = false;
   };
 
-  # Passwordless rebuild is pinned to this repo's absolute path. sudo does not
-  # bind cwd, so `.` / `.#laptop` would run any flake, and a trailing `*` would
-  # match `/` and `#` (fnmatch, no FNM_PATHNAME). Flake refs are therefore exact
-  # literals, not patterns; `#` and `:` are escaped for the sudoers lexer.
-  # sudo matches all arguments as ONE concatenated string, so a regex is only a
-  # regex when it starts right after the command name (see --switch-generation).
-  # Keep in sync with `just switch` / `just dry`. Root ignores user nix.conf.
+  # Passwordless rebuild pinned to this repo's absolute path. sudo does not bind
+  # cwd (`.` would run any flake); trailing `*` matches `/` and `#`. Exact
+  # literals only; `#` and `:` escaped for the sudoers lexer. Keep in sync with
+  # `just switch` / `just dry`. Root ignores user nix.conf.
   security.sudo.extraRules = [
     {
       users = [ "rupan" ];
@@ -265,10 +264,7 @@
 
   security.pam.services.hyprlock = { };
 
-  programs.gnupg.agent = {
-    enable = true;
-    enableSSHSupport = true;
-  };
+  programs.gnupg.agent.enable = true;
 
   hardware.graphics = {
     enable = true;
@@ -291,11 +287,22 @@
     ];
   };
 
-  networking.nameservers = [
-    "1.1.1.1"
-    "8.8.8.8"
-  ];
-  networking.networkmanager.dns = "none";
+  # systemd-resolved so GP/netbird can push per-link DNS. Do not set
+  # `networking.nameservers` (becomes global DNS= and outranks per-link).
+  services.resolved = {
+    enable = true;
+    settings.Resolve = {
+      FallbackDNS = [
+        "1.1.1.1"
+        "8.8.8.8"
+      ];
+      # Unsigned/lying campus and hotel zones.
+      DNSSEC = false;
+      # avahi owns mDNS; two responders on 5353 conflict.
+      MulticastDNS = false;
+    };
+  };
+  networking.networkmanager.dns = "systemd-resolved";
   networking.networkmanager.wifi.scanRandMacAddress = false;
   networking.networkmanager.wifi.macAddress = "preserve";
   networking.wireless.iwd.enable = false;
@@ -315,7 +322,7 @@
 
   nix.optimise.automatic = true;
 
-  # Homelab Attic binary cache. Disabled while the homelab is offline.
+  # Homelab Attic cache. Disabled while the homelab is offline.
   # nix.settings.extra-substituters = [ "http://10.0.20.190:8080/homelab" ];
   # nix.settings.extra-trusted-substituters = [ "http://10.0.20.190:8080/homelab" ];
   # nix.settings.extra-trusted-public-keys = [

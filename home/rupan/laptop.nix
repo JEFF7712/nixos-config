@@ -15,11 +15,8 @@
 
   services.stasis = {
     enable = true;
-    # Stasis runs its commands with only this PATH, so anything lock-screen or
-    # lid-close-action calls has to be listed. Missing `stasis` made the
-    # lid-close inhibit check a silent no-op (`stasis info` returned nothing, so
-    # it always suspended); missing `noctalia-shell` made the lock fail open on
-    # the noctalia profile.
+    # Stasis PATH is only this list; missing `stasis` made lid-close inhibit a
+    # silent no-op, missing `noctalia-shell` made lock fail-open on that profile.
     extraPathPackages = [
       config.programs.noctalia.package
       config.services.stasis.package
@@ -33,19 +30,15 @@
       niri
       procps # pgrep, for lid-close-action's lock barrier
     ]);
-    # Stasis 1.5 on a laptop only uses default.ac / default.battery, and it
-    # replaces any rune missing current knobs (e.g. monitor_media) with the
-    # bootstrap plan (swaylock, no lid_close_action). Keep globals under
-    # default: and the idle plan under ac:/battery:.
+    # Stasis 1.5 only uses default.ac / default.battery; missing knobs get the
+    # bootstrap plan (swaylock, no lid_close_action).
     extraConfig = ''
       default:
         enable_loginctl_integration true
         enable_dbus_inhibit true
         monitor_media true
         ignore_remote_media true
-        # Empty on purpose: browser autoplay (Twitter/X in Firefox) is an
-        # idle inhibit, not a stay-awake. lid-close-action only honors these
-        # lists plus caffeine (stasis toggle-inhibit / Manual Pause).
+        # Empty: browser autoplay is idle-inhibit, not stay-awake.
         suspend_inhibit_media [ ]
         inhibit_apps [
           "vlc"

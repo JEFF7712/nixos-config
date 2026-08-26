@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# sharp kitty/fish templates must keep ANSI/syntax text readable on the
-# terminal background. on_primary / on_*_container look like "light accent"
-# in M3 docs but at sharp's matugenContrast (0.5) they are ink for a light
-# fill — #000000 in dark, #ffffff in light.
+# on_primary / on_*_container at matugenContrast 0.5 are ink (#000000/#ffffff), not accent.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -1,12 +1,7 @@
 { pkgs, config, ... }:
 
-# Catppuccin — Mocha (dark) + Latte (light) on the static-profile default
-# mapping. Catppuccin layers surfaces as crust < mantle < base < surface0..2,
-# so bg0=base with mantle/crust as darker extras (bgDim=crust) and surface2 as
-# an extra above bg3=surface1. Variant-specific slots (fish*, starship*,
-# rofiPlaceholder) are palette keys. Mocha replaces the derived kitty
-# theme with a custom monochrome pink/purple scheme (applied post-build, since
-# Latte keeps the derived one).
+# Mocha + Latte. Surfaces: crust < mantle < base < surface0..2 (bg0=base,
+# bgDim=crust). Mocha kitty is a custom scheme applied post-build.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;

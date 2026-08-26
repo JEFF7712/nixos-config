@@ -13,6 +13,7 @@
   config = lib.mkIf config.asus-numpad.enable {
     services.asus-numberpad-driver = {
       enable = true;
+      # UX3404VC maps to this layout in upstream laptop_numberpad_layouts.
       layout = "up5401ea";
       wayland = true;
       waylandDisplay = "wayland-1";

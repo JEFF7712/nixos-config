@@ -31,15 +31,9 @@ PanelWindow {
     property bool warming: false
     property bool opening: false
     property bool closing: false
-    // Snap x/y/opacity/scale without Behavior. Must not key off `shown` —
-    // openTimer used to clear settle via shown=true in the same tick as the
-    // pose change, and Qt applied the final value while Behavior was still
-    // disabled (instant open).
+    // Must not key off `shown`: openTimer used to clear settle in the same tick.
     property bool poseLocked: false
-    // False until the shell has settled after launch. The startup theme-load
-    // flips popupAttachToBar/popupAnimationStyle, whose change handlers call
-    // prewarm(); without this gate every popup would briefly map (warming ->
-    // visible) and flash near the bar on every profile switch.
+    // Gate prewarm during startup theme-load (attach/style changes would flash).
     property bool ready: false
     // Set by shell.applyTheme while swapping profile/wallpaper themes so
     // attach/style changes do not prewarm-map every popup.
@@ -52,10 +46,7 @@ PanelWindow {
     readonly property bool unfold: effectiveAnimationStyle === "unfold"
     readonly property bool sideSlide: attachedSlide && edgeSlide
     readonly property bool active: shown || opening || closing
-    // niri background-effect blur follows the layer-shell rectangle, not QML
-    // opacity. Holding this surface mapped while the card fades to 0 leaves an
-    // empty rounded blur square after the popup chrome is gone. Unmap as soon
-    // as shown/opening/warming are false — close animation cannot move compositor blur.
+    // niri blur follows the layer-shell rect, not QML opacity — unmap with the chrome.
     readonly property bool mapped: shown || opening || warming
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int sideMargin: popupAttachToBar ? barMargin : 10
@@ -172,10 +163,7 @@ PanelWindow {
         repeat: false
         onTriggered: {
             root.ready = true;
-            // Theme apply usually lands before ready with suppressPrewarm, so the
-            // attach/style change handlers never prewarm on startup. Map once now
-            // (off-screen, Behaviors disabled via poseLocked) so the first click
-            // does not also pay layershell surface creation mid-animation.
+            // Map once now so the first click does not pay layershell creation mid-animation.
             root.prewarm();
         }
     }

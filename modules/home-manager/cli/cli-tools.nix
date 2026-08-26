@@ -17,6 +17,7 @@
       with pkgs;
       [
         tmux
+        tree
         btop
         ffmpeg
         parted

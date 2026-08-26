@@ -1,19 +1,12 @@
-# Tinted: opaque, wallpaper-driven profile.
-#
-# Unlike the static schemes, every surface here is fully opaque (no blur, no
-# per-focus translucency) and the palette is regenerated from the current
-# wallpaper at runtime by `apply_wallpaper_theme` (matugen). The colors below
-# are only the pre-first-tint fallback — on the first wallpaper change after a
-# switch, matugen overwrites the quickshell theme, GTK/Qt/kitty/cava/etc. from
-# the wallpaper's dominant color (dark or light per the active variant).
+# Opaque wallpaper-driven profile. Colors below are pre-first-tint fallback;
+# `apply_wallpaper_theme` (matugen) overwrites them from the wallpaper.
 { config, ... }:
 
 let
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 
-  # Soft, low-contrast fallback palettes. Dark = warm charcoal, light = cream —
-  # both in the spirit of the wallpaper-tinted result before matugen runs.
+  # Soft fallback palettes until matugen runs (dark = charcoal, light = cream).
   dark = rec {
     title = "Tinted dark";
     bg0 = "#16181c";
@@ -244,9 +237,7 @@ in
   desktopProfiles.profiles.tinted = {
     bar = "quickshell";
     wallpaperTheming = true;
-    # iris (vendored from Alphonso): k-means CIELAB palette extraction with
-    # built-in WCAG contrast nudging. Deep wallpaper-tinted surfaces, legible
-    # text guaranteed, auto dark/light. matugenScheme is unused under iris.
+    # iris: k-means CIELAB + WCAG. matugenScheme unused.
     colorEngine = "iris";
 
     quickshellTheme = mkQuickshell dark;

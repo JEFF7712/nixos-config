@@ -189,7 +189,7 @@ rewrite_diff=$(
 )
 printf '%s\n' "$rewrite_diff" | jq -e '
   .permission == "allow"
-  and (.updated_input.command | test("git --no-ext-diff diff --cached"))
+  and (.updated_input.command | test("git diff --no-ext-diff --cached"))
   and .updated_input.working_directory != null
 ' >/dev/null || fail "Cursor before-shell did not rewrite git diff: $rewrite_diff"
 
@@ -201,8 +201,19 @@ rewrite_compound=$(
 )
 printf '%s\n' "$rewrite_compound" | jq -e '
   .hookSpecificOutput.permissionDecision == "allow"
-  and (.hookSpecificOutput.updatedInput.command | test("git --no-ext-diff diff HEAD"))
+  and (.hookSpecificOutput.updatedInput.command | test("git diff --no-ext-diff HEAD"))
+  and (.hookSpecificOutput.updatedInput.command | test("^git status &&"))
 ' >/dev/null || fail "before-shell did not rewrite compound git diff: $rewrite_compound"
+
+# The rewritten form has to be one git actually accepts. `git --no-ext-diff
+# diff` parses it as a global option and dies; this catches that class of bug
+# without caring what the working tree currently looks like.
+flag_probe=$(git diff --no-ext-diff --stat HEAD 2>&1 || true)
+case "$flag_probe" in
+  *'unknown option'*)
+    fail "git rejects the flag position the hook rewrites to: $flag_probe"
+    ;;
+esac
 
 skip_flagged=$(
   run_before_shell "$(

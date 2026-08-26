@@ -11,14 +11,11 @@ let
     runtimeInputs = with pkgs; [
       bash
       coreutils
-      # `cmp` compares the flake.lock snapshot; writeShellApplication pins PATH,
-      # so without this the pipeline dies before it can rebuild.
+      # `cmp` for flake.lock snapshot; writeShellApplication pins PATH.
       diffutils
       getent
       git
-      # `sed` is used by nix-cascade-guard, which the pipeline invokes with PATH
-      # preserved. The unit PATH currently supplies gnused; that is the same
-      # fragile coupling that hid the missing-cmp outage.
+      # gnused for nix-cascade-guard (same PATH-pin coupling as missing-cmp).
       gnused
       nix
       nixos-rebuild
@@ -33,9 +30,7 @@ let
       systemd
     ];
     text = ''
-      # Root has no session bus, so notify-send from this unit would not reach
-      # the desktop. systemctl --machine=USER@ --user is systemd's supported
-      # way to start a user unit, which already has the graphical session bus.
+      # Root has no session bus; start the user notify unit instead.
       systemctl --machine=rupan@ --user start system-update-failure-notify.service
     '';
   };

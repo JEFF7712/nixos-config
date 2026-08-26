@@ -1,8 +1,6 @@
 .pragma library
 
-// The native Networking backend owns radio, scan, and connect state
-// directly; kitty is the only subprocess this domain still owns, for the
-// two interactive escape hatches the native singleton cannot cover itself.
+// kitty subprocesses for nmtui escape hatches the native singleton cannot cover.
 function interactiveConnectArgv(ssid) {
     return ["kitty", "-e", "nmtui-connect", ssid];
 }

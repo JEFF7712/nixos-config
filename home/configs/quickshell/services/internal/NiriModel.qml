@@ -43,9 +43,7 @@ Scope {
         };
     }
 
-    // Reconciles the ListModel in place: a stable id sequence updates only
-    // the roles that changed, so bound delegates (and any Behavior
-    // animations on them) are not torn down every poll or event.
+    // In-place ListModel update so delegates (and Behaviors) are not torn down.
     function _applyWorkspacesModel(list): void {
         if (list.length !== workspacesModel.count) {
             workspacesModel.clear();

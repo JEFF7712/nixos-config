@@ -74,9 +74,8 @@ in
           message = "desktopProfiles.profiles.${name}: has a light variant but no quickshellThemeLight — the bar would stay dark when toggling.";
         }
         {
-          # A non-self-themed profile that leaves core color slots null renders
-          # empty theme files (blank GTK/Qt/kitty) — almost always a broken
-          # palette. Self-themed profiles (noctalia) manage colors at runtime.
+          # Null core colors render empty GTK/Qt/kitty files. Self-themed
+          # profiles (noctalia) own colors at runtime.
           assertion =
             p.selfThemed
             || (
@@ -85,9 +84,7 @@ in
           message = "desktopProfiles.profiles.${name}: not self-themed but missing core colors (gtk3/gtk4/kitty/qt6) — check the palette.";
         }
         {
-          # The inverse invariant: a self-themed profile (noctalia) must leave
-          # its colors null so the shell owns them at runtime. A stray static
-          # color here would be written but never applied — a silent mistake.
+          # Self-themed profiles must leave core colors null (written but never applied).
           assertion =
             !p.selfThemed
             || (
@@ -119,9 +116,7 @@ in
       Install.WantedBy = [ "timers.target" ];
     };
 
-    # matugen + imagemagick drive the wallpaper-tinted profiles: imagemagick
-    # extracts a dominant source color (matugen's own image extractor is broken
-    # in 4.0), matugen renders the theme templates from it.
+    # imagemagick for source color: matugen 4.0's own image extractor is broken.
     home.packages =
       (with pkgs; [
         matugen
@@ -135,9 +130,7 @@ in
         ) config.desktopProfiles.profiles
       );
 
-    # matugen templates + config for the wallpaper-driven `tinted` profile.
-    # Out-of-store so template edits re-theme on the next wallpaper change with
-    # no rebuild. apply_wallpaper_theme invokes matugen against this config.
+    # Out-of-store: template edits re-theme on the next wallpaper change.
     xdg.configFile."matugen".source =
       config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/matugen";
 
@@ -191,14 +184,8 @@ in
       fi
     '';
 
-    # These dirs are real copies (not store symlinks) because the runtime
-    # profile scripts mutate files inside them. Repo edits to the base files
-    # must still propagate without clobbering runtime-applied theme state, so:
-    #   - "owned" files (whole-file rewritten on every profile switch) are
-    #     seeded once and never touched again here.
-    #   - base files are re-copied only when the *repo* version's content hash
-    #     changes (tracked per-file), so a live copy carrying runtime sed
-    #     patches is left alone unless you actually edited it in the repo.
+    # Live copies (not store symlinks): runtime scripts mutate them. Owned
+    # files are seeded once; others re-copy only when the repo hash changes.
     home.activation.initDesktopProfileLiveConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       STATE="$HOME/.local/state/desktop-profiles/synced-hashes"
       $DRY_RUN_CMD mkdir -p "$STATE"
@@ -234,8 +221,7 @@ in
             $DRY_RUN_CMD install -Dm644 "$f" "$d"
             record_hash "$stamp" "$h"
           elif [ -z "$stored" ]; then
-            # First run against an existing checkout: adopt current state so a
-            # runtime-patched live file is not reset; propagate from next edit.
+            # First run: stamp current hash so a runtime-patched file is not reset.
             record_hash "$stamp" "$h"
           elif [ "$stored" != "$h" ]; then
             $DRY_RUN_CMD install -Dm644 "$f" "$d"
@@ -255,8 +241,7 @@ in
       sync_live_config "$CFG/rofi"    "$HOME/.config/rofi"    "profile-switcher.rasi"
       sync_live_config "$CFG/tmux"    "$HOME/.config/tmux"    ""
 
-      # Firefox profile dir name varies per machine; resolve the default-release
-      # profile by glob instead of a hardcoded id.
+      # Profile dir name varies; glob the default-release profile.
       for ff in "$HOME/.mozilla/firefox/"*.default-release; do
         [ -d "$ff" ] || continue
         sync_live_config "$CFG/firefox/chrome" "$ff/chrome" "DownToneUI/_globals.css"

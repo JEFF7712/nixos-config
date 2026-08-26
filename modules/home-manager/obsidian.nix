@@ -43,9 +43,7 @@ in
         force = true;
       };
 
-    # Copy Newsreader TTFs into the vault fonts folder (Custom Font Loader needs
-    # real files there) and merge font/snippet keys into appearance.json without
-    # clobbering runtime theme fields written by iris / switch-profile.
+    # Custom Font Loader needs real TTFs; merge appearance.json without clobbering iris theme fields.
     home.activation.syncObsidianVaultConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       set -euo pipefail
       vault=${lib.escapeShellArg vaultObsidian}

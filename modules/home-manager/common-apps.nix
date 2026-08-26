@@ -9,19 +9,8 @@
 let
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.stdenv.hostPlatform.system};
 
-  # Mutable spicetify. spicetify-nix bakes the theme into a read-only store
-  # Spotify that can't be re-themed at runtime; instead we keep a writable copy
-  # of Spotify under $HOME that `spicetify apply` can patch live, letting the
-  # desktop-profile switcher swap the theme + color scheme per profile (see
-  # apply_spicetify_theme in home/scripts/profile-common). spicetify-nix is
-  # still the source of the themes and the extension files.
-  #
-  # Each profile picks a (theme, scheme, js) triple in runtime-defaults.nix.
-  # Themes are installed generically: theme.js is staged as theme.script.js so
-  # inject_theme_js can load it per-theme (Dribbblish needs it; Comfy's would
-  # fight our scheme control, so its profiles set js=0), a remote-@import
-  # user.css is replaced with the bundled app.css (Comfy's is CSP-blocked), and
-  # any additionalCss is appended.
+  # Writable $HOME Spotify copy: spicetify-nix's store Spotify can't be
+  # re-themed at runtime. Theme/scheme/js picks live in runtime-defaults.nix.
   spiceThemes =
     map
       (e: {
@@ -44,9 +33,7 @@ let
         { theme = spicePkgs.themes.catppuccin; }
         { theme = spicePkgs.themes.sleek; }
         { theme = spicePkgs.themes.dribbblish; }
-        # A theme that pulls assets from a CDN (Spotify's CSP blocks them) can
-        # set `assets` (a dir to vendor) + `rewrite` (the URL prefix to strip),
-        # and `patch` for a trailing user.css fixup. See git history for Bloom.
+        # CDN themes: set `assets` + `rewrite` (URL prefix to strip) + optional `patch`.
       ];
   spiceExtensions = with spicePkgs.extensions; [
     fullAppDisplay
@@ -59,7 +46,6 @@ let
   spiceState = ".local/share/spotify-spiced";
   spicetifyBin = "${pkgs.spicetify-cli}/bin/spicetify";
   extList = builtins.concatStringsSep "|" (map (e: e.name) spiceExtensions);
-  # Launches the writable, spiced copy instead of the read-only store Spotify.
   spotifyLauncher = pkgs.writeShellScriptBin "spotify" ''
     exec "$HOME/${spiceState}/app/spotify" "$@"
   '';
@@ -145,10 +131,8 @@ in
 
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-      // Browser Console (Ctrl+Shift+J), where Ctrl+Alt+R restarts Firefox with
-      // session restore. userChrome.css is only parsed at startup, so a restart
-      // is the only way a desktop-profile switch reaches a running Firefox;
-      // this just makes it two keystrokes instead of losing the session.
+      // Ctrl+Alt+R in Browser Console restarts Firefox with session restore
+      // (userChrome.css is only parsed at startup).
       user_pref("devtools.chrome.enabled", true);
       user_pref("devtools.debugger.remote-enabled", true);
     '';
@@ -170,10 +154,7 @@ in
       settings.StartupWMClass = "spotify";
     };
 
-    # Build/refresh the writable Spotify copy and its spicetify config. The
-    # 300 MB copy is only rebuilt when the Spotify store path changes (stamp
-    # check); `backup apply` runs once per fresh copy. Runtime color-scheme
-    # switching is handled by apply_spicetify_theme in switch-profile.
+    # Rebuild the writable Spotify copy when the store path changes (stamp).
     home.activation.spicetifyMutable = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       export SPICETIFY_CONFIG="$HOME/.config/spicetify"
       state="$HOME/${spiceState}"
@@ -187,10 +168,7 @@ in
         run chmod -R u+w "$state/app"
         run sed -i "s|$src/.spotify-wrapped|$state/app/.spotify-wrapped|g" "$state/app/spotify"
         run sh -c "echo '${pkgs.spotify}' > '$stamp'"
-        # Drop any stale backup/version record (e.g. from a prior Spotify
-        # version or the old spicetify-nix setup) so `backup apply` re-records
-        # the version of the fresh copy; a mismatch otherwise blocks every
-        # subsequent `spicetify apply`.
+        # Stale Backup/version records make later `spicetify apply` fail.
         run rm -rf "$SPICETIFY_CONFIG/Backup" "$SPICETIFY_CONFIG/config-xpui.ini"
         fresh=1
       fi
@@ -198,19 +176,16 @@ in
       run mkdir -p "$SPICETIFY_CONFIG/Themes" "$SPICETIFY_CONFIG/Extensions" "$HOME/.config/spotify"
       ${lib.concatMapStringsSep "\n" (t: ''
         td="$SPICETIFY_CONFIG/Themes/${t.name}"
-        # Prior runs may have left read-only store copies (e.g. vendored
-        # assets); make the tree writable so rm -rf can always replace it.
+        # Vendored store copies can be read-only; chmod so rm -rf can replace them.
         chmod -R u+w "$td" 2>/dev/null || true
         run rm -rf "$td"
         run cp -r "${t.src}" "$td"
         run chmod -R u+w "$td"
-        # A user.css that only @imports a remote stylesheet (e.g. Comfy ->
-        # github.io) is blocked by Spotify's CSP; swap in the bundled app.css.
+        # Remote @import user.css is CSP-blocked; swap in bundled app.css.
         if [ -f "$td/app.css" ] && grep -qE 'import +url\(.*https?:' "$td/user.css" 2>/dev/null; then
           run cp "$td/app.css" "$td/user.css"
         fi
-        # Stage the theme's JS as theme.script.js so inject_theme_js loads it
-        # only when this theme is active (Dribbblish requires it).
+        # inject_theme_js loads theme.script.js only for the active theme.
         if [ -f "$td/theme.js" ] && [ ! -f "$td/theme.script.js" ]; then
           run cp "$td/theme.js" "$td/theme.script.js"
         fi
@@ -233,9 +208,7 @@ in
         inject_css 1 replace_colors 1 overwrite_assets 1 \
         extensions "${extList}" > /dev/null 2>&1 || true
 
-      # Apply the active desktop profile's spicetify pick (theme/scheme/js) so a
-      # rebuild or Spotify update doesn't leave Spotify on a stale/default theme
-      # until the next manual profile switch. Falls back to Comfy.
+      # Re-apply the active profile's theme so a rebuild doesn't leave Spotify stale.
       sp_active=$(cat "$HOME/.config/desktop-profiles/active" 2>/dev/null || echo "")
       sp_variant=$(cat "$HOME/.config/desktop-profiles/active-variant" 2>/dev/null || echo "dark")
       sp_theme=Comfy
@@ -252,8 +225,7 @@ in
       fi
       run ${spicetifyBin} config current_theme "$sp_theme" color_scheme "$sp_scheme" inject_theme_js "$sp_js" > /dev/null 2>&1 || true
 
-      # --no-restart so a rebuild never interrupts a running Spotify; the patched
-      # xpui is picked up on its next launch.
+      # -n: don't restart a running Spotify; patched xpui loads on next launch.
       if [ -n "''${fresh:-}" ] || [ -e "$state/app/Apps/xpui.spa" ]; then
         run ${spicetifyBin} -n backup apply > /dev/null 2>&1 || true
       else

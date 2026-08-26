@@ -56,10 +56,10 @@
       "video"
     ];
     shell = pkgs.fish;
-    ignoreShellProgramCheck = true;
     initialHashedPassword = "";
-    packages = with pkgs; [ tree ];
   };
+
+  programs.fish.enable = true;
 
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "rupan";

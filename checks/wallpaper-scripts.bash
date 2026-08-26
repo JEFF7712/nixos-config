@@ -374,9 +374,7 @@ set -e
 assert_eq 0 "$nudge_fail_status" \
   "nudge_gtk_reload survives a failing gsettings pipeline under pipefail"
 
-# waypaper writes `wallpaper = ~/...` with a literal tilde. bash tilde-expands
-# `case` PATTERNS, so an unquoted ~/* pattern silently never matched and iris
-# received the literal path, breaking wallpaper theming entirely.
+# waypaper writes `wallpaper = ~/...`. Unquoted `case ~/*` never matches (bash expands the pattern).
 tilde_home="$tmpdir/tilde-home"
 tilde_cfg="$tmpdir/tilde-home/.config"
 tilde_bin="$tmpdir/tilde-bin"

@@ -1,8 +1,5 @@
-# Camp-1 impermanence: ephemeral btrfs @root, durable @home/@nix, declared
-# system state under /persist (preservation module). Requires the disko
-# layout in hosts/laptop/disko.nix (@persist subvolume, @root-blank snapshot
-# from its postCreateHook) and systemd initrd. Enabled on laptop-crypt only
-# until the LUKS reinstall happens.
+# Ephemeral btrfs @root, durable @home/@nix, declared state in /persist.
+# Needs hosts/laptop/disko.nix + systemd initrd. laptop-crypt only for now.
 {
   pkgs,
   lib,
@@ -19,14 +16,16 @@
   config = lib.mkIf config.impermanence.enable {
     fileSystems."/persist".neededForBoot = true;
 
-    # Wipe @root back to the blank snapshot on every boot. The outgoing root
-    # is parked under old_roots/ for 14 days so "that actually mattered" has
-    # a recovery window.
+    # Park outgoing @root under old_roots/ for 14 days.
     boot.initrd.systemd.services.rollback-root = {
       description = "Rollback btrfs @root to the blank snapshot";
       wantedBy = [ "initrd.target" ];
       requires = [ "dev-mapper-cryptroot.device" ];
-      after = [ "dev-mapper-cryptroot.device" ];
+      # After resume: hibernation restore must not find @root already rolled back.
+      after = [
+        "dev-mapper-cryptroot.device"
+        "systemd-hibernate-resume.service"
+      ];
       before = [ "sysroot.mount" ];
       unitConfig.DefaultDependencies = "no";
       serviceConfig.Type = "oneshot";
@@ -71,8 +70,7 @@
             file = "/etc/machine-id";
             inInitrd = true;
           }
-          # mutableUsers passwords live here; without this, first boot locks
-          # rupan out (root has no password, no autologin).
+          # mutableUsers passwords; without this, first boot locks rupan out.
           {
             file = "/etc/shadow";
             group = "shadow";
@@ -108,21 +106,21 @@
           "/var/lib/containers"
           "/var/lib/waydroid"
           "/var/lib/netbird"
-          # DynamicUser services (ollama et al.) keep state here; systemd
-          # requires 0700 on it.
+          # DynamicUser state; systemd requires 0700.
           {
             directory = "/var/lib/private";
             mode = "0700";
           }
           "/var/lib/asusd"
+          # pcrlock measurements; losing them turns TPM2 LUKS into passphrase-only.
+          "/var/lib/pcrlock.d"
           "/var/lib/upower"
           "/var/lib/fwupd"
         ];
       };
     };
 
-    # First boot has no persisted machine-id yet; let systemd commit the
-    # generated one into /persist instead of the ephemeral root.
+    # First boot: commit generated machine-id into /persist, not ephemeral root.
     systemd.services.systemd-machine-id-commit = {
       unitConfig.ConditionPathIsMountPoint = [
         ""

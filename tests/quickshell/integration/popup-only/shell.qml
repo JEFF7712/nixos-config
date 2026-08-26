@@ -6,10 +6,7 @@ import "services" as Services
 ShellRoot {
     id: root
 
-    // Popup-only deletion fixture: same domain services and migrated popups,
-    // no bar presentation root and no notification history UI. Native
-    // singleton actions are not exercised here — only reads plus
-    // command-backed recorders.
+    // Popup-only fixture: domain services, no bar or notification history.
 
     property string stateDir: Quickshell.env("QS_TEST_STATE_DIR") || ""
 

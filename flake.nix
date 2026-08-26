@@ -34,8 +34,7 @@
       url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Tracks master: the version tags are stale and break against current
-    # nixpkgs vmTools (disko #1027).
+    # Master: version tags are stale vs current nixpkgs vmTools (disko #1027).
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -61,9 +60,7 @@
       url = "github:jacopone/code-cursor-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Daily-updated LLM agent binaries (OpenCode, pi, …). Dedicated
-    # opencode-nix flakes (dan-online, GutMutCode) are archived or stale;
-    # this is the maintained analog of sadjow/claude-code-nix.
+    # Daily LLM agent binaries. Dedicated opencode-nix flakes are archived.
     opencode-nix = {
       url = "github:numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -119,11 +116,8 @@
             programs.statix.enable = true;
             programs.deadnix.enable = true;
             programs.qmlformat.enable = true;
-            # Formatter only. ruff-check is deliberately off: its default rule set
-            # moves with nixpkgs, and this repo auto-updates hourly, so a ruff bump
-            # would turn `nix fmt`, `just check` and CI red with no local change.
-            # (0.16.3 flagged 29 findings that 0.15.20 did not.) Run `ruff check`
-            # by hand; `.ruff.toml` holds the repo's rule choices for that.
+            # ruff-check off: its default rules move with nixpkgs; hourly auto-update
+            # would fail `nix fmt` / CI with no local change. Run `ruff check` by hand.
             programs.ruff-format.enable = true;
             settings.formatter.statix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
             settings.formatter.deadnix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
@@ -154,9 +148,7 @@
             config.allowUnfree = true;
           };
 
-          # disko's vmWithDisko passes a module aggregate as vmTools `kernel`,
-          # which nixpkgs rejects since 2026-06 (disko #1027). Patch to the
-          # new kernel/kernelModules split; drop once upstream merges a fix.
+          # vmWithDisko passes a module as vmTools `kernel` (nixpkgs 2026-06 / disko #1027).
           disko-patched = pkgs.applyPatches {
             name = "disko-patched";
             src = inputs.disko;
@@ -200,8 +192,7 @@
         {
           nixosConfigurations = {
             laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
-            # Post-LUKS-reinstall variant of laptop (disko + btrfs); see
-            # docs/luks-reinstall.md.
+            # Post-LUKS-reinstall variant; see docs/luks-reinstall.md.
             laptop-crypt = mkSystem "laptop-crypt" ./home/rupan/laptop.nix;
             iso = mkSystem "iso" ./home/rupan/iso.nix;
           };

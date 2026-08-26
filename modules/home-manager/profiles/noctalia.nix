@@ -1,6 +1,4 @@
-# Noctalia desktop profile.
-# Colors are all null — noctalia-shell manages them dynamically at runtime.
-# Only niri settings, cursor, bar, and wallpaperDir are meaningful here.
+# Noctalia: colors are runtime (selfThemed). Only niri/cursor/bar/wallpaperDir here.
 { config, ... }:
 
 {

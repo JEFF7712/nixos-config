@@ -53,19 +53,13 @@ stdenv.mkDerivation {
   nativeBuildInputs = [ makeWrapper ];
 
   postPatch = ''
-    # Drop the upstream Pop!_OS-specific LD_LIBRARY_PATH hack — we provide
-    # CUDA libs via nix-ld / the cuda-wrapped python if/when the user opts in.
-    # Also install an EXIT trap that dismisses the listening notification so
-    # it doesn't linger if the script crashes mid-record.
+    # Drop Pop!_OS LD_LIBRARY_PATH; EXIT trap dismisses the listening popup.
     substituteInPlace xhisper.sh \
       --replace-fail \
         'export LD_LIBRARY_PATH=/usr/local/lib/ollama/cuda_v12/lib:$LD_LIBRARY_PATH' \
         "$(cat ${./exit-trap.nixos})"
 
-    # Upstream calls `python3 "$TRANSCRIPT_SCRIPT"` where TRANSCRIPT_SCRIPT is the
-    # bare name "xhisper_transcribe". python3 treats that as a cwd-relative path
-    # (no PATH lookup), so it silently fails. Drop the python3 prefix and rely on
-    # xhisper_transcribe's shebang, which points at our wrapped interpreter.
+    # `python3 xhisper_transcribe` is cwd-relative (no PATH lookup). Use the shebang.
     substituteInPlace xhisper.sh \
       --replace-fail \
         'python3 "$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null' \
@@ -85,30 +79,20 @@ stdenv.mkDerivation {
         '"$TRANSCRIPT_SCRIPT" "$recording" $cmd_args 2>/dev/null' \
         '"$TRANSCRIPT_SCRIPT" "$recording" "''${cmd_args[@]}" 2>> "$LOGFILE"'
 
-    # The user binds xhisper to Mod+Z (Super+Z). After the keypress fires the
-    # script, paste() starts typing the status / transcript via uinput while
-    # the physical Super key is often still held — so each character lands as
-    # Mod+<char>, opening Obsidian / Thunar / Vesktop / etc. via the niri
-    # bindings on Mod+O, Mod+E, Mod+D.
-    # We install a small evdev-polling helper (xhisper-wait-mod-release, see
-    # postInstall) that blocks until KEY_LEFTMETA/RIGHTMETA actually clear or
-    # 2 s elapses, then paste() invokes it before any synthetic keystrokes.
+    # paste() types via uinput while Super is often still held (Mod+Z bind),
+    # so wait for KEY_*META release before synthetic keystrokes.
     substituteInPlace xhisper.sh \
       --replace-fail \
         'paste() {' \
         'paste() { xhisper-wait-mod-release 2>/dev/null || sleep 0.3 ;'
 
-    # Spawn a tiny bottom-center quickshell pill on record-start, replace it on
-    # transcribe-start. The QML reads XHISPER_POPUP_TEXT from env at launch; we
-    # kill and respawn to "update" the text. EXIT trap above tears it down.
+    # Kill/respawn the popup to change XHISPER_POPUP_TEXT (read at launch).
     substituteInPlace xhisper.sh \
       --replace-fail \
         'paste "(recording...)"' \
         'paste "(recording...)" ; kill $(cat /tmp/xhisper-popup.pid 2>/dev/null) 2>/dev/null ; XHISPER_POPUP_TEXT="🎤 Listening…" qs -p "$HOME/.config/quickshell-xhisper-popup" >/dev/null 2>&1 & echo $! > /tmp/xhisper-popup.pid'
 
-    # Snapshot the wav, keep a transcribing popup, and surface empty results
-    # instead of deleting "(transcribing...)" and pasting nothing. Extra Mod+Z
-    # during Whisper used to start a new recording and clobber the wav.
+    # Extra Mod+Z during Whisper used to start a new recording and clobber the wav.
     substituteInPlace xhisper.sh \
       --replace-fail \
         "$(cat ${./finish-recording.orig})" \
@@ -120,16 +104,11 @@ stdenv.mkDerivation {
   postInstall = ''
     install -Dm644 default_xhisperrc $out/share/xhisper/default_xhisperrc
 
-    # Prefer the local Hugging Face cache and fall back CUDA → CPU. Overwrites
-    # upstream xhisper_transcribe so Mod+Z cannot hang on a Hub download.
+    # Local HF cache, CUDA→CPU fallback — so Mod+Z cannot hang on a Hub download.
     install -Dm755 ${./xhisper_transcribe.py} $out/bin/xhisper_transcribe
     substituteInPlace $out/bin/xhisper_transcribe \
       --replace-fail '#!/usr/bin/env python3' '#!${python}/bin/python3'
 
-    # Reads the tail of /tmp/xhisper.wav (the file pw-record is writing) every
-    # 50 ms, computes RMS amplitude of the last 50 ms of samples, prints a
-    # normalised level (0–1) to stdout. Driven by quickshell-xhisper-popup's
-    # Process component so the Siri-ball scales with the user's voice.
     cat > $out/bin/xhisper-amplitude-monitor <<PYEOF
     #!${python}/bin/python3
     import math, os, struct, sys, time
@@ -156,10 +135,7 @@ stdenv.mkDerivation {
                 if n > 0:
                     ints = struct.unpack(f"<{n}h", data)
                     rms = math.sqrt(sum(s * s for s in ints) / n) / 32768.0
-                    # Noise gate: subtract a baseline RMS roughly at the level
-                    # of laptop fan / ambient hum so the popup doesn't react to
-                    # background noise. The remaining range gets sqrt-compressed
-                    # to 0–1 with extra gain to recover dynamic range.
+                    # Fan/hum noise floor, then sqrt-compress remaining RMS.
                     NOISE_FLOOR = 0.010
                     GAIN = 10.0
                     above = max(0.0, rms - NOISE_FLOOR)
@@ -173,11 +149,6 @@ stdenv.mkDerivation {
     PYEOF
     chmod +x $out/bin/xhisper-amplitude-monitor
 
-    # Blocks until Super (LEFTMETA / RIGHTMETA) is released on every keyboard
-    # device, or a generous timeout elapses. Called by paste() to keep
-    # synthesized keystrokes from colliding with niri's Mod+letter app launchers.
-    # Uses select() on evdev fds so it returns the instant the release event
-    # arrives instead of burning CPU polling.
     cat > $out/bin/xhisper-wait-mod-release <<PYEOF
     #!${python}/bin/python3
     import select, sys, time, evdev

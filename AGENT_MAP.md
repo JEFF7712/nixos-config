@@ -41,7 +41,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 - Keep generated or mutable desktop config under `home/configs/` or `home/scripts/`, not inline in unrelated modules.
 - The Quickshell bar is launched from `home/configs/quickshell/shell.qml` by `profile-transition` and `toggle-bar`; it has no `xdg.configFile` or `home.file` entry and is not in `sync_live_config`.
 - Do not use `git add .` / `git add -A` / `git add --all`; `hooks/before-shell` denies those. Stage the specific files changed (`hooks/after-edit` already stages newly created files).
-- `git diff` renders through difftastic here; `hooks/before-shell` injects `--no-ext-diff` on agent `git diff`. Pass it yourself for a real unified patch outside the agent (`git apply`, hunk staging, or any machine parsing).
+- `git diff` renders through difftastic here; `hooks/before-shell` injects `--no-ext-diff` after the `diff` subcommand on agent `git diff`, and leaves every other git subcommand alone. Pass it yourself for a real unified patch outside the agent (`git apply`, hunk staging, or any machine parsing). Position matters: `git diff --no-ext-diff`, never `git --no-ext-diff diff` (git rejects it as a global option).
 - Use `new-nixos-module <name>` and `new-home-module <name>` for new auto-discovered modules.
 - Repo agent hooks live in `hooks/` and are wired from `.cursor/hooks.json`, `.claude/settings.json`, and `.codex/hooks.json`. Do not fork per-agent copies of the scripts. SessionStart injects `just agent-context`; do not run that recipe first.
 

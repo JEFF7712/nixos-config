@@ -1,8 +1,6 @@
 { pkgs, config, ... }:
 
-# Everforest Hard (dark + light) on the static-profile default mapping.
-# `bg5` (bright terminal black) is an extra palette key outside the canonical
-# roles.
+# Everforest Hard. `bg5` is bright terminal black (extra palette key).
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;

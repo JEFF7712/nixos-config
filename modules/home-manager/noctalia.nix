@@ -13,9 +13,7 @@ let
       ${config.home.homeDirectory}/.config/kitty >/dev/null 2>&1 || true
     ${pkgs.procps}/bin/pkill -USR1 kitty || true
   '';
-  # noctalia templates only expose `.hex`, but DownToneUI consumes "r, g, b"
-  # triplets so its alpha overlays work. The template stages the palette and
-  # this hook converts it; the shared writer keeps one source of truth.
+  # noctalia templates expose `.hex`; DownToneUI needs "r, g, b" for alpha overlays.
   firefoxGlobalsHook = pkgs.writeShellScript "firefox-globals-reload" ''
     ${config.repoPath}/home/scripts/firefox-globals >/dev/null 2>&1 || true
   '';
@@ -26,8 +24,6 @@ in
   imports = [ inputs.noctalia.homeModules.default ];
 
   config = lib.mkIf config.noctalia.enable {
-    # matugen comes from desktop-profiles.nix; the GTK/Qt theming tools
-    # (nwg-look, qt6ct, adw-gtk3) from niri.nix.
     home.packages = with pkgs; [
       gpu-screen-recorder
       cliphist
@@ -627,8 +623,7 @@ in
       };
     };
 
-    # Keep package/config generation from the upstream Home Manager module,
-    # but own the user service locally so rebuilds keep working.
+    # Own the user service so rebuilds keep working; package/config stay upstream.
     systemd.user.services.noctalia-shell = {
       Unit = {
         Description = "Noctalia Shell - Wayland desktop shell";
@@ -642,9 +637,7 @@ in
           ) cfg.customPalettes;
       };
       Service = {
-        # Only start noctalia-shell when the noctalia profile is active.
-        # ExecCondition exits non-zero, so the service is skipped rather than
-        # failed when the user is on a different profile during a rebuild.
+        # Skip (not fail) when another profile is active.
         ExecCondition = "${pkgs.bash}/bin/bash -c '[ \"$(cat %h/.config/desktop-profiles/active 2>/dev/null || echo noctalia)\" = \"noctalia\" ]'";
         ExecStart = lib.getExe cfg.package;
         Restart = "on-failure";

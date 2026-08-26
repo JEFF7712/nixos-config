@@ -81,9 +81,7 @@ function reduceFetch(previous, parsed, exitCode) {
     };
 }
 
-// Prefer native Connecting/Disconnecting flags. Keep an optimistic busyId
-// while the device remains listed and has not yet reached the requested
-// connected state; clear on disappearance or when the target state sticks.
+// Optimistic busyId until native Connecting/Disconnecting or the target state sticks.
 function reconcileNativeBusy(previousBusyId, devices, wantConnected) {
     var byId = {};
     (devices || []).forEach(function (device) {

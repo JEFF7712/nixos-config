@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Record failed just/nix/nh/nixos-rebuild commands in this repo so
-# friction-stop can nudge agent-self-improve once at the end of the turn.
-# Claude/Cursor fire this on dedicated failure events; Codex fires PostToolUse
-# for Bash including failures, so we require a non-zero exit there.
+# Record failed just/nix/nh/nixos-rebuild so friction-stop can nudge once.
+# Codex PostToolUse includes successes; require a non-zero exit.
 set -euo pipefail
 # shellcheck source=common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"

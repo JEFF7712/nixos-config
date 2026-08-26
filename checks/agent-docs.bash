@@ -80,9 +80,7 @@ if rg -q 'run `just agent-context`' CLAUDE.md AGENTS.md AGENT_MAP.md; then
   exit 1
 fi
 
-# CLAUDE.md must name every host, imported overlay, and profile module.
-# Reverse overlay/profile checks use backtick tokens on those listing lines so
-# unrelated prose (for example nh clean) cannot false-fail.
+# Hosts, overlays, and profile modules must be backtick-tokened in CLAUDE.md.
 
 while IFS= read -r host_dir; do
   require_backtick_in_claude "$(basename "$host_dir")" host

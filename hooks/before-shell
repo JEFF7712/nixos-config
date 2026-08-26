@@ -23,6 +23,6 @@ if agent_hooks_needs_no_ext_diff "$cmd"; then
     exit 0
   fi
   agent_hooks_emit_deny \
-    "This repo's git diff uses difftastic. Re-run with --no-ext-diff, e.g. git --no-ext-diff diff."
+    "This repo's git diff uses difftastic. Re-run with --no-ext-diff after the subcommand, e.g. git diff --no-ext-diff."
 fi
 exit 0

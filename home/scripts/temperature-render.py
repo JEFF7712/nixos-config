@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-# temperature-render — the "temperature" colorEngine for apply_wallpaper_theme.
-# Unlike iris (k-means extraction) or matugen (full scheme generation), this
-# stays deliberately subtle: take the wallpaper's seed hue, apply a small
-# saturation, and keep the clean profile's own lightness anchors (bg0..err)
-# so every consumer still gets clean's near-monochrome look with just a hint
-# of the wallpaper's color temperature — never a saturated accent. Plain
-# stdlib only (colorsys), same destinations iris-render writes minus
-# zed/obsidian/spicetify (out of scope for this engine).
+# Wallpaper seed hue + small saturation on clean's lightness anchors.
+# No saturated accent; stdlib only; same destinations as iris-render minus
+# zed/obsidian/spicetify.
 import argparse
 import colorsys
 import json
@@ -14,9 +9,7 @@ import os
 import re
 import sys
 
-# Clean profile's dark-mode lightness anchors (modules/home-manager/profiles/
-# clean.nix): hex sets the anchor lightness, the float is the small HSL
-# saturation the tint is allowed to reach.
+# Clean dark-mode lightness anchors (profiles/clean.nix). Float = max HSL sat.
 ANCHORS = {
     "bg0": ("#141414", 0.07),
     "bg1": ("#202020", 0.07),
@@ -31,12 +24,7 @@ ANCHORS = {
 
 HEX6_RE = re.compile(r"^#?[0-9a-fA-F]{6}$")
 
-# HLS is degenerate at L=0/L=1 (hue/sat can't move a pure black/white pixel),
-# which is exactly where the near-white anchors (fg0, accent at #ffffff) and,
-# under --mode light's lightness inversion, the near-black ones sit. Clamp
-# just off the poles so every anchor still picks up a faint hue cast while
-# staying visually near-white/near-black (0.96 -> min channel ~245 before the
-# saturation pulls it down further, well above the ~200 "near-white" floor).
+# HLS is degenerate at L=0/1. Clamp so near-white/black anchors still pick up hue.
 L_MAX = 0.96
 L_MIN = 1.0 - L_MAX
 

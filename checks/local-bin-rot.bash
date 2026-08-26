@@ -1,19 +1,7 @@
 #!/usr/bin/env bash
-# Detects rot in imperative (non-symlink) files that hardcode a /nix/store path
-# which has been (or will be) garbage-collected. This is the failure mode that
-# broke the old `codex` bridge (a hand-written ~/.local/bin wrapper) and later
-# Mod+Space (a user systemd drop-in pinning vicinae ExecStart to a GC'd path).
-# Those paths are never registered as GC roots, so an update + `nh clean` leaves
-# them dangling. ~/.local/bin shadows the home-manager profile in PATH, and
-# *.service.d drop-ins override the generation-rooted unit, so the rot is
-# invisible until the command or service is run.
-#
-# HM-managed symlinks (into the current generation's store output) are skipped:
-# they are rooted by the live generation and regenerate on every switch.
-#
-# ERROR  = referenced store path is already gone (broken right now).
-# WARN   = imperative file shebangs/execs a live store path with no GC root,
-#          so it will break on the next relevant package bump + GC.
+# Imperative files (not HM symlinks) that hardcode /nix/store paths: those paths
+# are not GC roots, so `nh clean` after an update leaves them dangling.
+# ERROR = store path already gone. WARN = live path with no GC root.
 set -euo pipefail
 
 BIN_DIR="${LOCAL_BIN_DIR:-$HOME/.local/bin}"

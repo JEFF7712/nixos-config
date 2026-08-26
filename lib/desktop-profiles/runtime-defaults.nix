@@ -1,8 +1,6 @@
 let
-  # Per-profile spicetify pick: (current_theme, color_scheme, inject_theme_js).
-  # js=1 only for themes that need their own script (e.g. Dribbblish); Comfy
-  # uses js=0 since its script overrides the color scheme. Consumed by
-  # apply_spicetify_theme in home/scripts/profile-common.
+  # (theme, scheme, inject_theme_js). js=1 only when the theme script is required
+  # (Dribbblish); Comfy's script fights scheme control, so js=0.
   spice = theme: scheme: js: { inherit theme scheme js; };
 in
 {
@@ -179,8 +177,7 @@ in
     vesktop.dark = "sharp.theme.css";
     obsidian.dark = "minimal-flexoki-dark";
     obsidian.light = "minimal-flexoki-light";
-    # Wallpaper-driven via matugen → runtime-spicetify-comfy.ini → [sharp]
-    # in Comfy color.ini (apply_wallpaper_theme).
+    # matugen → runtime-spicetify-comfy.ini → [sharp] in Comfy color.ini
     spicetify.dark = spice "Comfy" "sharp" 0;
     spicetify.light = spice "Comfy" "sharp" 0;
   };
@@ -204,9 +201,7 @@ in
   };
 
   tinted = {
-    # Wallpaper-driven Zed theme: the iris engine rewrites ~/.config/zed/themes/iris.json
-    # (theme name "Iris Tinted") on every wallpaper apply; this only pins Zed's settings
-    # to that name so the editor tracks the live palette. See iris-render.py `zed`.
+    # iris-render rewrites ~/.config/zed/themes/iris.json ("Iris Tinted"); this pins Zed to that name.
     zed.dark = {
       theme = "Iris Tinted";
       icon = "Zed (Default)";

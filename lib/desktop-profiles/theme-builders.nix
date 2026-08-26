@@ -112,11 +112,7 @@ rec {
       inactive_colors=${join inactive}
     '';
 
-  # Role-based qt5ct/qt6ct color scheme. Slot order (22 entries):
-  # WindowText, Button, Light, Midlight, Dark, Mid, Text, BrightText,
-  # ButtonText, Base, Window, Shadow, Highlight, HighlightedText, Link,
-  # LinkVisited, AlternateBase, ToolTipBase, ToolTipText, PlaceholderText,
-  # <secondary>, Accent.
+  # qtct `*_colors=` lines use a fixed 22-slot order.
   mkQt6Roles =
     {
       windowText,
@@ -450,8 +446,6 @@ rec {
       }
     '';
 
-  # btop theme file (~/.config/btop/themes/). One low→mid→high gradient is
-  # applied to every gradient group (cpu, temp, mem, net, process).
   mkBtopTheme =
     {
       mainBg,
@@ -507,7 +501,6 @@ rec {
       ]
     );
 
-  # tmux status/pane colors, sourced from ~/.config/tmux/profile-colors.conf.
   mkTmuxColors =
     {
       bg,
@@ -531,9 +524,7 @@ rec {
       set -g clock-mode-colour "${accent}"
     '';
 
-  # hyprlock $variables, sourced from ~/.config/hypr/profile-colors.conf.
-  # hyprlang colors are rgb(RRGGBB)/rgba(RRGGBBAA) without the leading '#',
-  # so hex palette colors are converted; alphas are hex suffixes.
+  # hyprlang colors are rgb()/rgba() without '#'; alphas are hex suffixes.
   mkHyprlockColors =
     {
       fg,
@@ -563,8 +554,7 @@ rec {
       $error = ${rgba error errorAlpha}
     '';
 
-  # cava [color] section, swapped into ~/.config/cava/config by
-  # apply_cava_colors. cava requires hex colors to be quoted.
+  # cava requires quoted hex colors.
   mkCavaColors =
     {
       gradLow,
@@ -581,9 +571,7 @@ rec {
       gradient_color_3 = '${gradHigh}'
     '';
 
-  # Zathura colors fragment installed to ~/.config/zathura/colors and
-  # included from zathurarc. recolor is always on so page paper/ink track
-  # the profile (lightcolor = paper side, darkcolor = ink side).
+  # recolor on: lightcolor = paper, darkcolor = ink.
   mkZathuraColors =
     {
       bg,

@@ -21,9 +21,7 @@ QtObject {
         return values.some(device => device && device.connected === true);
     }
 
-    // Plain-object snapshot of the selected Wi-Fi device's current AP list;
-    // keeps a native object reference per entry for NetworkModel's
-    // SSID-to-native-object action map without exposing native types itself.
+    // Plain-object AP list; native refs stay in NetworkModel's SSID map.
     readonly property var networkSnapshot: {
         const device = root.wifiDevice;
         const values = (device && device.networks && device.networks.values) || [];
@@ -46,9 +44,7 @@ QtObject {
         return snapshot;
     }
 
-    // A single object-literal binding so NetworkModel can reconcile from one
-    // signal (onObservationChanged) instead of wiring a Connections handler
-    // per native property, matching the UPower/Pipewire backend pattern.
+    // One object-literal so NetworkModel reconciles from a single signal.
     readonly property var observation: {
         return {
             present: root.backendPresent && root.wifiDevicePresent,

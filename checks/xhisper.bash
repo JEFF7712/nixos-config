@@ -15,9 +15,7 @@ fail() {
 
 [ -f "$PKG" ] || fail "missing $PKG"
 
-# Transcription stderr used to be discarded (2>/dev/null), so Hugging Face
-# downloads and CUDA failures looked like a stuck "(transcribing...)" with
-# no paste. The final cmd_args invocation must append stderr to the logfile.
+# stderr used to be 2>/dev/null; HF/CUDA failures looked like a stuck transcribe.
 if grep -E 'cmd_args\[@\]' "$PKG" | grep -q '2>/dev/null'; then
   fail "xhisper transcribe still discards stderr (2>/dev/null)"
 fi

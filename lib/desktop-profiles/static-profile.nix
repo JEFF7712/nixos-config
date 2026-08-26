@@ -1,19 +1,5 @@
-# Default role mapping for static desktop profiles.
-#
-# A profile built with mkStaticProfile is mostly just a palette: the canonical
-# roles below feed default mappings for every theme slot (gtk, qt6, kitty,
-# fish, starship, rofi, btop, tmux, hyprlock, cava, quickshell). Anything a
-# theme does differently goes in `overrides.<slot>` (an attrset of builder
-# args, or a function `palette: attrset` for per-variant values).
-#
-# Canonical palette roles (only bg0, bg1, bg2, fg1 and accent are required;
-# everything else cascades):
-#   bg0..bg3   surfaces, increasing elevation   bgDim   darker-than-bg0 tone
-#   fg0..fg4   strong text → faint text         comment muted comment tone
-#   accent, accent2                             gray    disabled secondary
-#   red orange yellow green aqua blue purple    grad{Low,Mid,High}
-#   onAccent / onError  ink tones on accent/error backgrounds
-#   title, plus any extra keys overrides need
+# Required palette: bg0, bg1, bg2, fg1, accent. Other roles cascade in `resolve`.
+# Slot overrides: `overrides.<slot>` (attrset, or `palette: attrset`).
 let
   theme = import ./theme-builders.nix;
 

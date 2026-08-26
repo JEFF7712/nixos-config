@@ -1,21 +1,13 @@
 .pragma library
 
-// Split markers embedded in the metrics probe's stdout. They separate the
-// two /proc/stat samples (taken 200ms apart, matching the previous Topbar
-// composite poll's delta window) from the /proc/meminfo and `df` segments.
+// Split /proc/stat samples (200ms apart) from meminfo and df.
 var MARK_CPU2 = "###QS-CPU2###";
 var MARK_MEM = "###QS-MEM###";
 var MARK_DISK = "###QS-DISK###";
 
-// Single subprocess invocation: it owns the 200ms delta window internally,
-// so every dynamic-metrics poll is self-contained (no cross-poll CPU state).
 var METRICS_COMMAND = "cat /proc/stat 2>/dev/null; " + "printf '\\n%s\\n' '" + MARK_CPU2 + "'; " + "sleep 0.2; " + "cat /proc/stat 2>/dev/null; " + "printf '\\n%s\\n' '" + MARK_MEM + "'; " + "cat /proc/meminfo 2>/dev/null; " + "printf '\\n%s\\n' '" + MARK_DISK + "'; " + "df -P / 2>&1";
 
-// Static host metadata: hostname, kernel, uptime, and NixOS generation.
-// Mirrors the previous SystemPopup fetchProc adapter, minus the memory
-// percentage (now derived from the metrics probe's /proc/meminfo read).
-// Uptime seconds come from /proc/uptime so the probe cannot go blank when
-// `uptime -p` is missing, lacks -p, or has its errors discarded.
+// Uptime from /proc/uptime so a missing `uptime -p` cannot blank the probe.
 var METADATA_COMMAND = "echo \"host|$(hostnamectl hostname 2>/dev/null || hostname)\"; " + "echo \"kernel|$(uname -r)\"; " + "echo \"uptime|$(awk '{print int($1)}' /proc/uptime 2>/dev/null)\"; " + "g=$(readlink /nix/var/nix/profiles/system 2>/dev/null | grep -o '[0-9]*' | head -1); " + "[ -n \"$g\" ] && echo \"gen|$g\" || true";
 
 function clamp(value, minimum, maximum) {
@@ -35,9 +27,7 @@ function fields(text) {
     return result;
 }
 
-// Pretty-print /proc/uptime seconds the way `uptime -p` used to, without
-// depending on that binary. Non-numeric strings pass through so existing
-// pretty snapshots keep working.
+// Pretty-print /proc/uptime seconds; non-numeric strings pass through.
 function formatUptime(raw) {
     var text = String(raw || "").trim();
     if (!text)
@@ -112,9 +102,6 @@ function parseCpuTotals(text) {
     return null;
 }
 
-// Returns null when either sample cannot be parsed (including when only the
-// first sample of a delta window is available), so callers preserve the
-// last valid cpuPercent instead of fabricating a value.
 function computeCpuPercent(firstText, secondText) {
     var first = parseCpuTotals(firstText);
     var second = parseCpuTotals(secondText);
@@ -176,9 +163,6 @@ function splitMetricsText(text) {
     };
 }
 
-// Publishes only complete samples: cpu/memory/disk are retained
-// independently whenever their own segment fails to parse, and the whole
-// snapshot is left untouched on a nonzero exit or unparseable output.
 function reduceMetricsSnapshot(previous, text, exitCode) {
     if ((exitCode || 0) !== 0)
         return copyState(previous);

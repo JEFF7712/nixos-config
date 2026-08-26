@@ -14,10 +14,7 @@
   config = lib.mkIf config.vicinae.enable {
     programs.vicinae = {
       enable = true;
-      # Pin the layer-shell surface to the top edge. Upstream hardcodes
-      # AnchorNone (floating / compositor-default), and neither settings.json
-      # nor niri layer-rules can move it. Compact mode expands downward from
-      # the top, matching the built-in search-above-results layout.
+      # Upstream hardcodes AnchorNone; settings.json / niri layer-rules cannot move it.
       package =
         let
           base = inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.default;

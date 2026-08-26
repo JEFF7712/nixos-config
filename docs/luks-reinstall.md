@@ -100,16 +100,53 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
    under /persist, same as the ssh/sbctl restore above.
 8. Reboot into the encrypted system, unlock with the passphrase, then
    restore `/home/rupan` from backup.
-9. Enroll the TPM so future boots skip the passphrase (PCR 7 = secure boot
-   state; passphrase remains as fallback):
-   `sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/nvme0n1p2`
-10. Verify: `bootctl status` (Secure Boot enabled, Measured UKI yes),
+9. Wire up hibernate. The btrfs swapfile's physical offset only exists once
+   the file does, so `hosts/laptop-crypt/configuration.nix` imports
+   `./resume-offset.nix` if present and skips hibernate if not. Generate and
+   commit it now:
+   ```bash
+   offset=$(sudo btrfs inspect-internal map-swapfile -r /.swap/swapfile)
+   cat > ~/nixos/hosts/laptop-crypt/resume-offset.nix <<EOF
+   # Generated after install: physical offset of /.swap/swapfile within
+   # /dev/mapper/cryptroot. Regenerate if the swapfile is ever recreated.
+   {
+     boot.resumeDevice = "/dev/mapper/cryptroot";
+     boot.kernelParams = [ "resume_offset=$offset" ];
+   }
+   EOF
+   git -C ~/nixos add hosts/laptop-crypt/resume-offset.nix
+   ```
+   It must be committed: an untracked file is invisible to the flake. Then
+   switch and test with `systemctl hibernate`. The root rollback is ordered
+   after `systemd-hibernate-resume.service` so a resume boot never wipes the
+   `@root` the restored image is running from; verify a resume actually
+   resumes before trusting it.
+10. Enroll the TPM so future boots skip the passphrase (passphrase remains as
+    fallback). `secureboot.measuredBoot.enable` is on for this host, so bind
+    to the systemd-pcrlock policy rather than a static PCR set: pcrlock is
+    rewritten on every `nixos-rebuild`, so kernel and UKI updates do not
+    invalidate the keyslot the way `--tpm2-pcrs=7` does.
+    ```bash
+    sudo /run/current-system/systemd/lib/systemd/systemd-pcrlock is-supported
+    sudo systemd-cryptenroll       --tpm2-device=auto       --tpm2-with-pin=true       --tpm2-pcrlock=/var/lib/systemd/pcrlock.json       /dev/nvme0n1p2
+    ```
+    If `is-supported` says anything but `yes`, or if step 6's activation
+    tripped on `systemd-pcrlock make-policy` from the installer, set
+    `secureboot.measuredBoot.enable = false`, finish the install, and either
+    re-enable it after the first real boot or fall back to the static
+    enrollment: `sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7
+    /dev/nvme0n1p2` (which must be re-run after kernel updates).
+    pcrlock state lives in `/var/lib/pcrlock.d` and
+    `/var/lib/systemd/pcrlock.json`; both are already preserved under
+    /persist, and losing them turns the TPM keyslot into a passphrase prompt.
+11. Verify: `bootctl status` (Secure Boot enabled, Measured UKI yes),
     `findmnt -t btrfs`, `ls /run/secrets/` (sops decrypted), reboot once
     more to confirm TPM auto-unlock AND that the root rollback ran
     (`ls /btrfs` gone, `sudo btrfs subvolume list / | grep old_roots`
     shows the parked root; anything you wrote to `/` outside /persist is
-    gone).
-11. Impermanence shakedown, first weeks: when something resets after
+    gone). `systemctl list-timers btrbk-local btrfs-scrub-*` should show the
+    snapshot and scrub jobs armed.
+12. Impermanence shakedown, first weeks: when something resets after
     reboot (a pairing, a service login, a cert), find its state dir,
     add it to `preservation.preserveAt."/persist"` in
     `modules/nixos/impermanence.nix`, and copy the current copy out of
@@ -121,8 +158,12 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
   `virtualisation.vmVariantWithDisko` into the laptop host if the rehearsal
   recipe should keep working.
 - Remove `just vm-crypt` or repoint it at `laptop`.
-- Follow-up work: snapshot automation for `@home`/`@root` (snapper or
-  btrbk), and a pre-switch snapshot hook.
+- Keep `hosts/laptop-crypt/resume-offset.nix` with the host when folding it
+  into `hosts/laptop`.
+- Follow-up work: a pre-switch snapshot hook. Scheduled snapshots are already
+  handled by `modules/nixos/btrfs-snapshots.nix` (btrbk, daily, `@home` and
+  `@persist` into `@snapshots`). They are same-disk and are not a backup:
+  an off-machine copy is still missing.
 
 ## If it goes wrong
 

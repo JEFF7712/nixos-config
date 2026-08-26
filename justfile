@@ -185,10 +185,8 @@ vm-crypt:
 dry:
   sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake "{{ justfile_directory() }}#laptop"
 
-# Caps must match hosts/laptop/base.nix sudoers pin (and nix.settings).
-# Root builds ignore ~/.config/nix/nix.conf — pass flags explicitly.
-# flock guards against the auto-update rebuild (shared /run lock): two full
-# builds at once OOM the ~31G box. Bails early if auto-update holds it.
+# Caps must match hosts/laptop/base.nix sudoers pin. Root ignores user nix.conf.
+# flock vs auto-update: two full builds OOM the ~31G box.
 switch:
   #!/usr/bin/env bash
   set -euo pipefail
@@ -201,9 +199,7 @@ switch:
     echo "then rerun 'just switch', or wait for it to finish." >&2
     exit 1
   fi
-  # Refuse a toolchain-cascade switch (uncached nixpkgs tip → thousands of
-  # from-source builds, hours on this box). FORCE=1 to override. In a
-  # terminal, offer to pin nixpkgs back to the running revision and continue.
+  # Refuse a toolchain-cascade switch. FORCE=1 to override.
   toplevel=".#nixosConfigurations.laptop.config.system.build.toplevel"
   pin=./home/scripts/nix-pin-nixpkgs-running
   if [ "${FORCE:-0}" != "1" ]; then

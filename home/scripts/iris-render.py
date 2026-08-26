@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# iris-render — map an iris JSON palette onto every consumer the desktop-profile
-# system themes. Reads the JSON on stdin, writes the live runtime files (the
-# same locations the matugen pipeline targets) so the rest of apply_wallpaper_theme
-# (reloads, cava swap, bar restart) is engine-agnostic. Plain stdlib only.
+# Map iris JSON (stdin) onto live theme files. Same destinations as matugen;
+# stdlib only so apply_wallpaper_theme reloads stay engine-agnostic.
 import argparse
 import json
 import os
@@ -396,9 +394,7 @@ element-text {{ horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit;
 
 
 def zed(p, out):
-    # Zed loads user themes from ~/.config/zed/themes/ and hot-reloads them on
-    # change, so rewriting this recolors the editor live. The name ("Iris Tinted")
-    # is pinned in Zed's settings by apply_zed_theme; keep the two in sync.
+    # Zed hot-reloads ~/.config/zed/themes/. Name must match apply_zed_theme.
     fg, bg, sf, dim, ac = p["fg"], p["bg"], p["surface"], p["dim"], p["accent"]
     red, grn, ylw = p["red"], p["green"], p["yellow"]
     kw = p.get("syntax_keyword", ac)

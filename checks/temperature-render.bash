@@ -11,9 +11,7 @@ profiles_dir="$tmpdir/profiles"
 profile_dir="$profiles_dir/clean"
 mkdir -p "$config_home" "$profile_dir"
 
-# Baked quickshell theme (as clean.nix ships it): #66 alpha-prefixed ARGB
-# panel colors plus a plain rawBg/accent. temperature-render must retint the
-# RGB portion only and leave the alpha prefixes untouched.
+# Retint RGB only; leave #66 ARGB alpha prefixes untouched.
 cat > "$profile_dir/quickshell-theme.json" <<'EOF'
 {
   "barHeight": "38",

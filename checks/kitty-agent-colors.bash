@@ -15,15 +15,12 @@ assert_eq() {
   fi
 }
 
-# Dark clean-style background: Agent prompt/user, Codex pill, OpenCode panel
-# gray plus bundled base, Claude fills. The composer gray is transparent in
-# the glass theme, so its slot is freed for Claude's second token.
+# Dark clean-style: Agent mixes + Codex/OpenCode/Claude. Composer gray is transparent.
 got="$(python3 "$HELPER" --background '#131415' --print)"
 assert_eq "$got" '#1f2021 #292a30 #2f3031 #222325 #0a0a0a #373737 #262626' \
   "dark #131415 Agent mixes plus Codex pill plus OpenCode plus Claude fills"
 
-# Light background uses the light tints first, then Codex's black@0.04 blend,
-# then OpenCode's panel gray and bundled base, then Claude's tokens.
+# Light: Agent tints, then Codex black@0.04, OpenCode panel, Claude tokens.
 got="$(python3 "$HELPER" --background '#eceff4' --print)"
 assert_eq "$got" '#e5e7eb #d8dadd #e2e5ea #dcdfe3 #ffffff #f0f0f0 #f5f5f5' \
   "light #eceff4 Agent mixes plus Codex pill plus OpenCode plus Claude fills"

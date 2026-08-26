@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Stop — if this session hit validation/build friction in this repo (logged by
-# friction-log, or a Cursor-side Nix parse error from after-edit), surface it
-# once. Silent when the session was clean. The .fired sentinel is also the
-# stop-loop guard: every agent continues the turn when this hook returns a
-# nudge.
+# Stop: surface session friction once. Silent if the session was clean.
 set -euo pipefail
 # shellcheck source=common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"

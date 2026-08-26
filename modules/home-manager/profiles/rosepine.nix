@@ -1,9 +1,6 @@
 { pkgs, config, ... }:
 
-# Rosé Pine (Main dark, Dawn light) on the static-profile default mapping.
-# `highlightMed` is an extra palette key (the inactive-tab / selection tone
-# that sits between bg2 and bg3); everything Rosé Pine does differently from
-# the canonical role mapping lives in `overrides`.
+# Rosé Pine (Main / Dawn). `highlightMed` sits between bg2 and bg3.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;

@@ -1,5 +1,4 @@
-# Intentionally unenabled while the homelab is offline. The matching substituter
-# block in hosts/laptop/base.nix is commented out for the same reason.
+# Disabled while the homelab is offline (see substituter block in hosts/laptop/base.nix).
 {
   pkgs,
   lib,
@@ -11,16 +10,11 @@
   options.atticPush.enable = lib.mkEnableOption "Attic homelab cache push service";
 
   config = lib.mkIf config.atticPush.enable {
-    # `attic watch-store` tails additions to /nix/store and pushes them to the
-    # configured cache. Once this service runs, anything you build locally —
-    # `nix develop`, `nix build`, GC-then-rebuild — gets pre-warmed into the
-    # homelab Attic cache so CI doesn't have to recompile it.
+    # Push local /nix/store additions to the homelab Attic cache.
 
     home.packages = [ pkgs.attic-client ];
 
-    # Client config incl. the push token comes from sops-nix (system module,
-    # sops.secrets.attic-config-toml) so a fresh install needs no out-of-band
-    # `attic login`. Requires secrets.enable on the host.
+    # Token from sops (sops.secrets.attic-config-toml); needs secrets.enable.
     xdg.configFile."attic/config.toml".source =
       config.lib.file.mkOutOfStoreSymlink "/run/secrets/attic-config-toml";
 

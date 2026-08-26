@@ -16,9 +16,7 @@ Scope {
     property int _activeSignal: 0
     property string _activeSecurity: ""
     property string _busySsid: ""
-    // Frozen native-shaped discovery entries (ssid/signal/security/secure/known);
-    // only replaced while scanningRequested, so the popup's AP list survives
-    // scanner-off gaps instead of shrinking as native entries expire.
+    // Frozen while not scanning so the AP list survives scanner-off gaps.
     property var _discovery: []
     property var _nativeBySsid: ({})
 

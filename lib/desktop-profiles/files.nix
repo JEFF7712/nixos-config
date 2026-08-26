@@ -165,9 +165,7 @@ let
     theme: key: fallback:
     stripAlpha (theme.${key} or fallback);
 
-  # Accent wash for list hover (AARRGGBB). Selection uses a solid accent fill so
-  # wallpaper-driven accents (sharp/tinted) actually read in the launcher UI —
-  # previously selection/hover matched the background so accent was invisible.
+  # Selection is a solid accent fill (hover wash was matching the background).
   accentWash =
     accent:
     let

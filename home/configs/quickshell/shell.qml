@@ -126,10 +126,7 @@ ShellRoot {
         root.moduleAnimationStyle = "fade";
         root.motionStyle = "default";
         root.showWorkspaceIndicator = true;
-        // popupAttachToBar / popupAnimationStyle are applied at the end of
-        // applyTheme only when they actually change — resetting them here would
-        // flip false→true on every sharp wallpaper retheme and prewarm-flash
-        // every InfoPopup (see InfoPopup.onPopupAttachToBarChanged).
+        // Don't reset popupAttachToBar here: false→true on every sharp retheme prewarm-flashes InfoPopup.
         root.dividerColor = "#1affffff";
         root.barBorderColor = "#3dffffff";
         root.barInnerHighlight = "#0fffffff";
@@ -170,9 +167,7 @@ ShellRoot {
                 root.barHeight = parseInt(theme.barHeight);
             if (theme.barMargin !== undefined && theme.barMargin !== "") {
                 root.barMargin = parseInt(theme.barMargin);
-                // Themes often set barMargin alone (nord/sharp flush). Keep top
-                // in sync unless they override barMarginTop explicitly — reset
-                // breaks the QML binding of barMarginTop to barMargin.
+                // Themes often set barMargin alone; keep top in sync unless overridden.
                 if (theme.barMarginTop === undefined)
                     root.barMarginTop = root.barMargin;
             }

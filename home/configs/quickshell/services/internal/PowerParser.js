@@ -72,9 +72,7 @@ function reduceAdapterResult(previous, domain, succeeded) {
     return errors;
 }
 
-// Narrow adapter snapshot: covers only the threshold and stasis subprocess
-// adapters this service still owns. Battery and profile state come from the
-// native UPower/PowerProfiles backend (see reduceNativeBattery/reduceNativeProfile).
+// Threshold/stasis only; battery/profile come from native UPower/PowerProfiles.
 function reduceSnapshot(previous, text, exitCode) {
     if ((exitCode || 0) !== 0)
         return previous;
@@ -119,12 +117,7 @@ function parseSnapshot(text, exitCode) {
     return reduceSnapshot(initialState(), text, exitCode);
 }
 
-// Native UPower/PowerProfiles enum normalization ---------------------------
-//
-// Quickshell.Services.UPower exposes UPowerDeviceState::Enum and
-// PowerProfile::Enum as plain integers in QML. Their values are stable
-// (declared explicitly in the Quickshell C++ headers), so normalization can
-// be done with a pure lookup table, independent of any QML/Quickshell import.
+// UPowerDeviceState / PowerProfile enums as QML integers (stable C++ values).
 
 var DEVICE_STATE_NAMES = [
     "unknown", // UPowerDeviceState.Unknown = 0
@@ -156,10 +149,6 @@ function nativeProfileState(value) {
     return PROFILE_NAMES[index];
 }
 
-// Reduces a native battery observation (from the UPower backend) into the
-// public battery fields, retaining the last valid reading whenever the
-// snapshot is transiently invalid (device not ready, absent, or not a
-// laptop battery) instead of resetting to zero/unknown.
 function reduceNativeBattery(previous, observation) {
     var next = copyState(previous);
     var obs = observation || {};
@@ -184,9 +173,7 @@ function reduceNativeBattery(previous, observation) {
     return next;
 }
 
-// PowerProfiles has no availability property and defaults to Balanced before
-// power-profiles-daemon responds (or if it is absent entirely), so this
-// reducer never marks profile state as unavailable; it only normalizes.
+// PowerProfiles defaults to Balanced before the daemon responds; never mark unavailable.
 function reduceNativeProfile(previous, profileValue) {
     var next = copyState(previous);
     next.profile = nativeProfileState(profileValue);

@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
-# Live-preview a font on the ACTIVE profile without a rebuild — for comparing
-# fonts before committing one to a profile's `fonts` block.
-#
+# Live-preview a font on the active profile (no rebuild). Transient until next switch.
 #   try-font <mono-family> [ui-family] [mono-size] [ui-size]
-#   ui-family defaults to mono-family; sizes default to 14 (mono) / 11 (ui).
-#
-# Applies to kitty, GTK (3/4 + gsettings), the rofi profile switcher, the
-# hyprlock font file, and the quickshell bar. This is transient: switching/​reapplying
-# a profile or (for wallpaperTheming profiles) the next wallpaper change restores
-# the profile's real fonts. Make a choice permanent in modules/home-manager/profiles/<p>.nix.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

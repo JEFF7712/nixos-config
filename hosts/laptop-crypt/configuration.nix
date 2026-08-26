@@ -1,7 +1,4 @@
-# The laptop after the LUKS+btrfs reinstall: same system as hosts/laptop,
-# different disk layer. Runbook: docs/luks-reinstall.md. Once the reinstall
-# has happened and settled, fold this into hosts/laptop and delete the ext4
-# hardware-configuration.
+# laptop after LUKS+btrfs reinstall (same system, different disk). See docs/luks-reinstall.md.
 {
   diskoModule,
   lib,
@@ -15,14 +12,30 @@
     ./hardware-configuration.nix
     ../laptop/disko.nix
     ../laptop/base.nix
-  ];
+  ]
+  # resume_offset exists only after the swapfile does; until then skip hibernate.
+  ++ lib.optional (builtins.pathExists ./resume-offset.nix) ./resume-offset.nix;
 
   # Ephemeral @root + /persist (camp-1 impermanence); @home stays durable.
   impermanence.enable = true;
 
-  # Rehearsal VM (`just vm-crypt`): runs the real disko partitioning +
-  # LUKS + btrfs inside QEMU, then boots from it. Same strip-downs as the
-  # vmVariant in base.nix.
+  # Nothing else schedules a btrfs scrub.
+  services.btrfs.autoScrub = {
+    enable = true;
+    interval = "monthly";
+  };
+
+  # Same-disk undo for @home/@persist, not a backup.
+  btrfs-snapshots.enable = true;
+
+  # TPM2 unlock that survives kernel updates; PCR 7 keyslot is the migration path.
+  secureboot.measuredBoot.enable = true;
+
+  # 180 would page into the 16G swapfile once zram fills; keep zram strictly ahead.
+  boot.kernel.sysctl."vm.swappiness" = lib.mkForce 100;
+  zramSwap.priority = 100;
+
+  # `just vm-crypt`: real disko+LUKS+btrfs in QEMU. Same strip-downs as base.nix.
   virtualisation.vmVariantWithDisko = {
     virtualisation = {
       memorySize = 8192;

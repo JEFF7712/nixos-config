@@ -1,8 +1,6 @@
 { pkgs, config, ... }:
 
-# Gruvbox Hard, built on the static-profile default mapping. The palette is
-# the only theme-specific content; `comment` carries the bg4 tone the fish
-# theme uses, and the quickshell bar deviates from the mono font on purpose.
+# Gruvbox Hard. `comment` is bg4 for fish; bar uses a non-mono font.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;

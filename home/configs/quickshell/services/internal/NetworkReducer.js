@@ -12,11 +12,7 @@ function copyNetwork(network) {
     };
 }
 
-// Dedups by strongest signal per SSID, sorts descending, and caps the
-// result at eight entries — the exact discovery-list behavior this service
-// has always centralized. `saved` is a plain ssid->true lookup; a network
-// counts as known if it has a saved connection or is the currently active
-// SSID (mirrors the pre-native "saved" role).
+// Dedup by strongest signal per SSID, sort desc, cap at 8.
 function buildNetworkList(rawNetworks, saved, activeSsid) {
     var withRoles = (rawNetworks || []).map(function (entry) {
         return {
@@ -46,10 +42,6 @@ function buildNetworkList(rawNetworks, saved, activeSsid) {
     return deduped;
 }
 
-// Adapts a native-shaped snapshot (each entry already carrying its own
-// `known` flag straight from the native Network object, rather than a
-// separate saved-connections lookup) into the same dedup/sort/cap pipeline
-// buildNetworkList has always owned, so both backends share one reducer.
 function buildNetworkListFromNativeSnapshot(snapshot, activeSsid) {
     var raw = (snapshot || []).map(function (entry) {
         return {
@@ -67,9 +59,7 @@ function buildNetworkListFromNativeSnapshot(snapshot, activeSsid) {
     return buildNetworkList(raw, saved, activeSsid);
 }
 
-// A busy SSID clears once it becomes the active connection or disappears
-// from the current discovery list (connect failed/network went out of
-// range) — matches the prior WifiPopup busySsid clearing rule exactly.
+// Clear busy SSID once connected or gone from discovery.
 function reconcileBusy(previousBusySsid, activeSsid, networks) {
     if (!previousBusySsid)
         return "";

@@ -1,6 +1,4 @@
-# Target disk layout for the LUKS reinstall (used by the laptop-crypt host;
-# the live laptop host still runs the pre-disko ext4 layout).
-# LUKS2 over the whole disk minus ESP, btrfs subvolumes on top.
+# LUKS reinstall layout (laptop-crypt). Live laptop is still pre-disko ext4.
 {
   disko.devices = {
     disk.main = {

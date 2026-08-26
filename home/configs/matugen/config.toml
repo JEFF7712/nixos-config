@@ -1,8 +1,4 @@
-# matugen config for the wallpaper-driven `tinted` profile.
-# Invoked by `apply_wallpaper_theme` (home/scripts/profile-common) as:
-#   matugen color hex "#rrggbb" --mode <variant> -c ~/.config/matugen/config.toml
-# Outputs land directly in the live runtime locations the profile scripts and
-# the quickshell topbar read. Reloads are handled by the caller, not here.
+# tinted matugen config. Reloads are the caller's job.
 
 [config]
 

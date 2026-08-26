@@ -1,10 +1,5 @@
-# matugen config for the wallpaper-driven `sharp` profile (transparent,
-# monochrome surfaces + wallpaper-primary accent). Selected by
-# apply_wallpaper_theme (home/scripts/profile-common) when the active profile is
-# `sharp`, in preference to config.toml (which serves the opaque `tinted`).
-# Inputs come from templates-sharp/ so sharp is decoupled from tinted's set.
-# Outputs land in the same live runtime locations the profile scripts and the
-# quickshell topbar read.
+# sharp wallpaper-driven matugen config (transparent, monochrome + wallpaper accent).
+# apply_wallpaper_theme prefers this over config.toml (tinted).
 
 [config]
 

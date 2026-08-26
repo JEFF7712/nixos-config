@@ -19,6 +19,12 @@
       modesetting.enable = true;
       open = true;
       nvidiaSettings = true;
+      powerManagement = {
+        enable = true;
+        # Offload-only: the performance specialisation uses sync, which
+        # asserts against finegrained.
+        finegrained = true;
+      };
       prime = {
         intelBusId = "PCI:0:2:0";
         nvidiaBusId = "PCI:1:0:0";
@@ -35,9 +41,9 @@
       serviceConfig.SuccessExitStatus = [ 1 ];
     };
 
-    # Performance mode that uses GPU and iGPU with sync
     specialisation.performance.configuration = {
       system.nixos.tags = [ "performance" ];
+      hardware.nvidia.powerManagement.finegrained = lib.mkForce false;
       hardware.nvidia.prime = {
         offload = {
           enable = lib.mkForce false;

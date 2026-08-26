@@ -47,9 +47,7 @@ PanelWindow {
     property bool showSystem: true
     property bool showTray: true
     property string barFont: "JetBrainsMono Nerd Font"
-    // Proportional Nerd Fonts give icons a 1em advance but draw past it
-    // (wifi ink is ~1.5em), so AlignHCenter parks the glyph right of the
-    // pill. Mono/Symbols variants keep ink inside the cell.
+    // Proportional NF icons draw past 1em; AlignHCenter parks them. Mono keeps ink in-cell.
     property string iconFont: "Symbols Nerd Font Mono"
     property bool flatMode: false
     property bool showBarDividers: true

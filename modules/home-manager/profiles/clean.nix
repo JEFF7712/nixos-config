@@ -114,8 +114,7 @@ in
       cornerRadius = 15;
       borderOff = false;
       borderWidth = 0.5;
-      # Scale 2: 0.5 logical = 1 physical px (minimum continuous line). Soften
-      # with alpha so the hairline reads lighter rather than chunky.
+      # Scale 2: 0.5 logical = 1 physical px. Alpha so the hairline isn't chunky.
       borderActiveColor = "#ffffff66";
       borderInactiveColor = "#ffffff33";
       focusRingOff = true;
@@ -132,9 +131,7 @@ in
       blur = true;
       windowHighlightOff = true;
       extraConfig = ''
-        // Outline borders (not a filled rect behind the window). Default niri
-        // border-with-background washes through glass opacity and disappears as
-        // an edge; sharp uses the same override for the same reason.
+        // Outline, not filled: default border-with-background washes through glass.
         window-rule {
             draw-border-with-background false
         }
@@ -186,10 +183,7 @@ in
             }
         }
 
-        // Spotify glass: compositor-level transparency + blur over the
-        // wallpaper, independent of the spicetify theme (so it never breaks on
-        // Spotify UI updates). Matches the 0.85 global window opacity; keep the
-        // dedicated rule for blur/noise/radius independent of global defaults.
+        // Compositor blur over wallpaper, independent of the spicetify theme.
         window-rule {
             match app-id="Spotify"
             geometry-corner-radius 12

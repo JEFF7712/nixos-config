@@ -1,8 +1,6 @@
 { pkgs, config, ... }:
 
-# Nord (dark only) on the static-profile default mapping. The nordN bindings
-# stay so overrides can reference the few tones that fall outside the canonical
-# roles (nord5 bright text, nord10 deep frost, the hyprlock surface/muted).
+# Nord (dark only). nordN bindings for tones outside canonical roles.
 let
   static = import ../../../lib/desktop-profiles/static-profile.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;

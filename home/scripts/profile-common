@@ -299,9 +299,7 @@ matugen_frame() {
 }
 
 # apply_wallpaper_theme <wallpaper>
-# Regenerate the active profile's colors from the wallpaper into the live runtime
-# locations, then reload the consumers that don't poll. Engine is per-profile
-# (matugen or iris). No-op unless the active profile opted in (wallpaperTheming).
+# Regen live colors from wallpaper (matugen/iris). No-op unless wallpaperTheming.
 apply_wallpaper_theme() {
   local wp="$1" profile variant frame mode engine accent="" bar
   local job_profile job_variant job_gen
@@ -1331,10 +1329,7 @@ firefox_globals_from_palette() {
 }
 
 # firefox_globals_payload <profile> <variant>
-# Static profiles carry firefox colors in the manifest. The dynamic ones don't:
-# `tinted`/`sharp` regenerate a palette per wallpaper (runtime-quickshell-theme.json,
-# written by both the iris and matugen engines) and `noctalia` is self-themed, with
-# noctalia-shell owning the palette in its own colors.json.
+# Static profiles carry firefox colors in the manifest; tinted/sharp/noctalia do not.
 firefox_globals_payload() {
   local profile="$1" variant="$2"
   local firefox main sec accent text accent_hsl rt bg fg acc

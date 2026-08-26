@@ -4,8 +4,7 @@ let
   theme = import ../../../lib/desktop-profiles/theme-builders.nix;
   animations = import ../../../lib/desktop-profiles/niri-animations.nix;
 
-  # Neutral greys only. One role mapping serves dark and light; `rofiText`
-  # is the slot that differs beyond the palette itself.
+  # Neutral greys; `rofiText` is the only slot that differs beyond the palette.
   dark = rec {
     title = "Sharp dark";
     bg0 = "#0a0a0a";
@@ -240,21 +239,14 @@ in
   desktopProfiles.profiles.sharp = {
     bar = "quickshell";
 
-    # Transparent, monochrome counterpart to `tinted`: surfaces stay near-grey
-    # (subtly tinted toward the wallpaper) while the wallpaper's primary becomes
-    # the accent. apply_wallpaper_theme picks config-sharp.toml at runtime; the
-    # baked greys below are the pre-first-tint fallback. tonal-spot keeps surface
-    # chroma low (subtle tint) while the accent still follows the wallpaper hue.
+    # Wallpaper-tinted greys + wallpaper primary as accent. Fallback until first tint.
     wallpaperTheming = true;
-    # Also re-theme the Obsidian vault: fixed neutral-grey surfaces, accent
-    # follows the wallpaper (apply_obsidian_sharp writes the `sharp` snippet).
+    # Neutral-grey Obsidian surfaces; accent follows wallpaper (`apply_obsidian_sharp`).
     obsidianWallpaperTheme = true;
     matugenScheme = "scheme-tonal-spot";
-    # Push M3 surfaces toward near-black so kitty/GTK backgrounds land around
-    # the baked bg0 (#0a0a0a); templates also read surface_container_lowest.
+    # Push M3 surfaces toward the baked bg0 (#0a0a0a).
     matugenContrast = 0.5;
-    # Accent = the wallpaper's most vivid+bright color (not the dominant mood
-    # hue), surfaced raw via {{colors.source_color}} in the sharp templates.
+    # Wallpaper's most vivid+bright color via {{colors.source_color}}, not the mood hue.
     wallpaperAccentVivid = true;
 
     quickshellTheme = mkQuickshell dark;
@@ -289,11 +281,7 @@ in
     niri = {
       animations = animations.snappy;
       gaps = 6;
-      # No border; the focused window is marked by a thin accent focus ring.
-      # active-color is rewritten to the wallpaper accent at runtime by
-      # apply_wallpaper_theme (which regenerates this override and reloads niri);
-      # dark.accent here is the pre-first-render fallback. Windows use the
-      # same opacity regardless of focus.
+      # No border; thin accent focus ring. active-color rewritten at runtime.
       borderOff = true;
       focusRingOff = false;
       focusRingWidth = 0.5;
@@ -314,10 +302,7 @@ in
       focusOpacity = false;
       windowHighlightOff = true;
       extraConfig = ''
-        // Draw the focus ring as an outline, NOT a solid filled rectangle behind
-        // the window. Without this, niri fills the ring's background for windows
-        // that omit client-side decorations, which bleeds the accent through
-        // transparent windows and reads as a whole-window tint.
+        // Outline the focus ring; niri otherwise fills CSD-less windows (accent bleed).
         window-rule {
             draw-border-with-background false
         }

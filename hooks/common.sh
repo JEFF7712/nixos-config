@@ -261,14 +261,20 @@ agent_hooks_needs_no_ext_diff() {
   return 1
 }
 
-# Insert git --no-ext-diff at the start of each git invocation.
+# Insert --no-ext-diff after the `diff` subcommand, in git-diff invocations
+# only. It is a diff-command option, not a git global one: `git --no-ext-diff
+# diff` is a hard "unknown option" error, and the old rewrite also hit every
+# other git subcommand in a compound command (`git status && git diff` broke
+# the status half).
 agent_hooks_rewrite_no_ext_diff() {
   local cmd=$1
   [[ $cmd == *--no-ext-diff* ]] && {
     printf '%s' "$cmd"
     return 0
   }
-  sed -E 's/(^|&&|\|\||;|\||&)([[:space:]]*)git[[:space:]]+/\1\2git --no-ext-diff /g' <<<"$cmd"
+  # Words between `git` and `diff` are global flags (-C <path>, --no-pager);
+  # the class excludes shell separators so the match cannot span segments.
+  sed -E 's/(^|&&|\|\||;|\||&)([[:space:]]*git[[:space:]]+([^[:space:]|&;]+[[:space:]]+)*)diff([[:space:]]|$)/\1\2diff --no-ext-diff\4/g' <<<"$cmd"
 }
 
 agent_hooks_emit_deny() {

@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# After a file edit: format with this repo's formatters, parse-check .nix, and
-# stage newly created files so flake eval can see them. Shared by Cursor,
-# Claude, and Codex. Fail-open except for a Nix parse error, which blocks
-# Claude/Codex immediately and is logged as friction for Cursor.
+# After edit: format, parse-check .nix, stage new files. Fail-open except Nix parse.
 set -euo pipefail
 # shellcheck source=common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
