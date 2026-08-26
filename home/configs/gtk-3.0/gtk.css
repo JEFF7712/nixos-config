@@ -1,1 +1,43 @@
 @import url("noctalia.css");
+
+/* GTK3 apps (Thunar especially) still paint with the old theme_* names.
+ * adw-gtk3 snapshots those from its defaults at parse time, so redefining
+ * only the libadwaita colors leaves the file pane on Adwaita grey and the
+ * selection on Adwaita blue. Re-bind them after the profile palette. */
+@define-color theme_bg_color @window_bg_color;
+@define-color theme_fg_color @window_fg_color;
+@define-color theme_base_color @view_bg_color;
+@define-color theme_text_color @view_fg_color;
+@define-color theme_selected_bg_color @accent_bg_color;
+@define-color theme_selected_fg_color @accent_fg_color;
+@define-color theme_unfocused_bg_color @window_bg_color;
+@define-color theme_unfocused_fg_color @window_fg_color;
+@define-color theme_unfocused_base_color @view_bg_color;
+@define-color theme_unfocused_text_color @view_fg_color;
+@define-color theme_unfocused_selected_bg_color @accent_bg_color;
+@define-color theme_unfocused_selected_fg_color @accent_fg_color;
+
+/* Flatten Thunar chrome onto the profile surface so the shortcuts pane and
+ * file view don't keep adw-gtk3's lighter sidebar/headerbar fills. */
+window.thunar,
+.thunar,
+.thunar .sidebar,
+.thunar toolbar,
+.thunar .path-bar {
+  background-color: @window_bg_color;
+  color: @window_fg_color;
+}
+
+.thunar .view,
+.thunar .standard-view,
+.thunar .sidebar .view {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+}
+
+.thunar .view:selected,
+.thunar .view:selected:focus,
+.thunar .sidebar .view:selected {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
