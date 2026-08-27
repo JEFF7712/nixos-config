@@ -33,6 +33,9 @@ PanelWindow {
     property bool closing: false
     // Must not key off `shown`: openTimer used to clear settle in the same tick.
     property bool poseLocked: false
+    // Bumped when locking pose so card bindings re-evaluate and snap (a disabled
+    // Behavior mid-animation otherwise leaves x/y/opacity/scale stuck mid-tween).
+    property int poseEpoch: 0
     // Gate prewarm during startup theme-load (attach/style changes would flash).
     property bool ready: false
     // Set by shell.applyTheme while swapping profile/wallpaper themes so
@@ -67,15 +70,17 @@ PanelWindow {
         root.frozenLeft = PopupAnchor.clampedLeft(root.anchorCenterX, root.implicitWidth, outW, root.barMargin);
     }
 
-    function warmHeight() {
-        // Attached slide needs full height (card clipped off-screen). Soft styles
-        // stay at 1px while idle-warm to avoid a full-size niri blur ghost.
-        return root.attachedSlide ? Math.max(1, root.contentHeight) : 1;
+    function lockPose() {
+        // Lock before any frozenHeight / shown mutation so Behaviors cannot start.
+        root.poseLocked = true;
+        root.poseEpoch++;
     }
 
     function clearWarm() {
+        // Stay pose-locked while idle: unlocking here lets hiddenY retarget with
+        // Behaviors on, so a quick re-hover can map mid-tween and flash chrome.
+        root.lockPose();
         root.warming = false;
-        root.poseLocked = false;
         if (!root.active)
             root.frozenHeight = 0;
         warmTimer.interval = root.warmPulseMs;
@@ -84,8 +89,8 @@ PanelWindow {
     function enterKeepWarm() {
         // 1px keep-warm: surface stays hot for reopen without a full-size blur ghost.
         root.closing = false;
+        root.lockPose();
         root.frozenHeight = 1;
-        root.poseLocked = true;
         root.warming = true;
         warmTimer.interval = root.keepWarmMs;
         warmTimer.restart();
@@ -97,8 +102,10 @@ PanelWindow {
     function prewarm() {
         if (root.suppressPrewarm || !root.ready || root.active)
             return;
-        root.frozenHeight = root.warmHeight();
-        root.poseLocked = true;
+        // Always 1px: layershell remap is what we need. Full-height attached warm
+        // flashed the chrome whenever clip/pose was a frame behind (sharp profile).
+        root.lockPose();
+        root.frozenHeight = 1;
         root.warming = true;
         warmTimer.interval = root.warmPulseMs;
         warmTimer.restart();
@@ -108,9 +115,9 @@ PanelWindow {
         if (!root.suppressPrewarm)
             return;
         warmTimer.stop();
+        root.lockPose();
         root.warming = false;
         root.closing = false;
-        root.poseLocked = false;
         if (!root.active)
             root.frozenHeight = 0;
         warmTimer.interval = root.warmPulseMs;
@@ -121,14 +128,14 @@ PanelWindow {
         openTimer.stop();
         showTimer.stop();
         warmTimer.stop();
-        root.warming = false;
         root.closing = false;
         if (!root.attachedSlide)
             root.freezeAnchor();
         // Two-tick settle for every style: unlock Behaviors, then flip shown.
         // Same-tick unlock+show can still snap (Behavior enable races the pose bind).
+        root.lockPose();
+        root.warming = false;
         root.frozenHeight = Math.max(1, root.contentHeight);
-        root.poseLocked = true;
         root.opening = true;
         root.shown = false;
         openTimer.restart();
@@ -147,10 +154,10 @@ PanelWindow {
 
         // Instant unmap. Niri blur follows the layershell rect, not the card —
         // an animated close leaves an empty blur field after the chrome is gone.
+        root.lockPose();
         root.opening = false;
         root.closing = false;
         root.shown = false;
-        root.poseLocked = true;
         root.enterKeepWarm();
     }
 
@@ -249,10 +256,26 @@ PanelWindow {
             color: root.themeBg
             border.width: 1
             border.color: root.themeBorder
-            x: root.shown ? 0 : root.hiddenX
-            y: root.shown ? 0 : root.hiddenY
-            opacity: root.shown ? 1.0 : root.hiddenOpacity
-            scale: root.shown ? 1.0 : root.hiddenScale
+            // poseEpoch forces a rebind snap when lockPose() runs mid-Behavior.
+            x: {
+                root.poseEpoch;
+                return root.shown ? 0 : root.hiddenX;
+            }
+            y: {
+                root.poseEpoch;
+                return root.shown ? 0 : root.hiddenY;
+            }
+            // Warm must stay invisible even if pose/clip races (attachedSlide is opacity 1).
+            opacity: {
+                root.poseEpoch;
+                if (root.warming)
+                    return 0.0;
+                return root.shown ? 1.0 : root.hiddenOpacity;
+            }
+            scale: {
+                root.poseEpoch;
+                return root.shown ? 1.0 : root.hiddenScale;
+            }
             transformOrigin: root.attachedSlide ? (root.popupPosition === "left" ? Item.TopLeft : Item.TopRight) : Item.Top
             Behavior on x {
                 enabled: !root.poseLocked

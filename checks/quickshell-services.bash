@@ -1909,6 +1909,12 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'InfoPopup.qml must keep the warming lifecycle property'
   rg -q 'property bool ready: false' "$production_dir/InfoPopup.qml" \
     || fail 'InfoPopup.qml must keep the startup ready gate'
+  rg -q 'function lockPose()' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must lock pose before warm height mutations'
+  rg -q 'if \(root\.warming\)' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must force opacity 0 while warming (hover flash guard)'
+  ! rg -q 'function warmHeight()' "$production_dir/InfoPopup.qml" \
+    || fail 'InfoPopup.qml must not use full-height attached warmHeight (hover flash)'
   # Documented presentation timers: clock tick in Topbar, InfoPopup open/close/warm/ready,
   # shell themeReloadTimer. Migrated domain views must not grow new poll timers.
   ! rg -n '(^|[[:space:]])Timer[[:space:]]*\{' \
