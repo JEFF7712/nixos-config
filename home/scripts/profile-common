@@ -1063,6 +1063,7 @@ write_vicinae_settings() {
   [ -z "$profile" ] || fade_ms=$(profile_launcher_fade_ms "$profile")
 
   mkdir -p "$(dirname "$settings")"
+  printf '%s\n' "$fade_ms" > "$(dirname "$settings")/fade-ms"
   tmp=$(mktemp "$settings.XXXXXX")
   jq -n \
     --arg family "$family" \
