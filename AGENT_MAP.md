@@ -16,8 +16,8 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Change runtime profile scripts | `home/scripts/profile-common`, target script | `home/scripts/<script>` | `just shell-check && just wallpaper-script-check` |
 | Change lid-close / Stasis stay-awake | `home/scripts/lid-close-action`, `home/rupan/laptop.nix` | same | `just lid-close-check && just shell-check` |
 | Change Quickshell UI | `home/configs/quickshell*/`, profile bar references | QML/config files under `home/configs/quickshell*/` | `just qml-lint && just eval laptop` |
-| Add a local package | `pkgs/`, `overlays/local-packages.nix` | `pkgs/<name>/default.nix`, overlay export | `just build laptop` |
-| Change overlays | `overlays/default.nix`, target overlay file | `overlays/<name>.nix` | `just build laptop` |
+| Add a local package | `pkgs/`, `overlays/local-packages.nix` | `pkgs/<name>/default.nix`, overlay export | `nix build .#nixosConfigurations.laptop.pkgs.<name>` (stage new files first) |
+| Change overlays | `overlays/default.nix`, target overlay file | `overlays/<name>.nix` | `nix build` the overlayed package attr, or `just eval laptop` if eval is enough |
 | Update flake inputs | `flake.nix`, `flake.lock` | `flake.lock` via `just update` | `just check` |
 | Change ISO behavior | `hosts/iso/configuration.nix`, `home/rupan/iso.nix` | ISO host or ISO home config | `just eval iso && just build-iso` |
 | Change VM boot testing (`just vm`) | `justfile`, `virtualisation.vmVariant` in `hosts/laptop/base.nix` | vmVariant block, `vm`/`vm-iso` recipes | `just eval-vm` (vmVariant is not covered by `just eval`) |
@@ -41,6 +41,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 - Keep generated or mutable desktop config under `home/configs/` or `home/scripts/`, not inline in unrelated modules.
 - The Quickshell bar is launched from `home/configs/quickshell/shell.qml` by `profile-transition` and `toggle-bar`; it has no `xdg.configFile` or `home.file` entry and is not in `sync_live_config`.
 - Do not use `git add .` / `git add -A` / `git add --all`; `hooks/before-shell` denies those. Stage the specific files changed (`hooks/after-edit` already stages newly created files).
+- This flake only sees git-tracked files. New `pkgs/` or overlay paths created in the shell (`cp`, `diff`) skip `hooks/after-edit`; `git add <path>` before `nix build` / `just eval` or Nix errors with "is not tracked by Git".
 - `git diff` renders through difftastic here; `hooks/before-shell` injects `--no-ext-diff` after the `diff` subcommand on agent `git diff`, and leaves every other git subcommand alone. Pass it yourself for a real unified patch outside the agent (`git apply`, hunk staging, or any machine parsing). Position matters: `git diff --no-ext-diff`, never `git --no-ext-diff diff` (git rejects it as a global option).
 - Use `new-nixos-module <name>` and `new-home-module <name>` for new auto-discovered modules.
 - Repo agent hooks live in `hooks/` and are wired from `.cursor/hooks.json`, `.claude/settings.json`, and `.codex/hooks.json`. Do not fork per-agent copies of the scripts. SessionStart injects `just agent-context`; do not run that recipe first.

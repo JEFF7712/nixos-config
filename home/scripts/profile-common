@@ -483,6 +483,7 @@ apply_wallpaper_theme() {
   fi
   reload_zathura_theme
   nudge_gtk_reload
+  restart_swayosd
   # Firefox parses userChrome.css and its @imports once at startup, so this only
   # stages the colors: they land on the next start, or on a chrome reload
   # (Browser Console Ctrl+Alt+R with nglayout.debug.disable_xul_cache).
@@ -653,6 +654,18 @@ write_osd_motion() {
   local dest="$1" ms="$2"
   mkdir -p "$(dirname "$dest")"
   printf '* { --osd-motion-ms: %sms; }\n' "$ms" > "$dest"
+}
+
+# SwayOSD loads style.css once (CssProvider::load_from_path) and inlines the
+# @import'd noctalia.css. Wallpaper/profile color writes never reach the
+# running server, so restart it after the palette files are in place.
+restart_swayosd() {
+  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+    systemctl --user restart swayosd 2>/dev/null || true
+  else
+    (systemctl --user restart swayosd 2>/dev/null || true) 9>&- &
+    disown 2>/dev/null || true
+  fi
 }
 
 profile_launcher_fade_ms() {

@@ -210,15 +210,6 @@ apply_wallpaper_adapter() {
   fi
 }
 
-restart_swayosd() {
-  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    systemctl --user restart swayosd 2>/dev/null || true
-  else
-    (systemctl --user restart swayosd 2>/dev/null || true) 9>&- &
-    disown 2>/dev/null || true
-  fi
-}
-
 start_profile_switcher() {
   local switcher_path="$REPO_HOME/configs/quickshell-switcher/shell.qml"
   pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1 && return 0

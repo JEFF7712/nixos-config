@@ -1,0 +1,113 @@
+--- a/src/server/osd_window.rs
++++ b/src/server/osd_window.rs
+@@ -29,6 +29,7 @@
+ 	pub monitor: gdk::Monitor,
+ 	container: gtk::Box,
+ 	timeout_id: Rc<RefCell<Option<glib::SourceId>>>,
++	fade_id: Rc<RefCell<Option<glib::SourceId>>>,
+ }
+ 
+ // TODO: Use custom widget
+@@ -104,6 +105,7 @@
+ 			container,
+ 			monitor: monitor.clone(),
+ 			timeout_id: Rc::new(RefCell::new(None)),
++			fade_id: Rc::new(RefCell::new(None)),
+ 		}
+ 	}
+ 
+@@ -331,21 +333,91 @@
+ 		}
+ 	}
+ 
++	fn osd_fade_ms() -> u64 {
++		let path = glib::user_config_dir().join("swayosd-motion.css");
++		let Ok(text) = std::fs::read_to_string(path) else {
++			return 120;
++		};
++		let Some(rest) = text.split("--osd-motion-ms:").nth(1) else {
++			return 120;
++		};
++		let digits: String = rest
++			.chars()
++			.skip_while(|c| c.is_whitespace())
++			.take_while(|c| c.is_ascii_digit())
++			.collect();
++		digits
++			.parse::<u64>()
++			.ok()
++			.filter(|ms| (1..=1000).contains(ms))
++			.unwrap_or(120)
++	}
++
++	fn cancel_fade(&self) {
++		if let Some(id) = self.fade_id.take() {
++			id.remove();
++		}
++	}
++
++	fn animate_opacity(&self, from: f64, to: f64, hide_when_done: bool) {
++		self.cancel_fade();
++		let window = self.window.clone();
++		let fade_id = self.fade_id.clone();
++		let duration = Duration::from_millis(Self::osd_fade_ms());
++		if duration.is_zero() {
++			window.set_opacity(to);
++			if hide_when_done {
++				window.hide();
++				window.set_opacity(1.0);
++			}
++			return;
++		}
++		let start = std::time::Instant::now();
++		let id = glib::timeout_add_local(Duration::from_millis(16), move || {
++			let t = (start.elapsed().as_secs_f64() / duration.as_secs_f64()).clamp(0.0, 1.0);
++			let eased = 1.0 - (1.0 - t) * (1.0 - t);
++			window.set_opacity(from + (to - from) * eased);
++			if t >= 1.0 {
++				window.set_opacity(to);
++				if hide_when_done {
++					window.hide();
++					window.set_opacity(1.0);
++				}
++				fade_id.replace(None);
++				glib::ControlFlow::Break
++			} else {
++				glib::ControlFlow::Continue
++			}
++		});
++		self.fade_id.replace(Some(id));
++	}
++
+ 	fn run_timeout(&self) {
+ 		// Hide window after timeout
+ 		if let Some(timeout_id) = self.timeout_id.take() {
+ 			timeout_id.remove()
+ 		}
++		self.cancel_fade();
++
++		let appearing = !self.window.is_visible();
++		if appearing {
++			self.window.set_opacity(0.0);
++		}
++		self.window.show();
++		if appearing {
++			self.animate_opacity(0.0, 1.0, false);
++		} else {
++			self.window.set_opacity(1.0);
++		}
++
+ 		let s = self.clone();
+ 		self.timeout_id.replace(Some(glib::timeout_add_local_once(
+ 			Duration::from_millis(1000),
+ 			move || {
+-				s.window.hide();
+ 				s.timeout_id.replace(None);
++				s.animate_opacity(s.window.opacity(), 0.0, true);
+ 			},
+ 		)));
+-
+-		self.window.show();
+ 	}
+ 
+ 	fn build_icon_widget(&self, icon_name: &str) -> gtk::Image {

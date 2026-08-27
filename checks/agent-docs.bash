@@ -50,6 +50,7 @@ require_match 'home-manager module' AGENT_MAP.md
 require_match 'desktop profile' AGENT_MAP.md
 require_match 'just eval' AGENT_MAP.md
 require_match 'just check' AGENT_MAP.md
+require_match 'is not tracked by Git' AGENT_MAP.md
 require_match 'agent-self-improve' AGENT_MAP.md
 require_match 'hooks/' AGENT_MAP.md
 

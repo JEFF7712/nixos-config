@@ -130,6 +130,10 @@
             After = [ "graphical-session.target" ];
           };
           Service = {
+            # GTK4 defaults to Vulkan. After idle, the first OSD frame on this
+            # Intel iGPU + NVIDIA Prime laptop waits on pipeline compile
+            # (SwayOSD#198), and volume is applied on that same GTK thread.
+            Environment = [ "GSK_RENDERER=gl" ];
             ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
             Restart = "on-failure";
             RestartSec = 3;

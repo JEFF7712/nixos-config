@@ -130,6 +130,11 @@ assert_eq light "$(cat "$profiles_dir/runtime-theme-variant")" \
 assert_eq "spicetify $profiles_dir/tinted/manifest.json light" \
   "$(grep '^spicetify ' "$log_file")" \
   "wallpaper tint reapplies the active profile spicetify scheme"
+if ! grep -Fq 'systemctl --user restart swayosd' "$log_file"; then
+  printf 'FAIL: wallpaper tint did not restart swayosd to reload OSD colors\n' >&2
+  cat "$log_file" >&2
+  exit 1
+fi
 if ! grep -Fq 'active-color "#d8915f"' "$profiles_dir/runtime-niri-active.kdl"; then
   printf 'FAIL: iris wallpaper tint did not rewrite the niri focus-ring to #d8915f\n' >&2
   cat "$profiles_dir/runtime-niri-active.kdl" >&2
