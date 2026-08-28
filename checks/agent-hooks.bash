@@ -250,6 +250,15 @@ skip_status=$(
 )
 assert_ok_json "$skip_status" preToolUse
 
+codex_skip_status=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" \
+      '{hook_event_name:"PreToolUse",turn_id:"hook-test-turn",tool_name:"Bash",cwd:$cwd,tool_input:{command:"git status"}}'
+  )"
+)
+printf '%s\n' "$codex_skip_status" | jq -e '. == {}' >/dev/null \
+  || fail "Codex before-shell emitted an unsupported no-op decision: $codex_skip_status"
+
 outside_add=$(
   run_before_shell "$(
     jq -n '{hook_event_name:"preToolUse",cwd:"/tmp",tool_input:{command:"git add ."}}'

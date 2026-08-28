@@ -285,7 +285,11 @@ agent_hooks_emit_ok() {
       jq -n '{permission:"allow"}'
       ;;
     PreToolUse)
-      jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'
+      if jq -e '.turn_id != null' <<<"$HOOK_INPUT" >/dev/null; then
+        jq -n '{}'
+      else
+        jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'
+      fi
       ;;
     *)
       jq -n '{}'
