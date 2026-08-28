@@ -1,4 +1,4 @@
-# LUKS reinstall layout (laptop-crypt). Live laptop is still pre-disko ext4.
+# LUKS2 and btrfs layout for the laptop reinstall.
 {
   disko.devices = {
     disk.main = {
