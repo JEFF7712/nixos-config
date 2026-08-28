@@ -1448,12 +1448,10 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'production shell.qml must instantiate exactly one Services.AudioService'
   rg -q 'id:[[:space:]]*audioService' "$shell" \
     || fail 'production shell.qml must name the AudioService audioService'
-  for view in Topbar VolumePopup; do
-    rg -q "${view}[[:space:]]*\{" "$shell" \
-      || fail "production shell.qml is missing $view"
-    rg -U -q "${view}[[:space:]]*\{[^}]*audioService:[[:space:]]*audioService" "$shell" \
-      || fail "production shell.qml does not wire audioService directly to $view"
-  done
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*audioService:[[:space:]]*root\.sharedAudioService' "$shell" \
+    || fail 'production shell.qml does not wire root audioService directly to Topbar'
+  rg -U -q 'VolumePopup[[:space:]]*\{[^}]*audioService:[[:space:]]*audioService' "$shell" \
+    || fail 'production shell.qml does not wire audioService directly to VolumePopup'
   rg -U -q 'Services\.MediaService[[:space:]]*\{[^}]*audioService:[[:space:]]*audioService' "$shell" \
     || fail 'production shell.qml does not wire AudioService directly to MediaService'
   ! rg -n 'topbar\.(volume|setVolume|adjustVolume|toggleMute|openMixer|run\([^\n]*(wpctl|pavucontrol))' \
@@ -1505,7 +1503,7 @@ assert_no_view_processes_for_migrated_domains() {
   # misses track swaps while Playing (popup/bar stay stale until a click reconciles).
   rg -F -q '"{{status}}\t{{title}}\t{{artist}}\t{{album}}\t{{mpris:artUrl}}\t{{mpris:length}}\t{{shuffle}}\t{{loop}}"' "$media_model" \
     || fail 'MediaModel follow format must include track fields, not status alone'
-  rg -U -q 'Topbar[[:space:]]*\{[^}]*mediaService:[[:space:]]*mediaService' "$shell" \
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*mediaService:[[:space:]]*root\.sharedMediaService' "$shell" \
     || fail 'production shell.qml does not wire MediaService directly to Topbar'
   rg -U -q 'MediaPopup[[:space:]]*\{[^}]*mediaService:[[:space:]]*mediaService' "$shell" \
     || fail 'production shell.qml does not wire MediaService directly to MediaPopup'
@@ -1525,8 +1523,8 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'CavaService.qml must own the parent-death-protected Cava command'
   [ "$(rg -o 'Services\.CavaService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
     || fail 'production shell.qml must instantiate exactly one CavaService'
-  rg -U -q 'Services\.CavaService[[:space:]]*\{[^}]*playing:[[:space:]]*mediaService\.playing[^}]*requested:[[:space:]]*topbar\.cavaRequested[[:space:]]*\|\|[[:space:]]*mediaPopup\.active' "$shell" \
-    || fail 'production shell.qml must bind exact media, bar, and popup Cava demand'
+  rg -U -q 'Services\.CavaService[[:space:]]*\{[^}]*playing:[[:space:]]*mediaService\.playing[^}]*requested:[[:space:]]*root\.anyBarCavaRequested[[:space:]]*\|\|[[:space:]]*mediaPopup\.active' "$shell" \
+    || fail 'production shell.qml must bind exact media, multi-bar, and popup Cava demand'
   rg -q 'required property Services\.CavaService cavaService' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml must require CavaService'
   rg -q 'readonly property bool cavaRequested:[[:space:]]*mediaPill\.visible' "$production_dir/Topbar.qml" \
@@ -1574,12 +1572,12 @@ assert_no_view_processes_for_migrated_domains() {
     rg -q 'required property Services\.PowerService powerService' "$production_dir/$view" \
       || fail "$view must require PowerService"
   done
-  rg -U -q 'Topbar[[:space:]]*\{[^}]*powerService:[[:space:]]*powerService' "$shell" \
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*powerService:[[:space:]]*root\.sharedPowerService' "$shell" \
     || fail 'production shell.qml does not wire PowerService directly to Topbar'
   rg -U -q 'BatteryPopup[[:space:]]*\{[^}]*powerService:[[:space:]]*powerService' "$shell" \
     || fail 'production shell.qml does not wire PowerService directly to BatteryPopup'
-  rg -U -q 'Services\.PowerService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*batteryPopup\.shown' "$shell" \
-    || fail 'production shell.qml must bind power cadence demand to BatteryPopup shown state'
+  rg -U -q 'Services\.PowerService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*batteryPopup\.active[[:space:]]*\|\|[[:space:]]*batteryPopup\.warming' "$shell" \
+    || fail 'production shell.qml must bind power cadence demand to BatteryPopup active and warming state'
   rg -q 'interval:[[:space:]]*root\.detailedMonitoring \? 5000 : 30000' "$power_model" \
     || fail 'PowerModel cadence must be five seconds shown and thirty seconds hidden'
   ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|upower|powerprofilesctl|charge_control_end_threshold|stasis' \
@@ -1640,14 +1638,12 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'production shell.qml must instantiate exactly one Services.SystemService'
   rg -q 'id:[[:space:]]*systemService' "$shell" \
     || fail 'production shell.qml must name the SystemService systemService'
-  for view in Topbar SystemPopup; do
-    rg -q "${view}[[:space:]]*\{" "$shell" \
-      || fail "production shell.qml is missing $view"
-    rg -U -q "${view}[[:space:]]*\{[^}]*systemService:[[:space:]]*systemService" "$shell" \
-      || fail "production shell.qml does not wire systemService directly to $view"
-  done
-  rg -U -q 'Services\.SystemService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*systemPopup\.shown' "$shell" \
-    || fail 'production shell.qml must bind system metadata cadence demand to SystemPopup shown state'
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*systemService:[[:space:]]*root\.sharedSystemService' "$shell" \
+    || fail 'production shell.qml does not wire root systemService directly to Topbar'
+  rg -U -q 'SystemPopup[[:space:]]*\{[^}]*systemService:[[:space:]]*systemService' "$shell" \
+    || fail 'production shell.qml does not wire systemService directly to SystemPopup'
+  rg -U -q 'Services\.SystemService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*systemPopup\.active[[:space:]]*\|\|[[:space:]]*systemPopup\.warming' "$shell" \
+    || fail 'production shell.qml must bind system metadata cadence demand to SystemPopup active and warming state'
   rg -q 'required property Services\.SystemService systemService' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml must require SystemService'
   rg -q 'required property Services\.SystemService systemService' "$system_popup" \
@@ -1702,10 +1698,10 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'production shell.qml must instantiate exactly one Services.NiriService'
   rg -q 'id:[[:space:]]*niriService' "$shell" \
     || fail 'production shell.qml must name the NiriService niriService'
-  for view in Topbar SystemPopup; do
-    rg -U -q "${view}[[:space:]]*\{[^}]*niriService:[[:space:]]*niriService" "$shell" \
-      || fail "production shell.qml does not wire niriService directly to $view"
-  done
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*niriService:[[:space:]]*root\.sharedNiriService' "$shell" \
+    || fail 'production shell.qml does not wire root niriService directly to Topbar'
+  rg -U -q 'SystemPopup[[:space:]]*\{[^}]*niriService:[[:space:]]*niriService' "$shell" \
+    || fail 'production shell.qml does not wire niriService directly to SystemPopup'
   rg -q 'required property Services\.NiriService niriService' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml must require NiriService'
   rg -q 'required property Services\.NiriService niriService' "$system_popup" \
@@ -1770,12 +1766,12 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'production shell.qml must instantiate exactly one Services.NetworkService'
   rg -q 'id:[[:space:]]*networkService' "$shell" \
     || fail 'production shell.qml must name the NetworkService networkService'
-  rg -U -q 'Services\.NetworkService[[:space:]]*\{[^}]*scanningRequested:[[:space:]]*wifiPopup\.shown' "$shell" \
-    || fail 'production shell.qml must bind scanningRequested directly to WifiPopup shown state'
-  for view in Topbar WifiPopup; do
-    rg -U -q "${view}[[:space:]]*\{[^}]*networkService:[[:space:]]*networkService" "$shell" \
-      || fail "production shell.qml does not wire networkService directly to $view"
-  done
+  rg -U -q 'Services\.NetworkService[[:space:]]*\{[^}]*scanningRequested:[[:space:]]*wifiPopup\.active[[:space:]]*\|\|[[:space:]]*wifiPopup\.warming' "$shell" \
+    || fail 'production shell.qml must bind scanningRequested to WifiPopup active and warming state'
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*networkService:[[:space:]]*root\.sharedNetworkService' "$shell" \
+    || fail 'production shell.qml does not wire root networkService directly to Topbar'
+  rg -U -q 'WifiPopup[[:space:]]*\{[^}]*networkService:[[:space:]]*networkService' "$shell" \
+    || fail 'production shell.qml does not wire networkService directly to WifiPopup'
   rg -q 'required property Services\.NetworkService networkService' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml must require NetworkService'
   rg -q 'required property Services\.NetworkService networkService' "$wifi_popup" \
@@ -1839,12 +1835,12 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'bluetooth command construction exists outside BluetoothParser.js'
   [ "$(rg -o 'Services\.BluetoothService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
     || fail 'production shell.qml must instantiate exactly one Services.BluetoothService'
-  rg -U -q 'Services\.BluetoothService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*bluetoothPopup\.shown' "$shell" \
-    || fail 'production shell.qml must bind bluetooth cadence demand to BluetoothPopup shown state'
-  for view in Topbar BluetoothPopup; do
-    rg -U -q "${view}[[:space:]]*\{[^}]*bluetoothService:[[:space:]]*bluetoothService" "$shell" \
-      || fail "production shell.qml does not wire bluetoothService directly to $view"
-  done
+  rg -U -q 'Services\.BluetoothService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*bluetoothPopup\.active[[:space:]]*\|\|[[:space:]]*bluetoothPopup\.warming' "$shell" \
+    || fail 'production shell.qml must bind bluetooth cadence demand to BluetoothPopup active and warming state'
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*bluetoothService:[[:space:]]*root\.sharedBluetoothService' "$shell" \
+    || fail 'production shell.qml does not wire root bluetoothService directly to Topbar'
+  rg -U -q 'BluetoothPopup[[:space:]]*\{[^}]*bluetoothService:[[:space:]]*bluetoothService' "$shell" \
+    || fail 'production shell.qml does not wire bluetoothService directly to BluetoothPopup'
   rg -q 'required property Services\.BluetoothService bluetoothService' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml must require BluetoothService'
   rg -q 'required property Services\.BluetoothService bluetoothService' "$bluetooth_popup" \
@@ -1890,6 +1886,12 @@ assert_no_view_processes_for_migrated_domains() {
   topbar_type_refs=$(rg -n '\bTopbar\b' "$shell" || true)
   [ "$(printf '%s\n' "$topbar_type_refs" | sed '/^$/d' | wc -l)" -eq 1 ] \
     || fail 'production shell.qml must reference the Topbar type only in its presentation instantiation'
+  rg -U -q 'Variants[[:space:]]*\{[^}]*id:[[:space:]]*barVariants[^}]*model:[[:space:]]*Quickshell\.screens' "$shell" \
+    || fail 'production shell.qml must create a Topbar variant for every connected screen'
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*property var modelData[^}]*screen:[[:space:]]*modelData' "$shell" \
+    || fail 'each Topbar variant must bind its window to its model screen'
+  rg -q 'root\.showOnly\([^,]+,[^,]+,[[:space:]]*modelData\)' "$shell" \
+    || fail 'Topbar popups must open on the screen of the clicked bar'
   rg -q 'notificationCount:[[:space:]]*NotifService\.count' "$shell" \
     || fail 'production shell.qml must bind Topbar notificationCount from NotifService.count'
   ! rg -n 'notificationsPopup\.unreadCount' "$shell" \
@@ -1927,6 +1929,18 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'migrated popups still own presentation-adjacent Timer blocks'
 }
 
+assert_variant_topbar_bindings_are_root_qualified() {
+  local shell="$repo_root/home/configs/quickshell/shell.qml"
+  local service
+
+  for service in audio media cava power system niri network bluetooth; do
+    rg -q "readonly property Services\\.${service^}Service shared${service^}Service:[[:space:]]*${service}Service" "$shell" \
+      || fail "ShellRoot must expose ${service}Service under an unshadowed shared property"
+    rg -U -q "Topbar[[:space:]]*\\{[^}]*${service}Service:[[:space:]]*root\\.shared${service^}Service" "$shell" \
+      || fail "Topbar variant must bind ${service}Service from the ShellRoot"
+  done
+}
+
 if [ "${QS_TEST_FORCE_FAILURE_CHILD:-0}" = 1 ]; then
   run_forced_failure_child "${QS_TEST_PROBE_STATE_DIR:?QS_TEST_PROBE_STATE_DIR is required}"
 fi
@@ -1943,6 +1957,7 @@ fi
 
 assert_native_probe_has_no_wpctl_dependency
 assert_native_fixture_always_validates_public_contract
+assert_variant_topbar_bindings_are_root_qualified
 run_unit_tests
 run_process_cleanup_fixture
 run_native_construction_probes

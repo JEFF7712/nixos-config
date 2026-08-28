@@ -21,7 +21,7 @@ ShellRoot {
     Services.CavaService {
         id: cavaService
         playing: mediaService.playing
-        requested: topbar.cavaRequested || mediaPopup.active
+        requested: root.anyBarCavaRequested || mediaPopup.active
     }
 
     Services.PowerService {
@@ -56,6 +56,22 @@ ShellRoot {
     property color themeSecond: "#e8e8e8"
     property color themeWarm: "#e6dcc6"
     property color themeFresh: "#d6eadc"
+    property var popupScreen: null
+    readonly property Services.AudioService sharedAudioService: audioService
+    readonly property Services.MediaService sharedMediaService: mediaService
+    readonly property Services.CavaService sharedCavaService: cavaService
+    readonly property Services.PowerService sharedPowerService: powerService
+    readonly property Services.SystemService sharedSystemService: systemService
+    readonly property Services.NiriService sharedNiriService: niriService
+    readonly property Services.NetworkService sharedNetworkService: networkService
+    readonly property Services.BluetoothService sharedBluetoothService: bluetoothService
+    readonly property bool anyBarCavaRequested: {
+        for (const bar of barVariants.instances) {
+            if (bar.cavaRequested)
+                return true;
+        }
+        return false;
+    }
 
     property int barRadius: 15
     property int barHeight: 44
@@ -301,7 +317,8 @@ ShellRoot {
     readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active
     readonly property bool anyPopupWarming: volumePopup.warming || wifiPopup.warming || bluetoothPopup.warming || batteryPopup.warming || calendarPopup.warming || notificationsPopup.warming || systemPopup.warming || mediaPopup.warming
 
-    function showOnly(target, centerX) {
+    function showOnly(target, centerX, screen) {
+        root.popupScreen = screen;
         target.anchorCenterX = (centerX === undefined || centerX === null) ? -1 : centerX;
         const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
         for (const p of popups) {
@@ -309,6 +326,11 @@ ShellRoot {
                 p.close();
         }
         target.toggle();
+    }
+
+    function prewarmOn(target, screen) {
+        root.popupScreen = screen;
+        target.prewarm();
     }
 
     function closeAll() {
@@ -322,74 +344,82 @@ ShellRoot {
         mediaPopup.close();
     }
 
-    Topbar {
-        id: topbar
-        audioService: audioService
-        mediaService: mediaService
-        cavaService: cavaService
-        powerService: powerService
-        systemService: systemService
-        niriService: niriService
-        networkService: networkService
-        bluetoothService: bluetoothService
-        themeReady: root.themeLoaded
-        themeFg: root.themeFg
-        themeBg: root.themeBg
-        themeRawBg: root.themeRawBg
-        themeAccent: root.themeAccent
-        themeSecond: root.themeSecond
-        themeWarm: root.themeWarm
-        themeFresh: root.themeFresh
-        barRadius: root.barRadius
-        barHeight: root.barHeight
-        barMargin: root.barMargin
-        barMarginTop: root.barMarginTop
-        exclusiveZoneOffset: root.exclusiveZoneOffset
-        showWorkspaces: root.showWorkspaces
-        showClock: root.showClock
-        showClockDate: root.showClockDate
-        showWorkspaceNumbers: root.showWorkspaceNumbers
-        showActiveWindow: root.showActiveWindow
-        showMedia: root.showMedia
-        showVolume: root.showVolume
-        showNetwork: root.showNetwork
-        showBluetooth: root.showBluetooth
-        showBattery: root.showBattery
-        showNotifications: root.showNotifications
-        showSystem: root.showSystem
-        showTray: root.showTray
-        barFont: root.barFont
-        flatMode: root.flatMode
-        showBarDividers: root.showBarDividers
-        moduleAnimationStyle: root.moduleAnimationStyle
-        motionStyle: root.motionStyle
-        showWorkspaceIndicator: root.showWorkspaceIndicator
-        dividerColor: root.dividerColor
-        barBorderColor: root.barBorderColor
-        barInnerHighlight: root.barInnerHighlight
-        pillBg: root.pillBg
-        pillBorder: root.pillBorder
-        notificationCount: NotifService.count
-        onVolumeClicked: centerX => root.showOnly(volumePopup, centerX)
-        onWifiClicked: centerX => root.showOnly(wifiPopup, centerX)
-        onBluetoothClicked: centerX => root.showOnly(bluetoothPopup, centerX)
-        onBatteryClicked: centerX => root.showOnly(batteryPopup, centerX)
-        onClockClicked: centerX => root.showOnly(calendarPopup, centerX)
-        onNotificationsClicked: centerX => root.showOnly(notificationsPopup, centerX)
-        onSystemClicked: centerX => root.showOnly(systemPopup, centerX)
-        onMediaClicked: centerX => root.showOnly(mediaPopup, centerX)
-        onVolumeHovered: volumePopup.prewarm()
-        onWifiHovered: wifiPopup.prewarm()
-        onBluetoothHovered: bluetoothPopup.prewarm()
-        onBatteryHovered: batteryPopup.prewarm()
-        onClockHovered: calendarPopup.prewarm()
-        onNotificationsHovered: notificationsPopup.prewarm()
-        onSystemHovered: systemPopup.prewarm()
-        onMediaHovered: mediaPopup.prewarm()
+    Variants {
+        id: barVariants
+        model: Quickshell.screens
+
+        Topbar {
+            id: topbar
+            property var modelData
+            screen: modelData
+            audioService: root.sharedAudioService
+            mediaService: root.sharedMediaService
+            cavaService: root.sharedCavaService
+            powerService: root.sharedPowerService
+            systemService: root.sharedSystemService
+            niriService: root.sharedNiriService
+            networkService: root.sharedNetworkService
+            bluetoothService: root.sharedBluetoothService
+            themeReady: root.themeLoaded
+            themeFg: root.themeFg
+            themeBg: root.themeBg
+            themeRawBg: root.themeRawBg
+            themeAccent: root.themeAccent
+            themeSecond: root.themeSecond
+            themeWarm: root.themeWarm
+            themeFresh: root.themeFresh
+            barRadius: root.barRadius
+            barHeight: root.barHeight
+            barMargin: root.barMargin
+            barMarginTop: root.barMarginTop
+            exclusiveZoneOffset: root.exclusiveZoneOffset
+            showWorkspaces: root.showWorkspaces
+            showClock: root.showClock
+            showClockDate: root.showClockDate
+            showWorkspaceNumbers: root.showWorkspaceNumbers
+            showActiveWindow: root.showActiveWindow
+            showMedia: root.showMedia
+            showVolume: root.showVolume
+            showNetwork: root.showNetwork
+            showBluetooth: root.showBluetooth
+            showBattery: root.showBattery
+            showNotifications: root.showNotifications
+            showSystem: root.showSystem
+            showTray: root.showTray
+            barFont: root.barFont
+            flatMode: root.flatMode
+            showBarDividers: root.showBarDividers
+            moduleAnimationStyle: root.moduleAnimationStyle
+            motionStyle: root.motionStyle
+            showWorkspaceIndicator: root.showWorkspaceIndicator
+            dividerColor: root.dividerColor
+            barBorderColor: root.barBorderColor
+            barInnerHighlight: root.barInnerHighlight
+            pillBg: root.pillBg
+            pillBorder: root.pillBorder
+            notificationCount: NotifService.count
+            onVolumeClicked: centerX => root.showOnly(volumePopup, centerX, modelData)
+            onWifiClicked: centerX => root.showOnly(wifiPopup, centerX, modelData)
+            onBluetoothClicked: centerX => root.showOnly(bluetoothPopup, centerX, modelData)
+            onBatteryClicked: centerX => root.showOnly(batteryPopup, centerX, modelData)
+            onClockClicked: centerX => root.showOnly(calendarPopup, centerX, modelData)
+            onNotificationsClicked: centerX => root.showOnly(notificationsPopup, centerX, modelData)
+            onSystemClicked: centerX => root.showOnly(systemPopup, centerX, modelData)
+            onMediaClicked: centerX => root.showOnly(mediaPopup, centerX, modelData)
+            onVolumeHovered: root.prewarmOn(volumePopup, modelData)
+            onWifiHovered: root.prewarmOn(wifiPopup, modelData)
+            onBluetoothHovered: root.prewarmOn(bluetoothPopup, modelData)
+            onBatteryHovered: root.prewarmOn(batteryPopup, modelData)
+            onClockHovered: root.prewarmOn(calendarPopup, modelData)
+            onNotificationsHovered: root.prewarmOn(notificationsPopup, modelData)
+            onSystemHovered: root.prewarmOn(systemPopup, modelData)
+            onMediaHovered: root.prewarmOn(mediaPopup, modelData)
+        }
     }
 
     VolumePopup {
         id: volumePopup
+        screen: root.popupScreen
         audioService: audioService
         themeFg: root.themeFg
         themeBg: root.popupBg
@@ -409,6 +439,7 @@ ShellRoot {
 
     WifiPopup {
         id: wifiPopup
+        screen: root.popupScreen
         networkService: networkService
         themeFg: root.themeFg
         themeBg: root.popupBg
@@ -428,6 +459,7 @@ ShellRoot {
 
     BluetoothPopup {
         id: bluetoothPopup
+        screen: root.popupScreen
         bluetoothService: bluetoothService
         themeFg: root.themeFg
         themeBg: root.popupBg
@@ -447,6 +479,7 @@ ShellRoot {
 
     BatteryPopup {
         id: batteryPopup
+        screen: root.popupScreen
         powerService: powerService
         themeFg: root.themeFg
         themeBg: root.popupBg
@@ -466,6 +499,7 @@ ShellRoot {
 
     CalendarPopup {
         id: calendarPopup
+        screen: root.popupScreen
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
@@ -484,6 +518,7 @@ ShellRoot {
 
     NotificationsPopup {
         id: notificationsPopup
+        screen: root.popupScreen
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
@@ -503,6 +538,7 @@ ShellRoot {
 
     SystemPopup {
         id: systemPopup
+        screen: root.popupScreen
         systemService: systemService
         niriService: niriService
         themeFg: root.themeFg
@@ -524,6 +560,7 @@ ShellRoot {
 
     MediaPopup {
         id: mediaPopup
+        screen: root.popupScreen
         mediaService: mediaService
         cavaService: cavaService
         themeFg: root.themeFg
@@ -563,6 +600,7 @@ ShellRoot {
 
     PanelWindow {
         id: catcher
+        screen: root.popupScreen
         // Warm a tiny surface on hover/prewarm; expand only while a popup is interactive
         // so we do not cover the desktop (or steal clicks) during idle warm.
         readonly property bool interactive: root.anyPopupShown
