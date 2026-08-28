@@ -14,6 +14,7 @@ Scope {
     property bool _terminalHandled: true
     property int _retryIndex: 0
     property string _eventBuffer: ""
+    property var _actionQueue: []
 
     property int _activeWorkspaceId: 0
     property var _workspacesData: []
@@ -54,7 +55,7 @@ Scope {
         for (let i = 0; i < list.length; i++) {
             const row = list[i];
             const existing = workspacesModel.get(i);
-            if (existing.id !== row.id) {
+            if (existing.id !== row.id || existing.output !== row.output) {
                 workspacesModel.clear();
                 for (const ws of list)
                     workspacesModel.append(ws);
@@ -101,12 +102,28 @@ Scope {
         root._requestFocusedWindow();
     }
 
-    function focusWorkspace(id: int): void {
-        Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(id)]);
+    function _enqueueAction(command): void {
+        root._actionQueue = root._actionQueue.concat([command]);
+        root._startNextAction();
     }
 
-    function focusAdjacent(direction: int): void {
-        Quickshell.execDetached(["niri", "msg", "action", direction < 0 ? "focus-workspace-up" : "focus-workspace-down"]);
+    function _startNextAction(): void {
+        if (actionProcess.running || root._actionQueue.length === 0)
+            return;
+        const command = root._actionQueue[0];
+        root._actionQueue = root._actionQueue.slice(1);
+        actionProcess.command = command;
+        actionProcess.running = true;
+    }
+
+    function focusWorkspace(output: string, id: int): void {
+        root._enqueueAction(["niri", "msg", "action", "focus-monitor", output]);
+        root._enqueueAction(["niri", "msg", "action", "focus-workspace", String(id)]);
+    }
+
+    function focusAdjacent(output: string, direction: int): void {
+        root._enqueueAction(["niri", "msg", "action", "focus-monitor", output]);
+        root._enqueueAction(["niri", "msg", "action", direction < 0 ? "focus-workspace-up" : "focus-workspace-down"]);
     }
 
     function quitSession(): void {
@@ -209,6 +226,11 @@ Scope {
     }
 
     Process {
+        id: actionProcess
+        onExited: root._startNextAction()
+    }
+
+    Process {
         id: eventStreamProcess
         command: ["setpriv", "--pdeathsig", "TERM", "--", "niri", "msg", "-j", "event-stream"]
         stdout: SplitParser {
@@ -253,6 +275,8 @@ Scope {
     }
     Component.onDestruction: {
         root._destroyed = true;
+        root._actionQueue = [];
+        actionProcess.running = false;
         root._stopStream();
     }
 }

@@ -22,6 +22,7 @@ function copyState(previous) {
         activeWorkspaceId: base.activeWorkspaceId || 0,
         workspaces: (base.workspaces || []).map(ws => ({
                 id: ws.id,
+                output: ws.output,
                 occupied: ws.occupied,
                 active: ws.active,
                 urgent: ws.urgent
@@ -69,6 +70,7 @@ function reduceWorkspacesSnapshot(previous, text, exitCode) {
         const urgent = ws.is_urgent === true;
         list.push({
             id: id,
+            output: typeof ws.output === "string" ? ws.output : "",
             occupied: occupied,
             active: active,
             urgent: urgent

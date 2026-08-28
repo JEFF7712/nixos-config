@@ -12,11 +12,11 @@ Scope {
     readonly property bool streamHealthy: model.streamHealthy
     readonly property string lastError: model.lastError
 
-    function focusWorkspace(id: int): void {
-        model.focusWorkspace(id);
+    function focusWorkspace(output: string, id: int): void {
+        model.focusWorkspace(output, id);
     }
-    function focusAdjacent(direction: int): void {
-        model.focusAdjacent(direction);
+    function focusAdjacent(output: string, direction: int): void {
+        model.focusAdjacent(output, direction);
     }
     function quitSession(): void {
         model.quitSession();

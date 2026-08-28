@@ -1674,8 +1674,8 @@ assert_no_view_processes_for_migrated_domains() {
       || fail "NiriService.qml is missing readonly public property: $public_property"
   done
   for signature in \
-    'function focusWorkspace(id: int): void' \
-    'function focusAdjacent(direction: int): void' \
+    'function focusWorkspace(output: string, id: int): void' \
+    'function focusAdjacent(output: string, direction: int): void' \
     'function quitSession(): void'; do
     rg -F -q "$signature" "$niri_service" \
       || fail "NiriService.qml is missing typed action signature: $signature"
@@ -1686,10 +1686,8 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'NiriModel.qml must own the exact direct focused-window snapshot argv'
   rg -U -q 'command:[[:space:]]*\["setpriv",[[:space:]]*"--pdeathsig",[[:space:]]*"TERM",[[:space:]]*"--",[[:space:]]*"niri",[[:space:]]*"msg",[[:space:]]*"-j",[[:space:]]*"event-stream"\]' "$niri_model" \
     || fail 'NiriModel.qml must own the exact parent-death-protected event-stream argv'
-  rg -U -q 'execDetached\(\["niri",[[:space:]]*"msg",[[:space:]]*"action",[[:space:]]*"focus-workspace",[[:space:]]*String\(id\)\]\)' "$niri_model" \
-    || fail 'NiriModel.qml must own the exact focus-workspace argv'
-  rg -U -q 'execDetached\(\["niri",[[:space:]]*"msg",[[:space:]]*"action",[[:space:]]*direction < 0 \? "focus-workspace-up" : "focus-workspace-down"\]\)' "$niri_model" \
-    || fail 'NiriModel.qml must own the exact focus-workspace-up/down argv'
+  rg -q '"focus-monitor"' "$niri_model" \
+    || fail 'NiriModel.qml must focus the target monitor before workspace actions'
   rg -U -q 'execDetached\(\["niri",[[:space:]]*"msg",[[:space:]]*"action",[[:space:]]*"quit",[[:space:]]*"-s"\]\)' "$niri_model" \
     || fail 'NiriModel.qml must own the exact session quit argv'
   ! rg -n -i -g '*.qml' -g '!NiriModel.qml' -g '!NiriService.qml' '"niri"|niri msg' "$production_dir" \
@@ -1710,12 +1708,14 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'Topbar.qml still owns Niri processes, timers, parser state, or command construction'
   rg -q 'model:[[:space:]]*topbarWindow\.niriService\.workspaces' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml must render NiriService workspaces directly'
+  rg -q 'visible:[[:space:]]*model\.output[[:space:]]*===[[:space:]]*topbarWindow\.screen\.name' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must show only workspaces assigned to its screen'
   ! rg -n '\(topbarWindow\.activeWorkspace - 1\) \* 36' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml workspace indicator must not assume workspace id minus one'
-  rg -q 'niriService\.focusWorkspace\(' "$production_dir/Topbar.qml" \
-    || fail 'Topbar.qml workspace click must call niriService.focusWorkspace'
-  rg -q 'niriService\.focusAdjacent\(' "$production_dir/Topbar.qml" \
-    || fail 'Topbar.qml workspace wheel must call niriService.focusAdjacent'
+  rg -F -q 'niriService.focusWorkspace(topbarWindow.screen.name,' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml workspace click must target its own screen'
+  rg -F -q 'niriService.focusAdjacent(topbarWindow.screen.name,' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml workspace wheel must target its own screen'
   rg -q 'niriService\.quitSession\(\)' "$system_popup" \
     || fail 'SystemPopup.qml logout must call niriService.quitSession()'
 

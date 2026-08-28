@@ -162,6 +162,7 @@ ShellRoot {
             {
                 id: 1,
                 idx: 1,
+                output: "eDP-1",
                 is_urgent: false,
                 is_active: true,
                 is_focused: true,
@@ -170,6 +171,7 @@ ShellRoot {
             {
                 id: 2,
                 idx: 2,
+                output: "eDP-1",
                 is_urgent: false,
                 is_active: false,
                 is_focused: false,
@@ -178,6 +180,7 @@ ShellRoot {
             {
                 id: 3,
                 idx: 3,
+                output: "eDP-1",
                 is_urgent: false,
                 is_active: false,
                 is_focused: false,
@@ -215,6 +218,7 @@ ShellRoot {
                     {
                         id: 1,
                         idx: 1,
+                        output: "eDP-1",
                         is_urgent: false,
                         is_active: false,
                         is_focused: false,
@@ -223,6 +227,7 @@ ShellRoot {
                     {
                         id: 2,
                         idx: 2,
+                        output: "eDP-1",
                         is_urgent: true,
                         is_active: true,
                         is_focused: true,
@@ -231,6 +236,7 @@ ShellRoot {
                     {
                         id: 3,
                         idx: 3,
+                        output: "eDP-1",
                         is_urgent: false,
                         is_active: false,
                         is_focused: false,
@@ -301,18 +307,17 @@ ShellRoot {
             } else if (root.phase === 6) {
                 if (niriService.focusedTitle === "Second Window") {
                     root.malformedEventIgnored = true;
-                    niriService.focusWorkspace(3);
-                    niriService.focusAdjacent(1);
-                    niriService.focusAdjacent(-1);
+                    niriService.focusWorkspace("DP-6", 3);
+                    niriService.focusAdjacent("eDP-1", 1);
+                    niriService.focusAdjacent("DP-7", -1);
                     niriService.quitSession();
                     root.advance();
                 }
             } else if (root.phase === 7 && root.elapsed() >= 400) {
-                // execDetached launches are unordered relative to each other,
-                // so assert the exact argv multiset rather than launch order.
-                const expected = ["focus-workspace 3", "focus-workspace-down", "focus-workspace-up", "quit -s"];
-                const actual = root.actionsLog().trim().split("\n").filter(line => line !== "").sort();
-                if (actual.join("\n") !== expected.slice().sort().join("\n"))
+                const expected = ["focus-monitor DP-6", "focus-workspace 3", "focus-monitor eDP-1", "focus-workspace-down", "focus-monitor DP-7", "focus-workspace-up"];
+                const lines = root.actionsLog().trim().split("\n").filter(line => line !== "");
+                const actual = lines.filter(line => line !== "quit -s");
+                if (actual.join("\n") !== expected.join("\n") || lines.filter(line => line === "quit -s").length !== 1)
                     return root.fail("action log mismatch: " + actual.join("\n"));
                 root.actionsPassed = true;
                 autoCrashTwo.setText("crash\n");

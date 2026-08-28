@@ -71,9 +71,14 @@ PanelWindow {
     readonly property bool cavaRequested: mediaPill.visible
     readonly property string activeTitle: topbarWindow.niriService.focusedTitle || topbarWindow.niriService.focusedAppId || "no active window"
     readonly property int activeWorkspaceIndex: {
+        let monitorIndex = 0;
         for (let i = 0; i < topbarWindow.niriService.workspaces.count; i++) {
-            if (topbarWindow.niriService.workspaces.get(i).id === topbarWindow.niriService.activeWorkspaceId)
-                return i;
+            const workspace = topbarWindow.niriService.workspaces.get(i);
+            if (workspace.output !== topbarWindow.screen.name)
+                continue;
+            if (workspace.active)
+                return monitorIndex;
+            monitorIndex++;
         }
         return -1;
     }
@@ -242,6 +247,7 @@ PanelWindow {
                 Repeater {
                     model: topbarWindow.niriService.workspaces
                     delegate: WorkspacePill {
+                        visible: model.output === topbarWindow.screen.name
                         wsId: model.id
                         occupied: model.occupied
                         active: model.active
@@ -840,9 +846,9 @@ PanelWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: topbarWindow.niriService.focusWorkspace(wsRoot.wsId)
+            onClicked: topbarWindow.niriService.focusWorkspace(topbarWindow.screen.name, wsRoot.wsId)
             onWheel: event => {
-                topbarWindow.niriService.focusAdjacent(event.angleDelta.y > 0 ? -1 : 1);
+                topbarWindow.niriService.focusAdjacent(topbarWindow.screen.name, event.angleDelta.y > 0 ? -1 : 1);
                 event.accepted = true;
             }
         }

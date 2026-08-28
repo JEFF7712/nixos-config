@@ -88,6 +88,20 @@ TestCase {
         compare(state.workspaces[0].id, 4);
     }
 
+    function test_workspaceOutputIsPreservedForMonitorLocalViews() {
+        const text = JSON.stringify([workspace({
+                id: 10,
+                idx: 1,
+                output: "DP-6"
+            }), workspace({
+                id: 20,
+                idx: 1,
+                output: "eDP-1"
+            })]);
+        const state = NiriParser.reduceWorkspacesSnapshot(NiriParser.initialState(), text, 0);
+        compare(state.workspaces.map(ws => ws.output), ["DP-6", "eDP-1"]);
+    }
+
     function test_noActiveWorkspacePreservesPreviousActiveWorkspaceId() {
         const first = NiriParser.reduceWorkspacesSnapshot(NiriParser.initialState(), JSON.stringify([workspace({
                 idx: 1,
