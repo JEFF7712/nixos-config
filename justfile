@@ -82,6 +82,15 @@ check-profiles host="laptop" user="rupan":
     ".#nixosConfigurations.{{host}}.config.home-manager.users.{{user}}.home.file" \
     --apply 'import ./checks/profiles.nix'
 
+check-changed base="":
+  CHECK_CHANGED_BASE='{{base}}' bash checks/run-changed-checks.bash
+
+check-changed-test:
+  bash checks/check-changed.bash
+
+diff-check base="HEAD":
+  bash checks/run-whitespace-check.bash '{{base}}'
+
 check:
   just check-agent-docs
   just check-agent-workflows
@@ -99,11 +108,11 @@ check:
   just flake-check-shells
   just eval-all
   just check-profiles
-  git diff --check
+  just diff-check
 
 quick:
   just eval laptop
-  git diff --check
+  just diff-check
 
 agent-context:
   #!/usr/bin/env bash
@@ -150,7 +159,8 @@ agent-context:
   printf '  shell script edit: just shell-check\n'
   printf '  Quickshell edit: just qml-lint && just eval laptop\n'
   printf '  package/overlay edit: just build laptop\n'
-  printf '  pre-handoff: just check\n'
+  printf '  pre-handoff: just check-changed\n'
+  printf '  broad/risky changes: just check\n'
   printf '\n'
 
   printf 'Self-improvement\n'

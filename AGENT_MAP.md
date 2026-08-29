@@ -48,8 +48,9 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 
 ## Validation
 
-Run the smallest command that proves the touched surface; the "Validate" column above is the per-task minimum. Run `just check` before larger handoffs.
+Run the smallest command that proves the touched surface; the "Validate" column above is the per-task minimum. Use `just check-changed` for normal handoffs and `just check` for broad or risky changes.
 
+- `just check-changed [base]` - detect staged, unstaged, and untracked files, deduplicate their mapped checks, and fall back to `just check` for validation infrastructure, flake inputs, or other broad-risk surfaces. Pass a Git revision such as `origin/main` to include committed changes since that base.
 - `just quick` - fast default for low-risk Nix edits: laptop eval plus whitespace.
 - `just check` - broad local gate: agent checks, laptop-safety, local-bin, flake-update, fmt, shell/wallpaper/xhisper, qml-lint, quickshell-test, flake check, host evals, profiles, whitespace. Superset of CI. Local-only: `just eval-all` and `just check-laptop-safety` (full host evals), `just check-flake-update` (update/pin script tests), `just check-local-bin` (inspects live `~/.local/bin` and user systemd `*.service.d` drop-ins for hardcoded `/nix/store` paths), and `just quickshell-test` (needs host `quickshell` plus a Wayland display).
 - `just build <host>` - realizes the closure and catches build failures eval misses. Use for package, overlay, or flake-input changes.

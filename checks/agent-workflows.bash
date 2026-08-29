@@ -35,6 +35,8 @@ require_match 'nixpkgs#nixfmt' .github/workflows/check.yml
 require_match 'nixpkgs#jq' .github/workflows/check.yml
 
 bash checks/agent-hooks.bash
+bash checks/check-changed.bash
+bash checks/check-whitespace.bash
 
 git_metadata_fixture=checks/.git/agent-invariants-hardcoded-path-test
 mkdir -p "${git_metadata_fixture%/*}"

@@ -13,6 +13,7 @@ Recipes live in the `justfile` (`just` to list). Prefer them:
 ```bash
 just switch        # build + switch through nh (resolved store path, root bypass)
 just dry           # dry-activate laptop config (resolved nixos-rebuild)
+just check-changed # checks selected from staged, unstaged, and untracked files; optional Git base argument
 just check         # full validation: agent docs/workflows + laptop-safety + local-bin + flake-update + fmt-check + shell/lid-close/wallpaper/xhisper + qml-lint + quickshell-test + flake check + eval-all + check-profiles + git diff --check
 just fmt-check     # nix fmt --fail-on-change (mirrors CI; fails if anything is unformatted)
 just quick         # fast pre-commit: eval laptop + git diff --check

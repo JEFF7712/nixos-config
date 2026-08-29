@@ -50,6 +50,8 @@ require_match 'home-manager module' AGENT_MAP.md
 require_match 'desktop profile' AGENT_MAP.md
 require_match 'just eval' AGENT_MAP.md
 require_match 'just check' AGENT_MAP.md
+require_match 'just check-changed' AGENT_MAP.md
+require_match 'just check-changed' CLAUDE.md
 require_match 'is not tracked by Git' AGENT_MAP.md
 require_match 'agent-self-improve' AGENT_MAP.md
 require_match 'hooks/' AGENT_MAP.md
@@ -73,6 +75,7 @@ done
 # SessionStart injects it; agent docs must not tell agents to run it first.
 require_match '^agent-context:' justfile
 require_match 'Suggested validation' justfile
+require_match 'just check-changed' justfile
 require_match 'agent-self-improve' justfile
 require_match 'hooks/session-start' CLAUDE.md
 require_match 'hooks/before-shell' CLAUDE.md
