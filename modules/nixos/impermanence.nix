@@ -22,10 +22,6 @@
     };
 
     users.users.rupan.autoSubUidGidRange = lib.mkForce false;
-    environment.etc = {
-      subuid.text = "rupan:100000:65536\n";
-      subgid.text = "rupan:100000:65536\n";
-    };
 
     system.activationScripts = {
       seed-userborn-password-files.text = ''
@@ -33,6 +29,12 @@
         for file in group passwd shadow; do
           if [[ ! -e /persist/etc/$file ]]; then
             cp --preserve=mode,ownership,timestamps /etc/$file /persist/etc/$file
+          fi
+        done
+        for file in subuid subgid; do
+          if [[ ! -e /persist/etc/$file ]]; then
+            printf 'rupan:100000:65536\n' > /persist/etc/$file
+            chmod 0644 /persist/etc/$file
           fi
         done
       '';
@@ -93,6 +95,8 @@
             file = "/etc/machine-id";
             inInitrd = true;
           }
+          "/etc/subuid"
+          "/etc/subgid"
         ];
         directories = [
           {
