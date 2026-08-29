@@ -65,6 +65,12 @@ eval laptop
 diff-check' \
   pkgs/xhisper-local/default.nix
 
+assert_selection 'fmt-check
+plymouth-theme-check
+build laptop
+diff-check' \
+  pkgs/plymouth-nixos-logo/default.nix
+
 assert_selection 'check' flake.lock
 assert_selection 'check' justfile
 assert_selection 'check' checks/profile-transition.bash

@@ -45,6 +45,9 @@ check-agent-workflows:
 check-laptop-safety:
   nix eval --impure --no-write-lock-file --expr 'let config = (builtins.getFlake (toString ./.)).nixosConfigurations.laptop.config; in import ./checks/laptop-safety.nix { inherit config; }'
 
+plymouth-theme-check:
+  bash checks/plymouth-theme.bash
+
 qml-lint:
   nix shell nixpkgs#qt6.qtdeclarative -c qmllint \
     --import disable \
@@ -95,6 +98,7 @@ check:
   just check-agent-docs
   just check-agent-workflows
   just check-laptop-safety
+  just plymouth-theme-check
   just check-local-bin
   just check-flake-update
   just fmt-check

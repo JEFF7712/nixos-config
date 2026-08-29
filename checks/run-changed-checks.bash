@@ -75,6 +75,11 @@ classify() {
       add xhisper-check
       add 'eval laptop'
       ;;
+    pkgs/plymouth-nixos-logo/*)
+      add plymouth-theme-check
+      add fmt-check
+      add 'build laptop'
+      ;;
     pkgs/* | overlays/*)
       add fmt-check
       add 'build laptop'
@@ -149,6 +154,7 @@ else
     lid-close-check \
     wallpaper-script-check \
     xhisper-check \
+    plymouth-theme-check \
     qml-lint \
     quickshell-test \
     'build laptop' \
