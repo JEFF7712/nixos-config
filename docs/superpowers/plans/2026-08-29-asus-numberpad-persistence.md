@@ -79,7 +79,33 @@ Confirm the service is active, its command uses the persistent directory, the
 file is a writable regular file on `/persist`, and the current activation log
 contains no `Error during writting to config file` message.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Stage only the plan, assertions, numberpad module, and impermanence module.
 Commit using the repository's existing imperative message style.
+
+### Task 4: Start only when the Wayland session is ready
+
+**Files:**
+- Modify: `checks/laptop-safety.nix`
+- Modify: `modules/nixos/asus-numpad.nix`
+
+- [x] **Step 1: Reproduce the physical reboot failure**
+
+The persistent file survived with the same checksum, but the service exhausted
+its restart limit before the Wayland socket appeared.
+
+- [x] **Step 2: Add failing boot-order assertions**
+
+Require path activation on `/run/user/1000/wayland-1`, remove direct boot
+activation, and guard the service against a missing socket.
+
+- [x] **Step 3: Activate through a systemd path unit**
+
+Start the driver when the Wayland socket exists and skip restart attempts while
+the session is unavailable.
+
+- [ ] **Step 4: Validate, activate, and reboot**
+
+Run the repository checks, activate the configuration, and confirm after a
+second reboot that the path unit activates a healthy driver.

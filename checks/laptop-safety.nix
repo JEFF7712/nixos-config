@@ -6,6 +6,7 @@ let
     entry: entry.directory
   ) config.preservation.preserveAt."/persist".directories;
   numberpadService = config.systemd.services.asus-numberpad-driver;
+  numberpadPath = config.systemd.paths.asus-numberpad-driver;
   userServices = config.home-manager.users.rupan.systemd.user.services;
   userTimers = config.home-manager.users.rupan.systemd.user.timers;
 in
@@ -21,6 +22,12 @@ assert builtins.elem "/etc/subuid" preservedFiles;
 assert builtins.elem "/etc/subgid" preservedFiles;
 assert builtins.elem "/var/lib/asus-numberpad-driver" preservedDirectories;
 assert numberpadService.serviceConfig.StateDirectory == "asus-numberpad-driver";
+assert numberpadService.wantedBy == [ ];
+assert numberpadPath.wantedBy == [ "paths.target" ];
+assert numberpadPath.pathConfig.PathExists == "/run/user/1000/wayland-1";
+assert
+  builtins.match ".*/test -S /run/user/1000/wayland-1" numberpadService.serviceConfig.ExecCondition
+  != null;
 assert
   builtins.match ".*/numberpad.py up5401ea /var/lib/asus-numberpad-driver/" numberpadService.serviceConfig.ExecStart
   != null;
