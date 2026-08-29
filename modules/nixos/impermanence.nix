@@ -128,6 +128,7 @@
             mode = "0700";
           }
           "/var/lib/asusd"
+          "/var/lib/asus-numberpad-driver"
           # pcrlock measurements; losing them turns TPM2 LUKS into passphrase-only.
           "/var/lib/pcrlock.d"
           "/var/lib/upower"
