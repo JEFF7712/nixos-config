@@ -1218,11 +1218,15 @@ run_network_native_construction_probe() {
   jq -e '.passed == true and
     (.diagnostics.available | type == "boolean") and
     (.diagnostics.skipped | type == "boolean") and
+    (.diagnostics.wifiAvailable | type == "boolean") and
     (.diagnostics.wifiEnabled | type == "boolean") and
+    (.diagnostics.wiredConnected | type == "boolean") and
     (.diagnostics.connected | type == "boolean") and
     (.diagnostics.activeSsid | type == "string") and
     (.diagnostics.activeSignal | type == "number") and
     (.diagnostics.activeSecurity | type == "string") and
+    (.diagnostics.wiredConnectionCount | type == "number") and
+    .diagnostics.wiredConnectionCount >= 0 and
     (.diagnostics.networkCount | type == "number") and
     .diagnostics.networkCount >= 0 and .diagnostics.networkCount <= 8 and
     if .diagnostics.skipped == true then
@@ -1746,12 +1750,13 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'NetworkService.qml must stay a thin facade with no native objects, processes, or nmcli'
   ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|"nmcli"|Quickshell\.Networking' "$network_model" \
     || fail 'NetworkModel.qml must stay backend-free of Process/Timer/nmcli/Networking imports'
-  for public_property in available wifiEnabled connected activeSsid activeSignal activeSecurity networks; do
+  for public_property in available wifiAvailable wifiEnabled wiredConnected connected activeSsid activeSignal activeSecurity wiredConnections networks; do
     rg -q "readonly property [^:]* ${public_property}:" "$network_service" \
       || fail "NetworkService.qml is missing readonly public property: $public_property"
   done
   for signature in \
     'function setWifiEnabled(enabled: bool): void' \
+    'function connectWired(id: string): void' \
     'function connectKnown(ssid: string): void' \
     'function connectInteractive(ssid: string): void' \
     'function openSettings(): void'; do
@@ -1782,8 +1787,12 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'WifiPopup.qml still owns network processes, timers, or nmcli command construction'
   rg -q 'networkService\.openSettings\(\)' "$production_dir/Topbar.qml" \
     || fail 'Topbar.qml right-click settings must call networkService.openSettings()'
+  rg -U -q 'function networkIcon\(\)[[:space:]]*\{[^}]*networkService\.wiredConnected[^}]*networkService\.activeSsid' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml network icon must prefer wired over Wi-Fi state'
   rg -q 'networkService\.setWifiEnabled\(' "$wifi_popup" \
     || fail 'WifiPopup.qml radio toggle must call networkService.setWifiEnabled'
+  rg -q 'networkService\.connectWired\(' "$wifi_popup" \
+    || fail 'WifiPopup.qml wired row must call networkService.connectWired'
   rg -q 'networkService\.connectKnown\(' "$wifi_popup" \
     || fail 'WifiPopup.qml known-network click must call networkService.connectKnown'
   rg -q 'networkService\.connectInteractive\(' "$wifi_popup" \

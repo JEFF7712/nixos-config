@@ -80,3 +80,30 @@ function applyBusyRole(networks, busySsid) {
         return copy;
     });
 }
+
+function buildWiredList(snapshot) {
+    var linked = (snapshot || []).filter(function (entry) {
+        return entry.hasLink;
+    }).map(function (entry) {
+        return {
+            id: entry.id,
+            name: entry.name || entry.id,
+            address: entry.address || "",
+            linkSpeed: entry.linkSpeed || 0,
+            active: !!entry.active,
+            busy: !!entry.busy
+        };
+    });
+    linked.sort(function (a, b) {
+        if (a.active !== b.active)
+            return a.active ? -1 : 1;
+        return a.name.localeCompare(b.name);
+    });
+    return linked;
+}
+
+function hasActiveWired(snapshot) {
+    return (snapshot || []).some(function (entry) {
+        return entry.active;
+    });
+}

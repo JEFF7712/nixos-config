@@ -11,6 +11,23 @@ QtObject {
     readonly property var wifiDevice: root._selectWifiDevice()
     readonly property bool wifiDevicePresent: root.wifiDevice !== null
 
+    readonly property var wiredSnapshot: {
+        const values = (Networking.devices && Networking.devices.values) || [];
+        return values.filter(device => device && device.type === DeviceType.Wired).map(device => {
+            const network = device.network;
+            return {
+                id: device.name || "wired",
+                name: network && network.name ? network.name : device.name,
+                address: device.address || "",
+                linkSpeed: device.linkSpeed || 0,
+                hasLink: device.hasLink === true && network !== null,
+                active: device.connected === true || (network && network.connected === true),
+                busy: network ? network.stateChanging === true : false,
+                native: network
+            };
+        });
+    }
+
     // Prefer Networking.connectivity for the bar; fall back to any device
     // connection so wired-only sessions still show as connected.
     readonly property bool connected: {
@@ -47,9 +64,11 @@ QtObject {
     // One object-literal so NetworkModel reconciles from a single signal.
     readonly property var observation: {
         return {
-            present: root.backendPresent && root.wifiDevicePresent,
+            present: root.backendPresent,
+            wifiAvailable: root.wifiDevicePresent,
             wifiEnabled: Networking.wifiEnabled,
             connected: root.connected,
+            wired: root.wiredSnapshot,
             networks: root.networkSnapshot
         };
     }
@@ -79,6 +98,11 @@ QtObject {
             return;
         root._pendingNetwork = nativeNetwork;
         nativeNetwork.connect();
+    }
+
+    function connectWired(nativeNetwork): void {
+        if (nativeNetwork)
+            nativeNetwork.connect();
     }
 
     onScanningRequestedChanged: root._applyScanning()

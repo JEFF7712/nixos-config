@@ -10,7 +10,9 @@ Scope {
     property bool scanningRequested: false
 
     property bool _available: false
+    property bool _wifiAvailable: false
     property bool _wifiEnabled: false
+    property bool _wiredConnected: false
     property bool _connected: false
     property string _activeSsid: ""
     property int _activeSignal: 0
@@ -19,17 +21,25 @@ Scope {
     // Frozen while not scanning so the AP list survives scanner-off gaps.
     property var _discovery: []
     property var _nativeBySsid: ({})
+    property var _nativeWiredById: ({})
 
     readonly property bool available: _available
+    readonly property bool wifiAvailable: _wifiAvailable
     readonly property bool wifiEnabled: _wifiEnabled
+    readonly property bool wiredConnected: _wiredConnected
     readonly property bool connected: _connected
     readonly property string activeSsid: _activeSsid
     readonly property int activeSignal: _activeSignal
     readonly property string activeSecurity: _activeSecurity
     property alias networks: networksModel
+    property alias wiredConnections: wiredConnectionsModel
 
     ListModel {
         id: networksModel
+    }
+
+    ListModel {
+        id: wiredConnectionsModel
     }
 
     function _applyNetworksModel(list): void {
@@ -43,14 +53,28 @@ Scope {
         root._applyNetworksModel(NetworkReducer.applyBusyRole(list, root._busySsid));
     }
 
+    function _applyWiredModel(list): void {
+        wiredConnectionsModel.clear();
+        for (const connection of list)
+            wiredConnectionsModel.append(connection);
+    }
+
     function _reconcile(): void {
         const observation = root.backend ? root.backend.observation : null;
         root._available = !!(observation && observation.present);
         if (!root._available)
             return; // retain previously observed wifiEnabled/active/discovery fields
 
+        root._wifiAvailable = observation.wifiAvailable;
         root._wifiEnabled = observation.wifiEnabled;
         root._connected = observation.connected;
+
+        const wiredEntries = observation.wired || [];
+        root._wiredConnected = NetworkReducer.hasActiveWired(wiredEntries);
+        root._nativeWiredById = {};
+        for (const entry of wiredEntries)
+            root._nativeWiredById[entry.id] = entry.native;
+        root._applyWiredModel(NetworkReducer.buildWiredList(wiredEntries));
 
         const liveEntries = observation.networks || [];
         root._nativeBySsid = {};
@@ -79,6 +103,14 @@ Scope {
     function setWifiEnabled(enabled: bool): void {
         if (root.backend)
             root.backend.setWifiEnabled(enabled);
+    }
+
+    function connectWired(id: string): void {
+        if (!id || !root.backend)
+            return;
+        const native = root._nativeWiredById[id];
+        if (native)
+            root.backend.connectWired(native);
     }
 
     function connectKnown(ssid: string): void {

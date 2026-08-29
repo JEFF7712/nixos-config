@@ -202,6 +202,79 @@ TestCase {
         verify(byName.B.busy);
     }
 
+    // --- NetworkReducer: wired connections ---------------------------------
+
+    function test_buildWiredListKeepsLinkedDevicesAndSortsConnectedFirst() {
+        var list = NetworkReducer.buildWiredList([
+            {
+                id: "enp2s0",
+                name: "Dock Ethernet",
+                address: "10.0.0.20",
+                linkSpeed: 1000,
+                hasLink: true,
+                active: false,
+                busy: false
+            },
+            {
+                id: "enp1s0",
+                name: "Office LAN",
+                address: "10.0.0.10",
+                linkSpeed: 2500,
+                hasLink: true,
+                active: true,
+                busy: false
+            },
+            {
+                id: "enp3s0",
+                name: "Unplugged",
+                address: "",
+                linkSpeed: 0,
+                hasLink: false,
+                active: false,
+                busy: false
+            }
+        ]);
+
+        compare(list.length, 2);
+        compare(list[0].id, "enp1s0");
+        compare(list[1].id, "enp2s0");
+    }
+
+    function test_buildWiredListUsesInterfaceNameWhenConnectionNameIsEmpty() {
+        var list = NetworkReducer.buildWiredList([
+            {
+                id: "enp4s0",
+                name: "",
+                address: "",
+                linkSpeed: 100,
+                hasLink: true,
+                active: false,
+                busy: true
+            }
+        ]);
+
+        compare(list.length, 1);
+        compare(list[0].name, "enp4s0");
+        verify(list[0].busy);
+    }
+
+    function test_hasActiveWiredDetectsPreferredConnectedTransport() {
+        verify(NetworkReducer.hasActiveWired([
+            {
+                active: false
+            },
+            {
+                active: true
+            }
+        ]));
+        verify(!NetworkReducer.hasActiveWired([
+            {
+                active: false
+            }
+        ]));
+        verify(!NetworkReducer.hasActiveWired([]));
+    }
+
     // --- NetworkParser: interactive escape hatches -------------------------
 
     function test_interactiveConnectArgvForUnknownOrNoSecrets() {

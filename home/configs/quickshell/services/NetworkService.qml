@@ -8,15 +8,21 @@ Scope {
     property bool scanningRequested: false
 
     readonly property bool available: model.available
+    readonly property bool wifiAvailable: model.wifiAvailable
     readonly property bool wifiEnabled: model.wifiEnabled
+    readonly property bool wiredConnected: model.wiredConnected
     readonly property bool connected: model.connected
     readonly property string activeSsid: model.activeSsid
     readonly property int activeSignal: model.activeSignal
     readonly property string activeSecurity: model.activeSecurity
     readonly property ListModel networks: model.networks
+    readonly property ListModel wiredConnections: model.wiredConnections
 
     function setWifiEnabled(enabled: bool): void {
         model.setWifiEnabled(enabled);
+    }
+    function connectWired(id: string): void {
+        model.connectWired(id);
     }
     function connectKnown(ssid: string): void {
         model.connectKnown(ssid);

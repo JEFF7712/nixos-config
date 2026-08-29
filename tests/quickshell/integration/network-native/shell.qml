@@ -15,19 +15,22 @@ ShellRoot {
 
     function finish() {
         const available = networkService.available;
-        const validTypes = typeof networkService.available === "boolean" && typeof networkService.wifiEnabled === "boolean" && typeof networkService.connected === "boolean" && typeof networkService.activeSsid === "string" && typeof networkService.activeSignal === "number" && typeof networkService.activeSecurity === "string" && networkService.networks !== null && networkService.networks !== undefined && typeof networkService.networks.count === "number";
-        const validRange = validTypes && Number.isInteger(networkService.activeSignal) && networkService.activeSignal >= 0 && networkService.activeSignal <= 100 && networkService.networks.count >= 0 && networkService.networks.count <= 8;
+        const validTypes = typeof networkService.available === "boolean" && typeof networkService.wifiAvailable === "boolean" && typeof networkService.wifiEnabled === "boolean" && typeof networkService.wiredConnected === "boolean" && typeof networkService.connected === "boolean" && typeof networkService.activeSsid === "string" && typeof networkService.activeSignal === "number" && typeof networkService.activeSecurity === "string" && networkService.wiredConnections !== null && networkService.wiredConnections !== undefined && typeof networkService.wiredConnections.count === "number" && networkService.networks !== null && networkService.networks !== undefined && typeof networkService.networks.count === "number";
+        const validRange = validTypes && Number.isInteger(networkService.activeSignal) && networkService.activeSignal >= 0 && networkService.activeSignal <= 100 && networkService.wiredConnections.count >= 0 && networkService.networks.count >= 0 && networkService.networks.count <= 8;
         networkService.openSettings();
         resultFile.setText(JSON.stringify({
             passed: validTypes && validRange,
             diagnostics: {
                 available: available,
                 skipped: !available,
+                wifiAvailable: networkService.wifiAvailable,
                 wifiEnabled: networkService.wifiEnabled,
+                wiredConnected: networkService.wiredConnected,
                 connected: networkService.connected,
                 activeSsid: networkService.activeSsid,
                 activeSignal: networkService.activeSignal,
                 activeSecurity: networkService.activeSecurity,
+                wiredConnectionCount: networkService.wiredConnections.count,
                 networkCount: networkService.networks.count
             }
         }) + "\n");

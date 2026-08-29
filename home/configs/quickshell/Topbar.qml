@@ -122,7 +122,11 @@ PanelWindow {
     }
 
     function networkIcon() {
-        return topbarWindow.networkService.connected ? "󰖩" : "󰖪";
+        if (topbarWindow.networkService.wiredConnected)
+            return "󰈀";
+        if (topbarWindow.networkService.activeSsid)
+            return "󰖩";
+        return "󰖪";
     }
 
     function volumeIcon() {
