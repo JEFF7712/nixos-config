@@ -94,6 +94,7 @@
     openssl
     curl
     expat
+    pam
   ];
 
   services.power-profiles-daemon.enable = true;
