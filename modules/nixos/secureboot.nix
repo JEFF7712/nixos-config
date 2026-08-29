@@ -28,9 +28,9 @@ in
       autoGenerateKeys.enable = true;
       autoEnrollKeys.enable = true;
 
-      # pcrlock rewrites TPM2 policy every switch (static PCR 7 breaks on UKI
-      # updates). Cap 8: systemd-pcrlock refuses more variants.
-      configurationLimit = lib.mkIf measured (lib.mkForce 8);
+      # Each generation has normal and performance UKIs. systemd-pcrlock
+      # refuses policies with more than eight variants, so cap at four.
+      configurationLimit = lib.mkIf measured (lib.mkForce 4);
       measuredBoot = lib.mkIf measured {
         enable = true;
         # 0 firmware, 4 bootloader+UKI, 7 SB state. 1/2/3 are flaky.

@@ -16,6 +16,7 @@ assert !builtins.elem "/etc/gshadow" preservedFiles;
 assert builtins.elem "/etc/subuid" preservedFiles;
 assert builtins.elem "/etc/subgid" preservedFiles;
 assert builtins.elem "i915" config.boot.initrd.kernelModules;
+assert config.boot.lanzaboote.configurationLimit <= 4;
 assert userServices ? system-update-failure-notify;
 assert userTimers ? system-update-failure-notify;
 assert userTimers.system-update-failure-notify.Install.WantedBy == [ "graphical-session.target" ];
