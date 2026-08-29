@@ -1,5 +1,5 @@
 # Ephemeral btrfs @root, durable @home/@nix, declared state in /persist.
-# Needs hosts/laptop/disko.nix + systemd initrd. laptop-crypt only for now.
+# Needs hosts/laptop/disko.nix and systemd initrd.
 {
   pkgs,
   lib,
@@ -15,6 +15,29 @@
 
   config = lib.mkIf config.impermanence.enable {
     fileSystems."/persist".neededForBoot = true;
+
+    services.userborn = {
+      enable = true;
+      passwordFilesLocation = "/persist/etc";
+    };
+
+    users.users.rupan.autoSubUidGidRange = lib.mkForce false;
+    environment.etc = {
+      subuid.text = "rupan:100000:65536\n";
+      subgid.text = "rupan:100000:65536\n";
+    };
+
+    system.activationScripts = {
+      seed-userborn-password-files.text = ''
+        install -d -m 0755 /persist/etc
+        for file in group passwd shadow; do
+          if [[ ! -e /persist/etc/$file ]]; then
+            cp --preserve=mode,ownership,timestamps /etc/$file /persist/etc/$file
+          fi
+        done
+      '';
+      etc.deps = lib.mkAfter [ "seed-userborn-password-files" ];
+    };
 
     # Park outgoing @root under old_roots/ for 14 days.
     boot.initrd.systemd.services.rollback-root = {
@@ -69,17 +92,6 @@
           {
             file = "/etc/machine-id";
             inInitrd = true;
-          }
-          # mutableUsers passwords; without this, first boot locks rupan out.
-          {
-            file = "/etc/shadow";
-            group = "shadow";
-            mode = "0640";
-          }
-          {
-            file = "/etc/gshadow";
-            group = "shadow";
-            mode = "0640";
           }
         ];
         directories = [

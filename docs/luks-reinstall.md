@@ -87,26 +87,25 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
    ```
 6. `sudo nixos-install --flake ~/nixos#laptop --no-root-passwd`
    (lanzaboote signs with the restored keys; secure boot stays enforcing.)
-7. Set rupan's password with nixos-enter and copy the hash into /persist
-   before the first reboot, because that boot already rolls `@root` back
-   to `@root-blank` (a later `passwd` is wiped on the next rollback):
+7. Set rupan's password with nixos-enter before the first reboot:
    ```bash
    sudo nixos-enter --root /mnt -c "passwd rupan"
-   mkdir -p /mnt/persist/etc
-   cp -a /mnt/etc/shadow /mnt/persist/etc/shadow
-   cp -a /mnt/etc/gshadow /mnt/persist/etc/gshadow 2>/dev/null || true
+   test "$(readlink /mnt/etc/shadow)" = /persist/etc/shadow
+   test -s /mnt/persist/etc/shadow
    ```
-   nixos-enter writes the ephemeral `@root`; the durable copy is the one
-   under /persist, same as the ssh/sbctl restore above.
+   Userborn keeps `passwd`, `group`, and `shadow` under `/persist/etc`, so
+   `passwd` writes directly to durable state. Do not bind-mount `/etc/shadow`
+   as a preservation file: NixOS activation updates it with atomic rename,
+   which fails on a file mountpoint.
 8. Reboot into the encrypted system, unlock with the passphrase, then
    restore `/home/rupan` from backup.
 9. Wire up hibernate. The btrfs swapfile's physical offset only exists once
-   the file does, so `hosts/laptop-crypt/configuration.nix` imports
+   the file does, so `hosts/laptop/configuration.nix` imports
    `./resume-offset.nix` if present and skips hibernate if not. Generate and
    commit it now:
    ```bash
    offset=$(sudo btrfs inspect-internal map-swapfile -r /.swap/swapfile)
-   cat > ~/nixos/hosts/laptop-crypt/resume-offset.nix <<EOF
+   cat > ~/nixos/hosts/laptop/resume-offset.nix <<EOF
    # Generated after install: physical offset of /.swap/swapfile within
    # /dev/mapper/cryptroot. Regenerate if the swapfile is ever recreated.
    {
@@ -114,7 +113,7 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
      boot.kernelParams = [ "resume_offset=$offset" ];
    }
    EOF
-   git -C ~/nixos add hosts/laptop-crypt/resume-offset.nix
+   git -C ~/nixos add hosts/laptop/resume-offset.nix
    ```
    It must be committed: an untracked file is invisible to the flake. Then
    switch and test with `systemctl hibernate`. The root rollback is ordered
@@ -158,8 +157,8 @@ confirm `~/nixos` and `~/nixos-assets` are pushed to their remotes.
   `virtualisation.vmVariantWithDisko` into the laptop host if the rehearsal
   recipe should keep working.
 - Remove `just vm-crypt` or repoint it at `laptop`.
-- Keep `hosts/laptop-crypt/resume-offset.nix` with the host when folding it
-  into `hosts/laptop`.
+- Keep `hosts/laptop/resume-offset.nix`; regenerate it if the swapfile is
+  recreated.
 - Follow-up work: a pre-switch snapshot hook. Scheduled snapshots are already
   handled by `modules/nixos/btrfs-snapshots.nix` (btrbk, daily, `@home` and
   `@persist` into `@snapshots`). They are same-disk and are not a backup:
