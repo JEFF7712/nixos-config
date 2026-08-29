@@ -105,7 +105,7 @@ activation, and guard the service against a missing socket.
 Start the driver when the Wayland socket exists and skip restart attempts while
 the session is unavailable.
 
-- [ ] **Step 4: Validate, activate, and reboot**
+- [x] **Step 4: Validate, activate, and reboot**
 
 Run the repository checks, activate the configuration, and confirm after a
 second reboot that the path unit activates a healthy driver.
