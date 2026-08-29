@@ -21,7 +21,9 @@
     "usbhid"
     "sd_mod"
   ];
-  boot.initrd.kernelModules = [ ];
+  # Plymouth must start on i915 in stage 1. Switching from simpledrm after
+  # switch-root leaves Plymouth with a stale renderer head and crashes it.
+  boot.initrd.kernelModules = [ "i915" ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 

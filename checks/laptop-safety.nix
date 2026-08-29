@@ -15,6 +15,7 @@ assert !builtins.elem "/etc/shadow" preservedFiles;
 assert !builtins.elem "/etc/gshadow" preservedFiles;
 assert config.environment.etc.subuid.text == "rupan:100000:65536\n";
 assert config.environment.etc.subgid.text == "rupan:100000:65536\n";
+assert builtins.elem "i915" config.boot.initrd.kernelModules;
 assert userServices ? system-update-failure-notify;
 assert userTimers ? system-update-failure-notify;
 assert userTimers.system-update-failure-notify.Install.WantedBy == [ "graphical-session.target" ];
