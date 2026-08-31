@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
+    chatgpt-nixpkgs.url = "github:Moraxyc/nixpkgs/chatgpt-linux";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
     treefmt-nix = {
@@ -148,6 +149,11 @@
             config.allowUnfree = true;
           };
 
+          chatgpt-pkgs = import inputs.chatgpt-nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          };
+
           # vmWithDisko passes a module as vmTools `kernel` (nixpkgs 2026-06 / disko #1027).
           disko-patched = pkgs.applyPatches {
             name = "disko-patched";
@@ -162,6 +168,7 @@
               specialArgs = {
                 inherit
                   inputs
+                  chatgpt-pkgs
                   pkgs-stable
                   self
                   ;
@@ -178,6 +185,7 @@
                   home-manager.extraSpecialArgs = {
                     inherit
                       inputs
+                      chatgpt-pkgs
                       pkgs-stable
                       self
                       ;

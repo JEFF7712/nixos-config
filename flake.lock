@@ -54,6 +54,22 @@
         "type": "github"
       }
     },
+    "chatgpt-nixpkgs": {
+      "locked": {
+        "lastModified": 1788070290,
+        "narHash": "sha256-8VEyJWWt0J3ljEDV+ULRrRoRcK5kq1Jn1aYt7vrHNGE=",
+        "owner": "Moraxyc",
+        "repo": "nixpkgs",
+        "rev": "a191ec7709e37ec089dc82bad5133a044ef47a8f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Moraxyc",
+        "ref": "chatgpt-linux",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "claude-code-nix": {
       "inputs": {
         "nixpkgs": [
@@ -864,6 +880,7 @@
     "root": {
       "inputs": {
         "asus-numberpad-driver": "asus-numberpad-driver",
+        "chatgpt-nixpkgs": "chatgpt-nixpkgs",
         "claude-code-nix": "claude-code-nix",
         "code-cursor-nix": "code-cursor-nix",
         "codex-cli-nix": "codex-cli-nix",

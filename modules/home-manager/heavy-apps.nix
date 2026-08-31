@@ -2,6 +2,7 @@
   pkgs,
   lib,
   config,
+  chatgpt-pkgs,
   pkgs-stable,
   ...
 }:
@@ -43,6 +44,7 @@ in
       ++ lib.optionals cfg.comms.enable (
         with pkgs;
         [
+          chatgpt-pkgs.chatgpt
           telegram-desktop
           slack
           tor-browser
