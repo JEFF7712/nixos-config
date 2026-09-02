@@ -89,6 +89,7 @@
           sox
           rtk
           claude-code-proxy
+          muse-code
         ])
         ++ [
           opencodeCli

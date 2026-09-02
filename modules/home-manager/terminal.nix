@@ -110,6 +110,7 @@
         opencode = "opencode --auto";
         pi = "pi --approve";
         agent = "env AGENT_CLI_DISABLE_HALF_BLOCK_PROMPT_BAR=true agent --force";
+        muse = "muse --yolo";
         ci = "$HOME/projects/ci-dashboard.sh";
       };
       interactiveShellInit = ''
