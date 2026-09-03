@@ -305,6 +305,11 @@ binds {
     XF86AudioRaiseVolume allow-when-locked=true { spawn "profile-dispatch" "volume-up"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn "profile-dispatch" "volume-down"; }
     XF86AudioMute allow-when-locked=true { spawn "profile-dispatch" "volume-mute"; }
+    XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
+    XF86AudioPause allow-when-locked=true { spawn "playerctl" "play-pause"; }
+    XF86AudioStop allow-when-locked=true { spawn "playerctl" "stop"; }
+    XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }
+    XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }
 
     XF86MonBrightnessUp allow-when-locked=true { spawn "profile-dispatch" "brightness-up"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn "profile-dispatch" "brightness-down"; }

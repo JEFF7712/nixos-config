@@ -1,18 +1,48 @@
 #!/usr/bin/env bash
 # Apply sink volume immediately via PipeWire, then ask SwayOSD to display
 # the new level without changing it again. SwayOSD's GTK thread can stall
-# for seconds after idle; wpctl must not wait on that.
+# for seconds after idle; the volume change must not wait on that.
+#
+# Target the actively-playing Bluetooth sink when one exists. The PipeWire
+# default stays on the speakers while streams are routed to the AirPods, so
+# the default sink alone leaves the volume keys dead on Bluetooth.
+#
+# Uses pactl throughout: this wpctl only accepts numeric node IDs, while
+# pactl takes stable sink names.
 set -euo pipefail
+
+pick_sink() {
+  local bluez
+  bluez=$(pactl list sinks short 2>/dev/null | awk '$2 ~ /^bluez_output\./ && $NF == "RUNNING" {print $2; exit}')
+  if [ -n "${bluez:-}" ]; then
+    printf '%s\n' "$bluez"
+  else
+    pactl get-default-sink 2>/dev/null
+  fi
+}
+
+sink_pct() {
+  pactl get-sink-volume "$1" 2>/dev/null | grep -oE '[0-9]+%' | head -n 1 | tr -d '%'
+}
+
+SINK=$(pick_sink)
+if [ -z "${SINK:-}" ]; then
+  echo "volume-adjust: no audio sink found" >&2
+  exit 1
+fi
 
 case "${1:-}" in
   up)
-    wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
+    pactl set-sink-volume "$SINK" +5%
+    if [ "$(sink_pct "$SINK")" -gt 100 ]; then
+      pactl set-sink-volume "$SINK" 100%
+    fi
     ;;
   down)
-    wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+    pactl set-sink-volume "$SINK" -5%
     ;;
   mute)
-    wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+    pactl set-sink-mute "$SINK" toggle
     ;;
   *)
     echo "Usage: volume-adjust <up|down|mute>" >&2
@@ -20,4 +50,4 @@ case "${1:-}" in
     ;;
 esac
 
-swayosd-client --output-volume +0 >/dev/null 2>&1 || true
+swayosd-client --output-volume +0 --device "$SINK" >/dev/null 2>&1 || true

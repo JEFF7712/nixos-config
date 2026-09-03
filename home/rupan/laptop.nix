@@ -91,6 +91,7 @@
   ];
 
   niri.enable = true;
+  bluetooth.enable = true;
   noctalia.enable = true;
   programs.noctalia.settings = {
     desktopWidgets.monitorWidgets = [
