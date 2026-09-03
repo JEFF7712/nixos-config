@@ -47,10 +47,6 @@ classify() {
     home/scripts/*)
       add shell-check
       ;;
-    hosts/laptop-crypt/* | home/rupan/laptop-crypt.nix)
-      add fmt-check
-      add 'eval laptop-crypt'
-      ;;
     hosts/laptop/base.nix)
       add fmt-check
       add eval-vm
@@ -161,7 +157,6 @@ else
     build-iso \
     eval-vm \
     'eval laptop' \
-    'eval laptop-crypt' \
     'eval iso' \
     eval-all \
     check-profiles; do
@@ -184,7 +179,6 @@ for command in "${commands[@]}"; do
     build-iso) just build-iso ;;
     eval-vm) just eval-vm ;;
     'eval laptop') just eval laptop ;;
-    'eval laptop-crypt') just eval laptop-crypt ;;
     'eval iso') just eval iso ;;
     diff-check) just diff-check "${CHECK_CHANGED_BASE:-}" ;;
     *) just "$command" ;;

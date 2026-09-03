@@ -11,7 +11,7 @@
     assertions = [
       {
         assertion = config.impermanence.enable;
-        message = "btrfs-snapshots.enable targets the disko btrfs layout, which only laptop-crypt has";
+        message = "btrfs-snapshots.enable targets the disko btrfs layout, which only laptop has";
       }
     ];
 

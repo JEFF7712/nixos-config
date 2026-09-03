@@ -21,7 +21,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Update flake inputs | `flake.nix`, `flake.lock` | `flake.lock` via `just update` | `just check` |
 | Change ISO behavior | `hosts/iso/configuration.nix`, `home/rupan/iso.nix` | ISO host or ISO home config | `just eval iso && just build-iso` |
 | Change VM boot testing (`just vm`) | `justfile`, `virtualisation.vmVariant` in `hosts/laptop/base.nix` | vmVariant block, `vm`/`vm-iso` recipes | `just eval-vm` (vmVariant is not covered by `just eval`) |
-| Change LUKS reinstall prep | `docs/luks-reinstall.md`, `hosts/laptop-crypt/`, `hosts/laptop/disko.nix` | disko layout, crypt host, runbook | `just eval laptop-crypt` + build `vmWithDisko` for layout changes |
+| Change LUKS disk layout | `docs/luks-reinstall.md`, `hosts/laptop/disko.nix` | disko layout, runbook | `just eval laptop` + `just vm-disko` for layout changes |
 | Change Obsidian vault fonts/CSS | `modules/home-manager/obsidian.nix`, `home/configs/obsidian/` | snippet CSS, custom-font-loader JSON, activation merge in module + `profile-common` / `iris-render.py` | `just fmt-check && just eval laptop` |
 | Change agent tooling | `modules/home-manager/ai-tools.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md` | `just check-agent-docs && just eval laptop` |
 | Change agent hooks | `hooks/`, `.cursor/hooks.json`, `.claude/settings.json`, `.codex/hooks.json` | shared `hooks/` scripts only; keep the three configs pointing at the same commands | `just check-agent-workflows && just shell-check` |

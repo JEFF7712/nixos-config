@@ -33,9 +33,9 @@ diff-check' \
   home/scripts/profile-transition
 
 assert_selection 'fmt-check
-eval laptop-crypt
+eval laptop
 diff-check' \
-  hosts/laptop-crypt/configuration.nix
+  hosts/laptop/disko.nix
 
 assert_selection 'fmt-check
 eval-vm

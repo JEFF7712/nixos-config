@@ -200,8 +200,6 @@
         {
           nixosConfigurations = {
             laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
-            # Post-LUKS-reinstall variant; see docs/luks-reinstall.md.
-            laptop-crypt = mkSystem "laptop-crypt" ./home/rupan/laptop.nix;
             iso = mkSystem "iso" ./home/rupan/iso.nix;
           };
         };

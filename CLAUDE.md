@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repo.
 
 ## What This Is
 
-NixOS flake-based system config for multiple hosts (`laptop`, `laptop-crypt`, `iso`) with home-manager. Lives at `~/nixos`, single source of truth for system + user config. State version `25.11`.
+NixOS flake-based system config for multiple hosts (`laptop`, `iso`) with home-manager. Lives at `~/nixos`, single source of truth for system + user config. State version `25.11`.
 
 ## Commands
 
@@ -37,7 +37,7 @@ Commit history here is disposable — when asked to commit, commit freely (batch
 
 ## Architecture
 
-`flake.nix` defines `laptop` (full: NVIDIA, gaming, heavy apps, VPN, stasis), `laptop-crypt` (post-LUKS-reinstall variant of laptop: disko plus btrfs plus impermanence), and `iso` (lighter live image, auto-clones repo on boot) via a `mkSystem` helper, using `flake-parts`. Each host has `hosts/<name>/configuration.nix` plus home config `home/rupan/<name>.nix` (base: `home/rupan/home.nix`); `laptop` also has `hardware-configuration.nix`, `base.nix` (nearly all config, shared with `laptop-crypt`), and `disko.nix`; `iso` has no `hardware-configuration.nix`.
+`flake.nix` defines `laptop` (full: NVIDIA, gaming, heavy apps, VPN, stasis, LUKS2 plus btrfs plus impermanence via `disko.nix`) and `iso` (lighter live image, auto-clones repo on boot) via a `mkSystem` helper, using `flake-parts`. Each host has `hosts/<name>/configuration.nix` plus home config `home/rupan/<name>.nix` (base: `home/rupan/home.nix`); `laptop` also has `hardware-configuration.nix`, `base.nix` (nearly all config), `disko.nix`, and generated `resume-offset.nix`; `iso` has no `hardware-configuration.nix`.
 
 **Modules** live in `modules/nixos/` (system) and `modules/home-manager/` (user). Most use the `lib.mkEnableOption` / `lib.mkIf config.<name>.enable` pattern, toggled per-host; profile modules in `modules/home-manager/profiles/` declare no options (they populate `desktopProfiles.profiles.<name>`). **Auto-discovered via `import-tree`**: dropping a new `.nix` file in either dir is enough to register it. Read the dir to see what exists; each module's option name matches its purpose.
 
