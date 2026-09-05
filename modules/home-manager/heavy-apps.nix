@@ -15,7 +15,7 @@ in
     media.enable = lib.mkEnableOption "heavy media apps (DaVinci, OBS, VLC, ...)";
     office.enable = lib.mkEnableOption "heavy office apps (LibreOffice, GIMP, Bitwarden)";
     comms.enable = lib.mkEnableOption "heavy comms apps (Telegram, Slack, browsers, ...)";
-    science.enable = lib.mkEnableOption "heavy science apps (OVITO, Avogadro)";
+    science.enable = lib.mkEnableOption "heavy science apps (OVITO, Avogadro, FreeCAD)";
   };
 
   config = {
@@ -56,6 +56,7 @@ in
         with pkgs;
         [
           ovito
+          freecad
           pkgs-stable.avogadro2
         ]
       );
