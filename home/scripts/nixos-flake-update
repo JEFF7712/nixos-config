@@ -41,31 +41,53 @@ for value in label repo target commit_message; do
   }
 done
 
-cascade_guard="${cascade_guard:-$repo/home/scripts/nix-cascade-guard}"
-target_flake="${target%%#*}"
-target_name="${target##*#}"
-toplevel="${target_flake}#nixosConfigurations.${target_name}.config.system.build.toplevel"
-defer_file=""
-if [[ -n ${STATE_DIRECTORY:-} ]]; then
-  defer_file="$STATE_DIRECTORY/defer-count-${label// /-}"
+safe_label="${label// /-}"
+if [[ ! $safe_label =~ ^[A-Za-z0-9._-]+$ ]]; then
+  printf 'invalid --label for state path: %s\n' "$label" >&2
+  exit 2
 fi
+
+cascade_guard="${cascade_guard:-$repo/home/scripts/nix-cascade-guard}"
+target_name="${target##*#}"
+state_directory="${STATE_DIRECTORY:-}"
+ephemeral_state=false
+if [[ -z $state_directory ]]; then
+  state_directory="$(mktemp -d "${TMPDIR:-/tmp}/nixos-flake-update.XXXXXX")"
+  ephemeral_state=true
+fi
+pending_dir="$state_directory/pending-$safe_label"
+deployed_file="$state_directory/deployed-$safe_label.lock"
+defer_file="$state_directory/defer-count-$safe_label"
+candidate_work=""
+lock_snapshot=""
+dirty_lock=false
 
 restore_lock() {
   mv -f -- "$lock_snapshot" "$repo/flake.lock"
   lock_snapshot=""
 }
 
-remove_snapshot() {
+remove_lock_snapshot() {
   if [[ -n $lock_snapshot ]]; then
     rm -f -- "$lock_snapshot"
     lock_snapshot=""
   fi
 }
 
-dirty_lock=false
+cleanup_candidate_work() {
+  if [[ -n $candidate_work && -d $candidate_work ]]; then
+    rm -rf -- "$candidate_work"
+    candidate_work=""
+  fi
+}
 
 disarm_cleanup() {
   dirty_lock=false
+  remove_lock_snapshot
+  cleanup_candidate_work
+  if [[ $ephemeral_state == true ]]; then
+    rm -rf -- "$state_directory"
+  fi
   trap - EXIT INT TERM
 }
 
@@ -76,11 +98,16 @@ cleanup() {
     printf '%s cleanup failed while restoring flake.lock\n' "$label" >&2
     status=1
   fi
+  remove_lock_snapshot
+  cleanup_candidate_work
+  if [[ $ephemeral_state == true ]]; then
+    rm -rf -- "$state_directory"
+  fi
   exit "$status"
 }
 
-# Root auto-update must not activate uncommitted edits. import-tree loads
-# untracked .nix files, so those count too. Apply local edits with `just switch`.
+# Root auto-update must not build uncommitted edits. import-tree loads untracked
+# .nix files, so those count too. Apply local edits with `just switch`.
 refuse_if_dirty_tree() {
   local porcelain line path
   porcelain="$(runuser -u rupan -- git -C "$repo" status --porcelain --untracked-files=all)" || {
@@ -105,14 +132,12 @@ refuse_if_dirty_tree() {
 }
 
 clear_defer_count() {
-  [[ -n $defer_file ]] || return 0
   rm -f -- "$defer_file"
 }
 
 consecutive_defer_exceeded() {
   local count=0
-  [[ -n $defer_file ]] || return 1
-  mkdir -p "$STATE_DIRECTORY"
+  mkdir -p "$state_directory"
   if [[ -r $defer_file ]]; then
     count=$(cat -- "$defer_file")
   fi
@@ -130,8 +155,103 @@ consecutive_defer_exceeded() {
   return 1
 }
 
+record_deployment() {
+  local deployed_tmp
+  deployed_tmp="$(mktemp "$state_directory/.deployed-$safe_label.XXXXXX")"
+  cp -- "$pending_dir/candidate/flake.lock" "$deployed_tmp"
+  mv -f -- "$deployed_tmp" "$deployed_file"
+}
+
+finish_deployment() {
+  record_deployment
+  printf 'deployed\n' > "$pending_dir/state"
+  chmod -R u+w "$pending_dir/candidate"
+  rm -rf -- "$pending_dir"
+}
+
+candidate_lock_is_committed() {
+  cmp -s "$pending_dir/candidate/flake.lock" \
+    <(runuser -u rupan -- git -C "$repo" show HEAD:flake.lock)
+}
+
+commit_candidate_lock() {
+  local commit_status=0
+  if candidate_lock_is_committed; then
+    cp -- "$pending_dir/candidate/flake.lock" "$repo/flake.lock"
+    finish_deployment
+    return 0
+  fi
+
+  lock_snapshot="$(mktemp "$repo/.flake.lock.snapshot.XXXXXX")"
+  if ! cp --preserve=mode,ownership,timestamps -- "$repo/flake.lock" "$lock_snapshot"; then
+    remove_lock_snapshot
+    printf '%s update: could not snapshot flake.lock\n' "$label" >&2
+    return 1
+  fi
+
+  dirty_lock=true
+  if ! cp -- "$pending_dir/candidate/flake.lock" "$repo/flake.lock"; then
+    restore_lock
+    dirty_lock=false
+    printf '%s update: could not publish activated flake.lock\n' "$label" >&2
+    return 1
+  fi
+  runuser -u rupan -- git -C "$repo" commit -m "$commit_message" -- flake.lock || commit_status=$?
+  if [[ $commit_status -ne 0 ]]; then
+    restore_lock
+    dirty_lock=false
+    printf '%s update: activated candidate could not be committed; will retry next run\n' "$label" >&2
+    return 1
+  fi
+  dirty_lock=false
+  remove_lock_snapshot
+  finish_deployment
+}
+
+activate_pending_candidate() {
+  local candidate_ref candidate_state rebuild_status
+  if [[ ! -r $pending_dir/state || ! -r $pending_dir/candidate/flake.nix \
+    || ! -r $pending_dir/candidate/flake.lock ]]; then
+    printf '%s update: pending candidate state is incomplete\n' "$label" >&2
+    return 1
+  fi
+
+  candidate_state="$(cat -- "$pending_dir/state")"
+  case "$candidate_state" in
+    pending)
+      candidate_ref="path:$pending_dir/candidate#$target_name"
+      rebuild_status=0
+      "$nixos_rebuild" switch --flake "$candidate_ref" \
+        --option max-jobs 2 --option cores 8 || rebuild_status=$?
+      if [[ $rebuild_status -ne 0 ]]; then
+        printf '%s update activation failed; pending candidate retained\n' "$label" >&2
+        return "$rebuild_status"
+      fi
+      printf 'activated\n' > "$pending_dir/state"
+      ;;
+    activated) ;;
+    *)
+      printf '%s update: invalid pending candidate state: %s\n' "$label" "$candidate_state" >&2
+      return 1
+      ;;
+  esac
+
+  commit_candidate_lock
+}
+
 exec {lock_fd}>"$update_lock"
 flock -n "$lock_fd" || exit 0
+
+mkdir -p "$state_directory"
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+if [[ -e $pending_dir ]]; then
+  activate_pending_candidate
+  disarm_cleanup
+  exit 0
+fi
 
 refuse_if_dirty_tree
 
@@ -150,35 +270,36 @@ if [[ $dns_ready != true ]]; then
   exit 1
 fi
 
-lock_snapshot="$(mktemp "$repo/.flake.lock.snapshot.XXXXXX")"
-if ! cp --preserve=mode,ownership,timestamps -- "$repo/flake.lock" "$lock_snapshot"; then
-  remove_snapshot
-  printf '%s update: could not snapshot flake.lock\n' "$label" >&2
+candidate_work="$(mktemp -d "$state_directory/.candidate-$safe_label.XXXXXX")"
+chmod 0755 "$candidate_work"
+mkdir "$candidate_work/candidate"
+if ! runuser -u rupan -- git -C "$repo" archive --format=tar HEAD \
+  | tar -x -C "$candidate_work/candidate"; then
+  printf '%s update: could not create candidate snapshot\n' "$label" >&2
   exit 1
 fi
+chown -R rupan:users "$candidate_work/candidate"
+chmod -R u+w "$candidate_work/candidate"
+cp --preserve=mode,timestamps -- "$repo/flake.lock" "$candidate_work/source.lock"
+cp --preserve=mode,timestamps -- "$repo/flake.lock" "$candidate_work/candidate/flake.lock"
 
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-dirty_lock=true
+candidate_ref="path:$candidate_work/candidate#$target_name"
+toplevel="${candidate_ref%%#*}#nixosConfigurations.${target_name}.config.system.build.toplevel"
 
-if ! runuser -u rupan -- nix flake update --flake "path:$repo" "${inputs[@]}"; then
-  restore_lock
-  disarm_cleanup
+if ! runuser -u rupan -- nix flake update --flake "path:$candidate_work/candidate" "${inputs[@]}"; then
   printf '%s update failed; flake.lock reverted\n' "$label" >&2
   exit 1
 fi
 
 if ! runuser -u rupan -- nix eval --no-write-lock-file \
   "${toplevel}.drvPath" >/dev/null; then
-  restore_lock
-  disarm_cleanup
   if [[ $eval_failure == defer ]]; then
     printf '%s update deferred: updated inputs fail eval; flake.lock reverted, will retry next run\n' \
       "$label" >&2
     if consecutive_defer_exceeded; then
       exit 1
     fi
+    disarm_cleanup
     exit 0
   fi
   printf '%s update fails eval; flake.lock reverted\n' "$label" >&2
@@ -186,19 +307,16 @@ if ! runuser -u rupan -- nix eval --no-write-lock-file \
 fi
 
 compare_status=0
-cmp -s -- "$repo/flake.lock" "$lock_snapshot" || compare_status=$?
+cmp -s -- "$candidate_work/candidate/flake.lock" "$candidate_work/source.lock" || compare_status=$?
 case "$compare_status" in
   0)
-    remove_snapshot
-    disarm_cleanup
     clear_defer_count
     printf '%s flake.lock unchanged; skipping rebuild\n' "$label"
+    disarm_cleanup
     exit 0
     ;;
   1) ;;
   *)
-    restore_lock
-    disarm_cleanup
     printf '%s could not compare flake.lock snapshot (rc=%d); lock reverted\n' \
       "$label" "$compare_status" >&2
     exit 1
@@ -209,25 +327,25 @@ cascade_status=0
 runuser -u rupan -w PATH -- "$cascade_guard" \
   "$toplevel" || cascade_status=$?
 if [[ $cascade_status -eq 10 ]]; then
-  restore_lock
-  disarm_cleanup
   printf '%s update deferred: toolchain cascade; flake.lock reverted\n' "$label" >&2
   if consecutive_defer_exceeded; then
     exit 1
   fi
+  disarm_cleanup
   exit 0
 elif [[ $cascade_status -ne 0 ]]; then
-  restore_lock
-  disarm_cleanup
   printf '%s cascade guard failed (rc=%d); flake.lock reverted\n' \
     "$label" "$cascade_status" >&2
   exit 1
 fi
 
+printf 'pending\n' > "$candidate_work/state"
+chmod -R a-w "$candidate_work/candidate"
+if ((EUID == 0)); then
+  chown -R root:root "$candidate_work/candidate"
+fi
+mv -- "$candidate_work" "$pending_dir"
+candidate_work=""
 clear_defer_count
-runuser -u rupan -- git -C "$repo" commit -m "$commit_message" -- flake.lock
-remove_snapshot
+activate_pending_candidate
 disarm_cleanup
-refuse_if_dirty_tree
-"$nixos_rebuild" switch --flake "$target" \
-  --option max-jobs 2 --option cores 8

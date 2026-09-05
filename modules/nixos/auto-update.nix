@@ -15,6 +15,7 @@ let
       diffutils
       getent
       git
+      gnutar
       # gnused for nix-cascade-guard (same PATH-pin coupling as missing-cmp).
       gnused
       nix

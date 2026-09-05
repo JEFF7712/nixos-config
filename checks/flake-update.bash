@@ -2,14 +2,19 @@
 set -euo pipefail
 
 tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
+trap 'chmod -R u+w "$tmpdir" 2>/dev/null || true; rm -rf "$tmpdir"' EXIT
 real_git="$(command -v git)"
 
 repo="$tmpdir/repo"
 bin_dir="$tmpdir/bin"
 mkdir -p "$repo" "$bin_dir"
-: > "$repo/flake.nix"
-: > "$repo/flake.lock"
+printf 'snapshot baseline\n' > "$repo/flake.nix"
+printf 'mock baseline\n' > "$repo/flake.lock"
+"$real_git" -C "$repo" init -q
+"$real_git" -C "$repo" config user.name Fixture
+"$real_git" -C "$repo" config user.email fixture@example.invalid
+"$real_git" -C "$repo" add flake.nix flake.lock
+"$real_git" -C "$repo" commit -qm fixture
 
 make_fake() {
   local name="$1"
@@ -33,13 +38,28 @@ printf 'nix %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
 if [[ " $* " == *' flake update '* ]]; then
+  flake_path=""
+  for ((i = 1; i <= $#; i++)); do
+    if [[ ${!i} == --flake ]]; then
+      ((i += 1))
+      flake_path="${!i#path:}"
+      break
+    fi
+  done
   if [[ "${TEST_DIFF_STATUS:-0}" == 2 ]]; then
-    rm -f "$TEST_REPO/flake.lock"
+    rm -f "$flake_path/flake.lock"
   elif [[ "${TEST_MUTATE_LOCK:-}" == 1 || "${TEST_DIFF_STATUS:-0}" == 1 ]]; then
-    printf 'mutated by update\n' > "$TEST_REPO/flake.lock"
+    printf 'mutated by update\n' > "$flake_path/flake.lock"
+  fi
+  if [[ "${TEST_MUTATE_CHECKOUT_AFTER_UPDATE:-}" == 1 ]]; then
+    printf 'editable changed\n' > "$TEST_REPO/flake.nix"
   fi
 fi
 if [[ " $* " == *' eval '* ]]; then
+  ref="${!#}"
+  flake_path="${ref#path:}"
+  flake_path="${flake_path%%#*}"
+  printf 'eval-source %s\n' "$(cat "$flake_path/flake.nix")" >> "$COMMAND_LOG"
   exit "${TEST_EVAL_STATUS:-0}"
 fi
 exit "${TEST_UPDATE_STATUS:-0}"
@@ -54,6 +74,7 @@ if [[ "${TEST_REAL_GIT:-}" == 1 ]]; then
   exec "$REAL_GIT" "$@"
 fi
 case " $* " in
+  *' archive --format=tar HEAD '*) exec "$REAL_GIT" "$@" ;;
   *' rev-parse --show-toplevel '*) printf '%s\n' "$TEST_REPO" ;;
   *' diff --quiet '*) exit "${TEST_DIFF_STATUS:-0}" ;;
   *' diff --exit-code '*) exit 0 ;;
@@ -87,6 +108,10 @@ make_fake nix-cascade-guard <<'EOF'
 printf '%s' "${0##*/}" >> "$COMMAND_LOG"
 printf ' %q' "$@" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
+ref="$1"
+flake_path="${ref#path:}"
+flake_path="${flake_path%%#*}"
+printf 'cascade-source %s\n' "$(cat "$flake_path/flake.nix")" >> "$COMMAND_LOG"
 if [[ "${TEST_CASCADE_ACTION:-}" == term ]]; then
   kill -TERM "$PPID"
   sleep 1
@@ -99,6 +124,16 @@ make_fake nixos-rebuild <<'EOF'
 printf '%s' "${0##*/}" >> "$COMMAND_LOG"
 printf ' %q' "$@" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
+while [[ $# -gt 0 ]]; do
+  if [[ $1 == --flake ]]; then
+    ref="$2"
+    flake_path="${ref#path:}"
+    flake_path="${flake_path%%#*}"
+    printf 'rebuild-source %s\n' "$(cat "$flake_path/flake.nix")" >> "$COMMAND_LOG"
+    break
+  fi
+  shift
+done
 exit "${TEST_REBUILD_STATUS:-0}"
 EOF
 
@@ -136,14 +171,16 @@ assert_lock_restored() {
 }
 
 assert_one_update() {
-  local expected="$1" name="$2" count=0 line
+  local expected_inputs="$1" name="$2" count=0 line update_line=""
   while IFS= read -r line; do
     if [[ $line == *'nix flake update'* && $line != *'runuser '* ]]; then
       ((count += 1))
+      update_line="$line"
     fi
   done < "$COMMAND_LOG"
   [[ $count -eq 1 ]] || fail "$name expected one update invocation, got $count"
-  assert_log_has "$expected" "$name"
+  [[ $update_line == nix\ flake\ update\ --flake\ path:"$CASE_DIR"/state/.candidate-*/candidate"$expected_inputs" ]] ||
+    fail "$name used an unexpected update command: $update_line"
 }
 
 assert_before() {
@@ -186,9 +223,10 @@ run_pipeline() {
     DNS_RETRY_DELAY=0 \
     CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
     NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
-    REAL_GIT="${REAL_GIT:-}" \
+    REAL_GIT="${REAL_GIT:-$real_git}" \
     TEST_REAL_GIT="${TEST_REAL_GIT:-0}" \
     TEST_MUTATE_LOCK="${TEST_MUTATE_LOCK:-0}" \
+    TEST_MUTATE_CHECKOUT_AFTER_UPDATE="${TEST_MUTATE_CHECKOUT_AFTER_UPDATE:-0}" \
     TEST_UPDATE_STATUS="${TEST_UPDATE_STATUS:-0}" \
     TEST_DIFF_STATUS="${TEST_DIFF_STATUS:-0}" \
     TEST_EVAL_STATUS="${TEST_EVAL_STATUS:-0}" \
@@ -198,6 +236,7 @@ run_pipeline() {
     TEST_FLOCK_STATUS="${TEST_FLOCK_STATUS:-0}" \
     TEST_DNS_STATUS="${TEST_DNS_STATUS:-0}" \
     TEST_REBUILD_STATUS="${TEST_REBUILD_STATUS:-0}" \
+    STATE_DIRECTORY="$CASE_DIR/state" \
     home/scripts/nixos-flake-update "${args[@]}" >"$output_log" 2>&1
   PIPELINE_STATUS=$?
   set -e
@@ -209,18 +248,19 @@ setup_case() {
   mkdir -p "$CASE_DIR"
   : > "$COMMAND_LOG"
   if [[ $repo == "$tmpdir/repo" ]]; then
+    printf 'snapshot baseline\n' > "$repo/flake.nix"
     printf 'mock baseline\n' > "$repo/flake.lock"
   fi
   cp -p "$repo/flake.lock" "$CASE_DIR/expected.lock"
   unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
   unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
   unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT
+  unset TEST_MUTATE_CHECKOUT_AFTER_UPDATE
 }
 
-update_weekly="nix flake update --flake path:$repo"
-update_ai="nix flake update --flake path:$repo claude-code-nix codex-cli-nix code-cursor-nix opencode-nix"
+update_weekly=""
+update_ai=" claude-code-nix codex-cli-nix code-cursor-nix opencode-nix"
 commit_weekly="git -C $repo commit -m flake.lock:\ weekly\ auto-update -- flake.lock"
-rebuild="nixos-rebuild switch --flake path:$repo#laptop --option max-jobs 2 --option cores 8"
 
 case_unchanged() {
   run_pipeline
@@ -303,21 +343,68 @@ case_cascade_error() {
 
 case_commit_failure() {
   TEST_DIFF_STATUS=1 TEST_COMMIT_STATUS=1 run_pipeline
-  assert_log_lacks 'nixos-rebuild ' commit_failure
+  assert_status 1 "$PIPELINE_STATUS" commit_failure_first_run
+  grep -q '^nixos-rebuild switch ' "$COMMAND_LOG" ||
+    fail 'commit_failure did not activate the candidate before committing'
+  [[ $(cat "$CASE_DIR/state/pending-weekly/state") == activated ]] ||
+    fail 'commit_failure did not preserve activated candidate state'
+  assert_lock_restored commit_failure
+
+  TEST_DIFF_STATUS=1 run_pipeline
+  local rebuild_count
+  rebuild_count=$(grep -c '^nixos-rebuild switch ' "$COMMAND_LOG")
+  [[ $rebuild_count -eq 1 ]] ||
+    fail "commit_failure retry rebuilt an already activated candidate ($rebuild_count rebuilds)"
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'commit_failure retry did not clear pending state'
 }
 
 case_success_order() {
   TEST_DIFF_STATUS=1 run_pipeline
   assert_log_has "$commit_weekly" success_order
-  assert_log_has "$rebuild" success_order
-  assert_before "$commit_weekly" "$rebuild" success_order
+  rebuild=$(grep -m1 '^nixos-rebuild switch ' "$COMMAND_LOG")
+  [[ -n $rebuild ]] || fail 'success_order did not rebuild the candidate'
+  assert_before "$rebuild" "$commit_weekly" success_order
 }
 
 case_rebuild_failure() {
   TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
-  assert_log_has "$commit_weekly" rebuild_failure
-  assert_log_has "$rebuild" rebuild_failure
-  assert_before "$commit_weekly" "$rebuild" rebuild_failure
+  assert_log_lacks ' commit ' rebuild_failure
+  [[ -f $CASE_DIR/state/pending-weekly/candidate/flake.lock ]] ||
+    fail 'rebuild_failure did not leave a durable pending candidate'
+  [[ $(stat -c %a "$CASE_DIR/state/pending-weekly") == 755 ]] ||
+    fail 'rebuild_failure pending candidate is not traversable by the activation user'
+  assert_lock_restored rebuild_failure
+}
+
+case_pending_retry() {
+  TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" pending_retry_first_run
+  [[ -d $CASE_DIR/state/pending-weekly/candidate ]] ||
+    fail 'pending_retry first run did not leave a pending candidate'
+
+  run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" pending_retry_second_run
+  assert_one_update "$update_weekly" pending_retry
+  assert_log_has "$commit_weekly" pending_retry
+  cmp -s "$repo/flake.lock" "$CASE_DIR/state/deployed-weekly.lock" ||
+    fail 'pending_retry did not record the deployed candidate lock'
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'pending_retry did not clear pending state after success'
+}
+
+case_candidate_isolation() {
+  TEST_DIFF_STATUS=1 TEST_MUTATE_CHECKOUT_AFTER_UPDATE=1 TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" candidate_isolation_first_run
+  assert_log_has 'eval-source snapshot baseline' candidate_isolation
+  assert_log_has 'cascade-source snapshot baseline' candidate_isolation
+  assert_log_has 'rebuild-source snapshot baseline' candidate_isolation
+  assert_log_lacks "path:$repo#nixosConfigurations" candidate_isolation
+  assert_log_lacks "--flake path:$repo#laptop" candidate_isolation
+
+  run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" candidate_isolation_second_run
+  assert_log_has 'rebuild-source snapshot baseline' candidate_isolation
 }
 
 case_termination() {
@@ -344,9 +431,11 @@ run_case invalid_eval_failure 2
 run_case diff_error 1
 run_case cascade_deferred 0
 run_case cascade_error 1
-run_case commit_failure 1
+run_case commit_failure 0
 run_case success_order 0
 run_case rebuild_failure 5
+run_case pending_retry 0
+run_case candidate_isolation 0
 run_case termination 143
 
 real_repo="$tmpdir/real-repo"
