@@ -60,20 +60,6 @@ retired_dir="$state_directory/retired-$safe_label"
 deployed_file="$state_directory/deployed-$safe_label.lock"
 defer_file="$state_directory/defer-count-$safe_label"
 candidate_work=""
-lock_snapshot=""
-dirty_lock=false
-
-restore_lock() {
-  mv -f -- "$lock_snapshot" "$repo/flake.lock"
-  lock_snapshot=""
-}
-
-remove_lock_snapshot() {
-  if [[ -n $lock_snapshot ]]; then
-    rm -f -- "$lock_snapshot"
-    lock_snapshot=""
-  fi
-}
 
 cleanup_candidate_work() {
   if [[ -n $candidate_work && -d $candidate_work ]]; then
@@ -83,8 +69,6 @@ cleanup_candidate_work() {
 }
 
 disarm_cleanup() {
-  dirty_lock=false
-  remove_lock_snapshot
   cleanup_candidate_work
   if [[ $ephemeral_state == true ]]; then
     rm -rf -- "$state_directory"
@@ -95,11 +79,6 @@ disarm_cleanup() {
 cleanup() {
   local status=$?
   trap - EXIT INT TERM
-  if [[ $dirty_lock == true && -n $lock_snapshot ]] && ! restore_lock; then
-    printf '%s cleanup failed while restoring flake.lock\n' "$label" >&2
-    status=1
-  fi
-  remove_lock_snapshot
   cleanup_candidate_work
   if [[ $ephemeral_state == true ]]; then
     rm -rf -- "$state_directory"
@@ -207,6 +186,14 @@ candidate_source_is_current() {
   [[ $source_head == "$current_head" ]] && cmp -s "$pending_dir/source.lock" "$repo/flake.lock"
 }
 
+source_head_is_current() {
+  local source_head current_head
+  [[ -r $pending_dir/source-head ]] || return 1
+  source_head="$(cat -- "$pending_dir/source-head")"
+  current_head="$(runuser -u rupan -- git -C "$repo" rev-parse HEAD)" || return 1
+  [[ $source_head == "$current_head" ]]
+}
+
 repo_lock_matches_head() {
   runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock
 }
@@ -221,52 +208,87 @@ candidate_lock_is_committed() {
     <(runuser -u rupan -- git -C "$repo" show HEAD:flake.lock)
 }
 
-commit_candidate_lock() {
+pending_candidate_is_safe_to_activate() {
+  local source_head current_head
+  candidate_source_is_current && return 0
+  candidate_lock_is_committed && repo_lock_matches_head || return 1
+  source_head="$(cat -- "$pending_dir/source-head")"
+  current_head="$(runuser -u rupan -- git -C "$repo" rev-parse HEAD)" || return 1
+  runuser -u rupan -- git -C "$repo" merge-base --is-ancestor "$source_head" "$current_head" \
+    && runuser -u rupan -- git -C "$repo" diff --quiet "$source_head" "$current_head" \
+      -- . ':(exclude)flake.lock'
+}
+
+repo_lock_matches_source() {
+  cmp -s "$pending_dir/source.lock" "$repo/flake.lock"
+}
+
+repo_lock_matches_candidate() {
+  cmp -s "$pending_dir/candidate/flake.lock" "$repo/flake.lock"
+}
+
+restore_source_lock() {
+  cp --preserve=mode,ownership,timestamps -- "$pending_dir/source.lock" "$repo/flake.lock"
+}
+
+finish_if_candidate_is_published() {
+  if candidate_lock_is_committed && repo_lock_matches_head; then
+    finish_deployment
+    return 0
+  fi
+  return 1
+}
+
+resume_publication() {
   local commit_status=0
-  if candidate_lock_is_committed; then
-    if repo_lock_matches_head; then
-      finish_deployment
-    else
-      supersede_pending_candidate
+  if finish_if_candidate_is_published; then
+    return 0
+  fi
+
+  if ! source_head_is_current; then
+    supersede_pending_candidate
+    return 0
+  fi
+
+  if repo_lock_matches_source; then
+    if ! cp -- "$pending_dir/candidate/flake.lock" "$repo/flake.lock"; then
+      printf '%s update: could not publish activated flake.lock\n' "$label" >&2
+      return 1
     fi
-    return 0
-  fi
-
-  if ! candidate_source_is_current; then
+  elif ! repo_lock_matches_candidate; then
     supersede_pending_candidate
     return 0
   fi
 
-  lock_snapshot="$(mktemp "$repo/.flake.lock.snapshot.XXXXXX")"
-  if ! cp --preserve=mode,ownership,timestamps -- "$repo/flake.lock" "$lock_snapshot"; then
-    remove_lock_snapshot
-    printf '%s update: could not snapshot flake.lock\n' "$label" >&2
-    return 1
-  fi
-
-  dirty_lock=true
-  if ! candidate_source_is_current; then
-    remove_lock_snapshot
-    dirty_lock=false
-    supersede_pending_candidate
-    return 0
-  fi
-  if ! cp -- "$pending_dir/candidate/flake.lock" "$repo/flake.lock"; then
-    restore_lock
-    dirty_lock=false
-    printf '%s update: could not publish activated flake.lock\n' "$label" >&2
-    return 1
-  fi
   runuser -u rupan -- git -C "$repo" commit -m "$commit_message" -- flake.lock || commit_status=$?
-  if [[ $commit_status -ne 0 ]]; then
-    restore_lock
-    dirty_lock=false
-    printf '%s update: activated candidate could not be committed; will retry next run\n' "$label" >&2
-    return 1
+  if [[ $commit_status -eq 0 ]]; then
+    finish_deployment
+    return 0
   fi
-  dirty_lock=false
-  remove_lock_snapshot
-  finish_deployment
+
+  if finish_if_candidate_is_published; then
+    return 0
+  fi
+  if repo_lock_matches_candidate; then
+    restore_source_lock
+    atomic_write_text "$pending_dir" "$pending_dir/state" activated
+  else
+    supersede_pending_candidate
+  fi
+  printf '%s update: activated candidate could not be committed; will retry next run\n' "$label" >&2
+  return 1
+}
+
+commit_candidate_lock() {
+  if finish_if_candidate_is_published; then
+    return 0
+  fi
+  if ! candidate_source_is_current; then
+    supersede_pending_candidate
+    return 0
+  fi
+  atomic_write_text "$pending_dir" "$pending_dir/state" publishing
+  resume_publication
 }
 
 activate_pending_candidate() {
@@ -279,22 +301,15 @@ activate_pending_candidate() {
   fi
 
   candidate_state="$(cat -- "$pending_dir/state")"
-  if candidate_lock_is_committed; then
-    if repo_lock_matches_head; then
-      finish_deployment
-    else
-      supersede_pending_candidate
-    fi
-    return 0
-  fi
-
-  if ! candidate_source_is_current; then
-    supersede_pending_candidate
-    return 0
-  fi
-
+  case "$candidate_state" in
+    pending|activated) refuse_if_dirty_tree ;;
+  esac
   case "$candidate_state" in
     pending)
+      if ! pending_candidate_is_safe_to_activate; then
+        supersede_pending_candidate
+        return 0
+      fi
       candidate_ref="path:$pending_dir/candidate#$target_name"
       rebuild_status=0
       "$nixos_rebuild" switch --flake "$candidate_ref" \
@@ -304,15 +319,24 @@ activate_pending_candidate() {
         return "$rebuild_status"
       fi
       atomic_write_text "$pending_dir" "$pending_dir/state" activated
+      commit_candidate_lock
       ;;
-    activated|deployed) ;;
+    activated)
+      commit_candidate_lock
+      ;;
+    publishing)
+      resume_publication
+      ;;
+    deployed)
+      if ! finish_if_candidate_is_published; then
+        supersede_pending_candidate
+      fi
+      ;;
     *)
       printf '%s update: invalid pending candidate state: %s\n' "$label" "$candidate_state" >&2
       return 1
       ;;
   esac
-
-  commit_candidate_lock
 }
 
 exec {lock_fd}>"$update_lock"
@@ -324,13 +348,14 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 cleanup_retired_candidates
-refuse_if_dirty_tree
 
 if [[ -e $pending_dir ]]; then
   activate_pending_candidate
   disarm_cleanup
   exit 0
 fi
+
+refuse_if_dirty_tree
 
 dns_ready=false
 for ((attempt = 0; attempt < dns_retries; attempt++)); do

@@ -4,6 +4,7 @@ set -euo pipefail
 tmpdir="$(mktemp -d)"
 trap 'chmod -R u+w "$tmpdir" 2>/dev/null || true; rm -rf "$tmpdir"' EXIT
 real_git="$(command -v git)"
+real_cp="$(command -v cp)"
 real_mv="$(command -v mv)"
 real_rm="$(command -v rm)"
 
@@ -76,7 +77,19 @@ make_fake git <<'EOF'
 printf 'git %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
+if [[ ${TEST_GIT_ACTION:-} == kill-before-commit && " $* " == *' commit '* ]]; then
+  kill -KILL "$PPID"
+  sleep 1
+  exit 0
+fi
 if [[ "${TEST_REAL_GIT:-}" == 1 ]]; then
+  if [[ ${TEST_GIT_ACTION:-} == kill-after-commit && " $* " == *' commit '* ]]; then
+    "$REAL_GIT" "$@"
+    status=$?
+    [[ $status -eq 0 ]] && kill -KILL "$PPID"
+    sleep 1
+    exit "$status"
+  fi
   exec "$REAL_GIT" "$@"
 fi
 case " $* " in
@@ -89,6 +102,20 @@ case " $* " in
   *' commit '*) exit "${TEST_COMMIT_STATUS:-0}" ;;
   *' status --porcelain '*) exit 0 ;;
 esac
+EOF
+
+make_fake cp <<'EOF'
+#!/usr/bin/env bash
+printf 'cp %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+destination="${!#}"
+if [[ ${TEST_CP_ACTION:-} == kill-before-publish && $destination == "$TEST_REPO/flake.lock" ]]; then
+  kill -KILL "$PPID"
+  sleep 1
+  exit 0
+fi
+exec "$REAL_CP" "$@"
 EOF
 
 make_fake getent <<'EOF'
@@ -280,9 +307,12 @@ run_pipeline() {
     CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
     NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
     REAL_GIT="${REAL_GIT:-$real_git}" \
+    REAL_CP="$real_cp" \
     REAL_MV="$real_mv" \
     REAL_RM="$real_rm" \
     TEST_REAL_GIT="${TEST_REAL_GIT:-0}" \
+    TEST_GIT_ACTION="${TEST_GIT_ACTION:-}" \
+    TEST_CP_ACTION="${TEST_CP_ACTION:-}" \
     TEST_MUTATE_LOCK="${TEST_MUTATE_LOCK:-0}" \
     TEST_MUTATE_CHECKOUT_AFTER_UPDATE="${TEST_MUTATE_CHECKOUT_AFTER_UPDATE:-0}" \
     TEST_MV_ACTION="${TEST_MV_ACTION:-}" \
@@ -315,7 +345,7 @@ setup_case() {
   cp -p "$repo/flake.lock" "$CASE_DIR/expected.lock"
   unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
   unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
-  unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT
+  unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT TEST_GIT_ACTION TEST_CP_ACTION
   unset TEST_MUTATE_CHECKOUT_AFTER_UPDATE TEST_MV_ACTION TEST_RM_ACTION
   unset TEST_MUTATED_LOCK_CONTENT
 }
@@ -491,7 +521,7 @@ assert_valid_state() {
   local state_path="$1" name="$2" state
   state="$(cat "$state_path")"
   case "$state" in
-    pending|activated|deployed) ;;
+    pending|activated|publishing|deployed) ;;
     *) fail "$name left an invalid state marker: $state" ;;
   esac
 }
@@ -519,7 +549,7 @@ case_activated_after() {
 }
 
 case_deployed_before() {
-  exercise_atomic_transition deployed-before activated deployed_before
+  exercise_atomic_transition deployed-before publishing deployed_before
 }
 
 case_deployed_after() {
@@ -674,6 +704,77 @@ case_interleaved_labels() {
   repo="$saved_repo"
 }
 
+case_manual_commit_requires_activation() {
+  local saved_repo="$repo" retained_rebuild
+  create_fresh_real_repo manual-activation
+  setup_case manual-activation
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" manual_activation_first_run
+
+  cp "$CASE_DIR/state/pending-weekly/candidate/flake.lock" "$repo/flake.lock"
+  "$real_git" -C "$repo" add flake.lock
+  "$real_git" -C "$repo" commit -qm manual-candidate-lock
+
+  retained_rebuild="nixos-rebuild switch --flake path:$CASE_DIR/state/pending-weekly/candidate#laptop --option max-jobs 2 --option cores 8"
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" manual_activation_recovery
+  assert_log_has "$retained_rebuild" manual_activation_recovery
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'manual_activation_recovery did not retire the activated candidate'
+  "$real_git" -C "$repo" diff --quiet -- flake.lock ||
+    fail 'manual_activation_recovery left flake.lock dirty'
+  repo="$saved_repo"
+}
+
+case_pending_rejects_unrelated_edit() {
+  local saved_repo="$repo"
+  create_fresh_real_repo pending-unrelated-edit
+  setup_case pending-unrelated-edit
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" pending_unrelated_edit_first_run
+
+  printf 'manual flake edit\n' > "$repo/flake.nix"
+
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 1 "$PIPELINE_STATUS" pending_unrelated_edit_recovery
+  assert_log_lacks 'nixos-rebuild ' pending_unrelated_edit_recovery
+  [[ -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'pending_unrelated_edit_recovery discarded the candidate'
+  [[ $(cat "$repo/flake.nix") == 'manual flake edit' ]] ||
+    fail 'pending_unrelated_edit_recovery overwrote the editable flake'
+  repo="$saved_repo"
+}
+
+exercise_interrupted_publication() {
+  local action="$1" name="$2" saved_repo="$repo"
+  create_fresh_real_repo "$name"
+  setup_case "$name"
+  case "$action" in
+    before-copy) TEST_CP_ACTION=kill-before-publish ;;
+    before-commit) TEST_GIT_ACTION=kill-before-commit ;;
+    after-commit) TEST_GIT_ACTION=kill-after-commit ;;
+  esac
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 run_pipeline
+  assert_status 137 "$PIPELINE_STATUS" "${name}_first_run"
+  [[ $(cat "$CASE_DIR/state/pending-weekly/state") == publishing ]] ||
+    fail "${name} did not retain the publishing state"
+  if compgen -G "$repo/.flake.lock.snapshot.*" >/dev/null; then
+    fail "${name} wrote a publication snapshot into the editable repository"
+  fi
+
+  unset TEST_CP_ACTION TEST_GIT_ACTION
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" "${name}_recovery"
+  assert_log_lacks 'nixos-rebuild ' "${name}_recovery"
+  "$real_git" -C "$repo" diff --quiet -- flake.lock ||
+    fail "${name} recovery left flake.lock dirty"
+  cmp -s "$repo/flake.lock" <("$real_git" -C "$repo" show HEAD:flake.lock) ||
+    fail "${name} recovery did not publish the candidate lock"
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail "${name} recovery left the publishing candidate active"
+  repo="$saved_repo"
+}
+
 case_real_dirty_noop() {
   local saved_repo="$repo"
   repo="$real_repo"
@@ -734,6 +835,11 @@ case_real_restore termination 143
 case_stale_manual_commit
 case_stale_dirty_lock
 case_interleaved_labels
+case_manual_commit_requires_activation
+case_pending_rejects_unrelated_edit
+exercise_interrupted_publication before-copy publication-before-copy
+exercise_interrupted_publication before-commit publication-before-commit
+exercise_interrupted_publication after-commit publication-after-commit
 
 weekly_service=$(nix eval --raw --no-write-lock-file \
   '.#nixosConfigurations.laptop.config.systemd.services.nixos-auto-update.script')
