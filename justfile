@@ -35,6 +35,7 @@ xhisper-check:
 check-flake-update:
   bash checks/flake-update.bash
   bash checks/nix-pin-nixpkgs.bash
+  bash checks/flake-update-gated.bash
 
 check-agent-docs:
   bash checks/agent-docs.bash
@@ -170,9 +171,8 @@ agent-context:
   printf '  closeout: agent-self-improve --check\n'
   printf '  edit tooling only when durable friction appears\n'
 
-update:
-  nix flake update
-  nix flake update --flake ./shells
+update *inputs:
+  ./home/scripts/flake-update-gated --repo "{{ justfile_directory() }}" {{inputs}}
 
 build target="laptop":
   nix build --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.toplevel"

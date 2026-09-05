@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# Gated `nix flake update` for manual runs.
+#
+# Same policy as the auto-update services: snapshot flake.lock, update, eval,
+# revert on failure. A bare `nix flake update` leaves a broken lock in the
+# working tree (seen when opencode-nix added sub2api requiring Go 1.27 while
+# the pinned system nixpkgs only had Go 1.26); this script restores the
+# pre-update lock instead, so `just switch` keeps working.
+#
+# Usage: flake-update-gated [--repo DIR] [--] [inputs...]
+#   no inputs: update the main flake and ./shells, then eval laptop, iso,
+#     and the default shells devShell.
+#   inputs: update only the main flake with those inputs, then eval laptop
+#     and iso. Pass inputs through to `nix flake update` verbatim.
+#
+# Env: UPDATE_LOCK (default /run/nixos-auto-update.lock, else a tmp fallback)
+set -euo pipefail
+
+repo="."
+inputs=()
+while (($#)); do
+  case "$1" in
+    --repo)
+      repo="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      while (($#)); do
+        inputs+=("$1")
+        shift
+      done
+      ;;
+    -*)
+      echo "usage: flake-update-gated [--repo DIR] [--] [inputs...]" >&2
+      exit 2
+      ;;
+    *)
+      inputs+=("$1")
+      shift
+      ;;
+  esac
+done
+
+partial=0
+if ((${#inputs[@]} > 0)); then
+  partial=1
+fi
+
+update_lock="${UPDATE_LOCK:-/run/nixos-auto-update.lock}"
+if [ -z "${UPDATE_LOCK:-}" ] && [ ! -w "$update_lock" ]; then
+  update_lock="${TMPDIR:-/tmp}/nixos-switch.lock"
+fi
+exec {lock_fd}>>"$update_lock"
+if ! flock -n "$lock_fd"; then
+  echo "auto-update is rebuilding (holds $update_lock)." >&2
+  echo "stop it:  sudo systemctl stop nixos-ai-tools-auto-update.service nixos-auto-update.service" >&2
+  echo "then rerun, or wait for it to finish." >&2
+  exit 1
+fi
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+main_lock="$repo/flake.lock"
+shells_lock="$repo/shells/flake.lock"
+cp -p -- "$main_lock" "$tmpdir/flake.lock.snapshot"
+if [ "$partial" -eq 0 ]; then
+  cp -p -- "$shells_lock" "$tmpdir/shells-flake.lock.snapshot"
+fi
+
+restore() {
+  cp -f -- "$tmpdir/flake.lock.snapshot" "$main_lock"
+  if [ "$partial" -eq 0 ]; then
+    cp -f -- "$tmpdir/shells-flake.lock.snapshot" "$shells_lock"
+  fi
+}
+
+if ! nix flake update --flake "$repo" "${inputs[@]}"; then
+  restore
+  echo "flake-update-gated: update failed; flake.lock reverted" >&2
+  exit 1
+fi
+if [ "$partial" -eq 0 ]; then
+  if ! nix flake update --flake "$repo/shells"; then
+    restore
+    echo "flake-update-gated: shells update failed; flake.lock reverted" >&2
+    exit 1
+  fi
+fi
+
+if cmp -s -- "$main_lock" "$tmpdir/flake.lock.snapshot" && {
+  [ "$partial" -eq 1 ] || cmp -s -- "$shells_lock" "$tmpdir/shells-flake.lock.snapshot"
+}; then
+  echo "flake-update-gated: flake.lock unchanged; skipping eval"
+  exit 0
+fi
+
+if ! nix eval --no-write-lock-file "$repo#nixosConfigurations.laptop.config.system.build.toplevel.drvPath" >/dev/null; then
+  restore
+  echo "flake-update-gated: laptop eval failed; flake.lock reverted" >&2
+  exit 1
+fi
+if ! nix eval --no-write-lock-file "$repo#nixosConfigurations.iso.config.system.build.toplevel.drvPath" >/dev/null; then
+  restore
+  echo "flake-update-gated: iso eval failed; flake.lock reverted" >&2
+  exit 1
+fi
+if [ "$partial" -eq 0 ]; then
+  if ! nix eval --no-write-lock-file "$repo/shells#devShells.x86_64-linux.default.drvPath" >/dev/null; then
+    restore
+    echo "flake-update-gated: shells eval failed; flake.lock reverted" >&2
+    exit 1
+  fi
+fi
+
+echo "flake-update-gated: updated lock passes eval"
