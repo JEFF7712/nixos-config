@@ -4,6 +4,7 @@ set -euo pipefail
 tmpdir="$(mktemp -d)"
 trap 'chmod -R u+w "$tmpdir" 2>/dev/null || true; rm -rf "$tmpdir"' EXIT
 real_git="$(command -v git)"
+real_chmod="$(command -v chmod)"
 
 repo="$tmpdir/repo"
 bin_dir="$tmpdir/bin"
@@ -137,6 +138,20 @@ done
 exit "${TEST_REBUILD_STATUS:-0}"
 EOF
 
+make_fake chmod <<'EOF'
+#!/usr/bin/env bash
+printf 'chmod %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+if [[ ${TEST_CHMOD_ACTION:-} == finalize-term && $1 == -R && $2 == u+w \
+  && -r ${3%/candidate}/state && $(cat "${3%/candidate}/state") == deployed ]]; then
+  kill -TERM "$PPID"
+  sleep 1
+  exit 0
+fi
+exec "$REAL_CHMOD" "$@"
+EOF
+
 fail() {
   printf '%s\n' "$1" >&2
   cat "$COMMAND_LOG" >&2
@@ -202,6 +217,8 @@ run_pipeline() {
   [[ $variant == ai ]] && label="AI tools"
   local command_log="$CASE_DIR/commands.log"
   local output_log="$CASE_DIR/output.log"
+  : > "$command_log"
+  : > "$output_log"
   local -a args=(
     --label "$label"
     --repo "$repo"
@@ -224,9 +241,11 @@ run_pipeline() {
     CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
     NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
     REAL_GIT="${REAL_GIT:-$real_git}" \
+    REAL_CHMOD="$real_chmod" \
     TEST_REAL_GIT="${TEST_REAL_GIT:-0}" \
     TEST_MUTATE_LOCK="${TEST_MUTATE_LOCK:-0}" \
     TEST_MUTATE_CHECKOUT_AFTER_UPDATE="${TEST_MUTATE_CHECKOUT_AFTER_UPDATE:-0}" \
+    TEST_CHMOD_ACTION="${TEST_CHMOD_ACTION:-}" \
     TEST_UPDATE_STATUS="${TEST_UPDATE_STATUS:-0}" \
     TEST_DIFF_STATUS="${TEST_DIFF_STATUS:-0}" \
     TEST_EVAL_STATUS="${TEST_EVAL_STATUS:-0}" \
@@ -255,7 +274,7 @@ setup_case() {
   unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
   unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
   unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT
-  unset TEST_MUTATE_CHECKOUT_AFTER_UPDATE
+  unset TEST_MUTATE_CHECKOUT_AFTER_UPDATE TEST_CHMOD_ACTION
 }
 
 update_weekly=""
@@ -351,10 +370,8 @@ case_commit_failure() {
   assert_lock_restored commit_failure
 
   TEST_DIFF_STATUS=1 run_pipeline
-  local rebuild_count
-  rebuild_count=$(grep -c '^nixos-rebuild switch ' "$COMMAND_LOG")
-  [[ $rebuild_count -eq 1 ]] ||
-    fail "commit_failure retry rebuilt an already activated candidate ($rebuild_count rebuilds)"
+  assert_log_lacks 'nixos-rebuild ' commit_failure_retry
+  assert_log_has "$commit_weekly" commit_failure_retry
   [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
     fail 'commit_failure retry did not clear pending state'
 }
@@ -378,22 +395,33 @@ case_rebuild_failure() {
 }
 
 case_pending_retry() {
-  TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
+  local retained_rebuild
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
   assert_status 5 "$PIPELINE_STATUS" pending_retry_first_run
   [[ -d $CASE_DIR/state/pending-weekly/candidate ]] ||
     fail 'pending_retry first run did not leave a pending candidate'
+  retained_rebuild="nixos-rebuild switch --flake path:$CASE_DIR/state/pending-weekly/candidate#laptop --option max-jobs 2 --option cores 8"
+  assert_log_has "$retained_rebuild" pending_retry_first_run
+  assert_one_update "$update_weekly" pending_retry_first_run
+  [[ ! -w $CASE_DIR/state/pending-weekly/candidate/flake.lock ]] ||
+    fail 'pending_retry candidate is mutable before retry'
 
-  run_pipeline
+  TEST_REAL_GIT=1 run_pipeline
   assert_status 0 "$PIPELINE_STATUS" pending_retry_second_run
-  assert_one_update "$update_weekly" pending_retry
-  assert_log_has "$commit_weekly" pending_retry
+  assert_log_has "$retained_rebuild" pending_retry_second_run
+  assert_log_lacks 'nix flake update' pending_retry_second_run
+  [[ $("$real_git" -C "$repo" show -s --format=%s HEAD) == 'flake.lock: weekly auto-update' ]] ||
+    fail 'pending_retry did not create the expected flake.lock commit'
   cmp -s "$repo/flake.lock" "$CASE_DIR/state/deployed-weekly.lock" ||
     fail 'pending_retry did not record the deployed candidate lock'
+  "$real_git" -C "$repo" diff --quiet -- flake.lock ||
+    fail 'pending_retry did not publish the candidate flake.lock cleanly'
   [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
     fail 'pending_retry did not clear pending state after success'
 }
 
 case_candidate_isolation() {
+  local retained_rebuild
   TEST_DIFF_STATUS=1 TEST_MUTATE_CHECKOUT_AFTER_UPDATE=1 TEST_REBUILD_STATUS=5 run_pipeline
   assert_status 5 "$PIPELINE_STATUS" candidate_isolation_first_run
   assert_log_has 'eval-source snapshot baseline' candidate_isolation
@@ -401,16 +429,35 @@ case_candidate_isolation() {
   assert_log_has 'rebuild-source snapshot baseline' candidate_isolation
   assert_log_lacks "path:$repo#nixosConfigurations" candidate_isolation
   assert_log_lacks "--flake path:$repo#laptop" candidate_isolation
+  retained_rebuild="nixos-rebuild switch --flake path:$CASE_DIR/state/pending-weekly/candidate#laptop --option max-jobs 2 --option cores 8"
 
   run_pipeline
   assert_status 0 "$PIPELINE_STATUS" candidate_isolation_second_run
+  assert_log_has "$retained_rebuild" candidate_isolation_second_run
   assert_log_has 'rebuild-source snapshot baseline' candidate_isolation
+  assert_log_lacks 'nix flake update' candidate_isolation_second_run
 }
 
 case_termination() {
   TEST_DIFF_STATUS=1 TEST_CASCADE_ACTION=term run_pipeline
   assert_log_lacks ' commit ' termination
   assert_log_lacks 'nixos-rebuild ' termination
+}
+
+case_finalize_termination() {
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_CHMOD_ACTION=finalize-term run_pipeline
+  assert_status 143 "$PIPELINE_STATUS" finalize_termination_first_run
+  [[ $(cat "$CASE_DIR/state/pending-weekly/state") == deployed ]] ||
+    fail 'finalize_termination did not retain the deployed state'
+
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" finalize_termination_recovery
+  assert_log_lacks 'nixos-rebuild ' finalize_termination_recovery
+  assert_log_lacks 'nix flake update' finalize_termination_recovery
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'finalize_termination recovery did not clear pending state'
+  "$real_git" -C "$repo" diff --quiet -- flake.lock ||
+    fail 'finalize_termination recovery left flake.lock unpublished'
 }
 
 run_case() {
@@ -437,6 +484,7 @@ run_case rebuild_failure 5
 run_case pending_retry 0
 run_case candidate_isolation 0
 run_case termination 143
+run_case finalize_termination 0
 
 real_repo="$tmpdir/real-repo"
 mkdir -p "$real_repo"

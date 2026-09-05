@@ -229,7 +229,7 @@ activate_pending_candidate() {
       fi
       printf 'activated\n' > "$pending_dir/state"
       ;;
-    activated) ;;
+    activated|deployed) ;;
     *)
       printf '%s update: invalid pending candidate state: %s\n' "$label" "$candidate_state" >&2
       return 1
