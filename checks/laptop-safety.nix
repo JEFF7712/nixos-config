@@ -7,6 +7,7 @@ let
   ) config.preservation.preserveAt."/persist".directories;
   numberpadService = config.systemd.services.asus-numberpad-driver;
   numberpadPath = config.systemd.paths.asus-numberpad-driver;
+  autoUpdateService = config.systemd.services.nixos-auto-update;
   userServices = config.home-manager.users.rupan.systemd.user.services;
   userTimers = config.home-manager.users.rupan.systemd.user.timers;
 in
@@ -22,6 +23,9 @@ assert builtins.elem "/etc/subuid" preservedFiles;
 assert builtins.elem "/etc/subgid" preservedFiles;
 assert builtins.elem "/var/lib/asus-numberpad-driver" preservedDirectories;
 assert numberpadService.serviceConfig.StateDirectory == "asus-numberpad-driver";
+assert autoUpdateService.serviceConfig.StateDirectory == "nixos-auto-update";
+assert builtins.elem "/var/lib/${autoUpdateService.serviceConfig.StateDirectory}"
+  preservedDirectories;
 assert numberpadService.wantedBy == [ ];
 assert numberpadPath.wantedBy == [ "paths.target" ];
 assert numberpadPath.pathConfig.PathExists == "/run/user/1000/wayland-1";

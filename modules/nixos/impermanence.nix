@@ -129,6 +129,7 @@
           }
           "/var/lib/asusd"
           "/var/lib/asus-numberpad-driver"
+          "/var/lib/nixos-auto-update"
           # pcrlock measurements; losing them turns TPM2 LUKS into passphrase-only.
           "/var/lib/pcrlock.d"
           "/var/lib/upower"

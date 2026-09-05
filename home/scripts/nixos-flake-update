@@ -56,6 +56,7 @@ if [[ -z $state_directory ]]; then
   ephemeral_state=true
 fi
 pending_dir="$state_directory/pending-$safe_label"
+retired_dir="$state_directory/retired-$safe_label"
 deployed_file="$state_directory/deployed-$safe_label.lock"
 defer_file="$state_directory/defer-count-$safe_label"
 candidate_work=""
@@ -135,6 +136,15 @@ clear_defer_count() {
   rm -f -- "$defer_file"
 }
 
+atomic_write_text() {
+  local directory="$1" path="$2" value="$3" temporary
+  temporary="$(mktemp "$directory/.${path##*/}.XXXXXX")"
+  printf '%s\n' "$value" > "$temporary"
+  sync -f "$temporary"
+  mv -f -- "$temporary" "$path"
+  sync -f "$directory"
+}
+
 consecutive_defer_exceeded() {
   local count=0
   mkdir -p "$state_directory"
@@ -146,7 +156,7 @@ consecutive_defer_exceeded() {
   else
     count=1
   fi
-  printf '%s\n' "$count" > "$defer_file"
+  atomic_write_text "$state_directory" "$defer_file" "$count"
   if (( count >= defer_alert_after )); then
     printf '%s update: %s consecutive defers (threshold %s); surfacing stuck upstream\n' \
       "$label" "$count" "$defer_alert_after" >&2
@@ -159,14 +169,51 @@ record_deployment() {
   local deployed_tmp
   deployed_tmp="$(mktemp "$state_directory/.deployed-$safe_label.XXXXXX")"
   cp -- "$pending_dir/candidate/flake.lock" "$deployed_tmp"
+  sync -f "$deployed_tmp"
   mv -f -- "$deployed_tmp" "$deployed_file"
+  sync -f "$state_directory"
+}
+
+cleanup_retired_candidates() {
+  local retired
+  for retired in "$state_directory"/retired-*; do
+    [[ -d $retired && ! -L $retired ]] || continue
+    chmod -R u+w -- "$retired"
+    rm -rf -- "$retired"
+  done
+}
+
+retire_pending_candidate() {
+  if [[ -e $retired_dir ]]; then
+    printf '%s update: retired candidate is still present; refusing to replace it\n' "$label" >&2
+    return 1
+  fi
+  mv -- "$pending_dir" "$retired_dir"
+  chmod -R u+w -- "$retired_dir/candidate"
+  rm -rf -- "$retired_dir"
 }
 
 finish_deployment() {
   record_deployment
-  printf 'deployed\n' > "$pending_dir/state"
-  chmod -R u+w "$pending_dir/candidate"
-  rm -rf -- "$pending_dir"
+  atomic_write_text "$pending_dir" "$pending_dir/state" deployed
+  retire_pending_candidate
+}
+
+candidate_source_is_current() {
+  local source_head current_head
+  [[ -r $pending_dir/source-head && -r $pending_dir/source.lock ]] || return 1
+  source_head="$(cat -- "$pending_dir/source-head")"
+  current_head="$(runuser -u rupan -- git -C "$repo" rev-parse HEAD)" || return 1
+  [[ $source_head == "$current_head" ]] && cmp -s "$pending_dir/source.lock" "$repo/flake.lock"
+}
+
+repo_lock_matches_head() {
+  runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock
+}
+
+supersede_pending_candidate() {
+  printf '%s update: pending candidate no longer matches the editable flake; retiring it\n' "$label" >&2
+  retire_pending_candidate
 }
 
 candidate_lock_is_committed() {
@@ -177,8 +224,16 @@ candidate_lock_is_committed() {
 commit_candidate_lock() {
   local commit_status=0
   if candidate_lock_is_committed; then
-    cp -- "$pending_dir/candidate/flake.lock" "$repo/flake.lock"
-    finish_deployment
+    if repo_lock_matches_head; then
+      finish_deployment
+    else
+      supersede_pending_candidate
+    fi
+    return 0
+  fi
+
+  if ! candidate_source_is_current; then
+    supersede_pending_candidate
     return 0
   fi
 
@@ -190,6 +245,12 @@ commit_candidate_lock() {
   fi
 
   dirty_lock=true
+  if ! candidate_source_is_current; then
+    remove_lock_snapshot
+    dirty_lock=false
+    supersede_pending_candidate
+    return 0
+  fi
   if ! cp -- "$pending_dir/candidate/flake.lock" "$repo/flake.lock"; then
     restore_lock
     dirty_lock=false
@@ -211,12 +272,27 @@ commit_candidate_lock() {
 activate_pending_candidate() {
   local candidate_ref candidate_state rebuild_status
   if [[ ! -r $pending_dir/state || ! -r $pending_dir/candidate/flake.nix \
-    || ! -r $pending_dir/candidate/flake.lock ]]; then
+    || ! -r $pending_dir/candidate/flake.lock || ! -r $pending_dir/source-head \
+    || ! -r $pending_dir/source.lock ]]; then
     printf '%s update: pending candidate state is incomplete\n' "$label" >&2
     return 1
   fi
 
   candidate_state="$(cat -- "$pending_dir/state")"
+  if candidate_lock_is_committed; then
+    if repo_lock_matches_head; then
+      finish_deployment
+    else
+      supersede_pending_candidate
+    fi
+    return 0
+  fi
+
+  if ! candidate_source_is_current; then
+    supersede_pending_candidate
+    return 0
+  fi
+
   case "$candidate_state" in
     pending)
       candidate_ref="path:$pending_dir/candidate#$target_name"
@@ -227,7 +303,7 @@ activate_pending_candidate() {
         printf '%s update activation failed; pending candidate retained\n' "$label" >&2
         return "$rebuild_status"
       fi
-      printf 'activated\n' > "$pending_dir/state"
+      atomic_write_text "$pending_dir" "$pending_dir/state" activated
       ;;
     activated|deployed) ;;
     *)
@@ -247,13 +323,14 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+cleanup_retired_candidates
+refuse_if_dirty_tree
+
 if [[ -e $pending_dir ]]; then
   activate_pending_candidate
   disarm_cleanup
   exit 0
 fi
-
-refuse_if_dirty_tree
 
 dns_ready=false
 for ((attempt = 0; attempt < dns_retries; attempt++)); do
@@ -273,6 +350,10 @@ fi
 candidate_work="$(mktemp -d "$state_directory/.candidate-$safe_label.XXXXXX")"
 chmod 0755 "$candidate_work"
 mkdir "$candidate_work/candidate"
+source_head="$(runuser -u rupan -- git -C "$repo" rev-parse HEAD)" || {
+  printf '%s update: could not record source HEAD\n' "$label" >&2
+  exit 1
+}
 if ! runuser -u rupan -- git -C "$repo" archive --format=tar HEAD \
   | tar -x -C "$candidate_work/candidate"; then
   printf '%s update: could not create candidate snapshot\n' "$label" >&2
@@ -282,6 +363,7 @@ chown -R rupan:users "$candidate_work/candidate"
 chmod -R u+w "$candidate_work/candidate"
 cp --preserve=mode,timestamps -- "$repo/flake.lock" "$candidate_work/source.lock"
 cp --preserve=mode,timestamps -- "$repo/flake.lock" "$candidate_work/candidate/flake.lock"
+atomic_write_text "$candidate_work" "$candidate_work/source-head" "$source_head"
 
 candidate_ref="path:$candidate_work/candidate#$target_name"
 toplevel="${candidate_ref%%#*}#nixosConfigurations.${target_name}.config.system.build.toplevel"
@@ -339,7 +421,7 @@ elif [[ $cascade_status -ne 0 ]]; then
   exit 1
 fi
 
-printf 'pending\n' > "$candidate_work/state"
+atomic_write_text "$candidate_work" "$candidate_work/state" pending
 chmod -R a-w "$candidate_work/candidate"
 if ((EUID == 0)); then
   chown -R root:root "$candidate_work/candidate"

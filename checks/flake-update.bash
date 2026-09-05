@@ -4,7 +4,8 @@ set -euo pipefail
 tmpdir="$(mktemp -d)"
 trap 'chmod -R u+w "$tmpdir" 2>/dev/null || true; rm -rf "$tmpdir"' EXIT
 real_git="$(command -v git)"
-real_chmod="$(command -v chmod)"
+real_mv="$(command -v mv)"
+real_rm="$(command -v rm)"
 
 repo="$tmpdir/repo"
 bin_dir="$tmpdir/bin"
@@ -50,7 +51,11 @@ if [[ " $* " == *' flake update '* ]]; then
   if [[ "${TEST_DIFF_STATUS:-0}" == 2 ]]; then
     rm -f "$flake_path/flake.lock"
   elif [[ "${TEST_MUTATE_LOCK:-}" == 1 || "${TEST_DIFF_STATUS:-0}" == 1 ]]; then
-    printf 'mutated by update\n' > "$flake_path/flake.lock"
+    if [[ -n ${TEST_MUTATED_LOCK_CONTENT:-} ]]; then
+      printf '%s\n' "$TEST_MUTATED_LOCK_CONTENT" > "$flake_path/flake.lock"
+    else
+      printf 'mutated by update\n' > "$flake_path/flake.lock"
+    fi
   fi
   if [[ "${TEST_MUTATE_CHECKOUT_AFTER_UPDATE:-}" == 1 ]]; then
     printf 'editable changed\n' > "$TEST_REPO/flake.nix"
@@ -76,6 +81,8 @@ if [[ "${TEST_REAL_GIT:-}" == 1 ]]; then
 fi
 case " $* " in
   *' archive --format=tar HEAD '*) exec "$REAL_GIT" "$@" ;;
+  *' rev-parse HEAD '*) printf 'fixture-head\n' ;;
+  *' show HEAD:flake.lock'*) printf 'mock baseline\n' ;;
   *' rev-parse --show-toplevel '*) printf '%s\n' "$TEST_REPO" ;;
   *' diff --quiet '*) exit "${TEST_DIFF_STATUS:-0}" ;;
   *' diff --exit-code '*) exit 0 ;;
@@ -138,18 +145,50 @@ done
 exit "${TEST_REBUILD_STATUS:-0}"
 EOF
 
-make_fake chmod <<'EOF'
+make_fake mv <<'EOF'
 #!/usr/bin/env bash
-printf 'chmod %q' "$1" >> "$COMMAND_LOG"
+printf 'mv %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
-if [[ ${TEST_CHMOD_ACTION:-} == finalize-term && $1 == -R && $2 == u+w \
-  && -r ${3%/candidate}/state && $(cat "${3%/candidate}/state") == deployed ]]; then
-  kill -TERM "$PPID"
-  sleep 1
-  exit 0
+source_path=""
+destination=""
+for argument in "$@"; do
+  [[ $argument == -- || $argument == -* ]] && continue
+  source_path="$destination"
+  destination="$argument"
+done
+if [[ $destination == */state && $source_path == */.state.* ]]; then
+  next_state="$(cat "$source_path")"
+  if [[ ${TEST_MV_ACTION:-} == "$next_state-before" ]]; then
+    kill -TERM "$PPID"
+    sleep 1
+    exit 0
+  fi
+  if [[ ${TEST_MV_ACTION:-} == "$next_state-after" ]]; then
+    "$REAL_MV" "$@"
+    kill -TERM "$PPID"
+    sleep 1
+    exit 0
+  fi
 fi
-exec "$REAL_CHMOD" "$@"
+exec "$REAL_MV" "$@"
+EOF
+
+make_fake rm <<'EOF'
+#!/usr/bin/env bash
+printf 'rm %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+if [[ ${TEST_RM_ACTION:-} == retire-term ]]; then
+  for argument in "$@"; do
+    if [[ $argument == */retired-* ]]; then
+      kill -TERM "$PPID"
+      sleep 1
+      exit 0
+    fi
+  done
+fi
+exec "$REAL_RM" "$@"
 EOF
 
 fail() {
@@ -241,11 +280,14 @@ run_pipeline() {
     CASCADE_GUARD="$bin_dir/nix-cascade-guard" \
     NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
     REAL_GIT="${REAL_GIT:-$real_git}" \
-    REAL_CHMOD="$real_chmod" \
+    REAL_MV="$real_mv" \
+    REAL_RM="$real_rm" \
     TEST_REAL_GIT="${TEST_REAL_GIT:-0}" \
     TEST_MUTATE_LOCK="${TEST_MUTATE_LOCK:-0}" \
     TEST_MUTATE_CHECKOUT_AFTER_UPDATE="${TEST_MUTATE_CHECKOUT_AFTER_UPDATE:-0}" \
-    TEST_CHMOD_ACTION="${TEST_CHMOD_ACTION:-}" \
+    TEST_MV_ACTION="${TEST_MV_ACTION:-}" \
+    TEST_RM_ACTION="${TEST_RM_ACTION:-}" \
+    TEST_MUTATED_LOCK_CONTENT="${TEST_MUTATED_LOCK_CONTENT:-}" \
     TEST_UPDATE_STATUS="${TEST_UPDATE_STATUS:-0}" \
     TEST_DIFF_STATUS="${TEST_DIFF_STATUS:-0}" \
     TEST_EVAL_STATUS="${TEST_EVAL_STATUS:-0}" \
@@ -274,7 +316,8 @@ setup_case() {
   unset TEST_UPDATE_STATUS TEST_DIFF_STATUS TEST_EVAL_STATUS TEST_COMMIT_STATUS TEST_CASCADE_STATUS
   unset TEST_CASCADE_ACTION TEST_FLOCK_STATUS TEST_DNS_STATUS TEST_REBUILD_STATUS
   unset TEST_REAL_GIT TEST_MUTATE_LOCK REAL_GIT
-  unset TEST_MUTATE_CHECKOUT_AFTER_UPDATE TEST_CHMOD_ACTION
+  unset TEST_MUTATE_CHECKOUT_AFTER_UPDATE TEST_MV_ACTION TEST_RM_ACTION
+  unset TEST_MUTATED_LOCK_CONTENT
 }
 
 update_weekly=""
@@ -444,20 +487,58 @@ case_termination() {
   assert_log_lacks 'nixos-rebuild ' termination
 }
 
-case_finalize_termination() {
-  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_CHMOD_ACTION=finalize-term run_pipeline
-  assert_status 143 "$PIPELINE_STATUS" finalize_termination_first_run
-  [[ $(cat "$CASE_DIR/state/pending-weekly/state") == deployed ]] ||
-    fail 'finalize_termination did not retain the deployed state'
+assert_valid_state() {
+  local state_path="$1" name="$2" state
+  state="$(cat "$state_path")"
+  case "$state" in
+    pending|activated|deployed) ;;
+    *) fail "$name left an invalid state marker: $state" ;;
+  esac
+}
+
+exercise_atomic_transition() {
+  local action="$1" expected_state="$2" name="$3"
+  TEST_REAL_GIT=1 TEST_MV_ACTION="$action" TEST_DIFF_STATUS=1 run_pipeline
+  assert_status 143 "$PIPELINE_STATUS" "${name}_first_run"
+  [[ $(cat "$CASE_DIR/state/pending-weekly/state") == "$expected_state" ]] ||
+    fail "$name did not retain the expected recoverable state"
+  assert_valid_state "$CASE_DIR/state/pending-weekly/state" "$name"
 
   TEST_REAL_GIT=1 run_pipeline
-  assert_status 0 "$PIPELINE_STATUS" finalize_termination_recovery
-  assert_log_lacks 'nixos-rebuild ' finalize_termination_recovery
-  assert_log_lacks 'nix flake update' finalize_termination_recovery
+  assert_status 0 "$PIPELINE_STATUS" "${name}_recovery"
   [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
-    fail 'finalize_termination recovery did not clear pending state'
-  "$real_git" -C "$repo" diff --quiet -- flake.lock ||
-    fail 'finalize_termination recovery left flake.lock unpublished'
+    fail "$name recovery did not clear active pending state"
+}
+
+case_activated_before() {
+  exercise_atomic_transition activated-before pending activated_before
+}
+
+case_activated_after() {
+  exercise_atomic_transition activated-after activated activated_after
+}
+
+case_deployed_before() {
+  exercise_atomic_transition deployed-before activated deployed_before
+}
+
+case_deployed_after() {
+  exercise_atomic_transition deployed-after deployed deployed_after
+}
+
+case_retirement_termination() {
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_RM_ACTION=retire-term run_pipeline
+  assert_status 143 "$PIPELINE_STATUS" retirement_termination_first_run
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'retirement_termination left the candidate active after retirement'
+  [[ -d $CASE_DIR/state/retired-weekly ]] ||
+    fail 'retirement_termination did not retain the retired candidate'
+
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" retirement_termination_recovery
+  [[ ! -e $CASE_DIR/state/retired-weekly ]] ||
+    fail 'retirement_termination recovery did not clean retired state'
+  assert_log_lacks 'nixos-rebuild ' retirement_termination_recovery
 }
 
 run_case() {
@@ -484,7 +565,6 @@ run_case rebuild_failure 5
 run_case pending_retry 0
 run_case candidate_isolation 0
 run_case termination 143
-run_case finalize_termination 0
 
 real_repo="$tmpdir/real-repo"
 mkdir -p "$real_repo"
@@ -495,6 +575,104 @@ printf '{}\n' > "$real_repo/flake.nix"
 printf 'committed lock\n' > "$real_repo/flake.lock"
 "$real_git" -C "$real_repo" add flake.nix flake.lock
 "$real_git" -C "$real_repo" commit -qm fixture
+
+create_fresh_real_repo() {
+  local name="$1"
+  repo="$tmpdir/$name-repo"
+  mkdir -p "$repo"
+  "$real_git" -C "$repo" init -q
+  "$real_git" -C "$repo" config user.name Fixture
+  "$real_git" -C "$repo" config user.email fixture@example.invalid
+  printf 'snapshot baseline\n' > "$repo/flake.nix"
+  printf 'mock baseline\n' > "$repo/flake.lock"
+  "$real_git" -C "$repo" add flake.nix flake.lock
+  "$real_git" -C "$repo" commit -qm fixture
+}
+
+run_isolated_case() {
+  local name="$1" expected_status="$2" saved_repo="$repo"
+  create_fresh_real_repo "$name"
+  setup_case "$name"
+  "case_$name"
+  assert_status "$expected_status" "$PIPELINE_STATUS" "$name"
+  repo="$saved_repo"
+}
+
+run_isolated_case activated_before 0
+run_isolated_case activated_after 0
+run_isolated_case deployed_before 0
+run_isolated_case deployed_after 0
+run_isolated_case retirement_termination 0
+
+case_stale_manual_commit() {
+  local saved_repo="$repo"
+  create_fresh_real_repo stale-manual
+  setup_case stale-manual
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_MUTATED_LOCK_CONTENT='weekly candidate' \
+    TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" stale_manual_first_run
+
+  printf 'manual newer commit\n' > "$repo/flake.lock"
+  "$real_git" -C "$repo" add flake.lock
+  "$real_git" -C "$repo" commit -qm manual
+
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" stale_manual_recovery
+  assert_log_lacks 'nixos-rebuild ' stale_manual_recovery
+  assert_log_lacks 'nix flake update' stale_manual_recovery
+  cmp -s "$repo/flake.lock" <("$real_git" -C "$repo" show HEAD:flake.lock) ||
+    fail 'stale_manual_recovery overwrote the newer committed flake.lock'
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'stale_manual_recovery left the stale candidate active'
+  repo="$saved_repo"
+}
+
+case_stale_dirty_lock() {
+  local saved_repo="$repo"
+  create_fresh_real_repo stale-dirty
+  setup_case stale-dirty
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_MUTATED_LOCK_CONTENT='weekly candidate' \
+    TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" stale_dirty_first_run
+
+  printf 'manual dirty lock\n' > "$repo/flake.lock"
+  cp "$repo/flake.lock" "$CASE_DIR/manual.lock"
+
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" stale_dirty_recovery
+  assert_log_lacks 'nixos-rebuild ' stale_dirty_recovery
+  cmp -s "$CASE_DIR/manual.lock" "$repo/flake.lock" ||
+    fail 'stale_dirty_recovery overwrote the dirty flake.lock'
+  "$real_git" -C "$repo" diff --quiet -- flake.lock &&
+    fail 'stale_dirty_recovery unexpectedly cleaned the dirty flake.lock'
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'stale_dirty_recovery left the stale candidate active'
+  repo="$saved_repo"
+}
+
+case_interleaved_labels() {
+  local saved_repo="$repo"
+  create_fresh_real_repo interleaved
+  setup_case interleaved
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_MUTATED_LOCK_CONTENT='weekly candidate' \
+    TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" interleaved_weekly_first_run
+
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_MUTATED_LOCK_CONTENT='ai candidate' run_pipeline ai defer
+  assert_status 0 "$PIPELINE_STATUS" interleaved_ai_run
+  cmp -s "$repo/flake.lock" <("$real_git" -C "$repo" show HEAD:flake.lock) ||
+    fail 'interleaved_ai_run did not publish its lock'
+
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" interleaved_weekly_recovery
+  assert_log_lacks 'nixos-rebuild ' interleaved_weekly_recovery
+  assert_log_lacks 'nix flake update' interleaved_weekly_recovery
+  [[ $(cat "$repo/flake.lock") == 'ai candidate' ]] ||
+    fail 'interleaved_weekly_recovery overwrote the newer AI lock'
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'interleaved_weekly_recovery left the stale weekly candidate active'
+  repo="$saved_repo"
+}
 
 case_real_dirty_noop() {
   local saved_repo="$repo"
@@ -553,6 +731,9 @@ case_real_restore eval_failure_hard 1 hard
 case_real_restore eval_failure_defer 0 defer
 case_real_restore cascade_deferred 0
 case_real_restore termination 143
+case_stale_manual_commit
+case_stale_dirty_lock
+case_interleaved_labels
 
 weekly_service=$(nix eval --raw --no-write-lock-file \
   '.#nixosConfigurations.laptop.config.systemd.services.nixos-auto-update.script')
