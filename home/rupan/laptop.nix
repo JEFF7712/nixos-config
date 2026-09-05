@@ -94,57 +94,53 @@
   bluetooth.enable = true;
   noctalia.enable = true;
   programs.noctalia.settings = {
-    desktopWidgets.monitorWidgets = [
-      {
-        name = "DP-7";
-        widgets = [ ];
-      }
-      {
-        name = "DP-6";
-        widgets = [
-          {
-            id = "Clock";
-            x = 740;
-            y = 100;
-            scale = 3;
-            format = "h:mm AP\\nd MMMM yyyy";
-            clockStyle = "minimal";
-            showBackground = false;
-            useCustomFont = false;
-            customFont = "";
-            usePrimaryColor = false;
-          }
-          {
-            id = "MediaPlayer";
-            x = 440;
-            y = 420;
-            scale = 2.834;
-            hideMode = "visible";
-            showBackground = false;
-            visualizerType = "linear";
-            visualizerVisibility = "always";
-          }
-          {
-            id = "Weather";
-            x = 580;
-            y = 780;
-            scale = 3;
-            showBackground = false;
-          }
-        ];
-      }
-    ];
     location = {
-      name = "Madison, WI";
-      analogClockInCalendar = false;
-      firstDayOfWeek = -1;
-      showCalendarEvents = true;
-      showCalendarWeather = true;
-      showWeekNumberInCalendar = false;
-      use12hourFormat = true;
-      useFahrenheit = true;
-      weatherEnabled = true;
-      weatherShowEffects = true;
+      address = "Madison, WI";
+    };
+    shell = {
+      time_format = "{:%-I:%M %p}";
+    };
+    weather = {
+      enabled = true;
+      refresh_minutes = 30;
+      unit = "fahrenheit";
+      effects = true;
+    };
+    control_center.calendar = {
+      show_events_card = true;
+      show_week_numbers = false;
+    };
+    desktop_widgets.widget = {
+      dp6_clock = {
+        type = "clock";
+        output = "DP-6";
+        cx = 740.0;
+        cy = 100.0;
+        settings = {
+          clock_style = "digital";
+          format = "{:%-I:%M %p}\n{:%-d %B %Y}";
+          color = "on_surface";
+        };
+      };
+      dp6_media = {
+        type = "media_player";
+        output = "DP-6";
+        cx = 440.0;
+        cy = 420.0;
+        settings = {
+          color = "on_surface";
+          hide_when_no_media = false;
+        };
+      };
+      dp6_weather = {
+        type = "weather";
+        output = "DP-6";
+        cx = 580.0;
+        cy = 780.0;
+        settings = {
+          color = "on_surface";
+        };
+      };
     };
   };
   terminal.enable = true;

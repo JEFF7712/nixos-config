@@ -49,6 +49,7 @@
   file-utils.enable = true;
   docker.enable = true;
   netbird.enable = true;
+  homelab-dns.enable = true;
   waydroid.enable = false;
   game.enable = true;
   airplay.enable = true;
