@@ -49,6 +49,32 @@ InfoPopup {
         root.selectedDay = root.today.getDate();
     }
 
+    // `today` is captured at quickshell start and the minute timer below only
+    // ticks while the popup is open, so after days of uptime it goes stale.
+    // Refresh on open; keep the user's explicit month navigation/selection
+    // unless they were still tracking the old today.
+    function refreshToday() {
+        const old = root.today;
+        const now = new Date();
+        if (now.getFullYear() === old.getFullYear() && now.getMonth() === old.getMonth() && now.getDate() === old.getDate())
+            return;
+        const trackingView = root.viewYear === old.getFullYear() && root.viewMonth === old.getMonth();
+        const trackingSelected = root.selectedYear === old.getFullYear() && root.selectedMonth === old.getMonth() && root.selectedDay === old.getDate();
+        root.today = now;
+        if (trackingView) {
+            root.viewYear = now.getFullYear();
+            root.viewMonth = now.getMonth();
+        }
+        if (trackingSelected) {
+            root.selectedYear = now.getFullYear();
+            root.selectedMonth = now.getMonth();
+            root.selectedDay = now.getDate();
+        }
+    }
+
+    onShownChanged: if (shown)
+        root.refreshToday()
+
     function selectCell(cell) {
         root.selectedYear = cell.year;
         root.selectedMonth = cell.month;
@@ -144,7 +170,7 @@ InfoPopup {
         running: root.shown
         interval: 60000
         repeat: true
-        onTriggered: root.today = new Date()
+        onTriggered: root.refreshToday()
     }
 
     Item {
