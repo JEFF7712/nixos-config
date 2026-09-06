@@ -83,6 +83,9 @@ if [[ ${TEST_GIT_ACTION:-} == kill-before-commit && " $* " == *' commit '* ]]; t
   sleep 1
   exit 0
 fi
+if [[ ${TEST_GIT_ACTION:-} == fail-commit && " $* " == *' commit '* ]]; then
+  exit 1
+fi
 if [[ "${TEST_REAL_GIT:-}" == 1 ]]; then
   if [[ ${TEST_GIT_ACTION:-} == kill-after-commit && " $* " == *' commit '* ]]; then
     "$REAL_GIT" "$@"
@@ -784,6 +787,16 @@ case_orphan_candidate_cleanup() {
     fail 'orphan_candidate_cleanup left an abandoned candidate work directory'
 }
 
+case_unrelated_lock_temp_survives() {
+  local unrelated="$repo/.flake.lock.update.unrelated"
+  printf 'user-owned temporary\n' > "$unrelated"
+
+  run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" unrelated_lock_temp
+  [[ $(cat "$unrelated") == 'user-owned temporary' ]] ||
+    fail 'unrelated_lock_temp removed an unrelated matching file'
+}
+
 exercise_interrupted_publication() {
   local action="$1" name="$2" saved_repo="$repo"
   create_fresh_real_repo "$name"
@@ -816,6 +829,7 @@ exercise_interrupted_publication() {
 
 case_partial_publication_recovery() {
   local saved_repo="$repo"
+  local -a temporary_files
   create_fresh_real_repo partial-publication
   setup_case partial-publication
   cp "$repo/flake.lock" "$CASE_DIR/original.lock"
@@ -826,6 +840,7 @@ case_partial_publication_recovery() {
     fail 'partial_publication did not retain the publishing state'
   cmp -s "$CASE_DIR/original.lock" "$repo/flake.lock" ||
     fail 'partial_publication corrupted the editable flake.lock'
+  printf 'unrelated temporary\n' > "$repo/.flake.lock.update.unrelated"
 
   unset TEST_CP_ACTION
   TEST_REAL_GIT=1 run_pipeline
@@ -834,9 +849,29 @@ case_partial_publication_recovery() {
     fail 'partial_publication recovery left flake.lock dirty'
   cmp -s "$repo/flake.lock" <("$real_git" -C "$repo" show HEAD:flake.lock) ||
     fail 'partial_publication recovery did not publish the candidate lock'
-  if compgen -G "$repo/.flake.lock.update.*" >/dev/null; then
-    fail 'partial_publication recovery left an atomic-copy temporary file'
-  fi
+  mapfile -t temporary_files < <(compgen -G "$repo/.flake.lock.update.*")
+  [[ ${#temporary_files[@]} -eq 1 && ${temporary_files[0]} == "$repo/.flake.lock.update.unrelated" ]] ||
+    fail 'partial_publication recovery left an updater-owned temporary file'
+  [[ $(cat "$repo/.flake.lock.update.unrelated") == 'unrelated temporary' ]] ||
+    fail 'partial_publication recovery removed an unrelated matching file'
+  repo="$saved_repo"
+}
+
+case_real_dirty_restore_timestamp() {
+  local saved_repo="$repo" expected_mtime
+  create_fresh_real_repo dirty-restore-timestamp
+  setup_case dirty-restore-timestamp
+  printf 'dirty source lock\n' > "$repo/flake.lock"
+  touch -d '2024-01-02 03:04:05' "$repo/flake.lock"
+  cp -p "$repo/flake.lock" "$CASE_DIR/expected.lock"
+  expected_mtime="$(stat -c %Y "$repo/flake.lock")"
+
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_GIT_ACTION=fail-commit run_pipeline
+  assert_status 1 "$PIPELINE_STATUS" dirty_restore_timestamp
+  cmp -s "$CASE_DIR/expected.lock" "$repo/flake.lock" ||
+    fail 'dirty_restore_timestamp did not restore the dirty source lock'
+  [[ $(stat -c %Y "$repo/flake.lock") == "$expected_mtime" ]] ||
+    fail 'dirty_restore_timestamp did not preserve the dirty source lock mtime'
   repo="$saved_repo"
 }
 
@@ -887,12 +922,14 @@ case_real_dirty_noop() {
 case_real_restore() {
   local name="$1" expected_status="$2" eval_failure="${3:-}"
   local saved_repo="$repo"
-  local expected_mode
+  local expected_mode expected_mtime
   repo="$real_repo"
   setup_case "real-$name"
   printf 'dirty pre-run lock\nsecond line without newline' > "$repo/flake.lock"
+  touch -d '2024-01-02 03:04:05' "$repo/flake.lock"
   cp -p "$repo/flake.lock" "$CASE_DIR/expected.lock"
   expected_mode="$(stat -c %a "$repo/flake.lock")"
+  expected_mtime="$(stat -c %Y "$repo/flake.lock")"
   case "$name" in
     update_failure) TEST_UPDATE_STATUS=1 ;;
     eval_failure_hard) TEST_EVAL_STATUS=1 ;;
@@ -907,6 +944,8 @@ case_real_restore() {
     fail "real_$name did not restore the dirty pre-run lock byte-for-byte"
   [[ $(stat -c %a "$repo/flake.lock") == "$expected_mode" ]] ||
     fail "real_$name did not preserve the pre-run lock mode"
+  [[ $(stat -c %Y "$repo/flake.lock") == "$expected_mtime" ]] ||
+    fail "real_$name did not preserve the pre-run lock mtime"
   if compgen -G "$repo/.flake.lock.snapshot.*" >/dev/null; then
     fail "real_$name left a lock snapshot behind"
   fi
@@ -926,10 +965,12 @@ case_manual_commit_requires_activation
 case_pending_rejects_unrelated_edit
 run_case candidate_sync_before_pending 5
 run_case orphan_candidate_cleanup 0
+case_unrelated_lock_temp_survives
 exercise_interrupted_publication before-copy publication-before-copy
 exercise_interrupted_publication before-commit publication-before-commit
 exercise_interrupted_publication after-commit publication-after-commit
 case_partial_publication_recovery
+case_real_dirty_restore_timestamp
 case_staged_newer_lock
 
 weekly_service=$(nix eval --raw --no-write-lock-file \

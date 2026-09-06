@@ -59,6 +59,7 @@ pending_dir="$state_directory/pending-$safe_label"
 retired_dir="$state_directory/retired-$safe_label"
 deployed_file="$state_directory/deployed-$safe_label.lock"
 defer_file="$state_directory/defer-count-$safe_label"
+publication_temp_file="$pending_dir/publication-temp"
 candidate_work=""
 
 cleanup_candidate_work() {
@@ -128,15 +129,21 @@ atomic_copy_file() {
   local source="$1" destination="$2" directory temporary
   directory="${destination%/*}"
   temporary="$(mktemp "$directory/.${destination##*/}.update.XXXXXX")"
+  atomic_write_text "$pending_dir" "$publication_temp_file" "$temporary"
   if ! cp -- "$source" "$temporary"; then
     rm -f -- "$temporary"
+    rm -f -- "$publication_temp_file"
+    sync -f "$pending_dir"
     return 1
   fi
   chmod --reference="$destination" "$temporary"
   chown --reference="$destination" "$temporary"
+  touch --reference="$source" "$temporary"
   sync -f "$temporary"
   mv -f -- "$temporary" "$destination"
   sync -f "$directory"
+  rm -f -- "$publication_temp_file"
+  sync -f "$pending_dir"
 }
 
 consecutive_defer_exceeded() {
@@ -186,12 +193,27 @@ cleanup_orphan_candidate_work() {
   done
 }
 
-cleanup_lock_temps() {
+cleanup_pending_lock_temp() {
   local temporary
-  for temporary in "$repo"/.flake.lock.update.*; do
-    [[ -f $temporary && ! -L $temporary ]] || continue
+  [[ -e $publication_temp_file || -L $publication_temp_file ]] || return 0
+  if [[ ! -f $publication_temp_file || -L $publication_temp_file ]]; then
+    printf '%s update: publication temporary state is invalid\n' "$label" >&2
+    return 1
+  fi
+  temporary="$(cat -- "$publication_temp_file")"
+  if [[ $temporary != "$repo"/.flake.lock.update.* ]]; then
+    printf '%s update: publication temporary is outside the editable flake\n' "$label" >&2
+    return 1
+  fi
+  if [[ -e $temporary ]]; then
+    [[ -f $temporary && ! -L $temporary ]] || {
+      printf '%s update: publication temporary is invalid\n' "$label" >&2
+      return 1
+    }
     rm -f -- "$temporary"
-  done
+  fi
+  rm -f -- "$publication_temp_file"
+  sync -f "$pending_dir"
 }
 
 retire_pending_candidate() {
@@ -381,9 +403,9 @@ trap 'exit 143' TERM
 
 cleanup_retired_candidates
 cleanup_orphan_candidate_work
-cleanup_lock_temps
 
 if [[ -e $pending_dir ]]; then
+  cleanup_pending_lock_temp
   activate_pending_candidate
   disarm_cleanup
   exit 0
