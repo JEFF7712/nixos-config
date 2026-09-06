@@ -91,6 +91,7 @@
   ];
 
   niri.enable = true;
+  quickshell.enable = true;
   bluetooth.enable = true;
   noctalia.enable = true;
   programs.noctalia.settings = {

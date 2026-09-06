@@ -587,7 +587,7 @@ check_legacy_runtime_regressions() {
   run_legacy_transition reapply-override reapply
   assert_log_contains 'systemctl --user stop noctalia-shell' \
     "reapply stops Noctalia even when the target bar is Quickshell"
-  assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+  assert_log_contains "systemctl --user stop quickshell-bar.service" \
     "reapply stops Quickshell so it can restart cleanly"
 
   printf 'on\n' > "$profiles/focus"
@@ -642,11 +642,11 @@ check_legacy_runtime_regressions() {
     exit 1
   fi
   assert_log_not_contains \
-    "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+    "systemctl --user stop quickshell-bar.service" \
     "wallpaper theme does not kill Quickshell to repaint"
   # qs→qs keeps the live topbar (SAME_QUICKSHELL); wallpaper theming must not
   # launch shell.qml as a side effect of the palette adapter.
-  launch_count=$(grep -c "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml " "$log" || true)
+  launch_count=$(grep -c "systemctl --user start quickshell-bar.service" "$log" || true)
   assert_eq "0" "$launch_count" \
     "wallpaper theme does not relaunch Quickshell after start_bar"
   [ -s "$profiles/quickshell-theme-reload" ] \
@@ -823,6 +823,45 @@ case " $* " in
     if [ "$(cat "$BAR_STATE")" = "noctalia-started" ]; then
       active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
       printf 'verify-noctalia active=%s\n' "$active" >> "$COMMAND_LOG"
+      exit 0
+    fi
+    exit 3
+    ;;
+  *" stop quickshell-bar.service "*)
+    if [ -n "${PKILL_COUNT_FILE:-}" ]; then
+      count=$(cat "$PKILL_COUNT_FILE" 2>/dev/null || echo 0)
+      count=$((count + 1))
+      printf '%s\n' "$count" > "$PKILL_COUNT_FILE"
+    fi
+    if ! { [ -n "${IGNORE_FIRST_BAR_STOP:-}" ] && [ "${count:-0}" -eq 1 ]; }; then
+      printf 'stopped\n' > "$BAR_STATE"
+      [ "$(cat "$NOTIFICATION_STATE")" != quickshell ] || printf 'none\n' > "$NOTIFICATION_STATE"
+    fi
+    ;;
+  *" start quickshell-bar.service "*)
+    if [ -n "${START_COUNT_FILE:-}" ]; then
+      count=$(cat "$START_COUNT_FILE" 2>/dev/null || echo 0)
+      count=$((count + 1))
+      printf '%s\n' "$count" > "$START_COUNT_FILE"
+    fi
+    if ! { [ -n "${FAIL_FIRST_BAR_START:-}" ] && [ "${count:-0}" -eq 1 ]; }; then
+      active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
+      active_variant=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active-variant" 2>/dev/null || echo dark)
+      theme_profile=$(cat "$XDG_CONFIG_HOME/desktop-profiles/transition-target" 2>/dev/null || true)
+      [ -n "$theme_profile" ] || theme_profile=$active
+      theme_variant=$(cat "$XDG_CONFIG_HOME/desktop-profiles/transition-variant" 2>/dev/null || true)
+      [ -n "$theme_variant" ] || theme_variant=$active_variant
+      selected=$("$PROFILE_THEME_SELECTOR")
+      printf 'start-quickshell active=%s active_variant=%s theme=%s theme_variant=%s selected=%s\n' \
+        "$active" "$active_variant" "$theme_profile" "$theme_variant" "$selected" >> "$COMMAND_LOG"
+      printf 'quickshell-started\n' > "$BAR_STATE"
+      [ -n "${FAIL_NOTIFICATION_OWNER:-}" ] || printf 'quickshell\n' > "$NOTIFICATION_STATE"
+    fi
+    ;;
+  *" is-active --quiet quickshell-bar.service "*)
+    if [ "$(cat "$BAR_STATE")" = quickshell-started ]; then
+      active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
+      printf 'verify-quickshell active=%s\n' "$active" >> "$COMMAND_LOG"
       exit 0
     fi
     exit 3
@@ -1103,7 +1142,7 @@ assert_mode 600 "$home/.config/gtk-3.0/noctalia.css" "staging rollback restores 
   printf 'FAIL: staging rollback restores a missing path\n' >&2
   exit 1
 }
-assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" "staging failure occurs before old bar shutdown"
+assert_log_not_contains "systemctl --user stop quickshell-bar.service" "staging failure occurs before old bar shutdown"
 assert_log_not_contains "verify-quickshell active=old" "staging failure needs no bar recovery"
 if find "$tmpdir/runtime" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
   printf 'FAIL: staging rollback left a transaction directory behind\n' >&2
@@ -1305,10 +1344,10 @@ for previous in qs noc; do
     case "$previous" in
       qs)
         if [ "$target" = qs ]; then
-          assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+          assert_log_not_contains "systemctl --user stop quickshell-bar.service" \
             "same-bar Quickshell switch leaves the topbar process running"
         else
-          assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+          assert_log_contains "systemctl --user stop quickshell-bar.service" \
             "Quickshell exact topbar is stopped from $previous to $target"
         fi
         ;;
@@ -1317,7 +1356,7 @@ for previous in qs noc; do
     esac
     case "$target" in
       qs)
-        assert_log_contains "pgrep -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+        assert_log_contains "systemctl --user is-active --quiet quickshell-bar.service" \
           "Quickshell readiness uses the exact topbar from $previous"
         if [ "$previous" = qs ]; then
           assert_log_not_contains 'systemctl --user start awww' \
@@ -1360,7 +1399,7 @@ HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
   "$REPO_ROOT/home/scripts/profile-transition" switch qs2
 assert_eq "qs2" "$(cat "$profiles/active")" "same-bar switch commits qs2"
-assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+assert_log_not_contains "systemctl --user stop quickshell-bar.service" \
   "qs→qs2 does not kill Quickshell"
 [ -s "$profiles/quickshell-theme-reload" ] \
   || { printf 'FAIL: same-bar switch did not nudge quickshell-theme-reload\n' >&2; exit 1; }
@@ -1414,7 +1453,7 @@ HOME="$home" XDG_CONFIG_HOME="$home/.config" \
 assert_eq quickshell "$(cat "$notification_state")" \
   "Quickshell claims notification ownership after start"
 assert_log_contains \
-  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=old active_variant=dark theme=qs theme_variant=light selected={\"payload\":\"qs-light\"} env_target= env_variant=" \
+  "start-quickshell active=old active_variant=dark theme=qs theme_variant=light selected={\"payload\":\"qs-light\"}" \
   "Quickshell selects the pending light payload instead of the stale dark runtime override"
 assert_pending_cleared "Quickshell pending-identity switch"
 
@@ -1434,10 +1473,10 @@ HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   "$REPO_ROOT/home/scripts/profile-transition" variant light
 assert_eq light "$(cat "$profiles/active-variant")" \
   "Quickshell variant toggle commits light"
-assert_log_not_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+assert_log_not_contains "systemctl --user stop quickshell-bar.service" \
   "Quickshell variant toggle does not kill the topbar"
 assert_log_not_contains \
-  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml" \
+  "systemctl --user start quickshell-bar.service" \
   "Quickshell variant toggle does not relaunch via start_bar"
 [ -s "$profiles/quickshell-theme-reload" ] \
   || { printf 'FAIL: variant toggle did not nudge quickshell-theme-reload\n' >&2; exit 1; }
@@ -1466,10 +1505,10 @@ assert_eq qs "$(cat "$profiles/active")" \
   "Quickshell rollback preserves the old active profile"
 assert_eq dark "$(cat "$profiles/active-variant")" \
   "Quickshell rollback preserves the old active variant"
-assert_log_contains "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
+assert_log_contains "systemctl --user stop quickshell-bar.service" \
   "unhealthy same-bar Quickshell is stopped before restart fallback"
 assert_log_contains \
-  "quickshell -p $REPO_ROOT/home/configs/quickshell/shell.qml active=qs active_variant=dark theme=qs theme_variant=dark selected={\"payload\":\"qs-runtime-dark\"} env_target= env_variant=" \
+  "start-quickshell active=qs active_variant=dark theme=qs theme_variant=dark selected={\"payload\":\"qs-runtime-dark\"}" \
   "Quickshell rollback restarts the old dark runtime theme"
 assert_pending_cleared "Quickshell variant rollback"
 
@@ -1491,32 +1530,24 @@ fi
 assert_eq noc "$(cat "$profiles/active")" \
   "notification ownership failure rolls back active profile"
 
-# Spawned bars outlive the engine, but must not retain its flock file
-# descriptor and block the next transition.
+# The service manager owns the long-lived bar, so the transition releases its
+# lock without leaving a child process that inherited the descriptor.
 printf 'noc\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
 ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 printf 'noctalia-started\n' > "$bar_state"
 printf 'noctalia\n' > "$notification_state"
-rm -rf "$persistent_pid_dir"
-mkdir -p "$persistent_pid_dir"
+: > "$log"
 HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" PERSISTENT_CHILDREN=1 \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
   "$REPO_ROOT/home/scripts/profile-transition" switch qs
-for _ in $(seq 1 20); do
-  [ -f "$persistent_pid_dir/quickshell" ] && break
-  sleep 0.05
-done
-[ -f "$persistent_pid_dir/quickshell" ] || {
-  printf 'FAIL: persistent Quickshell fake did not remain running\n' >&2
-  exit 1
-}
+assert_log_contains 'systemctl --user start quickshell-bar.service' \
+  "transition delegates Quickshell ownership to systemd"
 if ! flock -n "$tmpdir/profile.lock" true; then
-  printf 'FAIL: persistent bar child retained the transition lock\n' >&2
+  printf 'FAIL: supervised bar transition retained the transition lock\n' >&2
   exit 1
 fi
-stop_persistent_children
 
 # Exercise two real transitions with A paused after its slow staging work. B
 # must complete while the transition lock is available, and A must discard its
@@ -1566,6 +1597,16 @@ assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
 assert_eq '{"payload":"qs-runtime-dark"}' \
   "$(cat "$profiles/runtime-quickshell-theme.json")" \
   "late transition A cannot replace B quickshell theme"
+for script in "$REPO_ROOT/home/scripts/profile-transition" "$REPO_ROOT/home/scripts/toggle-bar"; do
+  if rg -q 'pkill -f .*quickshell.*/shell\.qml|quickshell -p .*configs/quickshell/shell\.qml' "$script"; then
+    printf 'FAIL: %s still owns the Quickshell bar process directly\n' "$script" >&2
+    exit 1
+  fi
+done
+rg -q 'systemctl --user start quickshell-bar\.service' "$REPO_ROOT/home/scripts/profile-transition" \
+  || { printf 'FAIL: profile transition does not start the Quickshell service\n' >&2; exit 1; }
+rg -q 'systemctl --user stop quickshell-bar\.service' "$REPO_ROOT/home/scripts/toggle-bar" \
+  || { printf 'FAIL: toggle-bar does not stop the Quickshell service\n' >&2; exit 1; }
 
 # The publisher accepts a transition's inherited lock descriptor, so synchronous
 # post-commit adapters can publish without reacquiring their parent's flock.

@@ -12,6 +12,7 @@ let
   nvidiaCdi = config.systemd.services.nvidia-container-toolkit-cdi-generator;
   userServices = config.home-manager.users.rupan.systemd.user.services;
   userTimers = config.home-manager.users.rupan.systemd.user.timers;
+  quickshellService = userServices.quickshell-bar;
 in
 assert !config.services.openssh.enable;
 assert config.services.smartd.enable;
@@ -53,4 +54,9 @@ assert config.boot.lanzaboote.configurationLimit <= 4;
 assert userServices ? system-update-failure-notify;
 assert userTimers ? system-update-failure-notify;
 assert userTimers.system-update-failure-notify.Install.WantedBy == [ "graphical-session.target" ];
+assert quickshellService.Service.Restart == "on-failure";
+assert quickshellService.Service.RestartSec == 2;
+assert quickshellService.Service.StandardOutput == "journal";
+assert quickshellService.Service.StandardError == "journal";
+assert !(quickshellService ? Install);
 true

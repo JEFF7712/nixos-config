@@ -47,8 +47,7 @@ has_light_variant() {
 }
 
 stop_bar() {
-  local bar="$1" quickshell_pattern
-  quickshell_pattern="quickshell.*$REPO_HOME/configs/quickshell/shell.qml"
+  local bar="$1"
   case "$bar" in
     noctalia)
       if ! systemctl --user stop noctalia-shell >/dev/null 2>&1; then
@@ -65,12 +64,12 @@ stop_bar() {
       fi
       ;;
     quickshell)
-      pkill -f "$quickshell_pattern" >/dev/null 2>&1 || true
+      systemctl --user stop quickshell-bar.service >/dev/null 2>&1 || true
       for _ in $(seq 1 20); do
-        pgrep -f "$quickshell_pattern" >/dev/null 2>&1 || break
+        systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1 || break
         sleep 0.1
       done
-      if pgrep -f "$quickshell_pattern" >/dev/null 2>&1; then
+      if systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1; then
         echo "Error: quickshell did not stop." >&2
         return 1
       fi
@@ -92,7 +91,7 @@ start_bar() {
       ;;
     quickshell)
       systemctl --user start awww >/dev/null 2>&1 || true
-      quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" 9>&- >/dev/null 2>&1 &
+      systemctl --user start quickshell-bar.service >/dev/null 2>&1
       ;;
   esac
 }
@@ -105,8 +104,7 @@ maybe_fail_stage() {
 }
 
 verify_bar() {
-  local bar="$1" quickshell_pattern attempts
-  quickshell_pattern="quickshell.*$REPO_HOME/configs/quickshell/shell.qml"
+  local bar="$1" attempts
   # Cold Quickshell starts (and notification-bus claim) often need >2s; keep this
   # overrideable so fixtures can stay fast.
   attempts="${PROFILE_TRANSITION_VERIFY_ATTEMPTS:-50}"
@@ -117,7 +115,7 @@ verify_bar() {
           && notification_owner_is noctalia && return 0
         ;;
       quickshell)
-        pgrep -f "$quickshell_pattern" >/dev/null 2>&1 \
+        systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1 \
           && notification_owner_is quickshell && return 0
         ;;
     esac
@@ -741,7 +739,7 @@ if [ "$MODE" != reapply ] \
   && [ "$MODE" != startup ] \
   && [ "$CURRENT_BAR" = quickshell ] \
   && [ "$TARGET_BAR" = quickshell ] \
-  && pgrep -f "quickshell.*$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1; then
+  && systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1; then
   SAME_QUICKSHELL=1
 fi
 
