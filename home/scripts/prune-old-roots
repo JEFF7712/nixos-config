@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mount_dir=${PRUNE_OLD_ROOTS_MOUNT:-/run/prune-old-roots}
+device=${PRUNE_OLD_ROOTS_DEVICE:-/dev/mapper/cryptroot}
+lock_file=${PRUNE_OLD_ROOTS_LOCK:-/run/prune-old-roots.lock}
+retention_days=${PRUNE_OLD_ROOTS_RETENTION_DAYS:-14}
+
+exec 9>"$lock_file"
+flock -n 9 || exit 0
+
+mounted=0
+cleanup() {
+  if [ "$mounted" -eq 1 ]; then
+    umount "$mount_dir"
+  fi
+}
+trap cleanup EXIT
+
+if [ "${PRUNE_OLD_ROOTS_SKIP_MOUNT:-0}" != 1 ]; then
+  install -d -m 0700 "$mount_dir"
+  mount -o subvol=/ "$device" "$mount_dir"
+  mounted=1
+fi
+
+old_roots="$mount_dir/old_roots"
+[ -d "$old_roots" ] || exit 0
+
+delete_subvolume_tree() {
+  local target=$1
+  local relative
+
+  while IFS= read -r relative; do
+    [ -n "$relative" ] || continue
+    btrfs subvolume delete "$mount_dir/$relative"
+  done < <(btrfs subvolume list -o "$target" | cut -d ' ' -f 9- | sort -r)
+  btrfs subvolume delete "$target"
+}
+
+while IFS= read -r -d '' root; do
+  delete_subvolume_tree "$root"
+done < <(find "$old_roots" -mindepth 1 -maxdepth 1 -mtime "+$retention_days" -print0)

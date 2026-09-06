@@ -8,6 +8,18 @@
   ...
 }:
 
+let
+  prune-old-roots = pkgs.writeShellApplication {
+    name = "prune-old-roots";
+    runtimeInputs = with pkgs; [
+      btrfs-progs
+      coreutils
+      findutils
+      util-linux
+    ];
+    text = builtins.readFile ../../home/scripts/prune-old-roots;
+  };
+in
 {
   imports = [ inputs.preservation.nixosModules.preservation ];
 
@@ -41,7 +53,7 @@
       etc.deps = lib.mkAfter [ "seed-userborn-password-files" ];
     };
 
-    # Park outgoing @root under old_roots/ for 14 days.
+    # Park outgoing @root under old_roots. Retention runs after boot.
     boot.initrd.systemd.services.rollback-root = {
       description = "Rollback btrfs @root to the blank snapshot";
       wantedBy = [ "initrd.target" ];
@@ -64,27 +76,36 @@
         mkdir -p /btrfs
         mount -o subvol=/ /dev/mapper/cryptroot /btrfs
 
-        delete_subvolume_recursively() {
-          IFS=$'\n'
-          for i in $(btrfs subvolume list -o "$1" | cut -f 9- -d ' '); do
-            delete_subvolume_recursively "/btrfs/$i"
-          done
-          btrfs subvolume delete "$1"
-        }
-
         if [ -e /btrfs/@root ]; then
           mkdir -p /btrfs/old_roots
           timestamp=$(date --date="@$(stat -c %Y /btrfs/@root)" +%Y%m%dT%H%M%S)
           mv /btrfs/@root "/btrfs/old_roots/$timestamp"
         fi
 
-        for i in $(find /btrfs/old_roots/ -maxdepth 1 -mindepth 1 -mtime +14); do
-          delete_subvolume_recursively "$i"
-        done
-
         btrfs subvolume snapshot /btrfs/@root-blank /btrfs/@root
         umount /btrfs
       '';
+    };
+
+    systemd.services.prune-old-roots = {
+      description = "Prune expired impermanence root subvolumes";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe prune-old-roots;
+        Nice = 10;
+        IOSchedulingClass = "idle";
+      };
+    };
+
+    systemd.timers.prune-old-roots = {
+      description = "Schedule impermanence root pruning";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "15min";
+        OnUnitActiveSec = "1d";
+        Persistent = true;
+        RandomizedDelaySec = "30min";
+      };
     };
 
     preservation = {

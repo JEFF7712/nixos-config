@@ -46,6 +46,9 @@ check-agent-workflows:
 check-laptop-safety:
   nix eval --impure --no-write-lock-file --expr 'let config = (builtins.getFlake (toString ./.)).nixosConfigurations.laptop.config; in import ./checks/laptop-safety.nix { inherit config; }'
 
+impermanence-check:
+  bash checks/impermanence.bash
+
 plymouth-theme-check:
   bash checks/plymouth-theme.bash
 
@@ -98,6 +101,7 @@ check:
   just check-agent-docs
   just check-agent-workflows
   just check-laptop-safety
+  just impermanence-check
   just plymouth-theme-check
   just check-local-bin
   just check-flake-update
