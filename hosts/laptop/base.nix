@@ -37,6 +37,7 @@
   niri-greeter.enable = true;
   general-laptop.enable = true;
   oom-protection.enable = true;
+  build-resource-policy.enable = true;
   asus-numpad.enable = true;
   audio.enable = true;
   ctls.enable = true;

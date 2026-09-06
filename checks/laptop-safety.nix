@@ -8,6 +8,7 @@ let
   numberpadService = config.systemd.services.asus-numberpad-driver;
   numberpadPath = config.systemd.paths.asus-numberpad-driver;
   autoUpdateService = config.systemd.services.nixos-auto-update;
+  nixDaemon = config.systemd.services.nix-daemon;
   userServices = config.home-manager.users.rupan.systemd.user.services;
   userTimers = config.home-manager.users.rupan.systemd.user.timers;
 in
@@ -26,6 +27,11 @@ assert numberpadService.serviceConfig.StateDirectory == "asus-numberpad-driver";
 assert autoUpdateService.serviceConfig.StateDirectory == "nixos-auto-update";
 assert builtins.elem "/var/lib/${autoUpdateService.serviceConfig.StateDirectory}"
   preservedDirectories;
+assert nixDaemon.serviceConfig.CPUWeight == 25;
+assert nixDaemon.serviceConfig.IOWeight == 25;
+assert nixDaemon.serviceConfig.MemoryHigh == "22G";
+assert nixDaemon.serviceConfig.MemoryMax == "25G";
+assert nixDaemon.serviceConfig.TasksMax == 4096;
 assert numberpadService.wantedBy == [ ];
 assert numberpadPath.wantedBy == [ "paths.target" ];
 assert numberpadPath.pathConfig.PathExists == "/run/user/1000/wayland-1";
