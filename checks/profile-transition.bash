@@ -66,6 +66,15 @@ assert_pending_cleared() {
   fi
 }
 
+home_visible_digest() {
+  (
+    cd "$home"
+    find . -path './.config/desktop-profiles/theme-generation' -prune -o -type f -print0 | sort -z |
+      xargs -0r sha256sum
+    find . -type l -printf '%p -> %l\n' | sort
+  ) | sha256sum
+}
+
 assert_selector_ignores_frozen_env() {
   local expected="$1" frozen_profile="$2" frozen_variant="$3" label="$4"
   assert_eq "$expected" \
@@ -191,13 +200,13 @@ EOF
   printf 'dark\n' > "$profiles/active-variant"
   : > "$log"
   : > "$engine_log"
-  before=$(tar -C "$home" -cf - . | sha256sum)
+  before=$(home_visible_digest)
   HOME="$home" XDG_CONFIG_HOME="$home/.config" COMMAND_LOG="$log" \
     ENGINE_LOG="$engine_log" REAL_JQ="$real_jq" PATH="$bin_dir" \
     "$adapter_dir/toggle-variant" dark >"$diagnostics" 2>&1
   assert_eq "profile-transition variant dark" "$(cat "$engine_log")" \
     "explicit current variant delegates its decision"
-  after=$(tar -C "$home" -cf - . | sha256sum)
+  after=$(home_visible_digest)
   assert_eq "$before" "$after" "explicit current variant leaves state untouched"
 }
 
@@ -235,13 +244,13 @@ check_engine_variant_noops() {
   printf 'dark\n' > "$profiles/variant-old"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
   : > "$log"
-  before=$(tar -C "$home" -cf - . | sha256sum)
+  before=$(home_visible_digest)
   if ! run_fixture_transition variant dark >"$output" 2>&1; then
     printf 'FAIL: explicit current variant exited nonzero\n' >&2
     cat "$output" >&2
     exit 1
   fi
-  after=$(tar -C "$home" -cf - . | sha256sum)
+  after=$(home_visible_digest)
   assert_eq "$before" "$after" "explicit current variant is an engine no-op"
   assert_log_not_contains 'niri msg action load-config-file' \
     "explicit current variant stops before core mutation"
@@ -417,7 +426,7 @@ check_snapshot_failure() {
   mkdir -p "$runtime_dir"
   printf 'quickshell-started\n' > "$bar_state"
   : > "$log"
-  before=$(tar -C "$home" -cf - . | sha256sum)
+  before=$(home_visible_digest)
   set +e
   HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$runtime_dir" \
     PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
@@ -431,7 +440,7 @@ check_snapshot_failure() {
   fi
   rm -f "$runtime_dir/output"
   assert_eq "$expected_status" "$status" "$failure snapshot failure is propagated"
-  after=$(tar -C "$home" -cf - . | sha256sum)
+  after=$(home_visible_digest)
   assert_eq "$before" "$after" "$failure snapshot failure occurs before mutation"
   if find "$runtime_dir" -mindepth 1 -print -quit | grep -q .; then
     printf 'FAIL: %s snapshot failure left a transaction directory behind\n' "$failure" >&2
@@ -442,7 +451,7 @@ check_snapshot_failure() {
 check_snapshot_signal_cleanup() {
   local before after status runtime_dir="$tmpdir/runtime-signal"
   mkdir -p "$runtime_dir"
-  before=$(tar -C "$home" -cf - . | sha256sum)
+  before=$(home_visible_digest)
   set +e
   HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$runtime_dir" \
     PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
@@ -452,7 +461,7 @@ check_snapshot_signal_cleanup() {
   status=$?
   set -e
   assert_eq 143 "$status" "snapshot signal preserves the conventional status"
-  after=$(tar -C "$home" -cf - . | sha256sum)
+  after=$(home_visible_digest)
   assert_eq "$before" "$after" "snapshot signal occurs before mutation"
   if find "$runtime_dir" -mindepth 1 -print -quit | grep -q .; then
     printf 'FAIL: snapshot signal left a transaction directory behind\n' >&2
@@ -1508,6 +1517,55 @@ if ! flock -n "$tmpdir/profile.lock" true; then
   exit 1
 fi
 stop_persistent_children
+
+# Exercise two real transitions with A paused after its slow staging work. B
+# must complete while the transition lock is available, and A must discard its
+# stale stage when it resumes.
+transition_barrier="$tmpdir/transition-stage-barrier"
+mkdir -p "$transition_barrier"
+printf 'old\n' > "$profiles/active"
+printf 'dark\n' > "$profiles/active-variant"
+ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'quickshell-started\n' > "$bar_state"
+printf 'quickshell\n' > "$notification_state"
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
+  PROFILE_TRANSITION_TEST_STAGE_BARRIER_DIR="$transition_barrier" \
+  "$REPO_ROOT/home/scripts/profile-transition" switch new \
+  >"$tmpdir/transition-a.out" 2>&1 &
+transition_a=$!
+for _ in $(seq 1 100); do
+  [ -e "$transition_barrier/staged" ] && break
+  sleep 0.02
+done
+[ -e "$transition_barrier/staged" ] || {
+  printf 'FAIL: transition A did not reach the staging barrier\n' >&2
+  kill "$transition_a" 2>/dev/null || true
+  exit 1
+}
+if ! flock -n "$tmpdir/profile.lock" true; then
+  printf 'FAIL: transition renderer retained the publication lock\n' >&2
+  kill "$transition_a" 2>/dev/null || true
+  exit 1
+fi
+HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+  PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
+  "$REPO_ROOT/home/scripts/profile-transition" switch qs
+touch "$transition_barrier/release"
+wait "$transition_a"
+assert_eq qs "$(cat "$profiles/active")" \
+  "late transition A cannot replace B active profile"
+assert_eq dark "$(cat "$profiles/active-variant")" \
+  "late transition A cannot replace B variant"
+assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
+  "late transition A cannot replace B GTK colors"
+assert_eq '{"payload":"qs-runtime-dark"}' \
+  "$(cat "$profiles/runtime-quickshell-theme.json")" \
+  "late transition A cannot replace B quickshell theme"
 
 # The publisher accepts a transition's inherited lock descriptor, so synchronous
 # post-commit adapters can publish without reacquiring their parent's flock.

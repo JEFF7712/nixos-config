@@ -195,9 +195,12 @@ apply_noctalia_wallpaper() {
   }
 
   if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    (run_noctalia_wallpaper_job) 9>&-
+    run_theme_side_effect_if_current "$THEME_GENERATION" run_noctalia_wallpaper_job
   else
-    (run_noctalia_wallpaper_job) 9>&- &
+    (
+      unset PROFILE_PUBLISH_LOCK_FD
+      run_theme_side_effect_if_current "$THEME_GENERATION" run_noctalia_wallpaper_job
+    ) 9>&- &
     disown 2>/dev/null || true
   fi
 }
@@ -272,33 +275,39 @@ dispatch_post_commit_adapters() {
   ADAPTER_FAILURE_LOG=$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/profile-transition-adapters.XXXXXX")
   trap 'rm -f "$ADAPTER_FAILURE_LOG"' EXIT INT TERM HUP
 
-  run_post_commit_adapter system-preferences apply_system_preferences
-  run_post_commit_adapter profile-switcher start_profile_switcher
+  run_post_commit_adapter system-preferences run_theme_side_effect_if_current \
+    "$THEME_GENERATION" apply_system_preferences
+  run_post_commit_adapter profile-switcher run_theme_side_effect_if_current \
+    "$THEME_GENERATION" start_profile_switcher
 
   if [ "$MODE" != startup ]; then
     if [ "$TARGET_SELF_THEMED" = true ]; then
-      run_post_commit_adapter cava restore_cava_noctalia_theme
+      run_post_commit_adapter cava run_theme_side_effect_if_current \
+        "$THEME_GENERATION" restore_cava_noctalia_theme
     else
-      run_post_commit_adapter btop apply_btop_theme "$TARGET_DIR" "$TARGET_VARIANT"
-      run_post_commit_adapter tmux apply_tmux_colors "$TARGET_DIR" "$TARGET_VARIANT"
-      run_post_commit_adapter zathura apply_zathura_theme "$TARGET_DIR" "$TARGET_VARIANT"
-      run_post_commit_adapter hyprlock apply_hyprlock_colors "$TARGET_DIR" "$TARGET_VARIANT"
-      run_post_commit_adapter cava apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
-      run_post_commit_adapter vicinae apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"
-      run_post_commit_adapter swayosd restart_swayosd
+      run_post_commit_adapter tmux run_theme_side_effect_if_current \
+        "$THEME_GENERATION" tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf"
+      run_post_commit_adapter zathura run_theme_side_effect_if_current \
+        "$THEME_GENERATION" reload_zathura_theme
+      run_post_commit_adapter cava run_theme_side_effect_if_current \
+        "$THEME_GENERATION" pkill -USR2 -x cava
+      run_post_commit_adapter vicinae run_theme_side_effect_if_current \
+        "$THEME_GENERATION" systemctl --user try-reload-or-restart vicinae.service
+      run_post_commit_adapter swayosd run_theme_side_effect_if_current \
+        "$THEME_GENERATION" restart_swayosd
     fi
-    run_post_commit_adapter kitty reload_kitty
-    run_post_commit_adapter gtk nudge_gtk_reload
+    run_post_commit_adapter kitty run_theme_side_effect_if_current \
+      "$THEME_GENERATION" reload_kitty
+    run_post_commit_adapter gtk run_theme_side_effect_if_current \
+      "$THEME_GENERATION" nudge_gtk_reload
     # Not in the branch above: self-themed profiles have no baked firefox colors
     # but do have a live palette (noctalia colors.json) to fall back on.
-    run_post_commit_adapter firefox write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
-    run_post_commit_adapter zed apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-    run_post_commit_adapter vesktop apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
-    run_post_commit_adapter obsidian apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     if ! profile_wallpaper_theming "$TARGET"; then
-      run_post_commit_adapter spicetify apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+      run_post_commit_adapter spicetify run_theme_side_effect_if_current "$THEME_GENERATION" \
+        apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     fi
-    run_post_commit_adapter notification send_profile_notification
+    run_post_commit_adapter notification run_theme_side_effect_if_current \
+      "$THEME_GENERATION" send_profile_notification
   fi
 
   if [ -s "$ADAPTER_FAILURE_LOG" ]; then
@@ -429,6 +438,14 @@ if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/manifest.json" ]; the
   CURRENT_BAR=$(profile_bar "$OLD_ACTIVE")
 fi
 TARGET_BAR=$(profile_bar "$TARGET")
+
+# Claim a monotonically increasing desired generation while serializing only the
+# state read. Rendering and staging happen after this short critical section;
+# publication later rechecks the generation under the same lock.
+THEME_GENERATION=$("$SCRIPT_DIR/profile-publish" allocate)
+flock -u 9
+exec 9>&-
+unset PROFILE_PUBLISH_LOCK_FD
 
 cleanup_transaction() {
   local status="$1"
@@ -631,6 +648,75 @@ commit_transaction() {
 }
 
 stage_profile_core_files "$PROFILES_DIR/$TARGET" "$TARGET_VARIANT" "$TRANSACTION_DIR"
+stage_post_commit_files() {
+  local relative source destination local_config_home local_data_home local_firefox_chrome
+  local stage_obsidian_vault=""
+  local -a mutable=(
+    .config/btop/btop.conf
+    .config/cava/config
+    .config/zed/settings.json
+    .config/vesktop/settings/settings.json
+  )
+
+  for relative in "${mutable[@]}"; do
+    source="$HOME/$relative"
+    destination="$TRANSACTION_DIR/home/$relative"
+    if [ -f "$source" ]; then
+      mkdir -p "$(dirname "$destination")"
+      install -m 644 "$source" "$destination"
+    fi
+  done
+
+  (
+    local_config_home="$CONFIG_HOME"
+    local_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+    local_firefox_chrome="$FIREFOX_CHROME"
+    CONFIG_HOME="$TRANSACTION_DIR/home/.config"
+    XDG_DATA_HOME="$TRANSACTION_DIR/home/.local/share"
+    XDG_STATE_HOME="$TRANSACTION_DIR/home/.local/state"
+    VARIANT_FILE="$TRANSACTION_DIR/adapter-variant"
+    FIREFOX_CHROME=""
+    export XDG_CONFIG_HOME="$CONFIG_HOME" XDG_DATA_HOME XDG_STATE_HOME PROFILE_STAGE_ONLY=1
+    write_atomic "$VARIANT_FILE" "$TARGET_VARIANT"
+    if [ -n "$local_firefox_chrome" ] && [[ "$local_firefox_chrome" == "$HOME"/* ]]; then
+      FIREFOX_CHROME="$TRANSACTION_DIR/home/${local_firefox_chrome#"$HOME"/}"
+      mkdir -p "$FIREFOX_CHROME/DownToneUI"
+      [ ! -f "$local_firefox_chrome/DownToneUI/_globals.css" ] || \
+        install -m 644 "$local_firefox_chrome/DownToneUI/_globals.css" "$FIREFOX_CHROME/DownToneUI/_globals.css"
+    fi
+    if [ -f "$OBSIDIAN_MINIMAL_SETTINGS" ] && [[ "$OBSIDIAN_MINIMAL_SETTINGS" == "$HOME"/* ]]; then
+      stage_obsidian_vault="$TRANSACTION_DIR/home/${OBSIDIAN_MINIMAL_SETTINGS#"$HOME"/}"
+      stage_obsidian_vault=${stage_obsidian_vault%/.obsidian/plugins/*}
+      mkdir -p "$stage_obsidian_vault/.obsidian/plugins/obsidian-minimal-settings"
+      install -m 644 "$OBSIDIAN_MINIMAL_SETTINGS" \
+        "$stage_obsidian_vault/.obsidian/plugins/obsidian-minimal-settings/data.json"
+      [ ! -f "${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}/appearance.json" ] || \
+        install -m 644 "${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}/appearance.json" "$stage_obsidian_vault/appearance.json"
+      OBSIDIAN_MINIMAL_SETTINGS="$stage_obsidian_vault/.obsidian/plugins/obsidian-minimal-settings/data.json"
+    fi
+    if [ "$TARGET_SELF_THEMED" != true ]; then
+      apply_btop_theme "$TARGET_DIR" "$TARGET_VARIANT"
+      apply_tmux_colors "$TARGET_DIR" "$TARGET_VARIANT"
+      apply_zathura_theme "$TARGET_DIR" "$TARGET_VARIANT"
+      apply_hyprlock_colors "$TARGET_DIR" "$TARGET_VARIANT"
+      apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
+      apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"
+    fi
+    write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+    apply_obsidian_scheme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+  )
+}
+if [ -z "${PROFILE_TRANSITION_FAIL_SNAPSHOT:-}" ]; then
+  stage_post_commit_files
+fi
+if [ -n "${PROFILE_TRANSITION_TEST_STAGE_BARRIER_DIR:-}" ]; then
+  touch "$PROFILE_TRANSITION_TEST_STAGE_BARRIER_DIR/staged"
+  while [ ! -e "$PROFILE_TRANSITION_TEST_STAGE_BARRIER_DIR/release" ]; do
+    sleep 0.01
+  done
+fi
 collect_staged_files
 
 if [ "$WRITE_PREFERENCE" -eq 1 ]; then
@@ -639,7 +725,6 @@ if [ "$WRITE_PREFERENCE" -eq 1 ]; then
   snapshot_or_abort "$PROFILES_DIR/variant-$TARGET"
 fi
 snapshot_or_abort "$ACTIVE_LINK"
-snapshot_or_abort "$PROFILES_DIR/theme-generation"
 for destination in "${STAGED_DESTINATIONS[@]}"; do
   snapshot_destination "$destination"
 done
@@ -650,11 +735,6 @@ if [ -n "${PROFILE_TRANSITION_TEST_SYMLINK_PATH:-}" ]; then
   snapshot_or_abort "$PROFILE_TRANSITION_TEST_SYMLINK_PATH"
 fi
 trap 'rollback $?' EXIT
-
-# Claim the desired publication generation while the transition owns the same
-# lock that protects preference changes. Wallpaper renderers complete outside
-# this lock and can only install their results if this generation still wins.
-THEME_GENERATION=$("$SCRIPT_DIR/profile-publish" allocate)
 
 SAME_QUICKSHELL=0
 if [ "$MODE" != reapply ] \
@@ -672,6 +752,13 @@ if [ -n "${PROFILE_TRANSITION_TEST_MUTATE_SNAPSHOTS:-}" ]; then
   exit 29
 fi
 
+exec 9>"$LOCK_PATH"
+flock 9
+export PROFILE_PUBLISH_LOCK_FD=9
+if [ "$("$SCRIPT_DIR/profile-publish" current "$THEME_GENERATION")" != current ]; then
+  trap 'cleanup_transaction $?' EXIT
+  exit 0
+fi
 if [ "$MODE" = reapply ]; then
   stop_all_bars
 elif [ "$SAME_QUICKSHELL" -eq 0 ]; then
@@ -680,10 +767,11 @@ fi
 "$SCRIPT_DIR/profile-publish" declare "$TRANSACTION_DIR"
 publish_result=$(PROFILE_PUBLISH_KEEP_STAGE=1 "$SCRIPT_DIR/profile-publish" \
   publish "$THEME_GENERATION" "$TRANSACTION_DIR")
-[ "$publish_result" = published ] || {
-  echo "Error: transition theme publication was superseded" >&2
-  exit 1
-}
+if [ "$publish_result" = stale ]; then
+  trap 'cleanup_transaction $?' EXIT
+  exit 0
+fi
+[ "$publish_result" = published ] || exit 1
 NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.default)
 if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
   NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.focus)
@@ -710,11 +798,11 @@ commit_preferences
 apply_visual_commit
 
 commit_transaction
+flock -u 9
+exec 9>&-
+unset PROFILE_PUBLISH_LOCK_FD
 if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
   export PROFILE_TRANSITION_TEST_POST_COMMIT=1
 fi
 dispatch_post_commit_adapters
-flock -u 9
-exec 9>&-
-unset PROFILE_PUBLISH_LOCK_FD
 exit 0

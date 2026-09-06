@@ -65,6 +65,27 @@ theme_job_is_current() {
     && [ "$now_gen" = "$want_gen" ]
 }
 
+# Execute an unavoidable application-side mutation only while the generation is
+# still current. File output belongs in the staged set; this covers tools such
+# as spicetify whose apply operation owns files outside our configuration tree.
+run_theme_side_effect_if_current() {
+  local generation="$1"
+  shift
+  local lock_path="${PROFILE_TRANSITION_LOCK:-$HOME/.local/state/desktop-profiles/transition.lock}"
+  if [ -n "${PROFILE_PUBLISH_LOCK_FD:-}" ]; then
+    [ "$(PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" "$PROFILE_PUBLISH" current "$generation")" = current ] || return 0
+    "$@"
+    return
+  fi
+  mkdir -p "$(dirname "$lock_path")"
+  (
+    flock 9
+    export PROFILE_PUBLISH_LOCK_FD=9
+    [ "$(PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" "$PROFILE_PUBLISH" current "$generation")" = current ] || exit 0
+    "$@"
+  ) 9>>"$lock_path"
+}
+
 hex_accent_or_empty() {
   case "$1" in
     \#[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f])
@@ -310,7 +331,7 @@ matugen_frame() {
 # apply_wallpaper_theme <wallpaper>
 # Regen live colors from wallpaper (matugen/iris). No-op unless wallpaperTheming.
 apply_wallpaper_theme() {
-  local wp="$1" profile variant frame mode engine accent="" bar theme_stage
+  local wp="$1" profile variant frame mode engine accent="" bar theme_stage stage_obsidian_vault=""
   local job_profile job_variant job_gen publish_result
   [ -n "$wp" ] || return 0
 
@@ -323,6 +344,26 @@ apply_wallpaper_theme() {
   job_variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
   theme_stage=$(mktemp -d "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/profile-theme-${job_gen}.XXXXXX")
   mkdir -p "$theme_stage/home/.config" "$theme_stage/profiles"
+  if [ -f "$CONFIG_HOME/spicetify/Themes/Comfy/color.ini" ]; then
+    mkdir -p "$theme_stage/home/.config/spicetify/Themes/Comfy"
+    install -m 644 "$CONFIG_HOME/spicetify/Themes/Comfy/color.ini" \
+      "$theme_stage/home/.config/spicetify/Themes/Comfy/color.ini"
+  fi
+  if [ -f "$CONFIG_HOME/cava/config" ]; then
+    mkdir -p "$theme_stage/home/.config/cava"
+    install -m 644 "$CONFIG_HOME/cava/config" "$theme_stage/home/.config/cava/config"
+  fi
+  if [ -f "$OBSIDIAN_MINIMAL_SETTINGS" ] && [[ "$OBSIDIAN_MINIMAL_SETTINGS" == "$HOME"/* ]]; then
+    local obsidian_relative
+    obsidian_relative=${OBSIDIAN_MINIMAL_SETTINGS#"$HOME"/}
+    stage_obsidian_vault="$theme_stage/home/${obsidian_relative%/.obsidian/plugins/*}"
+    mkdir -p "$stage_obsidian_vault"
+    install -m 644 "${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}/appearance.json" \
+      "$stage_obsidian_vault/appearance.json" 2>/dev/null || true
+    mkdir -p "$stage_obsidian_vault/.obsidian/plugins/obsidian-minimal-settings"
+    install -m 644 "$OBSIDIAN_MINIMAL_SETTINGS" \
+      "$stage_obsidian_vault/.obsidian/plugins/obsidian-minimal-settings/data.json"
+  fi
 
   frame=$(matugen_frame "$wp")
   if [ -z "$frame" ]; then
@@ -361,9 +402,16 @@ apply_wallpaper_theme() {
       return 1
     }
     accent=$(hex_accent_or_empty "$(printf '%s' "$theme_json" | jq -r '.accent // empty' 2>/dev/null || true)")
+    local -a iris_render_args=(
+      --config-home "$theme_stage/home/.config"
+      --profiles-dir "$theme_stage/profiles"
+      --profile-dir "$PROFILES_DIR/$profile"
+    )
+    if [ -n "$stage_obsidian_vault" ]; then
+      iris_render_args+=(--obsidian-vault "$stage_obsidian_vault")
+    fi
     if ! printf '%s' "$theme_json" | iris-python "$REPO_HOME/scripts/iris-render.py" \
-      --config-home "$theme_stage/home/.config" --profiles-dir "$theme_stage/profiles" \
-      --profile-dir "$PROFILES_DIR/$profile"; then
+      "${iris_render_args[@]}"; then
       printf 'apply_wallpaper_theme: iris-render failed\n' >&2
       return 1
     fi
@@ -440,14 +488,73 @@ apply_wallpaper_theme() {
     accent=$(hex_accent_or_empty "$color")
     # Optionally re-theme the Obsidian vault: fixed greys, accent = wallpaper
     # (matugen can't merge appearance.json, so this is a separate step).
-    if [ "$(profile_manifest_capability "$profile" obsidianWallpaperTheme)" = "true" ]; then
-      apply_obsidian_sharp "$variant" "$accent"
-    fi
     # Sharp (and any matugen profile that stages a Comfy scheme body) merges into
     # Comfy color.ini as [sharp] without wiping other schemes. apply_spicetify_theme
     # below then selects Comfy/sharp.
+  fi
+
+  # Render every adapter-owned file against the private generation tree. Once
+  # publication accepts the generation, only reloads and application signals
+  # remain; no stale worker can write a visible theme file afterwards.
+  (
+    local_config_home="$CONFIG_HOME"
+    local_profiles_dir="$PROFILES_DIR"
+    local_firefox_chrome="$FIREFOX_CHROME"
+    CONFIG_HOME="$theme_stage/home/.config"
+    PROFILES_DIR="$theme_stage/profiles"
+    ln -s "$local_profiles_dir/$profile" "$PROFILES_DIR/$profile"
+    export XDG_CONFIG_HOME="$CONFIG_HOME"
+    export XDG_STATE_HOME="$theme_stage/home/.local/state"
+    export PROFILE_STAGE_ONLY=1
+    if [ -n "$local_firefox_chrome" ] && [[ "$local_firefox_chrome" == "$HOME"/* ]]; then
+      FIREFOX_CHROME="$theme_stage/home/${local_firefox_chrome#"$HOME"/}"
+      mkdir -p "$FIREFOX_CHROME/DownToneUI"
+    else
+      FIREFOX_CHROME=""
+    fi
+    if [ -n "$stage_obsidian_vault" ]; then
+      OBSIDIAN_MINIMAL_SETTINGS="$stage_obsidian_vault/.obsidian/plugins/obsidian-minimal-settings/data.json"
+    fi
     if [ -s "$theme_stage/profiles/runtime-spicetify-comfy.ini" ]; then
       merge_spicetify_comfy_scheme sharp "$theme_stage/profiles/runtime-spicetify-comfy.ini"
+    fi
+    if [ "$(profile_manifest_capability "$profile" obsidianWallpaperTheme)" = "true" ]; then
+      apply_obsidian_sharp "$variant" "$accent"
+    fi
+    apply_vicinae_runtime_theme "$profile" "$variant"
+    [ -s "$PROFILES_DIR/runtime-cava-colors" ] && replace_cava_color_section "$PROFILES_DIR/runtime-cava-colors"
+    sync_kitty_agent_transparent_colors "$CONFIG_HOME/kitty"
+    if [ -f "$CONFIG_HOME/btop/btop.conf" ] && grep -q '^color_theme = ' "$CONFIG_HOME/btop/btop.conf"; then
+      sed -i 's|^color_theme = .*|color_theme = "profile"|' "$CONFIG_HOME/btop/btop.conf"
+    fi
+    write_firefox_globals "$local_profiles_dir/$profile/manifest.json" "$variant"
+  )
+
+  if [ -n "$accent" ]; then
+    local nbase nout ntmp rgb
+    if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ]; then
+      nbase="$PROFILES_DIR/$profile/niri-overrides-focus.kdl"
+    else
+      nbase="$PROFILES_DIR/$profile/niri-overrides.kdl"
+    fi
+    nout="$theme_stage/profiles/runtime-niri-active.kdl"
+    rgb="${accent#\#}"
+    rgb="${rgb:0:6}"
+    if [ -f "$nbase" ]; then
+      ntmp=$(mktemp "$nout.XXXXXX")
+      awk -v a="#$rgb" -v active="#${rgb}66" -v inactive="#${rgb}33" '
+        /focus-ring[ \t]*\{/ { infr = 1 }
+        /border[ \t]*\{/ { inb = 1; need_on = 1 }
+        infr && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" a "\""); infr = 0 }
+        inb && /^[ \t]*on([ \t]|$)/ { need_on = 0 }
+        inb && /^[ \t]*off([ \t]|$)/ { need_on = 0 }
+        inb && need_on && /^[ \t]*width / { print "        on"; need_on = 0 }
+        inb && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" active "\""); print; next }
+        inb && /^[ \t]*inactive-color/ { sub(/"[^"]*"/, "\"" inactive "\""); print; next }
+        /\}/ { if (inb) inb = 0 }
+        { print }
+      ' "$nbase" > "$ntmp"
+      mv "$ntmp" "$nout"
     fi
   fi
 
@@ -461,39 +568,33 @@ apply_wallpaper_theme() {
     return 0
   }
   "$PROFILE_PUBLISH" declare "$theme_stage"
-  publish_result=$(PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" \
+  publish_result=$(XDG_CONFIG_HOME="$CONFIG_HOME" PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" \
     "$PROFILE_PUBLISH" publish "$job_gen" "$theme_stage")
   [ "$publish_result" = published ] || return 0
 
-  apply_vicinae_runtime_theme "$profile" "$variant"
+  if [ -n "${PROFILE_THEME_TEST_PAUSE_AFTER_PUBLISH:-}" ] \
+    && [ -n "${PROFILE_THEME_TEST_BARRIER_DIR:-}" ]; then
+    touch "$PROFILE_THEME_TEST_BARRIER_DIR/published"
+    while [ ! -e "$PROFILE_THEME_TEST_BARRIER_DIR/release" ]; do
+      sleep 0.01
+    done
+  fi
 
-  # Swap matugen's cava [color] block into the live cava config.
-  [ -s "$PROFILES_DIR/runtime-cava-colors" ] \
-    && replace_cava_color_section "$PROFILES_DIR/runtime-cava-colors"
-
-  # Remix Cursor Agent prompt fills to the new Kitty background, then reload.
-  sync_kitty_agent_transparent_colors "$CONFIG_HOME/kitty"
   reload_kitty
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
-  if [ -f "$CONFIG_HOME/btop/btop.conf" ] && grep -q '^color_theme = ' "$CONFIG_HOME/btop/btop.conf"; then
-    sed -i 's|^color_theme = .*|color_theme = "profile"|' "$CONFIG_HOME/btop/btop.conf"
-  fi
   reload_zathura_theme
   nudge_gtk_reload
   restart_swayosd
-  # Firefox parses userChrome.css and its @imports once at startup, so this only
-  # stages the colors: they land on the next start, or on a chrome reload
-  # (Browser Console Ctrl+Alt+R with nglayout.debug.disable_xul_cache).
-  write_firefox_globals "$PROFILES_DIR/$profile/manifest.json" "$variant"
-
   # spicetify re-patches xpui and may relaunch Spotify; keep it off the critical
   # path. On a profile switch this is the only spicetify apply (the switch tail
   # skips it for wallpaper-theming profiles); on a standalone wallpaper change
   # it runs here alone.
   if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant"
+    run_theme_side_effect_if_current "$job_gen" \
+      apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant"
   else
-    (apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant") 9>&- &
+    (run_theme_side_effect_if_current "$job_gen" \
+      apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant") 9>&- &
     disown 2>/dev/null || true
   fi
 
@@ -503,51 +604,6 @@ apply_wallpaper_theme() {
     nudge_quickshell_theme_reload
   fi
 
-  # Wallpaper-driven niri focus-ring colour. niri reliably re-reads the
-  # single-level override (config.kdl includes active-niri-overrides.kdl) on
-  # load-config-file, but not a nested include, so rather than a nested include
-  # we regenerate the active override from the profile's store base with the
-  # focus-ring active-color rewritten to the accent, then point the active link
-  # at it and reload. No-op for engines that didn't yield an accent.
-  if [ -n "$accent" ]; then
-    local nbase nout ntmp
-    if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ]; then
-      nbase="$PROFILES_DIR/$profile/niri-overrides-focus.kdl"
-    else
-      nbase="$PROFILES_DIR/$profile/niri-overrides.kdl"
-    fi
-    if [ -f "$nbase" ]; then
-      nout="$PROFILES_DIR/runtime-niri-active.kdl"
-      local rgb="${accent#\#}"
-      rgb="${rgb:0:6}"
-      # Match clean's soft hairline alphas (#66 / #33). Also inject `on` when the
-      # HM-baked base still lacks it (niri defaults borders off; wallpaper apply
-      # regenerates from that base and would otherwise drop the live `on`).
-      ntmp=$(mktemp "$nout.XXXXXX")
-      if awk -v a="#$rgb" -v active="#${rgb}66" -v inactive="#${rgb}33" '
-        /focus-ring[ \t]*\{/ { infr = 1 }
-        /border[ \t]*\{/ { inb = 1; need_on = 1 }
-        infr && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" a "\""); infr = 0 }
-        inb && /^[ \t]*on([ \t]|$)/ { need_on = 0 }
-        inb && /^[ \t]*off([ \t]|$)/ { need_on = 0 }
-        inb && need_on && /^[ \t]*width / { print "        on"; need_on = 0 }
-        inb && /^[ \t]*active-color/ { sub(/"[^"]*"/, "\"" active "\""); print; next }
-        inb && /^[ \t]*inactive-color/ { sub(/"[^"]*"/, "\"" inactive "\""); print; next }
-        /\}/ { if (inb) inb = 0 }
-        { print }
-      ' "$nbase" > "$ntmp"; then
-        mv "$ntmp" "$nout"
-      else
-        rm -f "$ntmp"
-        printf 'apply_wallpaper_theme: niri override rewrite failed\n' >&2
-        return 1
-      fi
-      local nlink
-      nlink=$(mktemp -u "$PROFILES_DIR/.active-niri-overrides.XXXXXX")
-      ln -s "$nout" "$nlink"
-      mv "$nlink" "$ACTIVE_LINK"
-    fi
-  fi
   niri msg action load-config-file >/dev/null 2>&1 || true
 }
 
@@ -1142,7 +1198,9 @@ apply_vicinae_theme() {
 
   family=$(vicinae_font_family "$profile" "$qs_theme")
   write_vicinae_settings "$family" "$qs_theme"
-  systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+  if [ -z "${PROFILE_STAGE_ONLY:-}" ]; then
+    systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+  fi
 }
 
 json_color() {
@@ -1305,7 +1363,7 @@ apply_zathura_theme() {
 
   mkdir -p "$CONFIG_HOME/zathura"
   install -m 644 "$src" "$CONFIG_HOME/zathura/colors"
-  reload_zathura_theme
+  [ -n "${PROFILE_STAGE_ONLY:-}" ] || reload_zathura_theme
 }
 
 # apply_tmux_colors <profile-dir> <variant>
@@ -1319,7 +1377,9 @@ apply_tmux_colors() {
 
   mkdir -p "$CONFIG_HOME/tmux"
   install -m 644 "$src" "$CONFIG_HOME/tmux/profile-colors.conf"
-  tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
+  if [ -z "${PROFILE_STAGE_ONLY:-}" ]; then
+    tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
+  fi
 }
 
 # apply_hyprlock_colors <profile-dir> <variant>
@@ -1356,7 +1416,9 @@ replace_cava_color_section() {
   cat "$src" >> "$tmp"
   mv "$tmp" "$conf"
 
-  pkill -USR2 -x cava 2>/dev/null || true
+  if [ -z "${PROFILE_STAGE_ONLY:-}" ]; then
+    pkill -USR2 -x cava 2>/dev/null || true
+  fi
 }
 
 # apply_cava_colors <profile-dir> <variant>

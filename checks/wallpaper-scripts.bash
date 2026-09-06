@@ -495,4 +495,99 @@ if ! flock -n "$publish_lock" true; then
   exit 1
 fi
 
+# A publication failure after the first destination must restore the whole
+# previous generation instead of exposing a mixed set.
+failure_stage="$tmpdir/failure-stage"
+mkdir -p "$failure_stage/home/.config/kitty" "$failure_stage/profiles"
+printf 'old kitty\n' > "$publish_home/.config/kitty/colors.conf"
+printf 'old quickshell\n' > "$publish_home/.config/desktop-profiles/runtime-quickshell-theme.json"
+printf 'new kitty\n' > "$failure_stage/home/.config/kitty/colors.conf"
+printf 'new quickshell\n' > "$failure_stage/profiles/runtime-quickshell-theme.json"
+failure_generation=$(HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" allocate)
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" declare "$failure_stage"
+set +e
+PROFILE_PUBLISH_FAIL_INSTALL_AT=2 HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" publish "$failure_generation" "$failure_stage" >/dev/null 2>&1
+failure_status=$?
+set -e
+if [ "$failure_status" -eq 0 ]; then
+  printf 'FAIL: injected second publication install unexpectedly succeeded\n' >&2
+  exit 1
+fi
+assert_eq 'old kitty' "$(cat "$publish_home/.config/kitty/colors.conf")" \
+  "failed publication restores kitty from the previous generation"
+assert_eq 'old quickshell' "$(cat "$publish_home/.config/desktop-profiles/runtime-quickshell-theme.json")" \
+  "failed publication restores quickshell from the previous generation"
+
+# Exercise the real wallpaper adapter flow. A publishes and pauses before its
+# legacy post-publish code, B completes, then A resumes. Every visible runtime
+# artifact must remain B even though A was the older worker.
+barrier="$tmpdir/wallpaper-barrier"
+mkdir -p "$barrier"
+PROFILES_DIR="$profiles_dir"
+ACTIVE_FILE="$profiles_dir/active"
+VARIANT_FILE="$profiles_dir/active-variant"
+ACTIVE_LINK="$profiles_dir/active-niri-overrides.kdl"
+FOCUS_FILE="$profiles_dir/focus"
+CONFIG_HOME="$config_dir"
+FIREFOX_CHROME=""
+matugen_frame() { printf '%s\n' "$1"; }
+nudge_gtk_reload() { :; }
+apply_spicetify_theme() { :; }
+printf 'tinted\n' > "$profiles_dir/active"
+printf 'light\n' > "$profiles_dir/active-variant"
+cat > "$bin_dir/iris-python" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  */iris.py)
+    if [ "${THEME_TAG:-}" = A ]; then
+      printf '{"fg":"#aaaaaa","bg":"#111111","surface":"#222222","dim":"#777777","accent":"#aa1111","red":"#aa1111","green":"#11aa11","yellow":"#aaaa11"}'
+    else
+      printf '{"fg":"#bbbbbb","bg":"#222222","surface":"#333333","dim":"#888888","accent":"#22bb22","red":"#bb2222","green":"#22bb22","yellow":"#bbbb22"}'
+    fi
+    ;;
+  */iris-render.py)
+    config="" profiles=""
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --config-home) config="$2"; shift 2 ;;
+        --profiles-dir) profiles="$2"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+    cat >/dev/null
+    mkdir -p "$config/kitty" "$profiles"
+    printf '%s kitty\n' "$THEME_TAG" > "$config/kitty/colors.conf"
+    printf '%s quickshell\n' "$THEME_TAG" > "$profiles/runtime-quickshell-theme.json"
+    ;;
+esac
+EOF
+chmod +x "$bin_dir/iris-python"
+THEME_TAG=A PROFILE_THEME_TEST_PAUSE_AFTER_PUBLISH=1 \
+  PROFILE_THEME_TEST_BARRIER_DIR="$barrier" COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" \
+  apply_wallpaper_theme "$tmpdir/still.png" >"$tmpdir/wallpaper-a.out" 2>&1 &
+wallpaper_a=$!
+for _ in $(seq 1 50); do
+  [ -e "$barrier/published" ] && break
+  sleep 0.02
+done
+[ -e "$barrier/published" ] || { printf 'FAIL: wallpaper A did not reach the post-publish barrier\n' >&2; exit 1; }
+THEME_TAG=B COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" apply_wallpaper_theme "$tmpdir/still.png"
+touch "$barrier/release"
+wait "$wallpaper_a"
+assert_eq 'B kitty' "$(cat "$config_dir/kitty/colors.conf")" \
+  "late wallpaper A cannot overwrite B kitty colors"
+assert_eq 'B quickshell' "$(cat "$profiles_dir/runtime-quickshell-theme.json")" \
+  "late wallpaper A cannot overwrite B quickshell theme"
+if ! grep -Fq 'active-color "#22bb22"' "$profiles_dir/runtime-niri-active.kdl"; then
+  printf 'FAIL: late wallpaper A overwrote B runtime niri\n' >&2
+  cat "$profiles_dir/runtime-niri-active.kdl" >&2
+  exit 1
+fi
+
 printf 'OK: wallpaper-scripts.bash\n'

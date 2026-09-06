@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: profile-publish allocate | declare STAGE | publish GENERATION STAGE" >&2
+  echo "Usage: profile-publish allocate | current GENERATION | declare STAGE | publish GENERATION STAGE" >&2
   exit 2
 }
 
@@ -58,6 +58,10 @@ allocate() {
   printf '%s\n' "$generation"
 }
 
+current() {
+  [ "$(read_generation)" = "$1" ] && printf 'current\n' || printf 'stale\n'
+}
+
 declare_stage() {
   local stage="$1" source relative manifest
   [ -d "$stage" ] || { echo "profile-publish: missing stage $stage" >&2; return 1; }
@@ -76,6 +80,8 @@ declare_stage() {
 
 publish() {
   local generation="$1" stage="$2" manifest root relative source destination temporary current
+  local index backup_dir backup kind failed=0
+  local -a destinations=() backups=() kinds=()
   manifest="$stage/.profile-publish-artifacts"
   [ -f "$manifest" ] || { echo "profile-publish: missing artifact declaration" >&2; return 1; }
   current=$(read_generation)
@@ -84,32 +90,82 @@ publish() {
     printf 'stale\n'
     return 0
   fi
+  index=0
   while IFS=$'\t' read -r root relative; do
     [ -n "$root" ] && [ -n "$relative" ] || continue
     source="$stage/$root/$relative"
     case "$root" in
-      home) destination="$HOME/$relative" ;;
+      home)
+        case "$relative" in
+          .config/*) destination="${XDG_CONFIG_HOME:-$HOME/.config}/${relative#.config/}" ;;
+          *) destination="$HOME/$relative" ;;
+        esac
+        ;;
       profiles) destination="$profiles_dir/$relative" ;;
       *) echo "profile-publish: invalid artifact root $root" >&2; return 1 ;;
     esac
     [ -f "$source" ] || { echo "profile-publish: incomplete staged artifact $source" >&2; return 1; }
+    destinations+=("$destination")
   done < "$manifest"
+  backup_dir=$(mktemp -d "$stage/.profile-publish-rollback.XXXXXX")
+  for ((index=0; index<${#destinations[@]}; index++)); do
+    destination="${destinations[$index]}"
+    backup="$backup_dir/$index"
+    if [ -f "$destination" ]; then
+      cp -p -- "$destination" "$backup"
+      kinds+=(file)
+    elif [ ! -e "$destination" ]; then
+      kinds+=(missing)
+    else
+      echo "profile-publish: unsupported destination $destination" >&2
+      rm -rf "$backup_dir"
+      return 1
+    fi
+    backups+=("$backup")
+  done
+  index=0
   while IFS=$'\t' read -r root relative; do
     [ -n "$root" ] && [ -n "$relative" ] || continue
     source="$stage/$root/$relative"
     case "$root" in
-      home) destination="$HOME/$relative" ;;
+      home)
+        case "$relative" in
+          .config/*) destination="${XDG_CONFIG_HOME:-$HOME/.config}/${relative#.config/}" ;;
+          *) destination="$HOME/$relative" ;;
+        esac
+        ;;
       profiles) destination="$profiles_dir/$relative" ;;
     esac
-    if [ "${PROFILE_TRANSITION_FAIL_INSTALL_PATH:-}" = "$destination" ]; then
+    index=$((index + 1))
+    if [ "${PROFILE_TRANSITION_FAIL_INSTALL_PATH:-}" = "$destination" ] \
+      || [ "${PROFILE_PUBLISH_FAIL_INSTALL_AT:-}" = "$index" ]; then
       echo "Error: injected install failure for $destination" >&2
-      return "${PROFILE_TRANSITION_FAILURE_STATUS:-1}"
+      failed=1
+      break
     fi
     mkdir -p "$(dirname "$destination")"
     temporary=$(mktemp "$(dirname "$destination")/.profile-publish.XXXXXX")
-    install -m 644 "$source" "$temporary"
-    mv -f "$temporary" "$destination"
+    if ! install -m 644 "$source" "$temporary" || ! mv -f "$temporary" "$destination"; then
+      rm -f "$temporary"
+      failed=1
+      break
+    fi
   done < "$manifest"
+  if [ "$failed" -eq 1 ]; then
+    for ((index=${#destinations[@]} - 1; index >= 0; index--)); do
+      destination="${destinations[$index]}"
+      case "${kinds[$index]}" in
+        file)
+          temporary=$(mktemp "$(dirname "$destination")/.profile-publish.XXXXXX")
+          cp -p -- "${backups[$index]}" "$temporary" && mv -f "$temporary" "$destination" || rm -f "$temporary"
+          ;;
+        missing) rm -f -- "$destination" ;;
+      esac
+    done
+    rm -rf "$backup_dir"
+    return "${PROFILE_TRANSITION_FAILURE_STATUS:-1}"
+  fi
+  rm -rf "$backup_dir"
   [ "${PROFILE_PUBLISH_KEEP_STAGE:-}" = 1 ] || rm -rf "$stage"
   printf 'published\n'
 }
@@ -118,6 +174,10 @@ case "$1" in
   allocate)
     [ $# -eq 1 ] || usage
     with_lock allocate
+    ;;
+  current)
+    [ $# -eq 2 ] || usage
+    with_lock current "$2"
     ;;
   declare)
     [ $# -eq 2 ] || usage
