@@ -1,6 +1,6 @@
 .pragma library
 
-const hiddenIds = ["nm-applet", "nm_applet", "blueman", "blueman-tray", "blueman-applet"];
+const hiddenIds = ["nm-applet", "nm_applet", "blueman", "blueman-tray", "blueman-applet", "vicinae"];
 
 function isHidden(id) {
     const key = String(id || "").trim().toLowerCase();
