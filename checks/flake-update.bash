@@ -216,6 +216,13 @@ if [[ $destination == */state && $source_path == */.state.* ]]; then
     exit 0
   fi
 fi
+if [[ ${TEST_MV_ACTION:-} == publication-temp-after && $destination == */publication-temp ]]; then
+  "$REAL_MV" "$@"
+  "$REAL_SYNC" -f "${destination%/*}"
+  kill -KILL "$PPID"
+  sleep 1
+  exit 0
+fi
 exec "$REAL_MV" "$@"
 EOF
 
@@ -857,6 +864,32 @@ case_partial_publication_recovery() {
   repo="$saved_repo"
 }
 
+case_marker_before_temp_creation() {
+  local saved_repo="$repo"
+  create_fresh_real_repo marker-before-temp
+  setup_case marker-before-temp
+
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_MV_ACTION=publication-temp-after run_pipeline
+  assert_status 137 "$PIPELINE_STATUS" marker_before_temp_first_run
+  [[ -r $CASE_DIR/state/pending-weekly/publication-temp ]] ||
+    fail 'marker_before_temp did not retain the publication temp marker'
+  if compgen -G "$repo/.flake.lock.update.*" >/dev/null; then
+    fail 'marker_before_temp created a repository temp before recording it'
+  fi
+
+  unset TEST_MV_ACTION
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" marker_before_temp_recovery
+  [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
+    fail 'marker_before_temp recovery left the candidate active'
+  "$real_git" -C "$repo" diff --quiet -- flake.lock ||
+    fail 'marker_before_temp recovery left flake.lock dirty'
+  if compgen -G "$repo/.flake.lock.update.*" >/dev/null; then
+    fail 'marker_before_temp recovery left an updater-owned temporary file'
+  fi
+  repo="$saved_repo"
+}
+
 case_real_dirty_restore_timestamp() {
   local saved_repo="$repo" expected_mtime
   create_fresh_real_repo dirty-restore-timestamp
@@ -970,6 +1003,7 @@ exercise_interrupted_publication before-copy publication-before-copy
 exercise_interrupted_publication before-commit publication-before-commit
 exercise_interrupted_publication after-commit publication-after-commit
 case_partial_publication_recovery
+case_marker_before_temp_creation
 case_real_dirty_restore_timestamp
 case_staged_newer_lock
 

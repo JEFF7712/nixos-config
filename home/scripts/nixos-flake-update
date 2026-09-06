@@ -126,14 +126,29 @@ atomic_write_text() {
 }
 
 atomic_copy_file() {
-  local source="$1" destination="$2" directory temporary
+  local source="$1" destination="$2" directory temporary source_head
   directory="${destination%/*}"
-  temporary="$(mktemp "$directory/.${destination##*/}.update.XXXXXX")"
-  atomic_write_text "$pending_dir" "$publication_temp_file" "$temporary"
+  if [[ -e $publication_temp_file || -L $publication_temp_file ]]; then
+    if [[ ! -f $publication_temp_file || -L $publication_temp_file ]]; then
+      printf '%s update: publication temporary state is invalid\n' "$label" >&2
+      return 1
+    fi
+    temporary="$(cat -- "$publication_temp_file")"
+  else
+    source_head="$(cat -- "$pending_dir/source-head")"
+    temporary="$directory/.${destination##*/}.update.$safe_label.$source_head"
+    atomic_write_text "$pending_dir" "$publication_temp_file" "$temporary"
+  fi
+  if [[ $temporary != "$repo"/.flake.lock.update.* ]]; then
+    printf '%s update: publication temporary is outside the editable flake\n' "$label" >&2
+    return 1
+  fi
+  if ! (set -o noclobber; : > "$temporary"); then
+    printf '%s update: could not reserve publication temporary\n' "$label" >&2
+    return 1
+  fi
   if ! cp -- "$source" "$temporary"; then
     rm -f -- "$temporary"
-    rm -f -- "$publication_temp_file"
-    sync -f "$pending_dir"
     return 1
   fi
   chmod --reference="$destination" "$temporary"
@@ -142,8 +157,6 @@ atomic_copy_file() {
   sync -f "$temporary"
   mv -f -- "$temporary" "$destination"
   sync -f "$directory"
-  rm -f -- "$publication_temp_file"
-  sync -f "$pending_dir"
 }
 
 consecutive_defer_exceeded() {
@@ -211,9 +224,8 @@ cleanup_pending_lock_temp() {
       return 1
     }
     rm -f -- "$temporary"
+    sync -f "$repo"
   fi
-  rm -f -- "$publication_temp_file"
-  sync -f "$pending_dir"
 }
 
 retire_pending_candidate() {
