@@ -7,6 +7,7 @@ real_git="$(command -v git)"
 real_cp="$(command -v cp)"
 real_mv="$(command -v mv)"
 real_rm="$(command -v rm)"
+real_sync="$(command -v sync)"
 
 repo="$tmpdir/repo"
 bin_dir="$tmpdir/bin"
@@ -110,12 +111,26 @@ printf 'cp %q' "$1" >> "$COMMAND_LOG"
 printf ' %q' "${@:2}" >> "$COMMAND_LOG"
 printf '\n' >> "$COMMAND_LOG"
 destination="${!#}"
-if [[ ${TEST_CP_ACTION:-} == kill-before-publish && $destination == "$TEST_REPO/flake.lock" ]]; then
+if [[ ${TEST_CP_ACTION:-} == kill-before-publish && $destination == "$TEST_REPO"/.flake.lock.update.* ]]; then
+  kill -KILL "$PPID"
+  sleep 1
+  exit 0
+fi
+if [[ ${TEST_CP_ACTION:-} == partial-publish && $destination == "$TEST_REPO"/.flake.lock.update.* ]]; then
+  printf 'partial lock\n' > "$destination"
   kill -KILL "$PPID"
   sleep 1
   exit 0
 fi
 exec "$REAL_CP" "$@"
+EOF
+
+make_fake sync <<'EOF'
+#!/usr/bin/env bash
+printf 'sync %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+exec "$REAL_SYNC" "$@"
 EOF
 
 make_fake getent <<'EOF'
@@ -239,6 +254,11 @@ assert_log_lacks() {
   ! grep -Fq -- "$text" "$COMMAND_LOG" || fail "$name unexpectedly logged: $text"
 }
 
+assert_log_matches() {
+  local pattern="$1" name="$2"
+  rg -q -- "$pattern" "$COMMAND_LOG" || fail "$name missing log pattern: $pattern"
+}
+
 assert_output_has() {
   local text="$1" name="$2"
   grep -Fq -- "$text" "$CASE_DIR/output.log" ||
@@ -308,6 +328,7 @@ run_pipeline() {
     NIXOS_REBUILD="$bin_dir/nixos-rebuild" \
     REAL_GIT="${REAL_GIT:-$real_git}" \
     REAL_CP="$real_cp" \
+    REAL_SYNC="$real_sync" \
     REAL_MV="$real_mv" \
     REAL_RM="$real_rm" \
     TEST_REAL_GIT="${TEST_REAL_GIT:-0}" \
@@ -745,6 +766,24 @@ case_pending_rejects_unrelated_edit() {
   repo="$saved_repo"
 }
 
+case_candidate_sync_before_pending() {
+  TEST_DIFF_STATUS=1 TEST_REBUILD_STATUS=5 run_pipeline
+  assert_status 5 "$PIPELINE_STATUS" candidate_sync_first_run
+  assert_log_matches \
+    '^sync -f .*/candidate/flake\.lock .*/candidate .*/source\.lock .*/source-head .*$' \
+    candidate_sync_first_run
+}
+
+case_orphan_candidate_cleanup() {
+  mkdir -p "$CASE_DIR/state/.candidate-weekly.orphan/candidate"
+  printf 'orphan\n' > "$CASE_DIR/state/.candidate-weekly.orphan/candidate/flake.lock"
+
+  run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" orphan_candidate_cleanup
+  [[ ! -e $CASE_DIR/state/.candidate-weekly.orphan ]] ||
+    fail 'orphan_candidate_cleanup left an abandoned candidate work directory'
+}
+
 exercise_interrupted_publication() {
   local action="$1" name="$2" saved_repo="$repo"
   create_fresh_real_repo "$name"
@@ -772,6 +811,54 @@ exercise_interrupted_publication() {
     fail "${name} recovery did not publish the candidate lock"
   [[ ! -e $CASE_DIR/state/pending-weekly ]] ||
     fail "${name} recovery left the publishing candidate active"
+  repo="$saved_repo"
+}
+
+case_partial_publication_recovery() {
+  local saved_repo="$repo"
+  create_fresh_real_repo partial-publication
+  setup_case partial-publication
+  cp "$repo/flake.lock" "$CASE_DIR/original.lock"
+
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_CP_ACTION=partial-publish run_pipeline
+  assert_status 137 "$PIPELINE_STATUS" partial_publication_first_run
+  [[ $(cat "$CASE_DIR/state/pending-weekly/state") == publishing ]] ||
+    fail 'partial_publication did not retain the publishing state'
+  cmp -s "$CASE_DIR/original.lock" "$repo/flake.lock" ||
+    fail 'partial_publication corrupted the editable flake.lock'
+
+  unset TEST_CP_ACTION
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" partial_publication_recovery
+  "$real_git" -C "$repo" diff --quiet -- flake.lock ||
+    fail 'partial_publication recovery left flake.lock dirty'
+  cmp -s "$repo/flake.lock" <("$real_git" -C "$repo" show HEAD:flake.lock) ||
+    fail 'partial_publication recovery did not publish the candidate lock'
+  if compgen -G "$repo/.flake.lock.update.*" >/dev/null; then
+    fail 'partial_publication recovery left an atomic-copy temporary file'
+  fi
+  repo="$saved_repo"
+}
+
+case_staged_newer_lock() {
+  local saved_repo="$repo"
+  create_fresh_real_repo staged-newer-lock
+  setup_case staged-newer-lock
+  TEST_REAL_GIT=1 TEST_DIFF_STATUS=1 TEST_GIT_ACTION=kill-after-commit run_pipeline
+  assert_status 137 "$PIPELINE_STATUS" staged_newer_lock_first_run
+
+  printf 'staged newer lock\n' > "$repo/flake.lock"
+  "$real_git" -C "$repo" add flake.lock
+
+  unset TEST_GIT_ACTION
+  TEST_REAL_GIT=1 run_pipeline
+  assert_status 0 "$PIPELINE_STATUS" staged_newer_lock_recovery
+  assert_output_has 'pending candidate no longer matches the editable flake; retiring it' \
+    staged_newer_lock_recovery
+  [[ $(cat "$repo/flake.lock") == 'staged newer lock' ]] ||
+    fail 'staged_newer_lock_recovery overwrote the staged lock'
+  "$real_git" -C "$repo" diff --cached --quiet -- flake.lock &&
+    fail 'staged_newer_lock_recovery cleared the staged lock change'
   repo="$saved_repo"
 }
 
@@ -837,9 +924,13 @@ case_stale_dirty_lock
 case_interleaved_labels
 case_manual_commit_requires_activation
 case_pending_rejects_unrelated_edit
+run_case candidate_sync_before_pending 5
+run_case orphan_candidate_cleanup 0
 exercise_interrupted_publication before-copy publication-before-copy
 exercise_interrupted_publication before-commit publication-before-commit
 exercise_interrupted_publication after-commit publication-after-commit
+case_partial_publication_recovery
+case_staged_newer_lock
 
 weekly_service=$(nix eval --raw --no-write-lock-file \
   '.#nixosConfigurations.laptop.config.systemd.services.nixos-auto-update.script')

@@ -124,6 +124,21 @@ atomic_write_text() {
   sync -f "$directory"
 }
 
+atomic_copy_file() {
+  local source="$1" destination="$2" directory temporary
+  directory="${destination%/*}"
+  temporary="$(mktemp "$directory/.${destination##*/}.update.XXXXXX")"
+  if ! cp -- "$source" "$temporary"; then
+    rm -f -- "$temporary"
+    return 1
+  fi
+  chmod --reference="$destination" "$temporary"
+  chown --reference="$destination" "$temporary"
+  sync -f "$temporary"
+  mv -f -- "$temporary" "$destination"
+  sync -f "$directory"
+}
+
 consecutive_defer_exceeded() {
   local count=0
   mkdir -p "$state_directory"
@@ -162,6 +177,23 @@ cleanup_retired_candidates() {
   done
 }
 
+cleanup_orphan_candidate_work() {
+  local orphan
+  for orphan in "$state_directory"/.candidate-*; do
+    [[ -d $orphan && ! -L $orphan ]] || continue
+    chmod -R u+w -- "$orphan"
+    rm -rf -- "$orphan"
+  done
+}
+
+cleanup_lock_temps() {
+  local temporary
+  for temporary in "$repo"/.flake.lock.update.*; do
+    [[ -f $temporary && ! -L $temporary ]] || continue
+    rm -f -- "$temporary"
+  done
+}
+
 retire_pending_candidate() {
   if [[ -e $retired_dir ]]; then
     printf '%s update: retired candidate is still present; refusing to replace it\n' "$label" >&2
@@ -195,7 +227,7 @@ source_head_is_current() {
 }
 
 repo_lock_matches_head() {
-  runuser -u rupan -- git -C "$repo" diff --quiet -- flake.lock
+  runuser -u rupan -- git -C "$repo" diff --quiet HEAD -- flake.lock
 }
 
 supersede_pending_candidate() {
@@ -228,7 +260,7 @@ repo_lock_matches_candidate() {
 }
 
 restore_source_lock() {
-  cp --preserve=mode,ownership,timestamps -- "$pending_dir/source.lock" "$repo/flake.lock"
+  atomic_copy_file "$pending_dir/source.lock" "$repo/flake.lock"
 }
 
 finish_if_candidate_is_published() {
@@ -251,7 +283,7 @@ resume_publication() {
   fi
 
   if repo_lock_matches_source; then
-    if ! cp -- "$pending_dir/candidate/flake.lock" "$repo/flake.lock"; then
+    if ! atomic_copy_file "$pending_dir/candidate/flake.lock" "$repo/flake.lock"; then
       printf '%s update: could not publish activated flake.lock\n' "$label" >&2
       return 1
     fi
@@ -348,6 +380,8 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 cleanup_retired_candidates
+cleanup_orphan_candidate_work
+cleanup_lock_temps
 
 if [[ -e $pending_dir ]]; then
   activate_pending_candidate
@@ -446,12 +480,17 @@ elif [[ $cascade_status -ne 0 ]]; then
   exit 1
 fi
 
+sync -f "$candidate_work/candidate/flake.lock" "$candidate_work/candidate" \
+  "$candidate_work/source.lock" "$candidate_work/source-head" \
+  "$candidate_work"
 atomic_write_text "$candidate_work" "$candidate_work/state" pending
 chmod -R a-w "$candidate_work/candidate"
 if ((EUID == 0)); then
   chown -R root:root "$candidate_work/candidate"
 fi
+sync -f "$candidate_work/candidate" "$candidate_work"
 mv -- "$candidate_work" "$pending_dir"
+sync -f "$state_directory"
 candidate_work=""
 clear_defer_count
 activate_pending_candidate
