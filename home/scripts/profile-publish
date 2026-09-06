@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: profile-publish allocate | declare STAGE | publish GENERATION STAGE" >&2
+  exit 2
+}
+
+[ $# -ge 1 ] || usage
+
+profiles_dir="${PROFILE_PUBLISH_PROFILES_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/desktop-profiles}"
+lock_path="${PROFILE_TRANSITION_LOCK:-$HOME/.local/state/desktop-profiles/transition.lock}"
+generation_file="$profiles_dir/theme-generation"
+
+with_lock() {
+  local inherited_fd="${PROFILE_PUBLISH_LOCK_FD:-}" inherited_path expected_path
+  if [ -n "$inherited_fd" ]; then
+    case "$inherited_fd" in
+      *[!0-9]* | '')
+        echo "profile-publish: invalid inherited lock descriptor" >&2
+        return 2
+        ;;
+    esac
+    inherited_path=$(readlink -f "/proc/self/fd/$inherited_fd" 2>/dev/null || true)
+    expected_path=$(readlink -f "$lock_path" 2>/dev/null || true)
+    if [ -z "$inherited_path" ] || [ "$inherited_path" != "$expected_path" ]; then
+      echo "profile-publish: inherited descriptor is not the transition lock" >&2
+      return 2
+    fi
+    flock "$inherited_fd"
+    "$@"
+    return
+  fi
+  mkdir -p "$(dirname "$lock_path")"
+  (
+    flock 9
+    "$@"
+  ) 9>>"$lock_path"
+}
+
+read_generation() {
+  local generation
+  generation=$(cat "$generation_file" 2>/dev/null || echo 0)
+  case "$generation" in
+    '' | *[!0-9]*) generation=0 ;;
+  esac
+  printf '%s\n' "$generation"
+}
+
+allocate() {
+  local generation
+  mkdir -p "$profiles_dir"
+  generation=$(read_generation)
+  generation=$((generation + 1))
+  temporary=$(mktemp "$profiles_dir/.theme-generation.XXXXXX")
+  printf '%s\n' "$generation" > "$temporary"
+  mv -f "$temporary" "$generation_file"
+  printf '%s\n' "$generation"
+}
+
+declare_stage() {
+  local stage="$1" source relative manifest
+  [ -d "$stage" ] || { echo "profile-publish: missing stage $stage" >&2; return 1; }
+  manifest="$stage/.profile-publish-artifacts"
+  temporary=$(mktemp "$stage/.profile-publish-artifacts.XXXXXX")
+  : > "$temporary"
+  for root in home profiles; do
+    [ -d "$stage/$root" ] || continue
+    while IFS= read -r -d '' source; do
+      relative=${source#"$stage/$root/"}
+      printf '%s\t%s\n' "$root" "$relative" >> "$temporary"
+    done < <(find "$stage/$root" -type f -print0 | sort -z)
+  done
+  mv -f "$temporary" "$manifest"
+}
+
+publish() {
+  local generation="$1" stage="$2" manifest root relative source destination temporary current
+  manifest="$stage/.profile-publish-artifacts"
+  [ -f "$manifest" ] || { echo "profile-publish: missing artifact declaration" >&2; return 1; }
+  current=$(read_generation)
+  if [ "$current" != "$generation" ]; then
+    rm -rf "$stage"
+    printf 'stale\n'
+    return 0
+  fi
+  while IFS=$'\t' read -r root relative; do
+    [ -n "$root" ] && [ -n "$relative" ] || continue
+    source="$stage/$root/$relative"
+    case "$root" in
+      home) destination="$HOME/$relative" ;;
+      profiles) destination="$profiles_dir/$relative" ;;
+      *) echo "profile-publish: invalid artifact root $root" >&2; return 1 ;;
+    esac
+    [ -f "$source" ] || { echo "profile-publish: incomplete staged artifact $source" >&2; return 1; }
+  done < "$manifest"
+  while IFS=$'\t' read -r root relative; do
+    [ -n "$root" ] && [ -n "$relative" ] || continue
+    source="$stage/$root/$relative"
+    case "$root" in
+      home) destination="$HOME/$relative" ;;
+      profiles) destination="$profiles_dir/$relative" ;;
+    esac
+    if [ "${PROFILE_TRANSITION_FAIL_INSTALL_PATH:-}" = "$destination" ]; then
+      echo "Error: injected install failure for $destination" >&2
+      return "${PROFILE_TRANSITION_FAILURE_STATUS:-1}"
+    fi
+    mkdir -p "$(dirname "$destination")"
+    temporary=$(mktemp "$(dirname "$destination")/.profile-publish.XXXXXX")
+    install -m 644 "$source" "$temporary"
+    mv -f "$temporary" "$destination"
+  done < "$manifest"
+  [ "${PROFILE_PUBLISH_KEEP_STAGE:-}" = 1 ] || rm -rf "$stage"
+  printf 'published\n'
+}
+
+case "$1" in
+  allocate)
+    [ $# -eq 1 ] || usage
+    with_lock allocate
+    ;;
+  declare)
+    [ $# -eq 2 ] || usage
+    declare_stage "$2"
+    ;;
+  publish)
+    [ $# -eq 3 ] || usage
+    with_lock publish "$2" "$3"
+    ;;
+  *) usage ;;
+esac

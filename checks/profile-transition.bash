@@ -625,9 +625,13 @@ check_legacy_runtime_regressions() {
   printf 'fixture\n' > "$home/.config/matugen/config-new.toml"
   printf 'light\n' > "$profiles/variant-new"
   run_legacy_transition wallpaper-themed switch new
-  assert_log_contains_eventually \
-    "matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c $home/.config/matugen/config-new.toml active=new" \
-    "wallpaper-themed profile dispatches its runtime palette adapter after commit"
+  if ! grep -Eq \
+    'matugen color hex #6c7a89 --mode light --type scheme-tonal-spot -c .*/profile-theme-[0-9]+\.[^/]*/matugen\.toml active=new' \
+    "$log"; then
+    printf 'FAIL: wallpaper-themed profile did not render into a generation stage after commit\n' >&2
+    cat "$log" >&2
+    exit 1
+  fi
   assert_log_not_contains \
     "pkill -f quickshell.*$REPO_ROOT/home/configs/quickshell/shell.qml" \
     "wallpaper theme does not kill Quickshell to repaint"
@@ -968,6 +972,14 @@ assert_log_contains "verify-quickshell active=old" \
   "post-start target bar readiness is verified before active profile commit"
 assert_eq 'gtk-new-light' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
   "old-to-new switch installs the target variant GTK colors"
+if ! rg -Fq 'profile-publish' "$REPO_ROOT/home/scripts/profile-transition"; then
+  printf 'FAIL: profile transitions do not publish their staged theme through profile-publish\n' >&2
+  exit 1
+fi
+if ! rg -Fq 'PROFILE_PUBLISH_LOCK_FD=9' "$REPO_ROOT/home/scripts/profile-transition"; then
+  printf 'FAIL: profile transition does not retain publication ownership while publishing\n' >&2
+  exit 1
+fi
 assert_eq $'$font = Fixture UI\n$mono_font = Fixture Mono' \
   "$(cat "$home/.config/hypr/profile-font.conf")" \
   "switch installs hyprlock profile fonts"
@@ -1496,6 +1508,65 @@ if ! flock -n "$tmpdir/profile.lock" true; then
   exit 1
 fi
 stop_persistent_children
+
+# The publisher accepts a transition's inherited lock descriptor, so synchronous
+# post-commit adapters can publish without reacquiring their parent's flock.
+# A boolean environment flag alone must never bypass an unrelated lock holder.
+publish_profiles="$tmpdir/publish-profiles"
+publish_home="$tmpdir/publish-home"
+publish_lock="$tmpdir/publish.lock"
+mkdir -p "$publish_profiles" "$publish_home"
+exec 8>>"$publish_lock"
+flock 8
+inherited_generation=$(HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  PROFILE_PUBLISH_LOCK_FD=8 "$REPO_ROOT/home/scripts/profile-publish" allocate)
+case "$inherited_generation" in
+  '' | *[!0-9]*)
+    printf 'FAIL: inherited transition lock did not allocate a generation\n' >&2
+    exit 1
+    ;;
+esac
+set +e
+boolean_bypass_status=$(HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  PROFILE_PUBLISH_LOCK_HELD=1 timeout 1s "$REPO_ROOT/home/scripts/profile-publish" allocate >/dev/null 2>&1; printf '%s' "$?")
+set -e
+assert_eq 124 "$boolean_bypass_status" "boolean lock marker cannot bypass an active transition lock"
+exec 8>&-
+
+# A complete normal-transition stage from A must not overwrite B when A finishes
+# later. Both the home and desktop-profile artifacts remain from B.
+transition_stage_a="$tmpdir/transition-stage-a"
+transition_stage_b="$tmpdir/transition-stage-b"
+mkdir -p "$transition_stage_a/home/.config/gtk-3.0" "$transition_stage_a/profiles" \
+  "$transition_stage_b/home/.config/gtk-3.0" "$transition_stage_b/profiles"
+printf 'A gtk\n' > "$transition_stage_a/home/.config/gtk-3.0/noctalia.css"
+printf 'A quickshell\n' > "$transition_stage_a/profiles/runtime-quickshell-theme.json"
+printf 'B gtk\n' > "$transition_stage_b/home/.config/gtk-3.0/noctalia.css"
+printf 'B quickshell\n' > "$transition_stage_b/profiles/runtime-quickshell-theme.json"
+transition_generation_a=$(HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" allocate)
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" declare "$transition_stage_a"
+transition_generation_b=$(HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" allocate)
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" declare "$transition_stage_b"
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" publish "$transition_generation_b" "$transition_stage_b" >/dev/null
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_PUBLISH_PROFILES_DIR="$publish_profiles" PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" publish "$transition_generation_a" "$transition_stage_a" >/dev/null
+assert_eq 'B gtk' "$(cat "$publish_home/.config/gtk-3.0/noctalia.css")" \
+  "late transition generation cannot replace GTK colors"
+assert_eq 'B quickshell' "$(cat "$publish_profiles/runtime-quickshell-theme.json")" \
+  "late transition generation cannot replace quickshell theme"
 
 check_post_commit_adapter_isolation
 check_status_accepts_runtime_niri

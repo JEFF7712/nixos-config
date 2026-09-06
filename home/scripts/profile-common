@@ -7,6 +7,7 @@
 PROFILE_COMMON_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_HOME="$(dirname "$(dirname "$PROFILE_COMMON_PATH")")"
 [ -d "$REPO_HOME/configs" ] || REPO_HOME="$HOME/nixos/home"
+PROFILE_PUBLISH="$(dirname "$PROFILE_COMMON_PATH")/profile-publish"
 
 # Wallpapers/previews live in a sibling repo so the flake source stays small.
 ASSETS_HOME="${ASSETS_HOME:-$HOME/nixos-assets}"
@@ -47,22 +48,10 @@ write_profile_value_atomic() {
   mv "$tmp" "$path"
 }
 
-# Theme jobs are async and wallpaper changers do not take the transition flock.
-# A generation plus the profile/variant pair lets a finishing job abort instead
-# of painting a palette the user has already left.
+# Theme jobs are async. profile-publish owns generation allocation under the
+# transition lock so renderers and profile changes share one ordering boundary.
 theme_generation_bump() {
-  mkdir -p "$PROFILES_DIR"
-  local file="$PROFILES_DIR/theme-generation" lock="$PROFILES_DIR/theme.lock"
-  (
-    flock 8
-    n=$(cat "$file" 2>/dev/null || echo 0)
-    case "$n" in
-      '' | *[!0-9]*) n=0 ;;
-    esac
-    n=$((n + 1))
-    write_profile_value_atomic "$file" "$n"
-    printf '%s\n' "$n"
-  ) 8>>"$lock"
+  PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" "$PROFILE_PUBLISH" allocate
 }
 
 theme_job_is_current() {
@@ -191,9 +180,14 @@ set_wallpaper() {
   if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
     apply_wallpaper_theme "$wallpaper"
   else
-    (apply_wallpaper_theme "$wallpaper") 9>&- &
+    (run_wallpaper_theme_detached "$wallpaper") 9>&- &
     disown 2>/dev/null || true
   fi
+}
+
+run_wallpaper_theme_detached() {
+  unset PROFILE_PUBLISH_LOCK_FD
+  apply_wallpaper_theme "$1"
 }
 
 # profile_wallpaper_theming <profile>
@@ -316,8 +310,8 @@ matugen_frame() {
 # apply_wallpaper_theme <wallpaper>
 # Regen live colors from wallpaper (matugen/iris). No-op unless wallpaperTheming.
 apply_wallpaper_theme() {
-  local wp="$1" profile variant frame mode engine accent="" bar
-  local job_profile job_variant job_gen
+  local wp="$1" profile variant frame mode engine accent="" bar theme_stage
+  local job_profile job_variant job_gen publish_result
   [ -n "$wp" ] || return 0
 
   profile=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
@@ -327,6 +321,8 @@ apply_wallpaper_theme() {
   job_gen=$(theme_generation_bump)
   job_profile="$profile"
   job_variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+  theme_stage=$(mktemp -d "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/profile-theme-${job_gen}.XXXXXX")
+  mkdir -p "$theme_stage/home/.config" "$theme_stage/profiles"
 
   frame=$(matugen_frame "$wp")
   if [ -z "$frame" ]; then
@@ -365,14 +361,9 @@ apply_wallpaper_theme() {
       return 1
     }
     accent=$(hex_accent_or_empty "$(printf '%s' "$theme_json" | jq -r '.accent // empty' 2>/dev/null || true)")
-    theme_job_is_current "$job_profile" "$job_variant" "$job_gen" || {
-      printf 'apply_wallpaper_theme: stale theme job, skipping live writes\n' >&2
-      return 0
-    }
     if ! printf '%s' "$theme_json" | iris-python "$REPO_HOME/scripts/iris-render.py" \
-      --config-home "$CONFIG_HOME" --profiles-dir "$PROFILES_DIR" \
-      --profile-dir "$PROFILES_DIR/$profile" \
-      --obsidian-vault "${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}"; then
+      --config-home "$theme_stage/home/.config" --profiles-dir "$theme_stage/profiles" \
+      --profile-dir "$PROFILES_DIR/$profile"; then
       printf 'apply_wallpaper_theme: iris-render failed\n' >&2
       return 1
     fi
@@ -388,15 +379,11 @@ apply_wallpaper_theme() {
       printf 'apply_wallpaper_theme: temperature seed colour was empty\n' >&2
       return 1
     fi
-    theme_job_is_current "$job_profile" "$job_variant" "$job_gen" || {
-      printf 'apply_wallpaper_theme: stale theme job, skipping live writes\n' >&2
-      return 0
-    }
     if ! accent=$(python3 "$REPO_HOME/scripts/temperature-render.py" \
       --seed "$color" \
       --mode "$mode" \
-      --config-home "$CONFIG_HOME" \
-      --profiles-dir "$PROFILES_DIR" \
+      --config-home "$theme_stage/home/.config" \
+      --profiles-dir "$theme_stage/profiles" \
       --profile-dir "$PROFILES_DIR/$profile"); then
       printf 'apply_wallpaper_theme: temperature-render failed\n' >&2
       return 1
@@ -435,11 +422,16 @@ apply_wallpaper_theme() {
     if [ -n "$contrast" ] && [ "$contrast" != "null" ]; then
       contrast_args=(--contrast "$contrast")
     fi
-    theme_job_is_current "$job_profile" "$job_variant" "$job_gen" || {
-      printf 'apply_wallpaper_theme: stale theme job, skipping live writes\n' >&2
-      return 0
-    }
-    if ! matugen color hex "$color" --mode "$mode" --type "$scheme" "${contrast_args[@]}" -c "$cfg" >/dev/null; then
+    local staged_cfg
+    staged_cfg="$theme_stage/matugen.toml"
+    awk -v stage="$theme_stage" '
+      /^output_path = / {
+        sub("~/.config/desktop-profiles/", stage "/profiles/")
+        sub("~/.config/", stage "/home/.config/")
+      }
+      { print }
+    ' "$cfg" > "$staged_cfg"
+    if ! matugen color hex "$color" --mode "$mode" --type "$scheme" "${contrast_args[@]}" -c "$staged_cfg" >/dev/null; then
       printf 'apply_wallpaper_theme: matugen failed\n' >&2
       return 1
     fi
@@ -454,20 +446,25 @@ apply_wallpaper_theme() {
     # Sharp (and any matugen profile that stages a Comfy scheme body) merges into
     # Comfy color.ini as [sharp] without wiping other schemes. apply_spicetify_theme
     # below then selects Comfy/sharp.
-    if [ -s "$PROFILES_DIR/runtime-spicetify-comfy.ini" ]; then
-      merge_spicetify_comfy_scheme sharp "$PROFILES_DIR/runtime-spicetify-comfy.ini"
+    if [ -s "$theme_stage/profiles/runtime-spicetify-comfy.ini" ]; then
+      merge_spicetify_comfy_scheme sharp "$theme_stage/profiles/runtime-spicetify-comfy.ini"
     fi
   fi
 
+  # Tag the runtime quickshell override in the same complete staging set as the
+  # renderer output. The publisher checks this generation while holding the
+  # transition lock, so a late renderer cannot repaint one consumer of B with A.
+  write_profile_value_atomic "$theme_stage/profiles/runtime-theme-profile" "$profile"
+  write_profile_value_atomic "$theme_stage/profiles/runtime-theme-variant" "$variant"
   theme_job_is_current "$job_profile" "$job_variant" "$job_gen" || {
-    printf 'apply_wallpaper_theme: stale theme job, skipping live writes\n' >&2
+    rm -rf "$theme_stage"
     return 0
   }
+  "$PROFILE_PUBLISH" declare "$theme_stage"
+  publish_result=$(PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" \
+    "$PROFILE_PUBLISH" publish "$job_gen" "$theme_stage")
+  [ "$publish_result" = published ] || return 0
 
-  # Tag the runtime quickshell override so the topbar only adopts it for the
-  # exact profile and variant that generated it.
-  write_profile_value_atomic "$PROFILES_DIR/runtime-theme-profile" "$profile"
-  write_profile_value_atomic "$PROFILES_DIR/runtime-theme-variant" "$variant"
   apply_vicinae_runtime_theme "$profile" "$variant"
 
   # Swap matugen's cava [color] block into the live cava config.

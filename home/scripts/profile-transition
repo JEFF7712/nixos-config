@@ -345,6 +345,7 @@ flock -n 9 || {
   echo "Error: another profile transition is in progress: $LOCK_PATH" >&2
   exit 75
 }
+export PROFILE_PUBLISH_LOCK_FD=9
 
 if [ -n "${PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR:-}" ]; then
   touch "$PROFILE_TRANSITION_TEST_AFTER_LOCK_DIR/acquired"
@@ -638,6 +639,7 @@ if [ "$WRITE_PREFERENCE" -eq 1 ]; then
   snapshot_or_abort "$PROFILES_DIR/variant-$TARGET"
 fi
 snapshot_or_abort "$ACTIVE_LINK"
+snapshot_or_abort "$PROFILES_DIR/theme-generation"
 for destination in "${STAGED_DESTINATIONS[@]}"; do
   snapshot_destination "$destination"
 done
@@ -648,6 +650,11 @@ if [ -n "${PROFILE_TRANSITION_TEST_SYMLINK_PATH:-}" ]; then
   snapshot_or_abort "$PROFILE_TRANSITION_TEST_SYMLINK_PATH"
 fi
 trap 'rollback $?' EXIT
+
+# Claim the desired publication generation while the transition owns the same
+# lock that protects preference changes. Wallpaper renderers complete outside
+# this lock and can only install their results if this generation still wins.
+THEME_GENERATION=$("$SCRIPT_DIR/profile-publish" allocate)
 
 SAME_QUICKSHELL=0
 if [ "$MODE" != reapply ] \
@@ -670,7 +677,13 @@ if [ "$MODE" = reapply ]; then
 elif [ "$SAME_QUICKSHELL" -eq 0 ]; then
   stop_bar "$CURRENT_BAR"
 fi
-install_staged_files
+"$SCRIPT_DIR/profile-publish" declare "$TRANSACTION_DIR"
+publish_result=$(PROFILE_PUBLISH_KEEP_STAGE=1 "$SCRIPT_DIR/profile-publish" \
+  publish "$THEME_GENERATION" "$TRANSACTION_DIR")
+[ "$publish_result" = published ] || {
+  echo "Error: transition theme publication was superseded" >&2
+  exit 1
+}
 NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.default)
 if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
   NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.focus)
@@ -697,10 +710,11 @@ commit_preferences
 apply_visual_commit
 
 commit_transaction
-flock -u 9
-exec 9>&-
 if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
   export PROFILE_TRANSITION_TEST_POST_COMMIT=1
 fi
 dispatch_post_commit_adapters
+flock -u 9
+exec 9>&-
+unset PROFILE_PUBLISH_LOCK_FD
 exit 0

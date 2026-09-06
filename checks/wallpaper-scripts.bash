@@ -106,6 +106,12 @@ case "$1" in
     printf '{"fg":"#ffffff","bg":"#000000","surface":"#111111","dim":"#999999","accent":"#d8915f","red":"#ff0000","green":"#00ff00","yellow":"#ffff00"}'
     ;;
   */iris-render.py)
+    if flock -n "$PROFILE_TRANSITION_LOCK" true; then
+      printf 'renderer-lock-free\n' >> "$COMMAND_LOG"
+    else
+      printf 'renderer-lock-held\n' >> "$COMMAND_LOG"
+      exit 1
+    fi
     cat >/dev/null
     ;;
 esac
@@ -120,7 +126,7 @@ apply_spicetify_theme() {
 }
 
 : > "$log_file"
-PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 \
+PROFILE_TRANSITION_TEST_SYNC_ASYNC=1 PROFILE_TRANSITION_LOCK="$tmpdir/wallpaper.lock" \
 COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" apply_wallpaper_theme "$tmpdir/still.png"
 
 assert_eq tinted "$(cat "$profiles_dir/runtime-theme-profile")" \
@@ -130,6 +136,11 @@ assert_eq light "$(cat "$profiles_dir/runtime-theme-variant")" \
 assert_eq "spicetify $profiles_dir/tinted/manifest.json light" \
   "$(grep '^spicetify ' "$log_file")" \
   "wallpaper tint reapplies the active profile spicetify scheme"
+if ! grep -Fq 'renderer-lock-free' "$log_file"; then
+  printf 'FAIL: wallpaper renderer ran while holding the publication lock\n' >&2
+  cat "$log_file" >&2
+  exit 1
+fi
 if ! grep -Fq 'systemctl --user restart swayosd' "$log_file"; then
   printf 'FAIL: wallpaper tint did not restart swayosd to reload OSD colors\n' >&2
   cat "$log_file" >&2
@@ -144,7 +155,7 @@ if grep -E '> "\$nout"' "$REPO_ROOT/home/scripts/profile-common"; then
   printf 'FAIL: niri override still truncates runtime-niri-active.kdl in place\n' >&2
   exit 1
 fi
-if ! grep -Fq '(apply_wallpaper_theme "$wallpaper") 9>&- &' "$REPO_ROOT/home/scripts/profile-common"; then
+if ! grep -Fq '(run_wallpaper_theme_detached "$wallpaper") 9>&- &' "$REPO_ROOT/home/scripts/profile-common"; then
   printf 'FAIL: async wallpaper theme job does not close the transition lock fd\n' >&2
   exit 1
 fi
@@ -173,8 +184,8 @@ if [ -e "$profiles_dir/runtime-theme-profile" ]; then
   printf 'FAIL: stale theme job still wrote runtime-theme-profile\n' >&2
   exit 1
 fi
-if grep -Fq 'iris-render' "$log_file"; then
-  printf 'FAIL: stale theme job still ran iris-render\n' >&2
+if ! grep -Fq 'iris-render' "$log_file"; then
+  printf 'FAIL: stale theme job did not complete its isolated renderer stage\n' >&2
   exit 1
 fi
 printf 'tinted\n' > "$profiles_dir/active"
@@ -201,8 +212,8 @@ if [ -e "$profiles_dir/runtime-theme-profile" ]; then
   printf 'FAIL: superseded generation still wrote runtime-theme-profile\n' >&2
   exit 1
 fi
-if grep -Fq 'iris-render' "$log_file"; then
-  printf 'FAIL: superseded generation still ran iris-render\n' >&2
+if ! grep -Fq 'iris-render' "$log_file"; then
+  printf 'FAIL: superseded generation did not complete its isolated renderer stage\n' >&2
   exit 1
 fi
 
@@ -440,5 +451,48 @@ TILDE_ARG_LOG="$tmpdir/tilde-arg" \
 
 assert_eq "$tilde_home/pics/wave.png" "$(cat "$tmpdir/tilde-arg" 2>/dev/null || true)" \
   "waypaper-backend-sync expands a leading tilde from config.ini"
+
+# A slow wallpaper renderer may finish after a newer wallpaper request.  Its
+# complete staging directory must be rejected as one generation, never leak a
+# single stale visible artifact.
+publish_profiles="$tmpdir/publish-profiles"
+publish_home="$tmpdir/publish-home"
+publish_lock="$tmpdir/publish.lock"
+mkdir -p "$publish_profiles" "$publish_home"
+generation_a=$(HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" allocate)
+stage_a="$tmpdir/stage-a"
+mkdir -p "$stage_a/home/.config/kitty" "$stage_a/profiles"
+printf 'A kitty\n' > "$stage_a/home/.config/kitty/colors.conf"
+printf 'A quickshell\n' > "$stage_a/profiles/runtime-quickshell-theme.json"
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" declare "$stage_a"
+
+generation_b=$(HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" allocate)
+stage_b="$tmpdir/stage-b"
+mkdir -p "$stage_b/home/.config/kitty" "$stage_b/profiles"
+printf 'B kitty\n' > "$stage_b/home/.config/kitty/colors.conf"
+printf 'B quickshell\n' > "$stage_b/profiles/runtime-quickshell-theme.json"
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" declare "$stage_b"
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" publish "$generation_b" "$stage_b" >/dev/null
+HOME="$publish_home" XDG_CONFIG_HOME="$publish_home/.config" \
+  PROFILE_TRANSITION_LOCK="$publish_lock" \
+  "$REPO_ROOT/home/scripts/profile-publish" publish "$generation_a" "$stage_a" >/dev/null
+assert_eq 'B kitty' "$(cat "$publish_home/.config/kitty/colors.conf")" \
+  "late wallpaper generation cannot replace kitty colors"
+assert_eq 'B quickshell' "$(cat "$publish_home/.config/desktop-profiles/runtime-quickshell-theme.json")" \
+  "late wallpaper generation cannot replace quickshell theme"
+if ! flock -n "$publish_lock" true; then
+  printf 'FAIL: wallpaper publication retained the transition lock after rendering\n' >&2
+  exit 1
+fi
 
 printf 'OK: wallpaper-scripts.bash\n'
