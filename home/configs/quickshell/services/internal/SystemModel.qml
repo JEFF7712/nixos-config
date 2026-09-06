@@ -18,6 +18,8 @@ Scope {
     property string _uptime: ""
     property string _nixGeneration: ""
     property string _lastError: ""
+    property var _cpuUsedTotal: null
+    property var _cpuOverallTotal: null
 
     readonly property bool available: _available
     readonly property int cpuPercent: _cpuPercent
@@ -41,7 +43,9 @@ Scope {
             kernel: _kernel,
             uptime: _uptime,
             nixGeneration: _nixGeneration,
-            lastError: _lastError
+            lastError: _lastError,
+            cpuUsedTotal: _cpuUsedTotal,
+            cpuOverallTotal: _cpuOverallTotal
         };
     }
 
@@ -52,6 +56,8 @@ Scope {
         _ramPercent = state.ramPercent;
         _diskPercent = state.diskPercent;
         _lastError = state.lastError;
+        _cpuUsedTotal = state.cpuUsedTotal;
+        _cpuOverallTotal = state.cpuOverallTotal;
     }
 
     function _applyMetadata(state): void {
@@ -73,6 +79,12 @@ Scope {
         metadataProcess.running = true;
     }
 
+    function _requestDisk(): void {
+        if (diskProcess.running)
+            return;
+        diskProcess.running = true;
+    }
+
     function lock(): void {
         Quickshell.execDetached(["lock-screen"]);
     }
@@ -91,12 +103,15 @@ Scope {
 
     Component.onCompleted: {
         root._requestMetrics();
+        root._requestDisk();
         root._requestMetadata();
     }
     Component.onDestruction: {
         metricsTimer.stop();
         metadataTimer.stop();
+        diskTimer.stop();
         metricsProcess.running = false;
+        diskProcess.running = false;
         metadataProcess.running = false;
     }
 
@@ -115,6 +130,15 @@ Scope {
     }
 
     Process {
+        id: diskProcess
+        command: ["sh", "-c", SystemParser.DISK_COMMAND]
+        stdout: StdioCollector {}
+        onExited: (exitCode, exitStatus) => {
+            root._applyMetrics(SystemParser.reduceDiskSnapshot(root._stateObject(), stdout.text, exitCode));
+        }
+    }
+
+    Process {
         id: metadataProcess
         command: ["sh", "-c", SystemParser.METADATA_COMMAND]
         stdout: StdioCollector {}
@@ -129,6 +153,14 @@ Scope {
         running: true
         repeat: true
         onTriggered: root._requestMetrics()
+    }
+
+    Timer {
+        id: diskTimer
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: root._requestDisk()
     }
 
     Timer {

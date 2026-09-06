@@ -19,18 +19,12 @@ TestCase {
 
     function metricsText(overrides) {
         const parts = {
-            cpuFirst: cpuLine(),
-            cpuSecond: cpuLine({
-                user: 1050,
-                system: 220,
-                idle: 8930
-            }),
-            meminfo: "MemTotal:        1048576 kB\n" + "MemFree:          200000 kB\n" + "MemAvailable:     324288 kB\n",
-            disk: "Filesystem 1024-blocks Used Available Capacity Mounted on\n" + "/dev/sda1  1000000  400000  600000      40% /\n"
+            cpu: cpuLine(),
+            meminfo: "MemTotal:        1048576 kB\n" + "MemFree:          200000 kB\n" + "MemAvailable:     324288 kB\n"
         };
         for (const key in overrides || {})
             parts[key] = overrides[key];
-        return parts.cpuFirst + "\n" + SystemParser.MARK_CPU2 + "\n" + parts.cpuSecond + "\n" + SystemParser.MARK_MEM + "\n" + parts.meminfo + "\n" + SystemParser.MARK_DISK + "\n" + parts.disk;
+        return parts.cpu + "\n" + SystemParser.MARK_MEM + "\n" + parts.meminfo;
     }
 
     function metadataText(overrides) {
@@ -50,40 +44,44 @@ TestCase {
         return text;
     }
 
-    // "first CPU sample" behavior: only one reading is available (a second
-    // sample never arrived), so the delta cannot be computed yet.
-    function test_firstCpuSampleWithoutSecondReadingIsIncomplete() {
-        compare(SystemParser.computeCpuPercent(cpuLine(), ""), null);
-        compare(SystemParser.computeCpuPercent("", cpuLine()), null);
+    function test_firstCpuSampleIsRetainedForNextPoll() {
+        const first = SystemParser.reduceMetricsSnapshot(SystemParser.initialState(), metricsText(), 0);
+        compare(first.cpuPercent, 0);
+        compare(first.cpuUsedTotal, 1200);
+        compare(first.cpuOverallTotal, 10000);
     }
 
-    function test_validDeltaComputesPercent() {
-        const percent = SystemParser.computeCpuPercent(cpuLine({
-            user: 1000,
-            system: 200,
-            idle: 8800
-        }), cpuLine({
-            user: 1050,
-            system: 220,
-            idle: 8930
-        }));
+    function test_consecutivePollDeltaComputesPercent() {
+        const first = SystemParser.reduceMetricsSnapshot(SystemParser.initialState(), metricsText(), 0);
+        const second = SystemParser.reduceMetricsSnapshot(first, metricsText({
+            cpu: cpuLine({
+                user: 1050,
+                system: 220,
+                idle: 8930
+            })
+        }), 0);
         // used delta = (1050+220)-(1000+200) = 70; total delta = (1050+0+220+8930)-(1000+0+200+8800) = 200
-        compare(percent, 35);
+        compare(second.cpuPercent, 35);
     }
 
-    function test_zeroOrNegativeTotalDeltaYieldsZeroNotError() {
-        compare(SystemParser.computeCpuPercent(cpuLine(), cpuLine()), 0);
-        compare(SystemParser.computeCpuPercent(cpuLine({
-            user: 2000
-        }), cpuLine({
-            user: 1000
-        })), 0);
+    function test_resetCountersStartANewBaseline() {
+        const previous = SystemParser.reduceMetricsSnapshot(SystemParser.initialState(), metricsText(), 0);
+        const reset = SystemParser.reduceMetricsSnapshot(previous, metricsText({
+            cpu: cpuLine({
+                user: 10,
+                system: 2,
+                idle: 88
+            })
+        }), 0);
+        compare(reset.cpuPercent, previous.cpuPercent);
+        compare(reset.cpuUsedTotal, 12);
+        compare(reset.cpuOverallTotal, 100);
     }
 
     function test_malformedProcStatReturnsNull() {
         compare(SystemParser.parseCpuTotals("not /proc/stat at all\n"), null);
         compare(SystemParser.parseCpuTotals("cpu  notanumber 0 0 0\n"), null);
-        compare(SystemParser.computeCpuPercent("garbage", cpuLine()), null);
+        compare(SystemParser.computeCpuPercent(null, null, SystemParser.parseCpuTotals(cpuLine())), null);
     }
 
     function test_missingMemoryFieldsReturnsNull() {
@@ -109,12 +107,19 @@ TestCase {
     }
 
     function test_reduceMetricsSnapshotPreservesLastValidPerFieldOnMalformedStat() {
-        const previous = SystemParser.reduceMetricsSnapshot(SystemParser.initialState(), metricsText(), 0);
+        const first = SystemParser.reduceMetricsSnapshot(SystemParser.initialState(), metricsText(), 0);
+        const previous = SystemParser.reduceMetricsSnapshot(first, metricsText({
+            cpu: cpuLine({
+                user: 1050,
+                system: 220,
+                idle: 8930
+            })
+        }), 0);
         verify(previous.available);
         compare(previous.cpuPercent, 35);
 
         const malformedCpu = SystemParser.reduceMetricsSnapshot(previous, metricsText({
-            cpuFirst: "not /proc/stat\n"
+            cpu: "not /proc/stat\n"
         }), 0);
         compare(malformedCpu.cpuPercent, previous.cpuPercent);
         compare(malformedCpu.ramPercent, previous.ramPercent);
@@ -135,11 +140,9 @@ TestCase {
         compare(malformedMem.lastError, "failed to parse memory");
     }
 
-    function test_reduceMetricsSnapshotPreservesDiskOnDfFailure() {
-        const previous = SystemParser.reduceMetricsSnapshot(SystemParser.initialState(), metricsText(), 0);
-        const failedDisk = SystemParser.reduceMetricsSnapshot(previous, metricsText({
-            disk: "df: /: No such file or directory\n"
-        }), 0);
+    function test_reduceDiskSnapshotPreservesDiskOnDfFailure() {
+        const previous = SystemParser.reduceDiskSnapshot(SystemParser.initialState(), "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/sda1 100 40 60 40% /\n", 0);
+        const failedDisk = SystemParser.reduceDiskSnapshot(previous, "df: /: No such file or directory\n", 0);
         compare(failedDisk.diskPercent, previous.diskPercent);
         compare(failedDisk.cpuPercent, previous.cpuPercent);
         compare(failedDisk.ramPercent, previous.ramPercent);

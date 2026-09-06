@@ -1,11 +1,9 @@
 .pragma library
 
-// Split /proc/stat samples (200ms apart) from meminfo and df.
-var MARK_CPU2 = "###QS-CPU2###";
 var MARK_MEM = "###QS-MEM###";
-var MARK_DISK = "###QS-DISK###";
 
-var METRICS_COMMAND = "cat /proc/stat 2>/dev/null; " + "printf '\\n%s\\n' '" + MARK_CPU2 + "'; " + "sleep 0.2; " + "cat /proc/stat 2>/dev/null; " + "printf '\\n%s\\n' '" + MARK_MEM + "'; " + "cat /proc/meminfo 2>/dev/null; " + "printf '\\n%s\\n' '" + MARK_DISK + "'; " + "df -P / 2>&1";
+var METRICS_COMMAND = "cat /proc/stat 2>/dev/null; " + "printf '\\n%s\\n' '" + MARK_MEM + "'; " + "cat /proc/meminfo 2>/dev/null";
+var DISK_COMMAND = "df -P / 2>&1";
 
 // Uptime from /proc/uptime so a missing `uptime -p` cannot blank the probe.
 var METADATA_COMMAND = "echo \"host|$(hostnamectl hostname 2>/dev/null || hostname)\"; " + "echo \"kernel|$(uname -r)\"; " + "echo \"uptime|$(awk '{print int($1)}' /proc/uptime 2>/dev/null)\"; " + "g=$(readlink /nix/var/nix/profiles/system 2>/dev/null | grep -o '[0-9]*' | head -1); " + "[ -n \"$g\" ] && echo \"gen|$g\" || true";
@@ -61,7 +59,9 @@ function initialState() {
         kernel: "",
         uptime: "",
         nixGeneration: "",
-        lastError: ""
+        lastError: "",
+        cpuUsedTotal: null,
+        cpuOverallTotal: null
     };
 }
 
@@ -77,7 +77,9 @@ function copyState(previous) {
         kernel: base.kernel,
         uptime: base.uptime,
         nixGeneration: base.nixGeneration,
-        lastError: base.lastError || ""
+        lastError: base.lastError || "",
+        cpuUsedTotal: base.cpuUsedTotal === undefined ? null : base.cpuUsedTotal,
+        cpuOverallTotal: base.cpuOverallTotal === undefined ? null : base.cpuOverallTotal
     };
 }
 
@@ -102,15 +104,15 @@ function parseCpuTotals(text) {
     return null;
 }
 
-function computeCpuPercent(firstText, secondText) {
-    var first = parseCpuTotals(firstText);
-    var second = parseCpuTotals(secondText);
-    if (!first || !second)
+function computeCpuPercent(previousUsed, previousTotal, current) {
+    if (previousUsed === null || previousTotal === null || !current)
         return null;
-    var deltaTotal = second.total - first.total;
+    var deltaTotal = current.total - previousTotal;
+    var deltaUsed = current.used - previousUsed;
     if (deltaTotal <= 0)
-        return 0;
-    var deltaUsed = second.used - first.used;
+        return null;
+    if (deltaUsed < 0)
+        return null;
     return Math.round(clamp(deltaUsed * 100 / deltaTotal, 0, 100));
 }
 
@@ -150,16 +152,12 @@ function parseDiskPercent(text) {
 
 function splitMetricsText(text) {
     var raw = String(text || "");
-    var cpuSplit = raw.indexOf(MARK_CPU2);
     var memSplit = raw.indexOf(MARK_MEM);
-    var diskSplit = raw.indexOf(MARK_DISK);
-    if (cpuSplit < 0 || memSplit < 0 || diskSplit < 0 || memSplit < cpuSplit || diskSplit < memSplit)
+    if (memSplit < 0)
         return null;
     return {
-        cpuFirst: raw.substring(0, cpuSplit),
-        cpuSecond: raw.substring(cpuSplit + MARK_CPU2.length, memSplit),
-        meminfo: raw.substring(memSplit + MARK_MEM.length, diskSplit),
-        disk: raw.substring(diskSplit + MARK_DISK.length)
+        cpu: raw.substring(0, memSplit),
+        meminfo: raw.substring(memSplit + MARK_MEM.length)
     };
 }
 
@@ -175,11 +173,16 @@ function reduceMetricsSnapshot(previous, text, exitCode) {
 
     var failures = [];
 
-    var cpu = computeCpuPercent(segments.cpuFirst, segments.cpuSecond);
-    if (cpu === null)
+    var cpuTotals = parseCpuTotals(segments.cpu);
+    if (cpuTotals === null) {
         failures.push("cpu");
-    else
-        next.cpuPercent = cpu;
+    } else {
+        var cpu = computeCpuPercent(next.cpuUsedTotal, next.cpuOverallTotal, cpuTotals);
+        next.cpuUsedTotal = cpuTotals.used;
+        next.cpuOverallTotal = cpuTotals.total;
+        if (cpu !== null)
+            next.cpuPercent = cpu;
+    }
 
     var memory = parseMemInfo(segments.meminfo);
     if (memory === null) {
@@ -189,14 +192,20 @@ function reduceMetricsSnapshot(previous, text, exitCode) {
         next.ramPercent = memory.ramPercent;
     }
 
-    var disk = parseDiskPercent(segments.disk);
-    if (disk === null)
-        failures.push("disk");
-    else
-        next.diskPercent = disk;
-
     next.available = true;
     next.lastError = failures.length > 0 ? ("failed to parse " + failures.join(", ")) : "";
+    return next;
+}
+
+function reduceDiskSnapshot(previous, text, exitCode) {
+    var next = copyState(previous);
+    if ((exitCode || 0) !== 0)
+        return next;
+    var disk = parseDiskPercent(text);
+    if (disk === null)
+        next.lastError = "failed to parse disk";
+    else
+        next.diskPercent = disk;
     return next;
 }
 

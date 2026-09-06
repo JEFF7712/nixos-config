@@ -1662,6 +1662,16 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'SystemPopup.qml must not contain any niri command construction; logout is a NiriService action'
   ! rg -n 'niri msg action quit -s' "$system_service" "$system_model" \
     || fail 'Niri session logout must remain a NiriService action, not SystemService'
+  ! rg -n 'sleep 0\.2|MARK_CPU2|MARK_DISK' "$production_dir/services/internal/SystemParser.js" \
+    || fail 'System metrics must sample CPU once per polling interval without an inline sleep'
+  rg -q 'var DISK_COMMAND = "df -P / 2>&1"' "$production_dir/services/internal/SystemParser.js" \
+    || fail 'Disk usage must use a separate command'
+  rg -U -q 'id:[[:space:]]*metricsTimer[^}]*interval:[[:space:]]*3000' "$system_model" \
+    || fail 'CPU and memory polling cadence must remain three seconds'
+  rg -U -q 'id:[[:space:]]*diskTimer[^}]*interval:[[:space:]]*60000' "$system_model" \
+    || fail 'Disk polling must use the slower sixty-second cadence'
+  rg -q 'computeCpuPercent\(next\.cpuUsedTotal, next\.cpuOverallTotal, cpuTotals\)' "$production_dir/services/internal/SystemParser.js" \
+    || fail 'CPU usage must be calculated from consecutive polling samples'
 
   local niri_service="$production_dir/services/NiriService.qml"
   local niri_model="$production_dir/services/internal/NiriModel.qml"
