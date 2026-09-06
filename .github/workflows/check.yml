@@ -26,6 +26,10 @@ jobs:
         run: |
           nix shell nixpkgs#just nixpkgs#ripgrep nixpkgs#fd nixpkgs#shellcheck nixpkgs#nixfmt nixpkgs#jq -c \
             bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check'
+      - name: Update recovery and laptop safety checks
+        run: |
+          nix shell nixpkgs#just nixpkgs#jq nixpkgs#ripgrep -c \
+            bash -c 'just check-flake-update && just check-laptop-safety && just impermanence-check'
       - name: Profile and wallpaper checks
         run: |
           nix shell nixpkgs#just nixpkgs#jq nixpkgs#python3 nixpkgs#ripgrep nixpkgs#matugen .#iris-python -c \
