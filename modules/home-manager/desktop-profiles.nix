@@ -232,8 +232,10 @@ in
 
       CFG="${config.repoPath}/home/configs"
       sync_live_config "$CFG/kitty"   "$HOME/.config/kitty"   "colors.conf"
-      ${pkgs.python3}/bin/python3 ${config.repoPath}/home/scripts/sync-kitty-agent-colors \
-        "$HOME/.config/kitty" >/dev/null || true
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        ${pkgs.python3}/bin/python3 ${config.repoPath}/home/scripts/sync-kitty-agent-colors \
+          "$HOME/.config/kitty" >/dev/null || true
+      fi
       sync_live_config "$CFG/gtk-3.0" "$HOME/.config/gtk-3.0" "noctalia.css settings.ini"
       sync_live_config "$CFG/gtk-4.0" "$HOME/.config/gtk-4.0" "noctalia.css settings.ini"
       sync_live_config "$CFG/qt5ct"   "$HOME/.config/qt5ct"   "colors/noctalia.conf"

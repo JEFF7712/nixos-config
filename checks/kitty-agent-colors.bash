@@ -130,4 +130,11 @@ grep -q 'animation = fadeIn, 1, 2, smooth' "$HOME/.config/hypr/profile-motion.co
 grep -q -- '--osd-motion-ms: 70ms' "$HOME/.config/swayosd-motion.css" \
   || { echo "FAIL: osd snappy motion not written" >&2; exit 1; }
 
+activation_module="$REPO_ROOT/modules/home-manager/desktop-profiles.nix"
+if ! rg -U -q 'if \[ -z .*DRY_RUN_CMD.*\]; then\n[[:space:]]+.*sync-kitty-agent-colors' \
+  "$activation_module"; then
+  echo "FAIL: Home Manager dry activation can invoke sync-kitty-agent-colors" >&2
+  exit 1
+fi
+
 echo "OK: kitty-agent-colors.bash"
