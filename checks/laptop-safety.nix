@@ -9,6 +9,7 @@ let
   numberpadPath = config.systemd.paths.asus-numberpad-driver;
   autoUpdateService = config.systemd.services.nixos-auto-update;
   nixDaemon = config.systemd.services.nix-daemon;
+  nvidiaCdi = config.systemd.services.nvidia-container-toolkit-cdi-generator;
   userServices = config.home-manager.users.rupan.systemd.user.services;
   userTimers = config.home-manager.users.rupan.systemd.user.timers;
 in
@@ -32,6 +33,12 @@ assert nixDaemon.serviceConfig.IOWeight == 25;
 assert nixDaemon.serviceConfig.MemoryHigh == "22G";
 assert nixDaemon.serviceConfig.MemoryMax == "25G";
 assert nixDaemon.serviceConfig.TasksMax == 4096;
+assert nvidiaCdi.wantedBy == [ ];
+assert builtins.elem "podman.service" nvidiaCdi.requiredBy;
+assert nvidiaCdi.serviceConfig.ExecStartPre == [ ];
+assert
+  builtins.match ".*restart nvidia-container-toolkit-cdi-generator.service.*" config.services.udev.extraRules
+  != null;
 assert numberpadService.wantedBy == [ ];
 assert numberpadPath.wantedBy == [ "paths.target" ];
 assert numberpadPath.pathConfig.PathExists == "/run/user/1000/wayland-1";

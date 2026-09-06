@@ -37,8 +37,12 @@
 
     hardware.nvidia-container-toolkit.enable = true;
     systemd.services.nvidia-container-toolkit-cdi-generator = {
+      wantedBy = lib.mkForce [ ];
       restartIfChanged = false;
-      serviceConfig.SuccessExitStatus = [ 1 ];
+      serviceConfig = {
+        ExecStartPre = lib.mkForce [ ];
+        SuccessExitStatus = [ 1 ];
+      };
     };
 
     specialisation.performance.configuration = {
