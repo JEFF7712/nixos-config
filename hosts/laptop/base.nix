@@ -325,12 +325,12 @@
 
   nix.optimise.automatic = true;
 
-  # Homelab Attic cache. Disabled while the homelab is offline.
-  # nix.settings.extra-substituters = [ "http://10.0.20.190:8080/homelab" ];
-  # nix.settings.extra-trusted-substituters = [ "http://10.0.20.190:8080/homelab" ];
-  # nix.settings.extra-trusted-public-keys = [
-  #   "homelab:s17u8G3szjlQ6UmMAPsszVS/J1jaw6gDwSDM9+/QeNQ="
-  # ];
+  # Homelab Attic cache on nas-01.
+  nix.settings.extra-substituters = [ "http://10.0.30.20:8080/homelab" ];
+  nix.settings.extra-trusted-substituters = [ "http://10.0.30.20:8080/homelab" ];
+  nix.settings.extra-trusted-public-keys = [
+    "homelab:s17u8G3szjlQ6UmMAPsszVS/J1jaw6gDwSDM9+/QeNQ="
+  ];
   # direnv has no stdin to answer the interactive y/N prompt, so it hangs.
   nix.settings.accept-flake-config = true;
 
