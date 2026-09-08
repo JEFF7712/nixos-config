@@ -17,6 +17,6 @@
     };
     # Still needed: nixpkgs wires CDI into rootless dockerd and Podman. The
     # rootful nvidia runtime wrapper applies only when virtualisation.docker.enable.
-    hardware.nvidia-container-toolkit.enable = true;
+    hardware.nvidia-container-toolkit.enable = lib.mkIf (config.nvidia.enable or false) true;
   };
 }

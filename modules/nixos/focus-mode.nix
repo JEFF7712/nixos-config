@@ -26,7 +26,7 @@ in
             subject.user == ${builtins.toJSON cfg.user}) {
           var unit = action.lookup("unit");
           var verb = action.lookup("verb");
-          if (unit == "nixos-auto-update.timer" &&
+          if ((unit == "nixos-auto-update.timer" || unit == "nixos-ai-tools-auto-update.timer") &&
               (verb == "start" || verb == "stop")) {
             return polkit.Result.YES;
           }

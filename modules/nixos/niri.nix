@@ -19,7 +19,6 @@
     environment.systemPackages = with pkgs; [
       libnotify
       xwayland-satellite
-      alacritty
     ];
 
     # No global LIBVA / GLX nvidia vendor: that defeats PRIME offload.

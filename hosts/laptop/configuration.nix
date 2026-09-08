@@ -24,9 +24,6 @@
   btrfs-snapshots.enable = true;
   secureboot.measuredBoot.enable = true;
 
-  boot.kernel.sysctl."vm.swappiness" = lib.mkForce 100;
-  zramSwap.priority = 100;
-
   virtualisation.vmVariantWithDisko = {
     virtualisation = {
       memorySize = 8192;
@@ -39,9 +36,5 @@
     hardware.nvidia-container-toolkit.enable = lib.mkForce false;
     secrets.enable = lib.mkForce false;
     users.users.rupan.initialPassword = "rupan";
-  };
-
-  virtualisation.vmVariant = {
-    services.btrfs.autoScrub.enable = lib.mkForce false;
   };
 }

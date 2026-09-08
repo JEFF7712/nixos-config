@@ -90,7 +90,6 @@
         swayosd
         quickshell
         bc
-        imagemagick
         pulseaudio
       ];
 

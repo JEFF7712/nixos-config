@@ -141,7 +141,6 @@ in
           "/var/lib/bluetooth"
           "/var/lib/docker"
           "/var/lib/containers"
-          "/var/lib/waydroid"
           "/var/lib/netbird"
           # DynamicUser state; systemd requires 0700.
           {

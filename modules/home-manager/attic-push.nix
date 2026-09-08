@@ -1,4 +1,4 @@
-# Disabled while the homelab is offline (see substituter block in hosts/laptop/base.nix).
+# Push local /nix/store additions to the homelab Attic cache (attic watch-store).
 {
   pkgs,
   lib,

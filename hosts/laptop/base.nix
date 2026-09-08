@@ -73,6 +73,7 @@
     hardware.nvidia-container-toolkit.enable = lib.mkForce false;
     # The VM's host key can't decrypt secrets.yaml; sops would fail activation.
     secrets.enable = lib.mkForce false;
+    services.btrfs.autoScrub.enable = lib.mkForce false;
     users.users.rupan.initialPassword = "rupan";
   };
 
@@ -115,7 +116,10 @@
     notifications.systembus-notify.enable = true;
   };
   services.asusd.enable = true;
-  zramSwap.enable = true;
+  zramSwap = {
+    enable = true;
+    priority = 100;
+  };
   # logind cannot see idle inhibit; lid handling stays in Stasis (lid-close-action).
   services.logind.settings.Login = {
     HandleLidSwitch = "ignore";
@@ -138,9 +142,10 @@
     loader.systemd-boot.editor = false;
     # /tmp is on root and nothing prunes it (nix builds, chromium sockets, agent scratch).
     tmp.cleanOnBoot = true;
-    # zram is RAM-speed: swap aggressively, skip readahead.
+    # Priority 100 on zramSwap uses fast RAM swap first; 100 swappiness avoids
+    # paging aggressively into the 16G disk swapfile once zram fills.
     kernel.sysctl = {
-      "vm.swappiness" = 180;
+      "vm.swappiness" = 100;
       "vm.page-cluster" = 0;
     };
     # ESP entries only shrink at the next switch; cap so /boot can't fill up.
@@ -188,8 +193,6 @@
     enable = true;
     drivers = [ pkgs.gutenprint ];
   };
-
-  services.libinput.enable = true;
 
   # Journals had grown to 3.3G against the ~4G default cap.
   services.journald.extraConfig = "SystemMaxUse=1G";
