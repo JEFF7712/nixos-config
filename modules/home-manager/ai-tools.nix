@@ -78,6 +78,8 @@
       codexCli = inputs.codex-cli-nix.packages.${system}.default;
       opencodeCli = inputs.opencode-nix.packages.${system}.opencode;
       piCli = inputs.opencode-nix.packages.${system}.pi;
+      antigravity = inputs.antigravity-nix.packages.${system}.default;
+      antigravityCli = inputs.antigravity-nix.packages.${system}.google-antigravity-cli;
     in
     {
       home.packages =
@@ -98,6 +100,8 @@
           claudeCode
           claudeCodex
           claudeGrok
+          antigravity
+          antigravityCli
           inputs.terax.packages.${system}.default
         ];
 

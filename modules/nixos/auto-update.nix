@@ -112,6 +112,7 @@ in
       commitMessage = "flake.lock: ai tools auto-update";
       evalFailure = "defer";
       inputs = [
+        "antigravity-nix"
         "claude-code-nix"
         "codex-cli-nix"
         "code-cursor-nix"

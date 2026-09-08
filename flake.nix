@@ -61,6 +61,10 @@
       url = "github:jacopone/code-cursor-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    antigravity-nix = {
+      url = "github:jacopone/antigravity-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Daily LLM agent binaries. Dedicated opencode-nix flakes are archived.
     opencode-nix = {
       url = "github:numtide/llm-agents.nix";

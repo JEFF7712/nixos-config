@@ -128,6 +128,14 @@ fi
 exec "$REAL_CP" "$@"
 EOF
 
+make_fake chown <<'EOF'
+#!/usr/bin/env bash
+printf 'chown %q' "$1" >> "$COMMAND_LOG"
+printf ' %q' "${@:2}" >> "$COMMAND_LOG"
+printf '\n' >> "$COMMAND_LOG"
+exit 0
+EOF
+
 make_fake sync <<'EOF'
 #!/usr/bin/env bash
 printf 'sync %q' "$1" >> "$COMMAND_LOG"
@@ -322,7 +330,7 @@ run_pipeline() {
     --commit-message "flake.lock: $variant auto-update"
   )
   if [[ $variant == ai ]]; then
-    args+=(--input claude-code-nix --input codex-cli-nix --input code-cursor-nix --input opencode-nix)
+    args+=(--input antigravity-nix --input claude-code-nix --input codex-cli-nix --input code-cursor-nix --input opencode-nix)
   fi
   if [[ -n $eval_failure ]]; then
     args+=(--eval-failure "$eval_failure")
@@ -382,7 +390,7 @@ setup_case() {
 }
 
 update_weekly=""
-update_ai=" claude-code-nix codex-cli-nix code-cursor-nix opencode-nix"
+update_ai=" antigravity-nix claude-code-nix codex-cli-nix code-cursor-nix opencode-nix"
 commit_weekly="git -C $repo commit -m flake.lock:\ weekly\ auto-update -- flake.lock"
 
 case_unchanged() {
