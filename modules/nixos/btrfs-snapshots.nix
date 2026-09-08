@@ -44,5 +44,9 @@
         };
       };
     };
+
+    # security.sudo.execWheelOnly restricts sudo to group wheel; btrbk needs
+    # execute permission on the sudo wrapper to invoke its scoped btrfs rules.
+    users.users.btrbk.extraGroups = [ "wheel" ];
   };
 }
