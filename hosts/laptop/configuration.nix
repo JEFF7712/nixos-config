@@ -40,4 +40,8 @@
     secrets.enable = lib.mkForce false;
     users.users.rupan.initialPassword = "rupan";
   };
+
+  virtualisation.vmVariant = {
+    services.btrfs.autoScrub.enable = lib.mkForce false;
+  };
 }

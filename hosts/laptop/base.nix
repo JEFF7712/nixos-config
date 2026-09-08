@@ -102,6 +102,13 @@
   services.power-profiles-daemon.enable = true;
   services.thermald.enable = true;
   services.fwupd.enable = true;
+  # fwupd requires polkit for authorization; avoid activation race and timer restart on switch.
+  systemd.services.fwupd.after = [ "polkit.service" ];
+  systemd.services.fwupd-refresh = {
+    wants = [ "polkit.service" ];
+    after = [ "polkit.service" ];
+    restartIfChanged = false;
+  };
   services.smartd = {
     enable = true;
     autodetect = true;
