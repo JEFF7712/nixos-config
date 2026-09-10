@@ -157,8 +157,8 @@ check_laptop_build_caps() {
   if printf '%s\n' "$settings" | rg -q 'cores\s*=\s*0\s*;'; then
     fail "hosts/laptop/base.nix must not set nix.settings.cores = 0 (uses all CPUs per job)"
   fi
-  if ! rg -q 'OnCalendar = "hourly"' "$module"; then
-    fail "nixos-ai-tools-auto-update timer must stay hourly"
+  if ! rg -q 'OnCalendar = "weekly"' "$module"; then
+    fail "nixos-auto-update timer must stay weekly"
   fi
   if ! rg -q 'skipping rebuild' "$pipeline"; then
     fail "nixos-flake-update must skip rebuild when flake.lock is unchanged"
@@ -176,11 +176,9 @@ check_flake_update_pipeline_wiring() {
     fail "auto-update module must reference nixos-flake-update exactly twice"
   fi
 
-  for service in nixos-auto-update nixos-ai-tools-auto-update; do
-    if ! rg -q "^[[:space:]]*systemd\\.services\\.$service = mkUpdateService \\{" "$module"; then
-      fail "$service must use mkUpdateService"
-    fi
-  done
+  if ! rg -q "^[[:space:]]*systemd\\.services\\.nixos-auto-update = mkUpdateService \\{" "$module"; then
+    fail "nixos-auto-update must use mkUpdateService"
+  fi
 
   if ! rg -q '^[[:space:]]*name = "nixos-flake-update";' "$module" \
     || ! rg -q '^[[:space:]]*text = builtins\.readFile ../../home/scripts/nixos-flake-update;' "$module" \

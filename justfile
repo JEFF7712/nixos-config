@@ -212,7 +212,7 @@ switch:
   exec {fd}>>"$lock"
   if ! flock -n "$fd"; then
     echo "auto-update is rebuilding (holds /run/nixos-auto-update.lock)." >&2
-    echo "stop it:  sudo systemctl stop nixos-ai-tools-auto-update.service nixos-auto-update.service" >&2
+    echo "stop it:  sudo systemctl stop nixos-auto-update.service" >&2
     echo "then rerun 'just switch', or wait for it to finish." >&2
     exit 1
   fi

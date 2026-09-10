@@ -85,7 +85,7 @@ let
     };
 in
 {
-  options.auto-update.enable = lib.mkEnableOption "weekly flake input update plus hourly AI tool updates";
+  options.auto-update.enable = lib.mkEnableOption "weekly flake input update and rebuild";
 
   config = lib.mkIf config.auto-update.enable {
     systemd.tmpfiles.rules = [ "f /run/nixos-auto-update.lock 0664 root users -" ];
@@ -106,33 +106,10 @@ in
       inputs = [ ];
     };
 
-    systemd.services.nixos-ai-tools-auto-update = mkUpdateService {
-      description = "Update AI tool flake inputs, commit lock file, and rebuild";
-      label = "AI tools";
-      commitMessage = "flake.lock: ai tools auto-update";
-      evalFailure = "defer";
-      inputs = [
-        "antigravity-nix"
-        "claude-code-nix"
-        "codex-cli-nix"
-        "code-cursor-nix"
-        "opencode-nix"
-      ];
-    };
-
     systemd.timers.nixos-auto-update = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "weekly";
-        Persistent = true;
-        RandomizedDelaySec = "30m";
-      };
-    };
-
-    systemd.timers.nixos-ai-tools-auto-update = {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "hourly";
         Persistent = true;
         RandomizedDelaySec = "30m";
       };

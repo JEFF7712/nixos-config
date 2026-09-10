@@ -1017,16 +1017,10 @@ case_staged_newer_lock
 
 weekly_service=$(nix eval --raw --no-write-lock-file \
   '.#nixosConfigurations.laptop.config.systemd.services.nixos-auto-update.script')
-ai_service=$(nix eval --raw --no-write-lock-file \
-  '.#nixosConfigurations.laptop.config.systemd.services.nixos-ai-tools-auto-update.script')
 
 [[ $weekly_service == *'--eval-failure hard'* ]] ||
   fail 'weekly service did not evaluate with --eval-failure hard'
 [[ $weekly_service != *'--eval-failure defer'* ]] ||
   fail 'weekly service evaluated with defer policy'
-[[ $ai_service == *'--eval-failure defer'* ]] ||
-  fail 'AI service did not evaluate with --eval-failure defer'
-[[ $ai_service != *'--eval-failure hard'* ]] ||
-  fail 'AI service evaluated with hard policy'
 
 printf 'flake update pipeline checks passed\n'

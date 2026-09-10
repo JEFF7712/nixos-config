@@ -92,8 +92,6 @@ assert_auto_update_wiring_rejected() {
 }
 
 assert_auto_update_wiring_rejected nixos-auto-update '# deleted weekly service wiring'
-assert_auto_update_wiring_rejected nixos-ai-tools-auto-update \
-  'systemd.services.nixos-ai-tools-auto-update = {'
 
 pipeline_count_fixture=$(mktemp)
 cp modules/nixos/auto-update.nix "$pipeline_count_fixture"
