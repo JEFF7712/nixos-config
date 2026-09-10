@@ -57,6 +57,7 @@ in
         [
           ovito
           freecad
+          orca-slicer
           pkgs-stable.avogadro2
         ]
       );
