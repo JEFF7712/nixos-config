@@ -25,7 +25,8 @@
           escalate_after=3
           mkdir -p "$state_dir"
 
-          for unit in nixos-auto-update.service; do
+          units=(nixos-auto-update.service)
+          for unit in "''${units[@]}"; do
             properties="$(systemctl show "$unit" --property=ExecMainStatus,InvocationID,Result)"
             exec_main_status="$(printf '%s\n' "$properties" | sed -n 's/^ExecMainStatus=//p')"
             invocation_id="$(printf '%s\n' "$properties" | sed -n 's/^InvocationID=//p')"
