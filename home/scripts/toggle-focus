@@ -49,12 +49,21 @@ if [ ! -f "$TARGET_OVERRIDE" ]; then
   exit 1
 fi
 
-# Swap the active-overrides symlink atomically, then persist + reload.
-TMPLINK=$(mktemp -u "$PROFILES_DIR/.active-niri-overrides.XXXXXX")
-ln -s "$TARGET_OVERRIDE" "$TMPLINK"
-mv "$TMPLINK" "$ACTIVE_LINK"
+# Write focus state, then apply override and reload.
 echo "$STATE" > "$FOCUS_FILE"
-niri msg action load-config-file 2>/dev/null || true
+
+if profile_wallpaper_theming "$ACTIVE"; then
+  wp=$(current_wallpaper 2>/dev/null || true)
+  if [ -n "$wp" ]; then
+    apply_wallpaper_theme "$wp"
+  else
+    link_atomic "$ACTIVE_LINK" "$TARGET_OVERRIDE"
+    niri msg action load-config-file 2>/dev/null || true
+  fi
+else
+  link_atomic "$ACTIVE_LINK" "$TARGET_OVERRIDE"
+  niri msg action load-config-file 2>/dev/null || true
+fi
 
 if [ "$STATE" = "on" ]; then
   # Pause auto-update timers (polkit-allowed; see modules/nixos/focus-mode.nix)

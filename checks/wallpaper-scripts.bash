@@ -151,6 +151,8 @@ if ! grep -Fq 'active-color "#d8915f"' "$profiles_dir/runtime-niri-active.kdl"; 
   cat "$profiles_dir/runtime-niri-active.kdl" >&2
   exit 1
 fi
+assert_eq "$profiles_dir/runtime-niri-active.kdl" "$(readlink "$profiles_dir/active-niri-overrides.kdl")" \
+  "wallpaper tint points active-niri-overrides.kdl to runtime-niri-active.kdl"
 if grep -E '> "\$nout"' "$REPO_ROOT/home/scripts/profile-common"; then
   printf 'FAIL: niri override still truncates runtime-niri-active.kdl in place\n' >&2
   exit 1
@@ -589,5 +591,7 @@ if ! grep -Fq 'active-color "#22bb22"' "$profiles_dir/runtime-niri-active.kdl"; 
   cat "$profiles_dir/runtime-niri-active.kdl" >&2
   exit 1
 fi
+assert_eq "$profiles_dir/runtime-niri-active.kdl" "$(readlink "$profiles_dir/active-niri-overrides.kdl")" \
+  "late wallpaper A cannot overwrite B active niri override link"
 
 printf 'OK: wallpaper-scripts.bash\n'

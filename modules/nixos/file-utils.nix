@@ -10,6 +10,7 @@
 
   config = lib.mkIf config.file-utils.enable {
     environment.systemPackages = with pkgs; [
+      zip
       unzip
       libimobiledevice
       ifuse

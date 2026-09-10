@@ -48,6 +48,48 @@ write_profile_value_atomic() {
   mv "$tmp" "$path"
 }
 
+link_atomic() {
+  local path="$1" target="$2" tmpdir
+  mkdir -p "$(dirname "$path")"
+  tmpdir=$(mktemp -d "${path}.XXXXXX")
+  ln -s "$target" "$tmpdir/link"
+  mv -T "$tmpdir/link" "$path"
+  rmdir "$tmpdir"
+}
+
+current_wallpaper() {
+  local wallpaper=""
+  local waypaper_cfg="$CONFIG_HOME/waypaper/config.ini"
+  if [ -r "$waypaper_cfg" ]; then
+    wallpaper=$(awk -F' = ' '$1 == "wallpaper" { print $2; exit }' "$waypaper_cfg" 2>/dev/null || true)
+    wallpaper="${wallpaper/#\~/$HOME}"
+  fi
+
+  if [ -n "$wallpaper" ] && [ -f "$wallpaper" ]; then
+    printf '%s\n' "$wallpaper"
+    return 0
+  fi
+
+  local variant wallpaper_dir profile
+  profile=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
+  variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
+  [ -n "$profile" ] || return 1
+  wallpaper_dir=$(profile_manifest_wallpaper_dir "$profile" "$variant" 2>/dev/null || true)
+
+  if [ -d "$wallpaper_dir" ]; then
+    find "$wallpaper_dir" -maxdepth 1 \
+      -type f \( \
+        -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \
+        -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.mkv" -o -iname "*.mov" \
+      \) \
+      | sort | head -n 1
+    return 0
+  fi
+
+  return 1
+}
+
+
 # Theme jobs are async. profile-publish owns generation allocation under the
 # transition lock so renderers and profile changes share one ordering boundary.
 theme_generation_bump() {
@@ -530,6 +572,7 @@ apply_wallpaper_theme() {
     write_firefox_globals "$local_profiles_dir/$profile/manifest.json" "$variant"
   )
 
+  local has_runtime_niri=0
   if [ -n "$accent" ]; then
     local nbase nout ntmp rgb
     if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ]; then
@@ -555,6 +598,7 @@ apply_wallpaper_theme() {
         { print }
       ' "$nbase" > "$ntmp"
       mv "$ntmp" "$nout"
+      has_runtime_niri=1
     fi
   fi
 
@@ -571,6 +615,11 @@ apply_wallpaper_theme() {
   publish_result=$(XDG_CONFIG_HOME="$CONFIG_HOME" PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" \
     "$PROFILE_PUBLISH" publish "$job_gen" "$theme_stage")
   [ "$publish_result" = published ] || return 0
+
+  if [ "$has_runtime_niri" -eq 1 ] && [ -f "$PROFILES_DIR/runtime-niri-active.kdl" ]; then
+    run_theme_side_effect_if_current "$job_gen" \
+      link_atomic "$ACTIVE_LINK" "$PROFILES_DIR/runtime-niri-active.kdl"
+  fi
 
   if [ -n "${PROFILE_THEME_TEST_PAUSE_AFTER_PUBLISH:-}" ] \
     && [ -n "${PROFILE_THEME_TEST_BARRIER_DIR:-}" ]; then
