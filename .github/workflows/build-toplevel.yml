@@ -1,0 +1,49 @@
+name: Build Toplevel
+
+# Remote builder for `just switch`: builds the laptop toplevel on nas-01 and
+# pushes the closure to Attic, so a switch mostly substitutes instead of
+# building locally (notably the unfree CUDA overlay packages, which never hit
+# the public cache). The laptop's own watch-store covers paths it builds
+# itself; this covers commits it has not switched to yet.
+#
+# This is an optimization, not validation: it never gates check.yml.
+# First run builds a lot locally (CUDA overlays); later runs are incremental.
+# Build parallelism is capped so two concurrent jobs cannot OOM the 16G box.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '**.nix'
+      - 'flake.lock'
+      - '.github/workflows/build-toplevel.yml'
+
+# Cancel superseded builds: a newer commit makes an older toplevel worthless.
+concurrency:
+  group: build-toplevel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-toplevel:
+    runs-on: [self-hosted, homelab, nixos]
+    env:
+      ATTIC_ENDPOINT: http://10.0.30.20:8080
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v7
+
+    - name: Build laptop toplevel
+      run: |
+        nix build .#nixosConfigurations.laptop.config.system.build.toplevel \
+          --max-jobs 3 --cores 4 --print-out-paths | tee /tmp/toplevel-out-paths.txt
+
+    - name: Push toplevel closure to Attic
+      env:
+        ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
+      run: |
+        if [ -z "${ATTIC_TOKEN:-}" ]; then
+          echo "ATTIC_TOKEN is not set; skipping Attic push."
+          exit 0
+        fi
+        attic login homelab "$ATTIC_ENDPOINT" "$ATTIC_TOKEN"
+        attic push homelab "$(cat /tmp/toplevel-out-paths.txt)"
