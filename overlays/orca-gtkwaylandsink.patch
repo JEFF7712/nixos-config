@@ -1,0 +1,19 @@
+--- a/src/slic3r/GUI/wxMediaCtrl2.cpp
++++ b/src/slic3r/GUI/wxMediaCtrl2.cpp
+@@ -101,7 +101,7 @@
+ {
+ #if defined(__LINUX__) && defined(__WXGTK__)
+     m_native_wayland = Slic3r::GUI::is_running_on_wayland();
+-    if (m_native_wayland && is_gstreamer_feature_available("gtksink"))
++    if (m_native_wayland && is_gstreamer_feature_available("gtkwaylandsink"))
+         configure_wayland_gstreamer_liveview_path();
+     else if (m_native_wayland) {
+         m_gtk_sink_error = _L("Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer.");
+@@ -170,7 +170,7 @@
+     GError *error = nullptr;
+     GstElement *video_sink = gst_parse_bin_from_description(
+-        "videoconvert ! videoscale ! video/x-raw,format=BGRx ! gtksink name=orca_wayland_gtksink sync=false",
++        "videoconvert ! videoscale ! video/x-raw,format=BGRx ! gtkwaylandsink name=orca_wayland_gtksink sync=false",
+         TRUE,
+         &error);
+     if (!video_sink) {
