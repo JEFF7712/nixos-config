@@ -339,7 +339,7 @@
   nix.settings.extra-substituters = [ "http://10.0.30.20:8080/homelab" ];
   nix.settings.extra-trusted-substituters = [ "http://10.0.30.20:8080/homelab" ];
   nix.settings.extra-trusted-public-keys = [
-    "homelab:s17u8G3szjlQ6UmMAPsszVS/J1jaw6gDwSDM9+/QeNQ="
+    "homelab:J+OVQOCG2sNT2KoVbWGPikoWcIbBanHnY2NOcMF3vwk="
   ];
   # direnv has no stdin to answer the interactive y/N prompt, so it hangs.
   nix.settings.accept-flake-config = true;
