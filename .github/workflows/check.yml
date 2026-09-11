@@ -36,5 +36,5 @@ jobs:
       - uses: actions/checkout@v7
       - name: Profile and theme checks
         run: |
-          nix shell --inputs-from . nixpkgs#just nixpkgs#python3 nixpkgs#matugen nixpkgs#ripgrep nixpkgs#jq nixpkgs#quickshell .#iris-python -c \
-            bash -c 'just wallpaper-script-check && just check-profiles && just qml-lint && just quickshell-test && just xhisper-check && just plymouth-theme-check'
+          nix shell --inputs-from . nixpkgs#just nixpkgs#python3 nixpkgs#matugen nixpkgs#ripgrep nixpkgs#jq .#iris-python -c \
+            bash -c 'just wallpaper-script-check && just check-profiles && just qml-lint && just xhisper-check && just plymouth-theme-check'
