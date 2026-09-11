@@ -51,6 +51,7 @@
   docker.enable = true;
   netbird.enable = true;
   homelab-dns.enable = true;
+  management-routing.enable = true;
   waydroid.enable = false;
   game.enable = true;
   airplay.enable = true;
@@ -319,6 +320,34 @@
   networking.networkmanager.wifi.scanRandMacAddress = false;
   networking.networkmanager.wifi.macAddress = "preserve";
   networking.wireless.iwd.enable = false;
+
+  # Manage the homelab management USB-ethernet profile declaratively so the
+  # imperative `nmcli con mod ...` tweaks stay applied across an NM re-read.
+  # The connection profile is loaded from
+  # ~/.config/NetworkManager/system-connections via impermanence.
+  systemd.paths."watch-management-link" = {
+    wantedBy = [ "network.target" ];
+    pathConfig = {
+      PathExists = "/sys/class/net/enp0s13f0u1u1";
+      Unit = "nm-management-link-config.service";
+    };
+  };
+  systemd.services."nm-management-link-config" = {
+    serviceConfig.Type = "oneshot";
+    serviceConfig.RemainAfterExit = true;
+    script = ''
+      CON="/etc/NetworkManager/system-connections/opnsense-lan-dhcp.nmconnection"
+      if [ -f "$CON" ]; then
+        nmcli connection modify opnsense-lan-dhcp \
+          connection.autoconnect yes \
+          connection.autoconnect-priority 100 \
+          ipv4.route-metric 700 \
+          ipv4.routes "10.0.30.0/24 10.0.10.1 50" \
+          ipv4.never-default yes
+        nmcli connection up opnsense-lan-dhcp || true
+      fi
+    '';
+  };
 
   auto-update.enable = true;
   focusMode.enable = true;
