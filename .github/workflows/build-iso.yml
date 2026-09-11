@@ -6,6 +6,13 @@ name: Build ISO
 # `writeUSB` (see docs/luks-reinstall.md). What CI is for is catching a broken
 # or ballooning ISO early -- it previously only ran on `v*` tags, so it sat
 # unbuilt from 2025-12-21 to 2026-08-26 while the image grew to 5.86 GiB.
+#
+# Runs on the nas-01 self-hosted runner (homelab-new
+# flake/modules/github-runner-nixos.nix): warm store plus the LAN Attic cache
+# keep rebuilds incremental, and the finished image is pushed back to Attic so
+# `just build-iso` on any homelab machine substitutes instead of rebuilding.
+# Needs the repo secret ATTIC_TOKEN (Attic JWT with push on the homelab cache);
+# without it the build still runs, only the push step is skipped.
 on:
   workflow_dispatch:
   push:
@@ -19,36 +26,24 @@ on:
     # Monthly, so nixpkgs drift surfaces without waiting for an ISO edit.
     - cron: '0 6 1 * *'
 
+# Self-hosted runner: cancel superseded runs so rapid pushes do not queue
+# multi-minute ISO builds behind each other.
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-iso:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, homelab, nixos]
+    env:
+      ATTIC_ENDPOINT: http://10.0.30.20:8080
     steps:
     - name: Checkout Code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-    - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-      with:
-        tool-cache: true
-        android: true
-        dotnet: true
-        haskell: true
-        large-packages: true
-        docker-images: true
-        swap-storage: false
-
-    - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@33c9ab3ef95cd57c164d9d6eb1f9a46338538d41 # main
-
-    - name: Cachix
-      uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
-      with:
-        name: jeff7712
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+      uses: actions/checkout@v7
 
     - name: Build ISO
       run: |
-        nix build .#nixosConfigurations.iso.config.system.build.isoImage
+        nix build .#nixosConfigurations.iso.config.system.build.isoImage --print-out-paths | tee /tmp/iso-out-paths.txt
         ISO_PATH=$(readlink -f result/iso/*.iso)
         FILE_SIZE=$(stat -c%s "$ISO_PATH")
         echo "ISO size: $FILE_SIZE bytes ($(numfmt --to=iec "$FILE_SIZE"))"
@@ -66,3 +61,11 @@ jobs:
         if [ "$FILE_SIZE" -gt 4294967296 ]; then
           echo "::warning::ISO is over 4 GiB ($FILE_SIZE bytes)"
         fi
+
+    - name: Push ISO closure to Attic
+      if: ${{ secrets.ATTIC_TOKEN != '' }}
+      env:
+        ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
+      run: |
+        attic login homelab "$ATTIC_ENDPOINT" "$ATTIC_TOKEN"
+        attic push homelab $(cat /tmp/iso-out-paths.txt)

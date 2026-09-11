@@ -4,37 +4,37 @@ on:
     branches: [main]
   pull_request:
 
+# Self-hosted runners on nas-01: cancel superseded runs so rapid pushes do
+# not queue stale jobs behind each other.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+# Runs on the nas-01 self-hosted runners (homelab-new
+# flake/modules/github-runner-nixos.nix). Warm /nix/store plus the LAN Attic
+# cache is what makes this fast; there is deliberately no Nix installer,
+# Cachix, or GH-cache step. Tool installs resolve from this flake's locked
+# nixpkgs via --inputs-from so CI uses the same revisions as local dev.
+# check.yml is secret-free by design, so fork PRs cannot exfiltrate anything.
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  validate:
+    runs-on: [self-hosted, homelab, nixos]
     steps:
       - uses: actions/checkout@v7
-      - uses: cachix/install-nix-action@v30
-        with:
-          install_url: https://releases.nixos.org/nix/nix-2.34.6/install
-          extra_nix_config: |
-            accept-flake-config = true
-      - uses: cachix/cachix-action@v17
-        with:
-          name: jeff7712
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-      - name: Check flake
-        run: nix flake check
       - name: Check formatting
         run: nix fmt -- --fail-on-change --no-cache
-      - name: Agent checks
+      - name: Check flake
+        run: nix flake check --no-write-lock-file
+      - name: Fast checks
         run: |
-          nix shell nixpkgs#just nixpkgs#ripgrep nixpkgs#fd nixpkgs#shellcheck nixpkgs#nixfmt nixpkgs#jq -c \
-            bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check'
-      - name: Update recovery and laptop safety checks
+          nix shell --inputs-from . nixpkgs#just nixpkgs#jq nixpkgs#nixfmt nixpkgs#shellcheck nixpkgs#ripgrep nixpkgs#fd -c \
+            bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check && just check-flake-update && just check-laptop-safety && just impermanence-check && just check-local-bin && just lid-close-check'
+
+  profiles:
+    runs-on: [self-hosted, homelab, nixos]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Profile and theme checks
         run: |
-          nix shell nixpkgs#just nixpkgs#jq nixpkgs#ripgrep -c \
-            bash -c 'just check-flake-update && just check-laptop-safety && just impermanence-check'
-      - name: Profile and wallpaper checks
-        run: |
-          nix shell nixpkgs#just nixpkgs#jq nixpkgs#python3 nixpkgs#ripgrep nixpkgs#matugen .#iris-python -c \
-            bash -c 'just wallpaper-script-check && just check-profiles'
-      - name: QML lint
-        run: nix shell nixpkgs#just -c just qml-lint
-      - name: Xhisper check
-        run: nix shell nixpkgs#just nixpkgs#ripgrep nixpkgs#python3 -c just xhisper-check
+          nix shell --inputs-from . nixpkgs#just nixpkgs#python3 nixpkgs#matugen nixpkgs#ripgrep nixpkgs#jq .#iris-python -c \
+            bash -c 'just wallpaper-script-check && just check-profiles && just qml-lint && just quickshell-test && just xhisper-check && just plymouth-theme-check'

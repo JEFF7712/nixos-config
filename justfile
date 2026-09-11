@@ -53,7 +53,7 @@ plymouth-theme-check:
   bash checks/plymouth-theme.bash
 
 qml-lint:
-  nix shell nixpkgs#qt6.qtdeclarative -c qmllint \
+  nix shell --inputs-from . nixpkgs#qt6.qtdeclarative -c qmllint \
     --import disable \
     --unqualified disable \
     --unresolved-type disable \
@@ -64,7 +64,7 @@ qml-lint:
     $(git ls-files '*.qml')
 
 quickshell-test:
-  QT_QPA_PLATFORM=offscreen nix shell nixpkgs#qt6.qtdeclarative -c bash checks/quickshell-services.bash
+  QT_QPA_PLATFORM=offscreen nix shell --inputs-from . nixpkgs#qt6.qtdeclarative -c bash checks/quickshell-services.bash
 
 eval target="laptop":
   nix eval --no-write-lock-file ".#nixosConfigurations.{{target}}.config.system.build.toplevel.drvPath"
