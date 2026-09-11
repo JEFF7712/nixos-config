@@ -335,9 +335,10 @@
 
   nix.optimise.automatic = true;
 
-  # Homelab Attic cache on nas-01.
+  # Homelab Attic cache on nas-01. Signatures are enforced (no
+  # extra-trusted-substituters bypass); the key below must match the live
+  # server key configured in homelab-new.
   nix.settings.extra-substituters = [ "http://10.0.30.20:8080/homelab" ];
-  nix.settings.extra-trusted-substituters = [ "http://10.0.30.20:8080/homelab" ];
   nix.settings.extra-trusted-public-keys = [
     "homelab:J+OVQOCG2sNT2KoVbWGPikoWcIbBanHnY2NOcMF3vwk="
   ];
