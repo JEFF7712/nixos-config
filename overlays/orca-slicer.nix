@@ -16,9 +16,17 @@ let
   # runtime while the dlopen'd Bambu network plugin uses the shared one.
   # Freeing across that boundary SIGABRTs on Print. Use only its lib
   # output until upstream merges.
-  orca-fixed = prev.orca-slicer.override {
+  orca-fixed = (prev.orca-slicer.override {
     gcc-unwrapped = prev.lib.getLib prev.gcc-unwrapped;
-  };
+  }).overrideAttrs (old: {
+    version = "2.4.2";
+    src = prev.fetchFromGitHub {
+      owner = "OrcaSlicer";
+      repo = "OrcaSlicer";
+      tag = "v2.4.2";
+      sha256 = "1w4b7p4l5s7cglacjixff5chq3xc9v3lj15xfi28hyp48l5hnk41";
+    };
+  });
 in
 {
   orca-slicer = prev.symlinkJoin {
