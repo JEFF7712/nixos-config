@@ -71,6 +71,65 @@
           fi
         '';
       };
+
+      niriDisplayRecovery = pkgs.writeShellApplication {
+        name = "niri-display-recovery";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.jq
+          pkgs.niri
+          pkgs.systemd
+        ];
+        text = ''
+          set -u
+
+          connected_external_outputs() {
+            local status_file connector
+            for status_file in /sys/class/drm/card*-DP-*/status /sys/class/drm/card*-HDMI-*/status; do
+              [ -r "$status_file" ] || continue
+              [ "$(cat "$status_file")" = connected ] || continue
+              connector="$(basename "$(dirname "$status_file")")"
+              printf '%s\n' "$connector"
+            done
+          }
+
+          niri_lost_external_output() {
+            local connector outputs
+            outputs="$(niri msg -j outputs 2>/dev/null)" || return 1
+            while IFS= read -r connector; do
+              [ -n "$connector" ] || continue
+              if ! jq -e --arg connector "$connector" 'has($connector)' >/dev/null 2>&1 <<<"$outputs"; then
+                return 0
+              fi
+            done < <(connected_external_outputs)
+            return 1
+          }
+
+          consecutive_failures=0
+          cooldown_until=0
+
+          while :; do
+            now="$(date +%s)"
+            if niri_lost_external_output; then
+              consecutive_failures=$((consecutive_failures + 1))
+            else
+              consecutive_failures=0
+            fi
+
+            if [ "$consecutive_failures" -ge 2 ] && [ "$now" -ge "$cooldown_until" ]; then
+              niri msg action power-on-monitors >/dev/null 2>&1 || true
+              sleep 2
+              if niri_lost_external_output; then
+                systemctl --user restart niri.service
+                cooldown_until=$((now + 30))
+              fi
+              consecutive_failures=0
+            fi
+
+            sleep 5
+          done
+        '';
+      };
     in
     {
 
@@ -119,6 +178,22 @@
           Service = {
             Type = "oneshot";
             ExecStart = lib.getExe batteryLowNotify;
+          };
+        };
+
+        niri-display-recovery = {
+          Unit = {
+            Description = "Recover Niri after a stale external-display hotplug state";
+            PartOf = [ "graphical-session.target" ];
+            After = [ "niri.service" ];
+          };
+          Service = {
+            ExecStart = lib.getExe niriDisplayRecovery;
+            Restart = "on-failure";
+            RestartSec = 3;
+          };
+          Install = {
+            WantedBy = [ "graphical-session.target" ];
           };
         };
 
