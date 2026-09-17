@@ -206,6 +206,22 @@
             laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
             iso = mkSystem "iso" ./home/rupan/iso.nix;
           };
+          homeConfigurations = {
+            workspace = home-manager.lib.homeManagerConfiguration {
+              inherit pkgs;
+              extraSpecialArgs = {
+                inherit
+                  inputs
+                  chatgpt-pkgs
+                  pkgs-stable
+                  self
+                  ;
+              };
+              modules = [
+                ./home/rupan/workspace.nix
+              ];
+            };
+          };
         };
     };
 }
