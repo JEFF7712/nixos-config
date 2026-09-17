@@ -72,6 +72,13 @@
     '';
   };
 
+  # The daemon once exited 0 on an I/O error and stayed dead:
+  # Restart=on-failure ignores clean exits, which silently broke the bar
+  # inhibit switch and auto-lock. Always restart; explicit target stops
+  # on logout are still honored, but `stasis stop` while logged in will
+  # be restarted.
+  systemd.user.services.stasis.Service.Restart = lib.mkForce "always";
+
   home.packages = with pkgs; [
     ibm-plex
     inter

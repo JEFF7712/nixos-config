@@ -254,6 +254,18 @@ InfoPopup {
         onToggled: root.powerService.toggleChargeLimit()
     }
 
+    Text {
+        width: parent.width
+        visible: root.powerService.lastError !== ""
+        text: root.powerService.lastError
+        color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.5)
+        font {
+            family: "JetBrainsMono Nerd Font"
+            pixelSize: 9
+        }
+        elide: Text.ElideRight
+    }
+
     component MeterRow: Item {
         id: rowRoot
         property string label: ""

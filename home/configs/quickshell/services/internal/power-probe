@@ -19,7 +19,7 @@ trap cleanup EXIT
 run_adapter() {
   local output=$1
   shift
-  setpriv --pdeathsig TERM -- "$@" >"$output" 2>/dev/null &
+  setpriv --pdeathsig TERM -- "$@" >"$output" 2>"$output.err" &
   child_pid=$!
   wait "$child_pid" 2>/dev/null
   local status=$?
@@ -42,4 +42,8 @@ else
 fi
 
 run_adapter "$tmp_dir/stasis" stasis info || true
-printf 'stasis|%s\n' "$(awk -F': *' '/^Manual Pause/{print $2; exit}' "$tmp_dir/stasis")"
+pause_value=$(awk -F': *' '/^Manual Pause/{print $2; exit}' "$tmp_dir/stasis")
+if [ -z "$pause_value" ] && grep -qi "daemon not running" "$tmp_dir/stasis.err" 2>/dev/null; then
+  pause_value="daemon-down"
+fi
+printf 'stasis|%s\n' "$pause_value"

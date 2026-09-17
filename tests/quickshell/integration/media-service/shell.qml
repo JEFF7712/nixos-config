@@ -382,7 +382,10 @@ ShellRoot {
                 if (!root.followRestartPassed)
                     return root.finish(false, "follow process restart was missing or duplicated");
                 root.followBaseline = root.positionCallCount();
-                slowSnapshotFile.setText("0.6\n");
+                // Keep the snapshot in flight well past the phase-16 event
+                // writes (~750ms out): both follow events must be consumed
+                // while it runs or they schedule two follow-ups instead of one.
+                slowSnapshotFile.setText("2.0\n");
                 root.requestSnapshot();
                 root.phase = 16;
                 root.phaseStarted = root.now();
@@ -399,7 +402,7 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 17 && elapsed >= 1300 && mediaService.title === "Pending invalidation update") {
+            if (root.phase === 17 && elapsed >= 3000 && mediaService.title === "Pending invalidation update") {
                 root.pendingInvalidationPassed = root.positionCallCount() === root.followBaseline + 2;
                 if (!root.pendingInvalidationPassed)
                     return root.finish(false, "in-flight invalidation was lost or produced more than one follow-up snapshot");

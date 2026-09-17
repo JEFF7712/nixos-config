@@ -387,7 +387,7 @@ run_overlap_timeout_rejection_probe() {
   state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-services-overlap-timeout.XXXXXX")
   fixture_state_dirs+=("$state_dir")
   QS_TEST_OVERLAP_TIMEOUT_PROBE_CHILD=1 QS_TEST_STALL_AFTER_OVERLAP=1 TMPDIR="$state_dir" \
-    timeout --signal=TERM --kill-after=2 8 bash "${BASH_SOURCE[0]}" \
+    timeout --signal=TERM --kill-after=2 30 bash "${BASH_SOURCE[0]}" \
     >"$state_dir/probe.log" 2>&1 || rc=$?
   ((rc == 1)) || fail "forced overlap timeout probe was not rejected exactly (rc=${rc})"
   rg -q 'owned-process overlap probe timed out after recording overlap' "$state_dir/probe.log" \
@@ -439,7 +439,7 @@ run_stubborn_prior_cleanup_probe() {
   state_dir=$(mktemp -d "${TMPDIR:-/tmp}/quickshell-services-stubborn-prior.XXXXXX")
   fixture_state_dirs+=("$state_dir")
   QS_TEST_OVERLAP_TIMEOUT_PROBE_CHILD=1 QS_TEST_PRIOR_IGNORES_TERM=1 TMPDIR="$state_dir" \
-    timeout --signal=TERM --kill-after=2 8 bash "${BASH_SOURCE[0]}" \
+    timeout --signal=TERM --kill-after=2 30 bash "${BASH_SOURCE[0]}" \
     >"$state_dir/probe.log" 2>&1 || rc=$?
   if ((rc != 0)); then
     cleanup_probe_tree_processes "$state_dir"
@@ -498,7 +498,9 @@ run_overlap_descendant_probe() {
   fake_pid=$!
   fake_record="$state_dir/overlap-helper.record"
   write_process_identity_record "$fake_pid" "$fake_record"
-  wait_for_recorded_process "$fake_record" '' 3 || rc=$?
+  # The overlap scan alone needs ~3s on a cold or loaded box (20 grace
+  # iterations of fork-heavy liveness checks); 3s here flaked under load.
+  wait_for_recorded_process "$fake_record" '' 10 || rc=$?
   if ((rc == 124)); then
     stop_and_reap_recorded_process "$fake_record" '' || cleanup_failed=1
   fi

@@ -69,6 +69,20 @@ TestCase {
         compare(reduced.lastError, "invalid stasis state");
     }
 
+    function test_stasisDaemonDownKeepsLastValidWithActionableError() {
+        const previous = PowerParser.parseSnapshot(snapshot({
+            stasis: "yes"
+        }));
+        verify(previous.idleInhibited);
+        const reduced = PowerParser.reduceSnapshot(previous, snapshot({
+            stasis: "daemon-down"
+        }));
+        verify(reduced.idleInhibited);
+        compare(reduced.stasisError, "stasis daemon not running");
+        compare(reduced.lastError, "stasis daemon not running");
+        compare(PowerParser.reduceSnapshot(reduced, snapshot()).stasisError, "");
+    }
+
     function test_ownedActionErrorClearsOnSuccessfulDomainProbe() {
         const previous = PowerParser.parseSnapshot(snapshot());
         previous.thresholdError = "threshold action failed";

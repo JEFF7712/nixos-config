@@ -196,7 +196,7 @@
   };
 
   # Journals had grown to 3.3G against the ~4G default cap.
-  services.journald.extraConfig = "SystemMaxUse=1G";
+  services.journald.settings.Journal.SystemMaxUse = "1G";
 
   # sudo is 4750 root:wheel instead of world-executable; nothing outside wheel
   # has any business invoking it here.

@@ -103,6 +103,8 @@ function reduceSnapshot(previous, text, exitCode) {
     } else if (values.stasis === "no") {
         next.idleInhibited = false;
         next.stasisError = "";
+    } else if (values.stasis === "daemon-down") {
+        next.stasisError = "stasis daemon not running";
     } else {
         next.stasisError = "invalid stasis state";
     }
