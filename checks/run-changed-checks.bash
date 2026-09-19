@@ -67,10 +67,6 @@ classify() {
       add check-profiles
       add 'eval laptop'
       ;;
-    modules/nixos/xhisper-local.nix | pkgs/xhisper-local/* | home/configs/xhisper/*)
-      add xhisper-check
-      add 'eval laptop'
-      ;;
     pkgs/plymouth-nixos-logo/*)
       add plymouth-theme-check
       add fmt-check
@@ -149,7 +145,6 @@ else
     shell-check \
     lid-close-check \
     wallpaper-script-check \
-    xhisper-check \
     plymouth-theme-check \
     qml-lint \
     quickshell-test \

@@ -1,6 +1,5 @@
 {
   pkgs,
-  pkgs-stable,
   lib,
   config,
   inputs,
@@ -57,8 +56,6 @@ in
     home.packages = with pkgs; [
       networkmanagerapplet
       vesktop
-      pkgs-stable.zoom
-      pkgs-stable.calibre
       zed-editor
       spotify-player
       spicetify-cli

@@ -40,7 +40,6 @@
         uv
         ruff
         awscli
-        cursor-agent
       ]
       ++ [ inputs.code-cursor-nix.packages.${pkgs.stdenv.hostPlatform.system}.cursor ];
   };

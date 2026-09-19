@@ -25,7 +25,6 @@ in
   config = lib.mkIf cfg.enable {
     home.packages = [
       pkgs.obsidian
-      pkgs.ibm-plex
       newsreader
     ];
 

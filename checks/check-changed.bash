@@ -60,11 +60,6 @@ diff-check' \
 
 assert_selection 'diff-check' docs/luks-reinstall.md
 
-assert_selection 'xhisper-check
-eval laptop
-diff-check' \
-  pkgs/xhisper-local/default.nix
-
 assert_selection 'fmt-check
 plymouth-theme-check
 build laptop

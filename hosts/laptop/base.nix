@@ -35,34 +35,33 @@
   secureboot.enable = true;
   niri.enable = true;
   niri-greeter.enable = true;
-  general-laptop.enable = true;
-  oom-protection.enable = true;
-  build-resource-policy.enable = true;
   asus-numpad.enable = true;
-  audio.enable = true;
-  ctls.enable = true;
-  bluetooth.enable = true;
-  filemanager.enable = true;
-  screenshot-cleanup.enable = true;
   battery-threshold.enable = false;
-  podman.enable = true;
-  distrobox.enable = true;
-  file-utils.enable = true;
-  docker.enable = true;
-  netbird.enable = true;
-  homelab-dns.enable = true;
-  management-routing.enable = true;
+  # workstation (audio, bluetooth, file manager, git, launcher cache) defaults on.
+  local-containers.enable = true;
+  homelab.enable = true;
   waydroid.enable = false;
   game.enable = true;
-  airplay.enable = true;
-  vpn.enable = true;
-  git.enable = true;
-  vicinae.enable = true;
-  xhisperLocal = {
-    enable = true;
-    ollama.package = pkgs.ollama-cuda;
+  # Daemon-owned Nix builds stay out of the desktop's way.
+  systemd.services.nix-daemon.serviceConfig = {
+    CPUWeight = 25;
+    IOWeight = 25;
+    MemoryHigh = "22G";
+    MemoryMax = "25G";
+    TasksMax = 4096;
   };
-
+  # Monitor slices so runaway builds die early instead of thrashing swap.
+  systemd.oomd = {
+    enable = true;
+    enableRootSlice = true;
+    enableSystemSlice = true;
+    enableUserSlices = true;
+    settings.OOM = {
+      SwapUsedLimit = "80%";
+      DefaultMemoryPressureLimit = "60%";
+      DefaultMemoryPressureDurationSec = "20s";
+    };
+  };
   # `just vm`: strip hardware-bound pieces; the real password is imperative state.
   virtualisation.vmVariant = {
     virtualisation = {

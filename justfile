@@ -29,9 +29,6 @@ wallpaper-script-check:
 check-local-bin:
   bash checks/local-bin-rot.bash
 
-xhisper-check:
-  bash checks/xhisper.bash
-
 check-flake-update:
   bash checks/flake-update.bash
   bash checks/nix-pin-nixpkgs.bash
@@ -109,7 +106,6 @@ check:
   just shell-check
   just lid-close-check
   just wallpaper-script-check
-  just xhisper-check
   just qml-lint
   just quickshell-test
   just flake-check

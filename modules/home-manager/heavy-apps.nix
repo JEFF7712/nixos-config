@@ -40,7 +40,7 @@ in
         [
           libreoffice-qt-fresh
           bitwarden-desktop
-          pkgs-stable.gimp2
+          gimp
         ]
       )
       ++ lib.optionals cfg.comms.enable (

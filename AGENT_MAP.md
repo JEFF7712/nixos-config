@@ -12,7 +12,6 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Scaffold a home-manager module | `modules/home-manager/`, `home/rupan/<host>.nix` | run `new-home-module <name>`, then edit the generated module | `just check-agent-workflows && just fmt-check` |
 | Change desktop profile behavior | `modules/home-manager/desktop-profiles.nix`, `lib/desktop-profiles/` | profile module, profile helper library | `just check-profiles && just fmt-check` |
 | Add or tune a desktop profile | `modules/home-manager/profiles/`, `home/scripts/new-profile` | `modules/home-manager/profiles/<name>.nix`, `~/nixos-assets/wallpapers/<name>/` (separate repo) | `just check-profiles && just fmt-check` |
-| Change xhisper dictation | `pkgs/xhisper-local/`, `home/configs/xhisper/`, `modules/nixos/xhisper-local.nix` | package patches, xhisperrc, popup QML | `just xhisper-check && just eval laptop` |
 | Change runtime profile scripts | `home/scripts/profile-common`, target script | `home/scripts/<script>` | `just shell-check && just wallpaper-script-check` |
 | Change lid-close / Stasis stay-awake | `home/scripts/lid-close-action`, `home/rupan/laptop.nix` | same | `just lid-close-check && just shell-check` |
 | Change Quickshell UI | `home/configs/quickshell*/`, profile bar references | QML/config files under `home/configs/quickshell*/` | `just qml-lint && just eval laptop` |
@@ -52,7 +51,7 @@ Run the smallest command that proves the touched surface; the "Validate" column 
 
 - `just check-changed [base]` - detect staged, unstaged, and untracked files, deduplicate their mapped checks, and fall back to `just check` for validation infrastructure, flake inputs, or other broad-risk surfaces. Pass a Git revision such as `origin/main` to include committed changes since that base.
 - `just quick` - fast default for low-risk Nix edits: laptop eval plus whitespace.
-- `just check` - broad local gate: agent checks, laptop-safety, local-bin, flake-update, fmt, shell/wallpaper/xhisper, qml-lint, quickshell-test, flake check, host evals, profiles, whitespace. Superset of CI. Local-only: `just eval-all` and `just check-laptop-safety` (full host evals), `just check-flake-update` (update/pin script tests), `just check-local-bin` (inspects live `~/.local/bin` and user systemd `*.service.d` drop-ins for hardcoded `/nix/store` paths), and `just quickshell-test` (needs host `quickshell` plus a Wayland display).
+- `just check` - broad local gate: agent checks, laptop-safety, local-bin, flake-update, fmt, shell/wallpaper, qml-lint, quickshell-test, flake check, host evals, profiles, whitespace. Superset of CI. Local-only: `just eval-all` and `just check-laptop-safety` (full host evals), `just check-flake-update` (update/pin script tests), `just check-local-bin` (inspects live `~/.local/bin` and user systemd `*.service.d` drop-ins for hardcoded `/nix/store` paths), and `just quickshell-test` (needs host `quickshell` plus a Wayland display).
 - `just build <host>` - realizes the closure and catches build failures eval misses. Use for package, overlay, or flake-input changes.
 - `just dry` / `just switch` - activation and final apply for laptop changes; intentional, they touch system state.
 - Escalate a task's minimum to `just check` when the change is risky, then `just build <host>` if it affects realized packages or services.

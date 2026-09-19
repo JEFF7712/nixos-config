@@ -41,12 +41,7 @@
   };
 
   niri.enable = true;
-  general-laptop.enable = true;
-  audio.enable = true;
-  ctls.enable = true;
-  bluetooth.enable = true;
-  filemanager.enable = true;
-  file-utils.enable = true;
+  # workstation (audio, bluetooth, file manager, git) defaults on.
 
   users.users.rupan = {
     isNormalUser = true;
