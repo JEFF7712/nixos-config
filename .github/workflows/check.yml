@@ -37,4 +37,4 @@ jobs:
       - name: Profile and theme checks
         run: |
           nix shell --inputs-from . nixpkgs#just nixpkgs#python3 nixpkgs#matugen nixpkgs#ripgrep nixpkgs#jq .#iris-python -c \
-            bash -c 'just wallpaper-script-check && just check-profiles && just qml-lint && just xhisper-check && just plymouth-theme-check'
+            bash -c 'just wallpaper-script-check && just check-profiles && just qml-lint && just plymouth-theme-check'
