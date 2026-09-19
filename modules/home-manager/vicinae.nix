@@ -22,7 +22,7 @@
         base.overrideAttrs (old: {
           pname = "${old.pname or "vicinae"}-top";
           postPatch = (old.postPatch or "") + ''
-            substituteInPlace src/server/src/qml/qml/LauncherWindowLayerShell.qml \
+            substituteInPlace src/server/src/ui/qml/launcher/LauncherWindowLayerShell.qml \
               --replace-fail \
                 'LayerShell.Window.anchors: LayerShell.Window.AnchorNone' \
                 'LayerShell.Window.anchors: LayerShell.Window.AnchorTop'

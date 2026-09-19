@@ -1,22 +1,22 @@
---- a/src/server/osd_window.rs
-+++ b/src/server/osd_window.rs
-@@ -29,6 +29,7 @@
+--- a/src/server/osd_window.rs	2026-09-18 08:32:16.563027247 -0500
++++ b/src/server/osd_window.rs	2026-09-18 08:32:59.969808006 -0500
+@@ -27,6 +27,7 @@
  	pub monitor: gdk::Monitor,
  	container: gtk::Box,
  	timeout_id: Rc<RefCell<Option<glib::SourceId>>>,
 +	fade_id: Rc<RefCell<Option<glib::SourceId>>>,
- }
  
- // TODO: Use custom widget
-@@ -104,6 +105,7 @@
+ 	top_margin: f32,
+ }
+@@ -73,6 +74,7 @@
  			container,
  			monitor: monitor.clone(),
  			timeout_id: Rc::new(RefCell::new(None)),
 +			fade_id: Rc::new(RefCell::new(None)),
- 		}
- 	}
  
-@@ -331,21 +333,91 @@
+ 			top_margin: *top_margin,
+ 		};
+@@ -369,24 +371,94 @@
  		}
  	}
  
@@ -79,7 +79,7 @@
 +		self.fade_id.replace(Some(id));
 +	}
 +
- 	fn run_timeout(&self) {
+ 	fn run_timeout(&self, duration: &u64) {
  		// Hide window after timeout
  		if let Some(timeout_id) = self.timeout_id.take() {
  			timeout_id.remove()
@@ -97,14 +97,17 @@
 +			self.window.set_opacity(1.0);
 +		}
 +
- 		let s = self.clone();
  		self.timeout_id.replace(Some(glib::timeout_add_local_once(
- 			Duration::from_millis(1000),
- 			move || {
--				s.window.hide();
- 				s.timeout_id.replace(None);
-+				s.animate_opacity(s.window.opacity(), 0.0, true);
- 			},
+ 			Duration::from_millis(*duration),
+ 			clone!(
+ 				#[strong(rename_to = this)]
+ 				self,
+ 				move || {
+-					this.window.hide();
+ 					this.timeout_id.replace(None);
++					this.animate_opacity(this.window.opacity(), 0.0, true);
+ 				}
+ 			),
  		)));
 -
 -		self.window.show();

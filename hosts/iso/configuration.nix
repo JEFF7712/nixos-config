@@ -53,6 +53,7 @@
     extraGroups = [
       "wheel"
       "networkmanager"
+      "dialout"
       "video"
     ];
     shell = pkgs.fish;

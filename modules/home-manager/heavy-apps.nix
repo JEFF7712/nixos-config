@@ -23,7 +23,9 @@ in
       lib.optionals cfg.media.enable (
         with pkgs;
         [
-          davinci-resolve
+          # TODO: re-enable once nixpkgs updates the davinci-resolve hash
+          # (Blackmagic silently re-uploaded the 21.1 zip + their CDN is flaky)
+          # davinci-resolve
           obs-studio
           vlc
           mpv

@@ -68,7 +68,6 @@
     # Daily LLM agent binaries. Dedicated opencode-nix flakes are archived.
     opencode-nix = {
       url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.11.0";
     compchem-cctop = {
@@ -77,7 +76,6 @@
     };
     mercury-cli = {
       url = "github:MercuryTechnologies/mercury-cli";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     globalprotect-openconnect = {
       url = "github:yuezk/GlobalProtect-openconnect";
