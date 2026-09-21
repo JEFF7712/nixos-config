@@ -43,7 +43,14 @@ fi
 
 run_adapter "$tmp_dir/stasis" stasis info || true
 pause_value=$(awk -F': *' '/^Manual Pause/{print $2; exit}' "$tmp_dir/stasis")
-if [ -z "$pause_value" ] && grep -qi "daemon not running" "$tmp_dir/stasis.err" 2>/dev/null; then
-  pause_value="daemon-down"
+if [ -z "$pause_value" ]; then
+  if grep -qi "daemon not running" "$tmp_dir/stasis.err" 2>/dev/null; then
+    pause_value="daemon-down"
+  elif grep -qi "timeout" "$tmp_dir/stasis.err" 2>/dev/null; then
+    # Stasis is deadlocked (hung after a child crash); restart it so the
+    # next poll cycle sees a healthy daemon.
+    systemctl --user restart stasis.service 2>/dev/null || true
+    pause_value="daemon-down"
+  fi
 fi
 printf 'stasis|%s\n' "$pause_value"

@@ -77,7 +77,44 @@
   # inhibit switch and auto-lock. Always restart; explicit target stops
   # on logout are still honored, but `stasis stop` while logged in will
   # be restarted.
-  systemd.user.services.stasis.Service.Restart = lib.mkForce "always";
+  systemd.user.services.stasis.Service = {
+    Restart = lib.mkForce "always";
+    RestartSec = 2;
+  };
+
+  # Stasis can deadlock after a child crash (hyprlock segfault leaves the
+  # daemon's IPC loop stuck on a futex). The process stays alive so
+  # Restart=always never fires. This watchdog pings `stasis info` every 60 s
+  # and restarts the service when it times out, recovering in ≤ 1 minute.
+  systemd.user.services.stasis-watchdog = {
+    Unit = {
+      Description = "Stasis liveness watchdog";
+      PartOf = [ "stasis.service" ];
+      After = [ "stasis.service" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = toString (
+        pkgs.writeShellScript "stasis-watchdog" ''
+          if ! timeout 5 stasis info >/dev/null 2>&1; then
+            echo "stasis unresponsive, restarting" >&2
+            systemctl --user restart stasis.service
+          fi
+        ''
+      );
+    };
+  };
+  systemd.user.timers.stasis-watchdog = {
+    Unit = {
+      Description = "Stasis liveness watchdog timer";
+      PartOf = [ "stasis.service" ];
+    };
+    Timer = {
+      OnActiveSec = "60s";
+      OnUnitActiveSec = "60s";
+    };
+    Install.WantedBy = [ "stasis.service" ];
+  };
 
   home.packages = with pkgs; [
     ibm-plex
