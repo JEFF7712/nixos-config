@@ -39,11 +39,16 @@ in
     paths = [ orca-fixed ];
     nativeBuildInputs = [ prev.makeWrapper ];
     postBuild = ''
+      # Force XWayland: native Wayland liveview needs a GStreamer GTK sink,
+      # but nixpkgs ships neither gtksink nor gtkwaylandsink (1.26 removed
+      # the former; the latter was never packaged). X11 uses wxMediaCtrl.
+      # Revert once upstream ships the FFmpeg player rewrite on main.
       wrapProgram $out/bin/orca-slicer \
         --prefix XDG_DATA_DIRS : "${prev.gsettings-desktop-schemas}/share/gsettings-schemas/${prev.gsettings-desktop-schemas.name}" \
         --prefix XDG_DATA_DIRS : "${prev.gtk3}/share/gsettings-schemas/${prev.gtk3.name}" \
         --prefix GST_PLUGIN_SYSTEM_PATH : "${gstPath}" \
-        --prefix GIO_EXTRA_MODULES : "${prev.glib-networking}/lib/gio/modules"
+        --prefix GIO_EXTRA_MODULES : "${prev.glib-networking}/lib/gio/modules" \
+        --set GDK_BACKEND "x11"
     '';
   };
 }
