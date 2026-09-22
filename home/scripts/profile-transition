@@ -121,6 +121,20 @@ notification_owner_is() {
   busctl --user status org.freedesktop.Notifications 2>/dev/null | grep -qi "$expected"
 }
 
+expected_niri_override() {
+  local override
+  override=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.default)
+  if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
+    override=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.focus)
+  fi
+  if profile_wallpaper_theming "$TARGET" \
+    && [ -f "$PROFILES_DIR/runtime-niri-active.kdl" ] \
+    && [ "$(read_state "$PROFILES_DIR/runtime-theme-profile" "")" = "$TARGET" ]; then
+    override="$PROFILES_DIR/runtime-niri-active.kdl"
+  fi
+  printf '%s\n' "$override"
+}
+
 apply_system_preferences() {
   local cursor cursor_size gtk_theme icon_theme color_scheme failed=0 cursor_json appearance
   cursor_json=$(profile_manifest_transition_json "$TARGET" cursor)
@@ -252,7 +266,11 @@ apply_niri_reload() {
 # follow immediately in post-commit via system-preferences (soft-fail with
 # the usual adapter warning).
 apply_visual_commit() {
-  apply_niri_reload
+  # Steady startup already shows the committed override (niri read it at
+  # launch); reloading here is the ~1s post-login black flash.
+  if [ "${STARTUP_STEADY:-0}" -eq 0 ]; then
+    apply_niri_reload
+  fi
   apply_wallpaper_adapter
   if [ "$TARGET_BAR" = quickshell ] && [ "$MODE" != startup ]; then
     nudge_quickshell_theme_reload
@@ -427,6 +445,18 @@ if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/manifest.json" ]; the
   CURRENT_BAR=$(profile_bar "$OLD_ACTIVE")
 fi
 TARGET_BAR=$(profile_bar "$TARGET")
+
+# Steady startup: persisted profile, variant, and Niri override already match
+# the target, so relinking the override and reloading Niri would only flicker
+# the screen. The bar is still ensured below (quickshell has no autostart
+# unit, and systemd may not have started noctalia yet).
+STARTUP_STEADY=0
+if [ "$MODE" = startup ] && [ "$WRITE_PREFERENCE" -eq 0 ] \
+  && [ "$TARGET" = "$CURRENT" ] && [ "$TARGET_VARIANT" = "$CURRENT_VARIANT" ] \
+  && [ "$(readlink "$ACTIVE_LINK" 2>/dev/null || true)" = "$(expected_niri_override)" ]; then
+  STARTUP_STEADY=1
+fi
+STARTUP_BAR_READY=0
 
 # Claim a monotonically increasing desired generation while serializing only the
 # state read. Rendering and staging happen after this short critical section;
@@ -748,8 +778,15 @@ if [ "$("$SCRIPT_DIR/profile-publish" current "$THEME_GENERATION")" != current ]
   trap 'cleanup_transaction $?' EXIT
   exit 0
 fi
+if [ "$STARTUP_STEADY" -eq 1 ] \
+  && PROFILE_TRANSITION_VERIFY_ATTEMPTS=1 verify_bar "$TARGET_BAR" >/dev/null 2>&1; then
+  STARTUP_BAR_READY=1
+fi
 if [ "$MODE" = reapply ]; then
   stop_all_bars
+elif [ "$STARTUP_BAR_READY" -eq 1 ]; then
+  # Steady startup with a live bar: leave it running.
+  :
 elif [ "$SAME_QUICKSHELL" -eq 0 ]; then
   stop_bar "$CURRENT_BAR"
 fi
@@ -761,18 +798,15 @@ if [ "$publish_result" = stale ]; then
   exit 0
 fi
 [ "$publish_result" = published ] || exit 1
-NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.default)
-if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
-  NIRI_OVERRIDE=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.focus)
+NIRI_OVERRIDE=$(expected_niri_override)
+if [ "$STARTUP_STEADY" -eq 0 ]; then
+  link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
 fi
-if profile_wallpaper_theming "$TARGET" \
-  && [ -f "$PROFILES_DIR/runtime-niri-active.kdl" ] \
-  && [ "$(read_state "$PROFILES_DIR/runtime-theme-profile" "")" = "$TARGET" ]; then
-  NIRI_OVERRIDE="$PROFILES_DIR/runtime-niri-active.kdl"
-fi
-link_atomic "$ACTIVE_LINK" "$NIRI_OVERRIDE"
 write_pending_identity "$TARGET" "$TARGET_VARIANT"
-if [ "$SAME_QUICKSHELL" -eq 1 ]; then
+if [ "$STARTUP_BAR_READY" -eq 1 ]; then
+  # Steady startup with a live bar: already verified above.
+  :
+elif [ "$SAME_QUICKSHELL" -eq 1 ]; then
   # Process may be up but not ready (e.g. lost notification bus). Never launch a
   # second Quickshell beside a live one — stop first, then restart cleanly.
   if ! verify_bar quickshell; then

@@ -256,6 +256,83 @@ check_engine_variant_noops() {
     "explicit current variant stops before core mutation"
 }
 
+check_startup_steady_state() {
+  local output="$tmpdir/startup-steady.out"
+
+  printf 'off\n' > "$profiles/focus"
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-old"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  cp "$profiles/old/gtk-3.0.css" "$home/.config/gtk-3.0/noctalia.css"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
+  : > "$log"
+  run_fixture_transition startup >"$output" 2>&1 || {
+    printf 'FAIL: steady startup exited nonzero\n' >&2
+    cat "$output" >&2
+    exit 1
+  }
+  assert_eq old "$(cat "$profiles/active")" \
+    "steady startup preserves the active profile"
+  assert_eq dark "$(cat "$profiles/active-variant")" \
+    "steady startup preserves the active variant"
+  assert_eq "$profiles/old/niri-overrides.kdl" \
+    "$(readlink "$profiles/active-niri-overrides.kdl")" \
+    "steady startup leaves the Niri override linked"
+  assert_log_contains "systemctl --user is-active --quiet quickshell-bar.service" \
+    "steady startup verifies the running bar before leaving it alone"
+  assert_log_not_contains "systemctl --user stop quickshell-bar.service" \
+    "steady startup does not stop the running bar"
+  assert_log_not_contains "systemctl --user start quickshell-bar.service" \
+    "steady startup does not restart the running bar"
+  assert_log_not_contains 'niri msg action load-config-file' \
+    "steady startup does not reload Niri"
+  assert_log_contains 'awww img' \
+    "steady startup still refreshes the boot wallpaper"
+  assert_pending_cleared "steady startup"
+
+  printf 'off\n' > "$profiles/focus"
+  printf 'old\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-old"
+  ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'stopped\n' > "$bar_state"
+  printf 'none\n' > "$notification_state"
+  : > "$log"
+  run_fixture_transition startup >"$output" 2>&1 || {
+    printf 'FAIL: steady startup with a stopped bar exited nonzero\n' >&2
+    cat "$output" >&2
+    exit 1
+  }
+  assert_log_contains "systemctl --user start quickshell-bar.service" \
+    "steady startup with a stopped bar still starts it"
+  assert_log_not_contains 'niri msg action load-config-file' \
+    "steady bar start does not reload Niri"
+  assert_eq quickshell-started "$(cat "$bar_state")" \
+    "steady startup leaves the bar running"
+
+  printf 'off\n' > "$profiles/focus"
+  printf 'noc\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-noc"
+  ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf 'noctalia-started\n' > "$bar_state"
+  printf 'noctalia\n' > "$notification_state"
+  : > "$log"
+  run_fixture_transition startup >"$output" 2>&1 || {
+    printf 'FAIL: steady noctalia startup exited nonzero\n' >&2
+    cat "$output" >&2
+    exit 1
+  }
+  assert_log_not_contains 'systemctl --user stop noctalia-shell' \
+    "steady noctalia startup does not stop the running shell"
+  assert_log_not_contains 'systemctl --user start noctalia-shell' \
+    "steady noctalia startup does not restart the running shell"
+  assert_log_not_contains 'niri msg action load-config-file' \
+    "steady noctalia startup does not reload Niri"
+}
+
 check_variant_resolves_after_lock() {
   local pid output="$tmpdir/variant-after-lock.out" hook="$tmpdir/variant-after-lock-hook"
 
@@ -1670,6 +1747,7 @@ assert_eq 'B quickshell' "$(cat "$publish_profiles/runtime-quickshell-theme.json
 check_post_commit_adapter_isolation
 check_status_accepts_runtime_niri
 check_engine_variant_noops
+check_startup_steady_state
 check_variant_resolves_after_lock
 check_lock_contention_is_nonblocking
 check_public_delegation
