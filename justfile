@@ -40,6 +40,8 @@ check-agent-docs:
 check-agent-workflows:
   bash checks/agent-workflows.bash
 
+# Impure standalone eval of laptop-safety asserts; `nix flake check` owns the
+# same asserts via flake.checks.laptop-safety — prefer flake-check.
 check-laptop-safety:
   nix eval --impure --no-write-lock-file --expr 'let config = (builtins.getFlake (toString ./.)).nixosConfigurations.laptop.config; in import ./checks/laptop-safety.nix { inherit config; }'
 
@@ -97,7 +99,6 @@ diff-check base="HEAD":
 check:
   just check-agent-docs
   just check-agent-workflows
-  just check-laptop-safety
   just impermanence-check
   just plymouth-theme-check
   just check-local-bin
@@ -110,7 +111,6 @@ check:
   just quickshell-test
   just flake-check
   just flake-check-shells
-  just eval-all
   just check-profiles
   just diff-check
 

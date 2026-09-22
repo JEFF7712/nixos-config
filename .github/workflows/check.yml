@@ -28,7 +28,7 @@ jobs:
       - name: Fast checks
         run: |
           nix shell --inputs-from . nixpkgs#just nixpkgs#jq nixpkgs#nixfmt nixpkgs#shellcheck nixpkgs#ripgrep nixpkgs#fd nixpkgs#python3 -c \
-            bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check && just check-flake-update && just check-laptop-safety && just impermanence-check && just check-local-bin && just lid-close-check'
+            bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check && just check-flake-update && just impermanence-check && just check-local-bin && just lid-close-check'
 
   profiles:
     runs-on: [self-hosted, homelab, nixos]

@@ -40,16 +40,43 @@
       };
     };
 
+    # Reapply only when profile state actually changed: full switch-profile
+    # runs the whole transition pipeline on every switch otherwise. Stamp
+    # covers active/variant plus every profile manifest (HM-refreshed).
+    # Failures warn instead of dying silently; dry-activate must not mutate.
     home.activation.initVicinaeProfileTheme =
       lib.hm.dag.entryAfter
         [
           "writeBoundary"
           "initDesktopProfiles"
+          "initDesktopProfileLiveConfigs"
         ]
         ''
-          mkdir -p "${config.xdg.configHome}/vicinae/themes"
+          $DRY_RUN_CMD mkdir -p "${config.xdg.configHome}/vicinae/themes"
           if [ -x "$HOME/.local/bin/switch-profile" ]; then
-            "$HOME/.local/bin/switch-profile" --reapply >/dev/null 2>&1 || true
+            state_dir="$HOME/.local/state/desktop-profiles"
+            stamp="$state_dir/reapply.stamp"
+            sig=$(
+              {
+                cat "$HOME/.config/desktop-profiles/active" 2>/dev/null || true
+                cat "$HOME/.config/desktop-profiles/active-variant" 2>/dev/null || true
+                find "$HOME/.config/desktop-profiles" -name manifest.json -print0 2>/dev/null \
+                  | sort -z | xargs -0 -r sha256sum
+              } | sha256sum | cut -d' ' -f1
+            )
+            prev=$(cat "$stamp" 2>/dev/null || echo "")
+            if [ "$prev" != "$sig" ]; then
+              if [ -n "''${DRY_RUN_CMD:-}" ]; then
+                $DRY_RUN_CMD "$HOME/.local/bin/switch-profile" --reapply
+              else
+                $DRY_RUN_CMD mkdir -p "$state_dir"
+                if ! "$HOME/.local/bin/switch-profile" --reapply >/dev/null; then
+                  echo "warning: switch-profile --reapply failed" >&2
+                else
+                  printf '%s' "$sig" > "$stamp"
+                fi
+              fi
+            fi
           fi
         '';
   };

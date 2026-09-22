@@ -68,14 +68,19 @@
     # Daily LLM agent binaries. Dedicated opencode-nix flakes are archived.
     opencode-nix = {
       url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-agent.url = "github:JEFF7712/nix-agent?ref=v0.11.0";
+    nix-agent = {
+      url = "github:JEFF7712/nix-agent?ref=v0.11.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     compchem-cctop = {
       url = "github:JEFF7712/cctop";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     mercury-cli = {
       url = "github:MercuryTechnologies/mercury-cli";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     globalprotect-openconnect = {
       url = "github:yuezk/GlobalProtect-openconnect";
@@ -85,7 +90,10 @@
       url = "github:saltnpepper97/stasis";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    vicinae.url = "github:vicinaehq/vicinae";
+    vicinae = {
+      url = "github:vicinaehq/vicinae";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     terax = {
       url = "github:JEFF7712/terax-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -113,6 +121,15 @@
         { pkgs, ... }:
         {
           packages.iris-python = pkgs.callPackage ./pkgs/iris-python { };
+          # Forces checks/laptop-safety.nix asserts at eval; owned by
+          # `nix flake check` so just/CI need no separate impure eval.
+          checks.laptop-safety = pkgs.runCommand "laptop-safety" { } ''
+            echo ${
+              builtins.seq (import ./checks/laptop-safety.nix {
+                config = self.nixosConfigurations.laptop.config;
+              }) "ok"
+            } > $out
+          '';
           treefmt = {
             projectRootFile = "flake.nix";
             programs.nixfmt.enable = true;

@@ -1,14 +1,19 @@
 {
   pkgs,
-  inputs,
-  lib,
   ...
 }:
 
 {
+  # Curated list (not import-tree): recovery image enables a handful of
+  # features; the full module tree drags in nixvim's LSP toolchain, vicinae,
+  # ai-tools, and every profile just to mkForce most of it off again.
   imports = [
     ./home.nix
-    (inputs.import-tree ../../modules/home-manager)
+    ../../modules/home-manager/repo-path.nix
+    ../../modules/home-manager/terminal.nix
+    ../../modules/home-manager/niri.nix
+    ../../modules/home-manager/noctalia.nix
+    ../../modules/home-manager/desktop-profiles.nix
   ];
 
   # Install/recovery media, not a daily driver. common-apps (calibre, spotify
@@ -42,15 +47,11 @@
   noctalia.enable = true;
   terminal.enable = true;
 
-  # nixvim drags in the whole LSP toolchain (clang-lib, llvm-lib, pyright:
-  # ~1.6G uncompressed) for an editor nobody writes code in on install media.
-  # Plain neovim is already in the ISO's environment.systemPackages.
-  programs.nixvim.enable = lib.mkForce false;
-
   # Runtime theme switching costs ~1G here, most of it six cursor themes that
   # each profile pins plus matugen/imagemagick. noctalia's ExecCondition falls
   # back to "noctalia" when the active-profile file is missing, so the shell
-  # still comes up; it just comes up unthemed.
+  # still comes up; it just comes up unthemed. nixvim.nix is not imported, so
+  # the LSP toolchain never evaluates on this host.
   desktopProfiles.enable = false;
 
   # Scripts — symlink home/scripts/ into ~/.local/bin

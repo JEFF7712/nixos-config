@@ -39,7 +39,7 @@ classify() {
     home/scripts/profile-* | home/scripts/switch-profile | home/scripts/toggle-variant | \
       home/scripts/random-wallpaper | home/scripts/waypaper-backend-sync | \
       home/scripts/lock-screen | home/scripts/iris.py | home/scripts/iris-render.py | \
-      home/scripts/temperature-render.py | home/scripts/merge-ini-section.py)
+      home/scripts/temperature-render.py | home/scripts/merge-ini-section)
       add shell-check
       add wallpaper-script-check
       add check-profiles

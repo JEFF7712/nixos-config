@@ -26,6 +26,13 @@ in
   options.impermanence.enable = lib.mkEnableOption "ephemeral btrfs root with declared state in /persist";
 
   config = lib.mkIf config.impermanence.enable {
+    assertions = [
+      {
+        assertion = config.boot.initrd.systemd.enable;
+        message = "impermanence requires boot.initrd.systemd.enable (rollback-root runs in the initrd).";
+      }
+    ];
+
     fileSystems."/persist".neededForBoot = true;
 
     services.userborn = {
@@ -103,7 +110,6 @@ in
       timerConfig = {
         OnBootSec = "15min";
         OnUnitActiveSec = "1d";
-        Persistent = true;
         RandomizedDelaySec = "30min";
       };
     };
@@ -139,8 +145,10 @@ in
             mode = "0700";
           }
           "/var/lib/bluetooth"
-          "/var/lib/docker"
+          # Rootful podman only; rootless docker/podman live under /home.
           "/var/lib/containers"
+          # Rootless docker state is under /home; no rootful dockerd here.
+          "/var/lib/waydroid"
           "/var/lib/netbird"
           # DynamicUser state; systemd requires 0700.
           {

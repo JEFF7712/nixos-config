@@ -26,6 +26,9 @@
         # dependencies here.
       };
       Service = {
+        # Secret comes from sops; without secrets.enable the symlink dangles
+        # and Restart=on-failure would loop forever. Skip cleanly instead.
+        ExecCondition = "${pkgs.coreutils}/bin/test -r /run/secrets/attic-config-toml";
         ExecStart = "${pkgs.attic-client}/bin/attic watch-store homelab";
         Restart = "on-failure";
         RestartSec = 30;

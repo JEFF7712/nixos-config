@@ -45,6 +45,9 @@ let
   spiceState = ".local/share/spotify-spiced";
   spicetifyBin = "${pkgs.spicetify-cli}/bin/spicetify";
   extList = builtins.concatStringsSep "|" (map (e: e.name) spiceExtensions);
+  # Store paths fold into the apply stamp so a theme/extension bump re-applies.
+  spiceSig = lib.concatMapStringsSep "|" (t: toString t.src) spiceThemes;
+  extSig = lib.concatMapStringsSep "|" (e: toString e.src) spiceExtensions;
   spotifyLauncher = pkgs.writeShellScriptBin "spotify" ''
     exec "$HOME/${spiceState}/app/spotify" "$@"
   '';
@@ -152,83 +155,100 @@ in
     };
 
     # Rebuild the writable Spotify copy when the store path changes (stamp).
-    home.activation.spicetifyMutable = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      export SPICETIFY_CONFIG="$HOME/.config/spicetify"
-      state="$HOME/${spiceState}"
-      src="${pkgs.spotify}/share/spotify"
-      stamp="$state/.store-path"
+    # initDesktopProfiles: reads ~/.config/desktop-profiles/active for the theme pick.
+    home.activation.spicetifyMutable =
+      lib.hm.dag.entryAfter
+        [
+          "writeBoundary"
+          "initDesktopProfiles"
+        ]
+        ''
+          export SPICETIFY_CONFIG="$HOME/.config/spicetify"
+          state="$HOME/${spiceState}"
+          src="${pkgs.spotify}/share/spotify"
+          stamp="$state/.store-path"
 
-      if [ "$(cat "$stamp" 2>/dev/null)" != "${pkgs.spotify}" ]; then
-        run rm -rf "$state/app"
-        run mkdir -p "$state"
-        run cp -r "$src" "$state/app"
-        run chmod -R u+w "$state/app"
-        run sed -i "s|$src/.spotify-wrapped|$state/app/.spotify-wrapped|g" "$state/app/spotify"
-        run sh -c "echo '${pkgs.spotify}' > '$stamp'"
-        # Stale Backup/version records make later `spicetify apply` fail.
-        run rm -rf "$SPICETIFY_CONFIG/Backup" "$SPICETIFY_CONFIG/config-xpui.ini"
-        fresh=1
-      fi
+          if [ "$(cat "$stamp" 2>/dev/null)" != "${pkgs.spotify}" ]; then
+            run rm -rf "$state/app"
+            run mkdir -p "$state"
+            run cp -r "$src" "$state/app"
+            run chmod -R u+w "$state/app"
+            run sed -i "s|$src/.spotify-wrapped|$state/app/.spotify-wrapped|g" "$state/app/spotify"
+            run sh -c "echo '${pkgs.spotify}' > '$stamp'"
+            # Stale Backup/version records make later `spicetify apply` fail.
+            run rm -rf "$SPICETIFY_CONFIG/Backup" "$SPICETIFY_CONFIG/config-xpui.ini"
+            fresh=1
+          fi
 
-      run mkdir -p "$SPICETIFY_CONFIG/Themes" "$SPICETIFY_CONFIG/Extensions" "$HOME/.config/spotify"
-      ${lib.concatMapStringsSep "\n" (t: ''
-        td="$SPICETIFY_CONFIG/Themes/${t.name}"
-        # Vendored store copies can be read-only; chmod so rm -rf can replace them.
-        chmod -R u+w "$td" 2>/dev/null || true
-        run rm -rf "$td"
-        run cp -r "${t.src}" "$td"
-        run chmod -R u+w "$td"
-        # Remote @import user.css is CSP-blocked; swap in bundled app.css.
-        if [ -f "$td/app.css" ] && grep -qE 'import +url\(.*https?:' "$td/user.css" 2>/dev/null; then
-          run cp "$td/app.css" "$td/user.css"
-        fi
-        # inject_theme_js loads theme.script.js only for the active theme.
-        if [ -f "$td/theme.js" ] && [ ! -f "$td/theme.script.js" ]; then
-          run cp "$td/theme.js" "$td/theme.script.js"
-        fi
-        ${lib.optionalString (t.addCss != null) ''run sh -c "cat '${t.addCss}' >> '$td/user.css'"''}
-        ${lib.optionalString (t.assets != null) ''
-          run mkdir -p "$td/assets"
-          run sh -c "cp -r '${t.assets}/.' '$td/assets/'"
-          run chmod -R u+w "$td/assets"
-          run sed -i "s|${t.rewrite}||g" "$td/user.css"
-        ''}
-        ${lib.optionalString (t.patch != null) ''run sh -c "cat '${t.patch}' >> '$td/user.css'"''}
-      '') spiceThemes}
-      ${lib.concatMapStringsSep "\n      " (
-        e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
-      ) spiceExtensions}
+          run mkdir -p "$SPICETIFY_CONFIG/Themes" "$SPICETIFY_CONFIG/Extensions" "$HOME/.config/spotify"
+          ${lib.concatMapStringsSep "\n" (t: ''
+            td="$SPICETIFY_CONFIG/Themes/${t.name}"
+            # Vendored store copies can be read-only; chmod so rm -rf can replace them.
+            # Must honor DRY_RUN_CMD: mutating during dry-activate is a bug.
+            $DRY_RUN_CMD chmod -R u+w "$td" 2>/dev/null || true
+            run rm -rf "$td"
+            run cp -r "${t.src}" "$td"
+            run chmod -R u+w "$td"
+            # Remote @import user.css is CSP-blocked; swap in bundled app.css.
+            if [ -f "$td/app.css" ] && grep -qE 'import +url\(.*https?:' "$td/user.css" 2>/dev/null; then
+              run cp "$td/app.css" "$td/user.css"
+            fi
+            # inject_theme_js loads theme.script.js only for the active theme.
+            if [ -f "$td/theme.js" ] && [ ! -f "$td/theme.script.js" ]; then
+              run cp "$td/theme.js" "$td/theme.script.js"
+            fi
+            ${lib.optionalString (t.addCss != null) ''run sh -c "cat '${t.addCss}' >> '$td/user.css'"''}
+            ${lib.optionalString (t.assets != null) ''
+              run mkdir -p "$td/assets"
+              run sh -c "cp -r '${t.assets}/.' '$td/assets/'"
+              run chmod -R u+w "$td/assets"
+              run sed -i "s|${t.rewrite}||g" "$td/user.css"
+            ''}
+            ${lib.optionalString (t.patch != null) ''run sh -c "cat '${t.patch}' >> '$td/user.css'"''}
+          '') spiceThemes}
+          ${lib.concatMapStringsSep "\n      " (
+            e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
+          ) spiceExtensions}
 
-      run ${spicetifyBin} config \
-        spotify_path "$state/app" \
-        prefs_path "$HOME/.config/spotify/prefs" \
-        inject_css 1 replace_colors 1 overwrite_assets 1 \
-        extensions "${extList}" > /dev/null 2>&1 || true
+          run ${spicetifyBin} config \
+            spotify_path "$state/app" \
+            prefs_path "$HOME/.config/spotify/prefs" \
+            inject_css 1 replace_colors 1 overwrite_assets 1 \
+            extensions "${extList}" > /dev/null 2>&1 || true
 
-      # Re-apply the active profile's theme so a rebuild doesn't leave Spotify stale.
-      sp_active=$(cat "$HOME/.config/desktop-profiles/active" 2>/dev/null || echo "")
-      sp_variant=$(cat "$HOME/.config/desktop-profiles/active-variant" 2>/dev/null || echo "dark")
-      sp_theme=Comfy
-      sp_scheme=Comfy
-      sp_js=0
-      if [ -n "$sp_active" ]; then
-        sp_pick=$(${config.repoPath}/home/scripts/profile-manifest adapter \
-          "$sp_active" "$sp_variant" spicetify 2>/dev/null || true)
-        if [ -n "$sp_pick" ]; then
-          sp_theme=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.theme // "Comfy"')
-          sp_scheme=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.scheme // "Comfy"')
-          sp_js=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.js // 0')
-        fi
-      fi
-      run ${spicetifyBin} config current_theme "$sp_theme" color_scheme "$sp_scheme" inject_theme_js "$sp_js" > /dev/null 2>&1 || true
+          # Re-apply the active profile's theme so a rebuild doesn't leave Spotify stale.
+          sp_active=$(cat "$HOME/.config/desktop-profiles/active" 2>/dev/null || echo "")
+          sp_variant=$(cat "$HOME/.config/desktop-profiles/active-variant" 2>/dev/null || echo "dark")
+          sp_theme=Comfy
+          sp_scheme=Comfy
+          sp_js=0
+          if [ -n "$sp_active" ]; then
+            sp_pick=$(${config.repoPath}/home/scripts/profile-manifest adapter \
+              "$sp_active" "$sp_variant" spicetify 2>/dev/null || true)
+            if [ -n "$sp_pick" ]; then
+              sp_theme=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.theme // "Comfy"')
+              sp_scheme=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.scheme // "Comfy"')
+              sp_js=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.js // 0')
+            fi
+          fi
+          run ${spicetifyBin} config current_theme "$sp_theme" color_scheme "$sp_scheme" inject_theme_js "$sp_js" > /dev/null 2>&1 || true
 
-      # -n: don't restart a running Spotify; patched xpui loads on next launch.
-      if [ -n "''${fresh:-}" ] || [ -e "$state/app/Apps/xpui.spa" ]; then
-        run ${spicetifyBin} -n backup apply > /dev/null 2>&1 || true
-      else
-        run ${spicetifyBin} -n apply > /dev/null 2>&1 || true
-      fi
-    '';
+          # -n: don't restart a running Spotify; patched xpui loads on next launch.
+          # Apply is a ~100MB spa rezip; stamp so unchanged rebuilds skip it.
+          apply_stamp="$state/.apply-stamp"
+          apply_sig="${pkgs.spotify}|$sp_active|$sp_variant|$sp_theme|$sp_scheme|$sp_js|${spiceSig}|${extSig}"
+          prev_apply=$(cat "$apply_stamp" 2>/dev/null || echo "")
+          if [ -n "''${fresh:-}" ] || [ "$prev_apply" != "$apply_sig" ]; then
+            if [ -e "$state/app/Apps/xpui.spa" ] || [ -n "''${fresh:-}" ]; then
+              run ${spicetifyBin} -n backup apply > /dev/null 2>&1 || echo "spicetify: backup apply failed" >&2
+            else
+              run ${spicetifyBin} -n apply > /dev/null 2>&1 || echo "spicetify: apply failed" >&2
+            fi
+            if [ -z "''${DRY_RUN_CMD:-}" ]; then
+              printf '%s' "$apply_sig" > "$apply_stamp"
+            fi
+          fi
+        '';
 
     programs.vscode = {
       enable = true;

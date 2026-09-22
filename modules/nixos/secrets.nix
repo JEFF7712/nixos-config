@@ -26,6 +26,11 @@
       };
     };
 
+    # sshd stays off, but a fresh install / wiped /persist/etc/ssh still
+    # needs a host key or sops cannot decrypt at activation. Upstream only
+    # generates keys when openssh.enable is true unless this is set.
+    services.openssh.generateHostKeys = lib.mkDefault true;
+
     environment.systemPackages = with pkgs; [
       sops
       age

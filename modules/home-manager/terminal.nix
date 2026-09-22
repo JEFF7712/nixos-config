@@ -1,5 +1,4 @@
 {
-  inputs,
   pkgs,
   lib,
   config,
@@ -8,50 +7,8 @@
 
 {
   options.terminal.enable = lib.mkEnableOption "user terminal config";
-  imports = [ inputs.nixvim.homeModules.nixvim ];
 
   config = lib.mkIf config.terminal.enable {
-
-    programs.nixvim = {
-      enable = true;
-      nixpkgs.source = inputs.nixpkgs;
-      colorschemes.oxocarbon.enable = true;
-      opts = {
-        number = true;
-        shiftwidth = 2;
-        expandtab = true;
-      };
-
-      plugins = {
-        lualine.enable = true;
-        web-devicons.enable = true;
-        telescope.enable = true;
-        treesitter.enable = true;
-        neo-tree.enable = true;
-
-        cmp = {
-          enable = true;
-          settings.sources = [
-            { name = "nvim_lsp"; }
-            { name = "path"; }
-            { name = "buffer"; }
-          ];
-          settings.mapping = {
-            "<C-Space>" = "cmp.mapping.complete()";
-            "<CR>" = "cmp.mapping.confirm({ select = true })";
-          };
-        };
-
-        lsp = {
-          enable = true;
-          servers = {
-            nixd.enable = true;
-            pyright.enable = true;
-            clangd.enable = true;
-          };
-        };
-      };
-    };
 
     home.packages = with pkgs; [
       eza

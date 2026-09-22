@@ -250,9 +250,15 @@ in
         break
       done
 
+      # hyprlock.conf sources both; engines write colors only after the first
+      # profile apply, so seed an empty colors file or early locks error out.
       if [ ! -e "$HOME/.config/hypr/profile-motion.conf" ]; then
         $DRY_RUN_CMD install -Dm644 "$CFG/hypr/profile-motion.conf" \
           "$HOME/.config/hypr/profile-motion.conf"
+      fi
+      if [ ! -e "$HOME/.config/hypr/profile-colors.conf" ]; then
+        $DRY_RUN_CMD install -Dm644 /dev/null \
+          "$HOME/.config/hypr/profile-colors.conf"
       fi
       if [ ! -e "$HOME/.config/swayosd-motion.css" ]; then
         $DRY_RUN_CMD install -Dm644 "$CFG/swayosd-motion.css" \

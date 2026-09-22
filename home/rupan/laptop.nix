@@ -190,6 +190,7 @@
     };
   };
   terminal.enable = true;
+  nixvim.enable = true;
   common-apps.enable = true;
   heavy-apps = {
     media.enable = true;
