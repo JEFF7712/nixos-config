@@ -71,4 +71,23 @@ jobs:
           exit 0
         fi
         attic login homelab "$ATTIC_ENDPOINT" "$ATTIC_TOKEN"
-        attic push homelab "$(cat /tmp/iso-out-paths.txt)"
+        # Attic push is content-addressed with server-side dedup, so a retry
+        # resumes where the previous attempt left off. The runner-to-Attic
+        # link drops intermittently (upload-path timeouts); retry with
+        # backoff instead of failing the whole job on one blip.
+        attempt=1
+        max_attempts=5
+        while [ "$attempt" -le "$max_attempts" ]; do
+          if attic push homelab "$(cat /tmp/iso-out-paths.txt)"; then
+            echo "Attic push succeeded on attempt $attempt."
+            exit 0
+          fi
+          if [ "$attempt" -eq "$max_attempts" ]; then
+            echo "::error::Attic push failed after $max_attempts attempts."
+            exit 1
+          fi
+          sleep_seconds=$((60 * attempt))
+          echo "Attic push attempt $attempt failed; retrying in ${sleep_seconds}s."
+          sleep "$sleep_seconds"
+          attempt=$((attempt + 1))
+        done
