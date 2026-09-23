@@ -37,6 +37,15 @@ if [ "$PROFILE" = "noctalia" ]; then
   # locked. `noctalia-shell` survives only as the systemd unit name.
   exec noctalia msg session lock
 else
+  # Idle timer, lid-close-action, and Stasis prepare_sleep_command all fire
+  # this script, often for the same suspend. A second hyprlock can never own
+  # the session lock (niri logs "refusing lock as already locked"), and the
+  # loser lingers: later it grabs a dead lock ("replacing existing dead
+  # lock") or stalls post-resume with no input accepted, forcing a hard
+  # power-off. One instance only.
+  if pgrep -x hyprlock >/dev/null 2>&1; then
+    exit 0
+  fi
   PROFILE_DIR="$PROFILES_DIR/$PROFILE"
   THEME_FILE="$PROFILE_DIR/quickshell-theme.json"
   WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
@@ -148,6 +157,8 @@ animations {
 background {
     monitor =
     path = $wallpaper
+    # Deterministic backdrop if the image texture fails (e.g. post-resume).
+    color = $(rgb_color "$surface" "171b22")
     blur_passes = 2
     blur_size = 5
     noise = 0.008

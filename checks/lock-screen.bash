@@ -55,6 +55,7 @@ printf 'dark\n' > "$profiles/active-variant"
 
 cat > "$bin_dir/hyprlock" <<'EOF'
 #!/usr/bin/env bash
+printf 'spawned\n' >> "$HYPRLOCK_CONFIG_COPY.spawned"
 config=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -110,6 +111,28 @@ HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
 generated=$(cat "$config_copy")
 assert_contains '$font = Try Font UI' "$generated" "try-font override wins over the manifest UI font"
 assert_contains '$mono_font = Try Font Mono' "$generated" "try-font override wins over the manifest mono font"
+assert_contains 'color = rgb(' "$generated" "lock background has a solid fallback if the image texture fails"
+
+# A running hyprlock already owns the session lock: exit 0 without spawning
+# a second instance (niri refuses it, the loser lingers and can stall input
+# post-resume, forcing a hard power-off).
+printf 'nord\n' > "$profiles/active"
+rm -f "$config_copy.spawned"
+cat > "$bin_dir/pgrep" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1 $2" = "-x hyprlock" ]; then
+  exit 0
+fi
+exec "$REAL_PGREP" "$@"
+EOF
+chmod +x "$bin_dir/pgrep"
+real_pgrep=$(command -v pgrep)
+
+HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
+  HYPRLOCK_CONFIG_COPY="$config_copy" REAL_JQ="$real_jq" REAL_PGREP="$real_pgrep" PATH="$bin_dir:$PATH" \
+  "$REPO_ROOT/home/scripts/lock-screen"
+
+assert_eq "" "$(cat "$config_copy.spawned" 2>/dev/null || true)" "second hyprlock is not spawned while one runs"
 
 printf 'noctalia\n' > "$profiles/active"
 mkdir -p "$profiles/noctalia"
