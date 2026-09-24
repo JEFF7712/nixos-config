@@ -51,6 +51,20 @@ let
   spotifyLauncher = pkgs.writeShellScriptBin "spotify" ''
     exec "$HOME/${spiceState}/app/spotify" "$@"
   '';
+  autoTabDiscardId = "{c2c003ee-bd69-42a2-b0e9-6f34222cb046}";
+  autoTabDiscard =
+    pkgs.runCommand "auto-tab-discard-0.7.3"
+      {
+        passthru.addonId = autoTabDiscardId;
+      }
+      ''
+        install -Dm644 ${
+          pkgs.fetchurl {
+            url = "https://addons.mozilla.org/firefox/downloads/file/4978053/auto_tab_discard-0.7.3.xpi";
+            hash = "sha256-ZqmHOOad+a18eusSpJXFiA0fVvuTYQ9RzTIHqbc+5wI=";
+          }
+        } "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/${autoTabDiscardId}.xpi"
+      '';
 in
 {
   options.common-apps.enable = lib.mkEnableOption "common-apps";
@@ -69,7 +83,23 @@ in
     programs.firefox = {
       enable = true;
       configPath = ".mozilla/firefox";
-      profiles."09longn9.default-release" = { };
+      globalExtensions = [
+        {
+          package = autoTabDiscard;
+          settings.installation_mode = "normal_installed";
+        }
+      ];
+      profiles."09longn9.default-release".extensions.settings.${autoTabDiscardId} = {
+        force = true;
+        settings = {
+          period = 3600;
+          number = 1;
+          pinned = true;
+          audio = true;
+          paused = true;
+          form = true;
+        };
+      };
     };
 
     xdg.mimeApps = {

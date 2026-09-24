@@ -41,6 +41,7 @@
         shellcheck
         nurl
         nix-init
+        usbutils
       ]
       ++ [
         inputs.compchem-cctop.packages.${system}.default

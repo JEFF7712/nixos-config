@@ -101,11 +101,6 @@ Scope {
         Quickshell.execDetached(["systemctl", "poweroff"]);
     }
 
-    Component.onCompleted: {
-        root._requestMetrics();
-        root._requestDisk();
-        root._requestMetadata();
-    }
     Component.onDestruction: {
         metricsTimer.stop();
         metadataTimer.stop();
@@ -116,8 +111,11 @@ Scope {
     }
 
     onDetailedMonitoringChanged: {
-        if (detailedMonitoring)
+        if (detailedMonitoring) {
+            root._requestMetrics();
+            root._requestDisk();
             root._requestMetadata();
+        }
     }
 
     Process {
@@ -150,7 +148,7 @@ Scope {
     Timer {
         id: metricsTimer
         interval: 3000
-        running: true
+        running: root.detailedMonitoring
         repeat: true
         onTriggered: root._requestMetrics()
     }
@@ -158,7 +156,7 @@ Scope {
     Timer {
         id: diskTimer
         interval: 60000
-        running: true
+        running: root.detailedMonitoring
         repeat: true
         onTriggered: root._requestDisk()
     }
