@@ -103,6 +103,14 @@ in
         userServices = true;
       };
     };
+
+    networking.hosts = {
+      "10.0.30.20" = [
+        "git.internal"
+        "s3.internal"
+      ];
+    };
+
     networking.firewall = {
       allowedTCPPorts = [
         7000

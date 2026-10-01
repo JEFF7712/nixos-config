@@ -14,6 +14,58 @@ agent_hooks_in_repo_cwd || agent_hooks_ok_exit
 cmd=$(agent_hooks_shell_command)
 [ -n "$cmd" ] || agent_hooks_ok_exit
 
+# $1 is one shell segment. Prints the MCP redirect message and returns 0
+# when the segment is a local Nix operation covered by the nix-agent MCP
+# server. Remote-target operations (--target-host, --use-remote-sudo) are
+# never matched: privileged MCP tools reject remote refs by design.
+agent_hooks_nix_redirect_segment() {
+  local segment=$1 words
+  segment=$(agent_hooks_strip_env_prefix "$(agent_hooks_trim "$segment")")
+  segment=${segment#sudo }
+  segment=$(agent_hooks_trim "$segment")
+  case "$segment" in
+    *--target-host* | *--use-remote-sudo*) return 1 ;;
+  esac
+  read -r -a words <<<"$segment" || return 1
+  [ "${#words[@]}" -gt 1 ] || return 1
+  case "${words[0]} ${words[1]}" in
+    "nixos-rebuild switch" | "nixos-rebuild boot" | "nixos-rebuild test" | \
+      "nixos-rebuild dry-activate" | "nixos-rebuild build")
+      printf '%s' "Use the nix-agent MCP tool instead of shell: switch() activates (records rollback_generation, reports summary.health), check(\"dry-activate\") previews, build() builds without activating. Raw nixos-rebuild output bypasses the structured envelope."
+      return 0
+      ;;
+    "home-manager switch" | "home-manager build")
+      printf '%s' "Use the nix-agent MCP tool instead of shell: switch(mode=\"home-manager\") activates, build(mode=\"home-manager\") builds without activating."
+      return 0
+      ;;
+    "nix build")
+      case "$segment" in
+        *toplevel* | *activationPackage*)
+          printf '%s' "Use the nix-agent MCP tool instead of shell: build() builds the closure and carries failed_derivation on failure. Raw nix build output bypasses the structured envelope."
+          return 0
+          ;;
+      esac
+      return 1
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# True when any &&/||/;/| segment is a covered local Nix operation. Prints
+# the first redirect message.
+agent_hooks_nix_redirect() {
+  local segment message
+  while IFS= read -r segment; do
+    if message=$(agent_hooks_nix_redirect_segment "$segment"); then
+      printf '%s' "$message"
+      return 0
+    fi
+  done < <(agent_hooks_shell_segments "$1")
+  return 1
+}
+
 if agent_hooks_is_shotgun_git_add "$cmd"; then
   agent_hooks_emit_deny \
     "Do not use git add . / git add -A / git add --all. Stage the specific files changed; hooks/after-edit already stages newly created files."
@@ -27,6 +79,11 @@ if agent_hooks_needs_no_ext_diff "$cmd"; then
   fi
   agent_hooks_emit_deny \
     "This repo's git diff uses difftastic. Re-run with --no-ext-diff after the subcommand, e.g. git diff --no-ext-diff."
+  exit 0
+fi
+
+if redirect=$(agent_hooks_nix_redirect "$cmd"); then
+  agent_hooks_emit_deny "$redirect"
   exit 0
 fi
 agent_hooks_ok_exit
