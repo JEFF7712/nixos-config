@@ -109,6 +109,9 @@ in
         "git.internal"
         "s3.internal"
       ];
+      "10.0.30.14" = [
+        "ci.internal"
+      ];
     };
 
     networking.firewall = {
