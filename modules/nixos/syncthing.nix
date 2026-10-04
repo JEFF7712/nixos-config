@@ -106,7 +106,7 @@ in
               ignorePatterns = buildIgnores;
             };
             "laptop-obsidian" = mkSendOnlyFolder "laptop-obsidian" "/home/rupan/obsidian" { };
-            "laptop-pictures" = mkSendOnlyFolder "laptop-pictures" "/home/rupan/Pictures" { };
+            "laptop-media" = mkSendOnlyFolder "laptop-media" "/home/rupan/media" { };
             "laptop-videos" = mkSendOnlyFolder "laptop-videos" "/home/rupan/Videos" { };
           };
       };
