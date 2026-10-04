@@ -82,7 +82,14 @@ cat > "$bin_dir/jq" <<'EOF'
 #!/usr/bin/env bash
 exec "$REAL_JQ" "$@"
 EOF
-chmod +x "$bin_dir/hyprlock" "$bin_dir/noctalia" "$bin_dir/jq"
+cat > "$bin_dir/pgrep" <<'EOF'
+#!/usr/bin/env bash
+if [ "${MOCK_HYPRLOCK_RUNNING:-0}" = "1" ] && [ "$1 $2" = "-x hyprlock" ]; then
+  exit 0
+fi
+exit 1
+EOF
+chmod +x "$bin_dir/hyprlock" "$bin_dir/noctalia" "$bin_dir/jq" "$bin_dir/pgrep"
 
 real_jq=$(command -v jq)
 config_copy="$tmpdir/hyprlock.conf"
@@ -118,18 +125,9 @@ assert_contains 'color = rgb(' "$generated" "lock background has a solid fallbac
 # post-resume, forcing a hard power-off).
 printf 'nord\n' > "$profiles/active"
 rm -f "$config_copy.spawned"
-cat > "$bin_dir/pgrep" <<'EOF'
-#!/usr/bin/env bash
-if [ "$1 $2" = "-x hyprlock" ]; then
-  exit 0
-fi
-exec "$REAL_PGREP" "$@"
-EOF
-chmod +x "$bin_dir/pgrep"
-real_pgrep=$(command -v pgrep)
-
 HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
-  HYPRLOCK_CONFIG_COPY="$config_copy" REAL_JQ="$real_jq" REAL_PGREP="$real_pgrep" PATH="$bin_dir:$PATH" \
+  MOCK_HYPRLOCK_RUNNING=1 \
+  HYPRLOCK_CONFIG_COPY="$config_copy" REAL_JQ="$real_jq" PATH="$bin_dir:$PATH" \
   "$REPO_ROOT/home/scripts/lock-screen"
 
 assert_eq "" "$(cat "$config_copy.spawned" 2>/dev/null || true)" "second hyprlock is not spawned while one runs"

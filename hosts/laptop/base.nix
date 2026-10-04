@@ -40,6 +40,7 @@
   # workstation (audio, bluetooth, file manager, git, launcher cache) defaults on.
   local-containers.enable = true;
   homelab.enable = true;
+  homelab.syncthing.enable = true;
   waydroid.enable = false;
   game.enable = true;
   # Daemon-owned Nix builds stay out of the desktop's way.

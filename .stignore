@@ -1,0 +1,15 @@
+node_modules
+target
+.direnv
+result
+result-*
+.venv
+venv
+__pycache__
+*.pyc
+.build
+build
+dist
+.mypy_cache
+.pytest_cache
+.ruff_cache

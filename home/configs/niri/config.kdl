@@ -31,6 +31,11 @@ output "Samsung Electric Company LS24D300G H1AK500000" {
     scale 1
     position x=3360 y=0
 }
+output "Samsung Electric Company C34J79x HNTW902351" {
+    mode "3440x1440@59.973"
+    scale 1
+    position x=1440 y=0
+}
 
 // --- Input ---
 input {

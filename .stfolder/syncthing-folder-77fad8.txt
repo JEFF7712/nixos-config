@@ -1,0 +1,5 @@
+# This directory is a Syncthing folder marker.
+# Do not delete.
+
+folderID: laptop-nixos
+created: 2026-10-03T23:29:33-05:00
