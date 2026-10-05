@@ -51,6 +51,13 @@ let
   spotifyLauncher = pkgs.writeShellScriptBin "spotify" ''
     exec "$HOME/${spiceState}/app/spotify" "$@"
   '';
+  # Player-bar transport disc uses palette.text (white) upstream; patch it to
+  # the theme accent. Refresh against the pinned rev on spotifast updates.
+  spotifastAccented =
+    inputs.spotifast.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs
+      (old: {
+        patches = (old.patches or [ ]) ++ [ ../../patches/spotifast-player-disc-accent.patch ];
+      });
   autoTabDiscardId = "{c2c003ee-bd69-42a2-b0e9-6f34222cb046}";
   autoTabDiscard =
     pkgs.runCommand "auto-tab-discard-0.7.3"
@@ -77,6 +84,7 @@ in
       spotify-player
       spicetify-cli
       spotifyLauncher
+      spotifastAccented
       zathura
     ];
 

@@ -178,12 +178,12 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "bash" "-c" "qs -p \"$HOME/nixos/home/configs/quickshell-switcher\" ipc call profile toggle"; }
+    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "bash" "-c" "qs -p \"$HOME/nixos/home/configs/quickshell-switcher/shell.qml\" ipc call profile toggle"; }
     Mod+Space hotkey-overlay-title="App Launcher" { spawn "profile-dispatch" "launcher"; }
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "lock-screen"; }
     Mod+F { spawn "firefox"; }
     Mod+W { spawn "profile-dispatch" "wallpaper"; }
-    Mod+S { spawn "spotify"; }
+    Mod+S { spawn "spotifast"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "toggle-bar"; }

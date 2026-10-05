@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Publish the managed Spotifast palette, select it, and reload Spotifast.
+# Usage: spotifast-apply [PALETTE_JSON]
+#
+# With an argument (profile-switch path) the baked palette seeds
+# ~/.config/spotifast/themes/profile.json. Wallpaper engines (matugen,
+# iris, temperature) and the noctalia template write that slot directly and
+# call this with no argument for the select+reload half. Invalid or missing
+# palettes leave the running theme alone.
+set -euo pipefail
+
+HOME_DIR="${HOME:-$(eval echo "~")}"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME_DIR/.config}"
+THEMES_DIR="$CONFIG_HOME/spotifast/themes"
+TARGET="$THEMES_DIR/profile.json"
+SETTINGS="$CONFIG_HOME/spotifast/settings.json"
+
+if [ $# -ge 1 ] && [ -s "$1" ]; then
+  mkdir -p "$THEMES_DIR"
+  if ! cmp -s "$1" "$TARGET" 2>/dev/null; then
+    install -m 644 "$1" "$TARGET"
+  fi
+fi
+
+variant="$(cat "$CONFIG_HOME/desktop-profiles/active-variant" 2>/dev/null || echo dark)"
+mode="dark"
+[ "$variant" = "light" ] && mode="light"
+
+# Validate the palette, align base with the active variant, and select the
+# managed theme. Never fabricate settings.json; the app owns it.
+python3 - "$TARGET" "$SETTINGS" "$mode" <<'PYEOF' || exit 0
+import json
+import os
+import re
+import sys
+
+target, settings, mode = sys.argv[1:4]
+try:
+    with open(target) as fh:
+        theme = json.load(fh)
+except (OSError, ValueError):
+    sys.exit(1)
+colors = theme.get("colors")
+if not isinstance(colors, dict) or not colors:
+    sys.exit(1)
+dirty = False
+if theme.get("base") != mode:
+    theme["base"] = mode
+    dirty = True
+# Hover states have no wallpaper source: derive them from the accent so they
+# never inherit the base palette's default (green on a red theme, etc.).
+accent = colors.get("accent")
+if isinstance(accent, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", accent):
+    channels = [int(accent[i : i + 2], 16) for i in (1, 3, 5)]
+    if mode == "dark":
+        mixed = [round(c + (255 - c) * 0.12) for c in channels]
+    else:
+        mixed = [round(c * 0.88) for c in channels]
+    hover = "#{:02x}{:02x}{:02x}".format(*mixed)
+    if colors.get("accent_hover") != hover:
+        colors["accent_hover"] = hover
+        dirty = True
+if dirty:
+    tmp = target + ".tmp"
+    with open(tmp, "w") as fh:
+        json.dump(theme, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp, target)
+try:
+    with open(settings) as fh:
+        current = json.load(fh)
+except (OSError, ValueError):
+    sys.exit(0)
+if not isinstance(current, dict):
+    sys.exit(0)
+if current.get("custom_theme") != "profile.json":
+    current["custom_theme"] = "profile.json"
+    tmp = settings + ".tmp"
+    with open(tmp, "w") as fh:
+        json.dump(current, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp, settings)
+PYEOF
+
+# Reloads the palette without interrupting playback; exits quietly when
+# Spotifast is not running (it never starts a stopped app).
+if command -v spotifast >/dev/null 2>&1; then
+  spotifast reload-themes >/dev/null 2>&1 || true
+fi

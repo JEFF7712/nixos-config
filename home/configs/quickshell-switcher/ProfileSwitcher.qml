@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 
 PanelWindow {
@@ -12,46 +11,15 @@ PanelWindow {
     property string activeProfile: ""
     property int focusedIndex: -1
 
-    function open() {
-        listProc.running = true;
-        activeProc.running = true;
-        shown = true;
-    }
-    function close() {
-        shown = false;
-        focusedIndex = -1;
-    }
-    function toggle() {
-        if (shown)
-            close();
-        else
-            open();
-    }
-
-    function activate(name) {
-        // Detach with setsid -f and redirect all stdio so the child survives
-        // switch-profile's pkill-quickshell and can't be killed by SIGPIPE.
-        switchProc.command = ["bash", "-c", "setsid -f switch-profile \"$1\" </dev/null >/dev/null 2>&1", "--", name];
-        switchProc.running = true;
-        close();
-    }
-
-    IpcHandler {
-        target: "profile"
-        function toggle(): void {
-            root.toggle();
-        }
-        function show(): void {
-            root.open();
-        }
-        function hide(): void {
-            root.close();
-        }
-    }
+    signal closeRequested
+    signal focusRequested(index: int)
+    signal activateRequested(name: string)
 
     WlrLayershell.namespace: "quickshell-profile-switcher"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // Exclusive while shown so arrows/Return/Escape work immediately without
+    // clicking first; None while hidden so no focus is held.
+    WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     visible: shown
     anchors {
@@ -63,61 +31,35 @@ PanelWindow {
     exclusiveZone: -1
     color: "transparent"
 
-    Process {
-        id: listProc
-        command: ["sh", "-c", "for d in \"$HOME\"/.config/desktop-profiles/*/; do [ -d \"$d\" ] && basename \"$d\"; done"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = text.split("\n").map(s => s.trim()).filter(s => s.length > 0);
-                root.profiles = lines;
-            }
-        }
-    }
-
-    Process {
-        id: activeProc
-        command: ["sh", "-c", "cat \"$HOME\"/.config/desktop-profiles/active 2>/dev/null || true"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                root.activeProfile = text.trim();
-            }
-        }
-    }
-
-    Process {
-        id: switchProc
-        command: ["true"]
-    }
-
     Shortcut {
         sequence: "Escape"
-        onActivated: root.close()
+        onActivated: root.closeRequested()
     }
     Shortcut {
         sequence: "Return"
         onActivated: if (root.focusedIndex >= 0)
-            root.activate(root.profiles[root.focusedIndex])
+            root.activateRequested(root.profiles[root.focusedIndex])
     }
     Shortcut {
         sequence: "Right"
-        onActivated: root.focusedIndex = Math.min(root.profiles.length - 1, Math.max(0, root.focusedIndex) + 1)
+        onActivated: root.focusRequested(Math.min(root.profiles.length - 1, Math.max(0, root.focusedIndex) + 1))
     }
     Shortcut {
         sequence: "Left"
-        onActivated: root.focusedIndex = Math.max(0, (root.focusedIndex < 0 ? 1 : root.focusedIndex) - 1)
+        onActivated: root.focusRequested(Math.max(0, (root.focusedIndex < 0 ? 1 : root.focusedIndex) - 1))
     }
     Shortcut {
         sequence: "Down"
-        onActivated: root.focusedIndex = Math.min(root.profiles.length - 1, (root.focusedIndex < 0 ? 0 : root.focusedIndex) + grid.columns)
+        onActivated: root.focusRequested(Math.min(root.profiles.length - 1, (root.focusedIndex < 0 ? 0 : root.focusedIndex) + grid.columns))
     }
     Shortcut {
         sequence: "Up"
-        onActivated: root.focusedIndex = Math.max(0, (root.focusedIndex < 0 ? 0 : root.focusedIndex) - grid.columns)
+        onActivated: root.focusRequested(Math.max(0, (root.focusedIndex < 0 ? 0 : root.focusedIndex) - grid.columns))
     }
 
     MouseArea {
         anchors.fill: parent
-        onClicked: root.close()
+        onClicked: root.closeRequested()
     }
 
     Rectangle {
@@ -240,8 +182,8 @@ PanelWindow {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.focusedIndex = index
-                        onClicked: root.activate(modelData)
+                        onEntered: root.focusRequested(index)
+                        onClicked: root.activateRequested(modelData)
                     }
                 }
             }
