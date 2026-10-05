@@ -297,4 +297,9 @@ import sys
 json.load(open(sys.argv[1]))
 PY
 
+spotifast_json="$config_home/spotifast/themes/profile.json"
+assert_contains '  "base": "dark",' "$spotifast_json" "spotifast base follows iris mode"
+assert_contains '    "window": "#14100f",' "$spotifast_json" "spotifast window uses iris background"
+assert_contains '    "accent": "#d8915f",' "$spotifast_json" "spotifast accent uses iris accent"
+
 echo "OK: iris-render.bash"

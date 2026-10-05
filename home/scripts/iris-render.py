@@ -615,6 +615,28 @@ radio-btn-active   = {hx(p["accent"])}
     update_ini_section(out, "tinted", body)
 
 
+def spotifast(p, out, dark=True):
+    theme = {
+        "base": "dark" if dark else "light",
+        "colors": {
+            "window": p["bg"],
+            "panel": p["surface"],
+            "surface": p["surface"],
+            "surface_hover": p["surface"],
+            "surface_active": p["surface"],
+            "outline": p["surface"],
+            "text": p["fg"],
+            "secondary": p["dim"],
+            "dim": p["dim"],
+            "accent": p["accent"],
+            "on_accent": p["bg"],
+            "danger": p["red"],
+            "warning": p["yellow"],
+        },
+    }
+    w(out, json.dumps(theme, indent=2) + "\n")
+
+
 def hex_to_hsl(hexc):
     hexc = hexc.lstrip("#")
     r, g, b = (int(hexc[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
@@ -848,6 +870,7 @@ def main():
     rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))
     zed(p, os.path.join(c, "zed/themes/iris.json"))
     spicetify_comfy(p, os.path.join(c, "spicetify/Themes/Comfy/color.ini"))
+    spotifast(p, os.path.join(c, "spotifast/themes/profile.json"), p.get("dark", True))
     obsidian(p, args.obsidian_vault)
 
 

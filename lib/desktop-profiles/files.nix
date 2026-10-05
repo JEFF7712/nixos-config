@@ -304,6 +304,7 @@ let
         ".config/desktop-profiles/${name}/hyprlock-colors.conf".text = orEmpty profile.colors.hyprlock;
         ".config/desktop-profiles/${name}/cava-colors".text = orEmpty profile.colors.cava;
         ".config/desktop-profiles/${name}/zathura-colors".text = orEmpty profile.colors.zathura;
+        ".config/desktop-profiles/${name}/spotifast.json".text = orEmpty profile.colors.spotifast;
         ".config/desktop-profiles/${name}/vicinae-theme-dark.toml".text = vicinaeDarkTheme name profile;
         ".config/desktop-profiles/${name}/vicinae-theme-light.toml".text = vicinaeLightTheme name profile;
         ".config/desktop-profiles/${name}/niri-overrides.kdl".text = generateNiriOverrides false profile;
@@ -328,6 +329,8 @@ let
           orEmpty profile.colorsLight.hyprlock;
         ".config/desktop-profiles/${name}/cava-colors-light".text = orEmpty profile.colorsLight.cava;
         ".config/desktop-profiles/${name}/zathura-colors-light".text = orEmpty profile.colorsLight.zathura;
+        ".config/desktop-profiles/${name}/spotifast-light.json".text =
+          orEmpty profile.colorsLight.spotifast;
       };
 
       quickshellFiles =

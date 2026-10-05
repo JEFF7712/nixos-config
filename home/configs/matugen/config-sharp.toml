@@ -64,3 +64,7 @@ output_path = "~/.config/zathura/colors"
 [templates.spicetify]
 input_path = "~/.config/matugen/templates-sharp/spicetify-comfy.ini"
 output_path = "~/.config/desktop-profiles/runtime-spicetify-comfy.ini"
+
+[templates.spotifast]
+input_path = "~/.config/matugen/templates-sharp/spotifast.json"
+output_path = "~/.config/spotifast/themes/profile.json"

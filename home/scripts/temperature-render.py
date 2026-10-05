@@ -500,6 +500,28 @@ element-text {{
     )
 
 
+def spotifast(p, out, dark=True):
+    theme = {
+        "base": "dark" if dark else "light",
+        "colors": {
+            "window": p["bg0"],
+            "panel": p["bg1"],
+            "surface": p["bg1"],
+            "surface_hover": p["bg2"],
+            "surface_active": p["bg3"],
+            "outline": p["bg2"],
+            "text": p["fg0"],
+            "secondary": p["fg1"],
+            "dim": p["fg2"],
+            "accent": p["accent"],
+            "on_accent": p["bg0"],
+            "danger": p["err"],
+            "warning": p["accent"],
+        },
+    }
+    w(out, json.dumps(theme, indent=2) + "\n")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", required=True)
@@ -545,6 +567,7 @@ def main():
     fish(p, os.path.join(c, "fish/conf.d/matugen_theme.fish"))
     starship(p, os.path.join(c, "starship_matugen.toml"))
     rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))
+    spotifast(p, os.path.join(c, "spotifast/themes/profile.json"), args.mode == "dark")
 
     print(p["accent"])
 

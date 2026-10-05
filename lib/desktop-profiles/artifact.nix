@@ -26,6 +26,7 @@ let
     hyprlock = if light then "hyprlock-colors-light.conf" else "hyprlock-colors.conf";
     cava = if light then "cava-colors-light" else "cava-colors";
     zathura = if light then "zathura-colors-light" else "zathura-colors";
+    spotifast = if light then "spotifast-light.json" else "spotifast.json";
     vicinae = if light then "vicinae-theme-light.toml" else "vicinae-theme-dark.toml";
   };
 in

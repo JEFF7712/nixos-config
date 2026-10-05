@@ -312,6 +312,8 @@ dispatch_post_commit_adapters() {
     if ! profile_wallpaper_theming "$TARGET"; then
       run_post_commit_adapter spicetify run_theme_side_effect_if_current "$THEME_GENERATION" \
         apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
+      run_post_commit_adapter spotifast run_theme_side_effect_if_current "$THEME_GENERATION" \
+        apply_spotifast_theme "$TARGET" "$TARGET_VARIANT"
     fi
     run_post_commit_adapter notification run_theme_side_effect_if_current \
       "$THEME_GENERATION" send_profile_notification

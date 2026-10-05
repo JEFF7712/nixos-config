@@ -605,4 +605,38 @@ rec {
       set recolor-lightcolor "${recolorLight}"
       set recolor-darkcolor "${recolorDark}"
     '';
+
+  # Spotifast custom palette (themes/*.json). Omitted roles inherit base.
+  mkSpotifastPalette =
+    {
+      base ? "dark",
+      bg0,
+      bg1,
+      bg2 ? bg1,
+      bg3 ? bg2,
+      fg0,
+      fg1 ? fg0,
+      fg2 ? fg1,
+      accent,
+      onAccent ? bg0,
+      danger ? accent,
+      warning ? accent,
+    }:
+    builtins.toJSON {
+      inherit base;
+      colors = {
+        window = bg0;
+        panel = bg1;
+        surface = bg1;
+        surface_hover = bg2;
+        surface_active = bg3;
+        outline = bg2;
+        text = fg0;
+        secondary = fg1;
+        dim = fg2;
+        inherit accent;
+        on_accent = onAccent;
+        inherit danger warning;
+      };
+    };
 }

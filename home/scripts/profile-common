@@ -641,9 +641,14 @@ apply_wallpaper_theme() {
   if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
     run_theme_side_effect_if_current "$job_gen" \
       apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant"
+    run_theme_side_effect_if_current "$job_gen" \
+      "$REPO_HOME/scripts/spotifast-apply"
   else
     (run_theme_side_effect_if_current "$job_gen" \
       apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant") 9>&- &
+    disown 2>/dev/null || true
+    (run_theme_side_effect_if_current "$job_gen" \
+      "$REPO_HOME/scripts/spotifast-apply") 9>&- &
     disown 2>/dev/null || true
   fi
 
@@ -1878,4 +1883,25 @@ apply_spicetify_theme() {
   else
     spicetify -n apply >/dev/null 2>&1 || true
   fi
+}
+
+# apply_spotifast_theme <profile> <variant>
+# Seeds the managed themes/profile.json slot from the profile's baked palette
+# (when it has one), selects it, and reloads a running Spotifast. Wallpaper
+# engines and the noctalia template write the slot directly; for those the
+# seed is empty or stale and spotifast-apply only does select+reload.
+apply_spotifast_theme() {
+  local profile="$1" variant="$2" baked
+  [ -x "$REPO_HOME/scripts/spotifast-apply" ] || return 0
+  baked=$(profile_manifest_artifact "$profile" "$variant" spotifast 2>/dev/null || true)
+  if [ -n "$baked" ] && [ -s "$baked" ]; then
+    "$REPO_HOME/scripts/spotifast-apply" "$baked" || true
+    return 0
+  fi
+  baked="$PROFILES_DIR/$profile/spotifast.json"
+  if [ -s "$baked" ]; then
+    "$REPO_HOME/scripts/spotifast-apply" "$baked" || true
+    return 0
+  fi
+  "$REPO_HOME/scripts/spotifast-apply" || true
 }

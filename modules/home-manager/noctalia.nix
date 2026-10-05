@@ -17,6 +17,9 @@ let
   firefoxGlobalsHook = pkgs.writeShellScript "firefox-globals-reload" ''
     ${config.repoPath}/home/scripts/firefox-globals >/dev/null 2>&1 || true
   '';
+  spotifastReloadHook = pkgs.writeShellScript "spotifast-reload" ''
+    ${config.repoPath}/home/scripts/spotifast-apply >/dev/null 2>&1 || true
+  '';
 in
 {
   options.noctalia.enable = lib.mkEnableOption "enable noctalia";
@@ -115,6 +118,27 @@ in
 
       [cmd_duration]
       style = "bold {{colors.on_surface_variant.default.hex}}"
+    '';
+
+    xdg.configFile."noctalia/templates/spotifast.json".text = ''
+      {
+        "base": "dark",
+        "colors": {
+          "window": "{{colors.surface.default.hex}}",
+          "panel": "{{colors.surface_container_low.default.hex}}",
+          "surface": "{{colors.surface_container_low.default.hex}}",
+          "surface_hover": "{{colors.surface_container.default.hex}}",
+          "surface_active": "{{colors.surface_container_high.default.hex}}",
+          "outline": "{{colors.outline_variant.default.hex}}",
+          "text": "{{colors.on_surface.default.hex}}",
+          "secondary": "{{colors.on_surface_variant.default.hex}}",
+          "dim": "{{colors.outline.default.hex}}",
+          "accent": "{{colors.primary.default.hex}}",
+          "on_accent": "{{colors.on_primary.default.hex}}",
+          "danger": "{{colors.error.default.hex}}",
+          "warning": "{{colors.secondary.default.hex}}"
+        }
+      }
     '';
 
     programs.noctalia = {
@@ -223,6 +247,11 @@ in
                 input_path = "~/.config/noctalia/templates/firefox-palette";
                 output_path = "~/.config/desktop-profiles/runtime-firefox-palette";
                 post_hook = "${firefoxGlobalsHook}";
+              };
+              spotifast = {
+                input_path = "~/.config/noctalia/templates/spotifast.json";
+                output_path = "~/.config/spotifast/themes/profile.json";
+                post_hook = "${spotifastReloadHook}";
               };
             };
           };
