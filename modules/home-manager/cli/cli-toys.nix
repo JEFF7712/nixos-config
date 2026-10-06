@@ -11,6 +11,7 @@
   config = lib.mkIf config.cli-toys.enable {
     home.packages = with pkgs; [
       fastfetch
+      fetch
       cmatrix
       pipes-rs
       cbonsai

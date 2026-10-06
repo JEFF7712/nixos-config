@@ -204,6 +204,10 @@
   # has any business invoking it here.
   security.sudo.execWheelOnly = true;
 
+  security.sudo.extraConfig = ''
+    Defaults lecture = never
+  '';
+
   users.users.rupan = {
     isNormalUser = true;
     extraGroups = [
