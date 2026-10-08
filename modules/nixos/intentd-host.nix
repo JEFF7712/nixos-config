@@ -12,6 +12,12 @@ let
     modules = [ ../../hosts/laptop/intentd-recovery.nix ];
   };
   recoveryClosure = recovery.config.system.build.toplevel;
+  bootedConfiguration = pkgs.writeShellScript "intentd-booted-configuration" ''
+    set -e
+    booted=$(${pkgs.coreutils}/bin/readlink -e /run/booted-system)
+    current=$(${pkgs.coreutils}/bin/readlink -e /run/current-system)
+    test "$booted" = "$current"
+  '';
 in
 {
   # secureboot.nix already imports the Lanzaboote wrapper and its package override.
@@ -134,6 +140,8 @@ in
       '';
     };
     systemd.services.intentd-boot-guard = {
+      restartIfChanged = false;
+      unitConfig.X-OnlyManualStart = true;
       requires = [
         "intentd-state-init.service"
         "intentd-baseline-adopt.service"
@@ -147,6 +155,7 @@ in
         "systemd-udevd.service"
       ];
       path = [ pkgs.systemd ];
+      serviceConfig.ExecCondition = "${bootedConfiguration}";
     };
     systemd.services.intentd-baseline-adopt = {
       description = "Authenticate the first physical intentd boot baseline";
@@ -161,9 +170,14 @@ in
         "local-fs.target"
       ];
       before = [ "intentd-boot-guard.service" ];
-      unitConfig.ConditionPathExists = "!/var/lib/intentd/journal.jsonl";
+      restartIfChanged = false;
+      unitConfig = {
+        ConditionPathExists = "!/var/lib/intentd/journal.jsonl";
+        X-OnlyManualStart = true;
+      };
       serviceConfig = {
         Type = "oneshot";
+        ExecCondition = "${bootedConfiguration}";
         ExecStart = "${
           inputs.intentd.packages.${pkgs.stdenv.hostPlatform.system}.intentd
         }/bin/intentd-adopt-baseline";
@@ -175,7 +189,10 @@ in
         pkgs.tpm2-tools
       ];
     };
-    systemd.targets.boot-complete.after = [ "multi-user.target" ];
+    systemd.targets.boot-complete = {
+      after = [ "multi-user.target" ];
+      unitConfig.X-OnlyManualStart = true;
+    };
     system.build.intentdRecovery = recoveryClosure;
     security.sudo.extraRules = [
       {

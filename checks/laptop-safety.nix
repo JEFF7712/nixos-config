@@ -75,4 +75,12 @@ assert
 assert builtins.elem "intentd-display-ready.service"
   config.systemd.services.intentd-boot-guard.after;
 assert config.boot.lanzaboote.bootCounting.initialTries == 1;
+assert config.systemd.targets.boot-complete.unitConfig.X-OnlyManualStart;
+assert config.systemd.services.intentd-boot-guard.unitConfig.X-OnlyManualStart;
+assert !config.systemd.services.intentd-boot-guard.restartIfChanged;
+assert config.systemd.services.intentd-baseline-adopt.unitConfig.X-OnlyManualStart;
+assert !config.systemd.services.intentd-baseline-adopt.restartIfChanged;
+assert
+  config.systemd.services.intentd-boot-guard.serviceConfig.ExecCondition
+  == config.systemd.services.intentd-baseline-adopt.serviceConfig.ExecCondition;
 true

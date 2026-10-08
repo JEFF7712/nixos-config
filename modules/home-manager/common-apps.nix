@@ -99,6 +99,7 @@ in
       ];
       profiles."09longn9.default-release" = {
         settings = {
+          "network.dns.disableIPv6" = true;
           "extensions.webextensions.ExtensionStorageIDB.enabled" = true;
           "dom.ipc.processPriorityManager.enabled" = true;
           "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
