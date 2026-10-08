@@ -33,6 +33,52 @@ lid_close_should_skip_suspend() {
   return 1
 }
 
+lid_is_closed() {
+  local state
+  for state in /proc/acpi/button/lid/*/state; do
+    if [[ -r "$state" ]] && [[ "$(<"$state")" == *closed* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+lid_sleep_failed() {
+  local second
+  printf 'lid-close-action: sleep failed; powering off in 15 seconds if lid stays closed\n' >&2
+  for second in {1..15}; do
+    lid_is_closed || return 0
+    sleep 1
+  done
+  lid_is_closed || return 0
+  systemctl --check-inhibitors=no poweroff
+}
+
+lid_close_suspend() {
+  local previous current state result second status
+  previous="$(timeout 3 systemctl show systemd-suspend.service -p StateChangeTimestampMonotonic --value)" || previous=""
+  if ! timeout 10 systemctl suspend; then
+    lid_sleep_failed
+    return
+  fi
+  # The suspend verb returns after queuing the job, before the driver result.
+  for second in {1..60}; do
+    sleep 1
+    lid_is_closed || return 0
+    status="$(timeout 3 systemctl show systemd-suspend.service -p StateChangeTimestampMonotonic -p ActiveState -p Result)" || continue
+    current="$(printf '%s\n' "$status" | awk -F= '$1 == "StateChangeTimestampMonotonic" { print $2 }')"
+    state="$(printf '%s\n' "$status" | awk -F= '$1 == "ActiveState" { print $2 }')"
+    result="$(printf '%s\n' "$status" | awk -F= '$1 == "Result" { print $2 }')"
+    [[ -n "$current" && "$current" != "$previous" ]] || continue
+    if [[ "$state" == failed || "$result" != success ]]; then
+      lid_sleep_failed
+      return
+    fi
+    [[ "$state" == inactive ]] && return 0
+  done
+  lid_sleep_failed
+}
+
 if [[ "${LID_CLOSE_ACTION_LIB:-0}" == 1 ]]; then
   return 0 2>/dev/null || exit 0
 fi
@@ -48,8 +94,7 @@ fi
 # so confirm the lock instead of sleeping and hoping. hyprlock does not set
 # logind's LockedHint, so detect it by process; the noctalia branch is an ipc
 # call that exits 0 once the shell has locked. If neither lands, blank instead
-# of suspending: an awake laptop is recoverable, one that resumes unlocked in
-# someone else's hands is not.
+# of suspending, then power off if the lid remains closed.
 /home/rupan/.local/bin/lock-screen &
 lock_pid=$!
 
@@ -71,7 +116,8 @@ done
 if [ "$locked" != true ]; then
   printf 'lid-close-action: screen did not lock; blanking instead of suspending\n' >&2
   niri msg action power-off-monitors || true
-  exit 1
+  lid_sleep_failed
+  exit 0
 fi
 
-systemctl suspend
+lid_close_suspend

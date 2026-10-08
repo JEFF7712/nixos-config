@@ -101,6 +101,12 @@ Scope {
         Quickshell.execDetached(["systemctl", "poweroff"]);
     }
 
+    Component.onCompleted: {
+        root._requestMetrics();
+        root._requestDisk();
+        root._requestMetadata();
+    }
+
     Component.onDestruction: {
         metricsTimer.stop();
         metadataTimer.stop();

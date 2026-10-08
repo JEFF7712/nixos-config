@@ -35,6 +35,11 @@
       url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    intentd = {
+      url = "path:/nix/store/fc3xz62rzfkck8cnz62zx2xmxbcxgw9m-intentd-baseline-source";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.lanzaboote.follows = "lanzaboote";
+    };
     # Master: version tags are stale vs current nixpkgs vmTools (disko #1027).
     disko = {
       url = "github:nix-community/disko";

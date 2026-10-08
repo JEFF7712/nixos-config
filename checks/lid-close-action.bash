@@ -69,3 +69,45 @@ assert_skip 0 "$mpv_idle_only" "idle-only app/media still suspends"
 assert_skip 1 "$caffeine" "manual pause / caffeine stays awake"
 assert_skip 1 "$suspend_media" "suspend_inhibit_media match stays awake"
 assert_skip 1 "$suspend_app" "suspend_inhibit_apps match stays awake"
+
+test_sleep_failure() (
+  local scenario="$1" powered_off=false closed=true polls=0
+  lid_is_closed() { [[ "$closed" == true ]]; }
+  sleep() {
+    polls=$((polls + 1))
+    if [[ "$scenario" == reopen && "$polls" == 3 ]]; then
+      closed=false
+    fi
+  }
+  timeout() { shift; "$@"; }
+  systemctl() {
+    case "$1" in
+      suspend) [[ "$scenario" != rejected ]] ;;
+      show)
+        if [[ "$*" == *--value* ]]; then
+          printf '100\n'
+        elif [[ "$scenario" == stale || "$scenario" == timeout ]]; then
+          printf 'StateChangeTimestampMonotonic=100\nActiveState=failed\nResult=exit-code\n'
+        elif [[ "$scenario" == success ]]; then
+          printf 'StateChangeTimestampMonotonic=200\nActiveState=inactive\nResult=success\n'
+        else
+          printf 'StateChangeTimestampMonotonic=200\nActiveState=failed\nResult=exit-code\n'
+        fi
+        ;;
+      --check-inhibitors=no)
+        [[ "$2" == poweroff ]] || exit 1
+        powered_off=true
+        ;;
+      *) exit 1 ;;
+    esac
+  }
+  lid_close_suspend
+  case "$scenario" in
+    success|reopen) [[ "$powered_off" == false ]] ;;
+    *) [[ "$powered_off" == true ]] ;;
+  esac || { printf 'FAIL: sleep fallback %s\n' "$scenario" >&2; exit 1; }
+)
+
+for scenario in failed rejected reopen success stale timeout; do
+  test_sleep_failure "$scenario"
+done

@@ -102,7 +102,7 @@ in
             "laptop-homelab" = mkSendOnlyFolder "laptop-homelab" "/home/rupan/homelab" {
               ignorePatterns = buildIgnores;
             };
-            "laptop-nixos" = mkSendOnlyFolder "laptop-nixos" "/home/rupan/nixos" {
+            "laptop-nixos" = mkSendOnlyFolder "laptop-nixos" config.repoPath {
               ignorePatterns = buildIgnores;
             };
             "laptop-obsidian" = mkSendOnlyFolder "laptop-obsidian" "/home/rupan/obsidian" { };

@@ -531,6 +531,26 @@
         "type": "github"
       }
     },
+    "intentd": {
+      "inputs": {
+        "lanzaboote": [
+          "lanzaboote"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1,
+        "narHash": "sha256-TVlF3FbW1fuDyKciw/zzWMFnYLtPWQPlFLGRa0fkrJI=",
+        "path": "/nix/store/fc3xz62rzfkck8cnz62zx2xmxbcxgw9m-intentd-baseline-source",
+        "type": "path"
+      },
+      "original": {
+        "path": "/nix/store/fc3xz62rzfkck8cnz62zx2xmxbcxgw9m-intentd-baseline-source",
+        "type": "path"
+      }
+    },
     "lanzaboote": {
       "inputs": {
         "crane": "crane",
@@ -878,6 +898,7 @@
         "globalprotect-openconnect": "globalprotect-openconnect",
         "home-manager": "home-manager",
         "import-tree": "import-tree",
+        "intentd": "intentd",
         "lanzaboote": "lanzaboote",
         "mercury-cli": "mercury-cli",
         "nix-agent": "nix-agent",

@@ -33,6 +33,7 @@
   nvidia.enable = true;
   secrets.enable = true;
   secureboot.enable = true;
+  intentd-host.enable = true;
   niri.enable = true;
   niri-greeter.enable = true;
   asus-numpad.enable = true;

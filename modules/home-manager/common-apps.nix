@@ -97,16 +97,19 @@ in
           settings.installation_mode = "normal_installed";
         }
       ];
-      profiles."09longn9.default-release".extensions.settings.${autoTabDiscardId} = {
-        force = true;
+      profiles."09longn9.default-release" = {
         settings = {
-          period = 3600;
-          number = 1;
-          pinned = true;
-          audio = true;
-          paused = true;
-          form = true;
+          "extensions.webextensions.ExtensionStorageIDB.enabled" = true;
+          "dom.ipc.processPriorityManager.enabled" = true;
+          "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+          "devtools.chrome.enabled" = true;
+          "devtools.debugger.remote-enabled" = true;
+          "media.ffmpeg.vaapi.enabled" = true;
         };
+        extraConfig = ''
+          // Ctrl+Alt+R in Browser Console restarts Firefox with session restore
+          // (userChrome.css is only parsed at startup).
+        '';
       };
     };
 
@@ -166,14 +169,6 @@ in
 
     xdg.configFile."vesktop/themes/sharp.theme.css".source =
       config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vesktop/themes/sharp.theme.css";
-
-    home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
-      user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-      // Ctrl+Alt+R in Browser Console restarts Firefox with session restore
-      // (userChrome.css is only parsed at startup).
-      user_pref("devtools.chrome.enabled", true);
-      user_pref("devtools.debugger.remote-enabled", true);
-    '';
 
     xdg.desktopEntries.spotify = {
       name = "Spotify";
