@@ -152,8 +152,17 @@
             # ruff-check off: its default rules move with nixpkgs; hourly auto-update
             # would fail `nix fmt` / CI with no local change. Run `ruff check` by hand.
             programs.ruff-format.enable = true;
-            settings.formatter.statix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
-            settings.formatter.deadnix.excludes = [ "hosts/laptop/hardware-configuration.nix" ];
+            # vendor/ holds frozen upstream snapshots (e.g. the intentd
+            # baseline); never reformat them, refresh deliberately instead.
+            settings.formatter.nixfmt.excludes = [ "vendor/*" ];
+            settings.formatter.statix.excludes = [
+              "hosts/laptop/hardware-configuration.nix"
+              "vendor/*"
+            ];
+            settings.formatter.deadnix.excludes = [
+              "hosts/laptop/hardware-configuration.nix"
+              "vendor/*"
+            ];
             # ruff-format matches *.py only; this script is python by shebang.
             settings.formatter.ruff-format.includes = [ "home/scripts/merge-ini-section" ];
           };
