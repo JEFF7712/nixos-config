@@ -42,6 +42,8 @@
         stellaris = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/stellaris/stellaris.exe";
         factorio = "env WINEDLLOVERRIDES='d3d11=n,b;dxgi=n,b' __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only wine ~/games/Factorio/bin/x64/factorio.exe";
         resolve = "env QT_QPA_PLATFORM=xcb QT_XCB_GL_INTEGRATION=glx __NV_PRIME_RENDER_OFFLOAD=1 __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only __EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json DRI_PRIME=1 davinci-resolve";
+        jellyfin-desktop = "nvidia-offload env QT_QPA_PLATFORM=xcb jellyfin-desktop";
+        jellyfin = "nvidia-offload env QT_QPA_PLATFORM=xcb jellyfin-desktop";
         zed = "zeditor";
         njs = "cd ${config.repoPath} && just switch";
         njst = "cd ${config.repoPath} && sudo (readlink -f (command -v nixos-rebuild)) test --flake path:${config.repoPath}#laptop";

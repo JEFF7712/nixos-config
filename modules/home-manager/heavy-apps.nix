@@ -33,6 +33,7 @@ in
           feishin
           f3d
           darktable
+          jellyfin-desktop
         ]
       )
       ++ lib.optionals cfg.office.enable (
