@@ -1,6 +1,5 @@
 /* Dedicated code-block styling.
-   Fixes two issues with the current setup:
-   1. Custom Font Loader Force Style paints Newsreader onto code.
+   1. Ensures code blocks preserve monospace font.
    2. Wallpaper-tinted chrome flattens surfaces, so blocks need their own contrast. */
 
 .theme-dark, .theme-light {

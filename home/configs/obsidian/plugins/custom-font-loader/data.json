@@ -1,7 +1,7 @@
 {
   "font_folder": ".obsidian/fonts/",
-  "font": "Newsreader.ttf",
-  "force_mode": true,
-  "custom_css_mode": false,
+  "font": "CMU-Serif.otf",
+  "force_mode": false,
+  "custom_css_mode": true,
   "custom_css": ""
 }

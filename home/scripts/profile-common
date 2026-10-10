@@ -1768,7 +1768,7 @@ apply_obsidian_sharp() {
       )
     | .accentColor = $accent
     | .theme = $theme
-    | .textFontFamily = "Newsreader"
+    | .textFontFamily = "CMU Serif"
     | .interfaceFontFamily = "IBM Plex Sans"
     | .monospaceFontFamily = "IBM Plex Mono"
   ' "$appearance" > "$tmp" 2>/dev/null; then
@@ -1804,7 +1804,7 @@ apply_obsidian_scheme() {
     tmp=$(mktemp)
     if jq --indent 2 --arg accent "$accent" \
       '(.enabledCssSnippets // []) |= (map(select(. != "tinted" and . != "sharp")) + ["code-blocks"] | unique)
-       | .textFontFamily = "Newsreader"
+       | .textFontFamily = "CMU Serif"
        | .interfaceFontFamily = "IBM Plex Sans"
        | .monospaceFontFamily = "IBM Plex Mono"
        | if $accent == "" then del(.accentColor) else .accentColor = $accent end' \

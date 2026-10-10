@@ -816,7 +816,7 @@ def obsidian(p, vault):
     if "code-blocks" not in snaps:
         snaps.append("code-blocks")
     a["enabledCssSnippets"] = snaps
-    a["textFontFamily"] = "Newsreader"
+    a["textFontFamily"] = "CMU Serif"
     a["interfaceFontFamily"] = "IBM Plex Sans"
     a["monospaceFontFamily"] = "IBM Plex Mono"
     a["accentColor"] = p["accent"]

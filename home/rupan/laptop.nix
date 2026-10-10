@@ -121,6 +121,7 @@
     inter
     noto-fonts
     source-sans-pro
+    cm_unicode
     nerd-fonts.fira-code
     nerd-fonts.hack
     nerd-fonts.iosevka
