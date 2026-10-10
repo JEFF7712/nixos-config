@@ -541,15 +541,14 @@
         ]
       },
       "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-TVlF3FbW1fuDyKciw/zzWMFnYLtPWQPlFLGRa0fkrJI=",
-        "path": "/nix/store/fc3xz62rzfkck8cnz62zx2xmxbcxgw9m-intentd-baseline-source",
+        "path": "./vendor/intentd-baseline",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/fc3xz62rzfkck8cnz62zx2xmxbcxgw9m-intentd-baseline-source",
+        "path": "./vendor/intentd-baseline",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "lanzaboote": {
       "inputs": {

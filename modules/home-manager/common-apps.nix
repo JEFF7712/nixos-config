@@ -58,20 +58,6 @@ let
       (old: {
         patches = (old.patches or [ ]) ++ [ ../../patches/spotifast-player-disc-accent.patch ];
       });
-  autoTabDiscardId = "{c2c003ee-bd69-42a2-b0e9-6f34222cb046}";
-  autoTabDiscard =
-    pkgs.runCommand "auto-tab-discard-0.7.3"
-      {
-        passthru.addonId = autoTabDiscardId;
-      }
-      ''
-        install -Dm644 ${
-          pkgs.fetchurl {
-            url = "https://addons.mozilla.org/firefox/downloads/file/4978053/auto_tab_discard-0.7.3.xpi";
-            hash = "sha256-ZqmHOOad+a18eusSpJXFiA0fVvuTYQ9RzTIHqbc+5wI=";
-          }
-        } "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/${autoTabDiscardId}.xpi"
-      '';
 in
 {
   options.common-apps.enable = lib.mkEnableOption "common-apps";
@@ -91,27 +77,7 @@ in
     programs.firefox = {
       enable = true;
       configPath = ".mozilla/firefox";
-      globalExtensions = [
-        {
-          package = autoTabDiscard;
-          settings.installation_mode = "normal_installed";
-        }
-      ];
-      profiles."09longn9.default-release" = {
-        settings = {
-          "network.dns.disableIPv6" = true;
-          "extensions.webextensions.ExtensionStorageIDB.enabled" = true;
-          "dom.ipc.processPriorityManager.enabled" = true;
-          "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
-          "devtools.chrome.enabled" = true;
-          "devtools.debugger.remote-enabled" = true;
-          "media.ffmpeg.vaapi.enabled" = true;
-        };
-        extraConfig = ''
-          // Ctrl+Alt+R in Browser Console restarts Firefox with session restore
-          // (userChrome.css is only parsed at startup).
-        '';
-      };
+      profiles."09longn9.default-release" = { };
     };
 
     xdg.mimeApps = {
@@ -170,6 +136,14 @@ in
 
     xdg.configFile."vesktop/themes/sharp.theme.css".source =
       config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vesktop/themes/sharp.theme.css";
+
+    home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
+      user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+      // Ctrl+Alt+R in Browser Console restarts Firefox with session restore
+      // (userChrome.css is only parsed at startup).
+      user_pref("devtools.chrome.enabled", true);
+      user_pref("devtools.debugger.remote-enabled", true);
+    '';
 
     xdg.desktopEntries.spotify = {
       name = "Spotify";

@@ -9,5 +9,7 @@ alias ll='ls -alF'
 alias l='ls -CF'
 alias bnix="cd $HOME/nixos && git add . && sudo nixos-rebuild switch --flake .#laptop && nix fmt && git add . && git commit -m 'Updates' && git push"
 alias cniri="sudo $EDITOR $HOME/nixos/home/configs/niri/config.kdl"
+alias jellyfin-desktop="nvidia-offload env QT_QPA_PLATFORM=xcb jellyfin-desktop"
+alias jellyfin="nvidia-offload env QT_QPA_PLATFORM=xcb jellyfin-desktop"
 
 PS1='[\u@\h \W]\$ '
