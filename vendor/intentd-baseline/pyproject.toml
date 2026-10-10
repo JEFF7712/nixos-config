@@ -1,0 +1,47 @@
+[project]
+name = "intentd"
+version = "0.1.0"
+description = "Intent control layer for NixOS (Stage 1 wedge)"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7",
+    "textual>=8.2.8",
+]
+
+[project.scripts]
+intent = "intentd.cli:main"
+intentd-boot-guard = "intentd.boot_guard:main"
+intentd-journal-inspect = "intentd.journal_inspect:main"
+intentd-recovery-console = "intentd.recovery_console:main"
+intentd-adopt-baseline = "intentd.baseline:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not nix_eval and not claude_live'"
+markers = [
+    "nix_eval: full nix evaluation of the product flake (slow; network on first run)",
+    "claude_live: real claude -p subprocess calls (slow; requires signed-in Claude Code auth)",
+]
+
+[tool.uv]
+python-preference = "only-system"
+python-downloads = "never"
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]

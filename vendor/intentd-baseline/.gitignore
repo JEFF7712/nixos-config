@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+dist/
+*.egg-info
+result
+result-*
+eval/resolver_suite/progress.jsonl
+eval/resolver_suite/report.partial.json
+baseline.qcow2
