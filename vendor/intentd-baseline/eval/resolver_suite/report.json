@@ -1,0 +1,122 @@
+{
+  "abstain_on_in_scope_miss": {
+    "cases": [],
+    "count": 0,
+    "rate": 0.0,
+    "rule_of_three_95_upper_bound": 0.02857142857142857
+  },
+  "confusion_matrix": {
+    "classes": [
+      "app.install",
+      "app.remove",
+      "change.revert",
+      "abstain"
+    ],
+    "matrix": {
+      "abstain": {
+        "abstain": 36,
+        "app.install": 0,
+        "app.remove": 0,
+        "change.revert": 0
+      },
+      "app.install": {
+        "abstain": 0,
+        "app.install": 35,
+        "app.remove": 0,
+        "change.revert": 0
+      },
+      "app.remove": {
+        "abstain": 0,
+        "app.install": 0,
+        "app.remove": 35,
+        "change.revert": 0
+      },
+      "change.revert": {
+        "abstain": 0,
+        "app.install": 0,
+        "app.remove": 0,
+        "change.revert": 35
+      }
+    }
+  },
+  "cross_capability_confusion": {
+    "cases": [],
+    "count": 0,
+    "rate": 0.0,
+    "rule_of_three_95_upper_bound": 0.02857142857142857
+  },
+  "exact_match": {
+    "in_scope_accuracy": 1.0,
+    "in_scope_correct": 105,
+    "in_scope_total": 105,
+    "per_capability": {
+      "app.install": {
+        "accuracy": 1.0,
+        "correct": 35,
+        "n": 35
+      },
+      "app.remove": {
+        "accuracy": 1.0,
+        "correct": 35,
+        "n": 35
+      },
+      "change.revert": {
+        "accuracy": 1.0,
+        "correct": 35,
+        "n": 35
+      }
+    }
+  },
+  "failures": [],
+  "meta": {
+    "n_cases": 141,
+    "n_in_scope": 105,
+    "n_out_of_scope": 36,
+    "retries": 0,
+    "wall_time_seconds": 583.7079901319812
+  },
+  "out_of_scope_abstention": {
+    "abstained": 36,
+    "false_invoke_cases": [],
+    "false_invoke_count": 0,
+    "n": 36,
+    "rate": 1.0,
+    "rule_of_three_95_upper_bound": 0.08333333333333333
+  },
+  "per_class_precision_recall": {
+    "abstain": {
+      "actual_total": 36,
+      "precision": 1.0,
+      "predicted_total": 36,
+      "recall": 1.0,
+      "tp": 36
+    },
+    "app.install": {
+      "actual_total": 35,
+      "precision": 1.0,
+      "predicted_total": 35,
+      "recall": 1.0,
+      "tp": 35
+    },
+    "app.remove": {
+      "actual_total": 35,
+      "precision": 1.0,
+      "predicted_total": 35,
+      "recall": 1.0,
+      "tp": 35
+    },
+    "change.revert": {
+      "actual_total": 35,
+      "precision": 1.0,
+      "predicted_total": 35,
+      "recall": 1.0,
+      "tp": 35
+    }
+  },
+  "wrong_app": {
+    "cases": [],
+    "count": 0,
+    "rate": 0.0,
+    "rule_of_three_95_upper_bound": 0.02857142857142857
+  }
+}

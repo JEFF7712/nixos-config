@@ -1,0 +1,22 @@
+[
+  {"id": "firefox", "name": "Firefox", "attr": "firefox", "unfree": false,
+   "summary": "Web browser"},
+  {"id": "chromium", "name": "Chromium", "attr": "chromium", "unfree": false,
+   "summary": "Web browser"},
+  {"id": "vlc", "name": "VLC", "attr": "vlc", "unfree": false,
+   "summary": "Media player"},
+  {"id": "mpv", "name": "mpv", "attr": "mpv", "unfree": false,
+   "summary": "Minimal media player"},
+  {"id": "gimp", "name": "GIMP", "attr": "gimp", "unfree": false,
+   "summary": "Image editor"},
+  {"id": "inkscape", "name": "Inkscape", "attr": "inkscape", "unfree": false,
+   "summary": "Vector graphics editor"},
+  {"id": "libreoffice", "name": "LibreOffice", "attr": "libreoffice-fresh", "unfree": false,
+   "summary": "Office suite"},
+  {"id": "vscodium", "name": "VSCodium", "attr": "vscodium", "unfree": false,
+   "summary": "Code editor"},
+  {"id": "obsidian", "name": "Obsidian", "attr": "obsidian", "unfree": true,
+   "summary": "Note-taking app"},
+  {"id": "zotero", "name": "Zotero", "attr": "zotero", "unfree": false,
+   "summary": "Reference manager"}
+]

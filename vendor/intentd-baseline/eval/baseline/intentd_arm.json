@@ -1,0 +1,80 @@
+{
+  "arm": "intentd",
+  "protocol": "eval/baseline/PROTOCOL.md",
+  "nixpkgs_rev": "e7a3ca8092b61ff85b6a45bf863ea2b2d6a661b3",
+  "resolver": "stubbed with canned replies proven by the M5 live eval (eval/resolver_suite/report.json) for these exact utterances (eval/resolver_suite/cases.jsonl); prompt construction, reply schema validation, and catalog-checked invocation resolution run on the production path, only the `claude -p` subprocess is substituted",
+  "terminal_exposure_definition": "terminal_exposure_zero_construction is 0 for every task by construction: the intentd arm never surfaces a raw shell command (no nix/systemctl/journalctl) to the user, only natural-language `intent do \"...\"` (or the dedicated `intent revert` verb). intent_invocations is the count of those CLI invocations needed to complete the task; it is the closest intentd-arm analogue of the baseline arm's terminal-exposure command count, and is reported alongside it rather than in place of it.",
+  "tasks": [
+    {
+      "id": "install_named_free_app",
+      "utterance": "install firefox",
+      "capability": "app.install",
+      "completion": true,
+      "wall_seconds": 19.79,
+      "clarification_turns": 0,
+      "terminal_exposure_zero_construction": 0,
+      "intent_invocations": 1,
+      "recovery_success": null
+    },
+    {
+      "id": "install_unfree_app_with_license",
+      "utterance": "put obsidian on my machine",
+      "capability": "app.install",
+      "completion": true,
+      "wall_seconds": 9.35,
+      "clarification_turns": 1,
+      "terminal_exposure_zero_construction": 0,
+      "intent_invocations": 1,
+      "recovery_success": null,
+      "note": "the license ack is the one clarification turn; answered via `echo y |` in text mode, see the comment above this task in the testScript"
+    },
+    {
+      "id": "remove_an_app",
+      "utterance": "remove firefox",
+      "capability": "app.remove",
+      "completion": true,
+      "wall_seconds": 10.45,
+      "clarification_turns": 0,
+      "terminal_exposure_zero_construction": 0,
+      "intent_invocations": 1,
+      "recovery_success": null
+    },
+    {
+      "id": "install_by_description",
+      "utterance": "i need something to watch videos, get vlc",
+      "capability": "app.install",
+      "completion": true,
+      "wall_seconds": 9.53,
+      "clarification_turns": 0,
+      "terminal_exposure_zero_construction": 0,
+      "intent_invocations": 1,
+      "recovery_success": null
+    },
+    {
+      "id": "revert_last_change",
+      "utterance": null,
+      "capability": "change.revert",
+      "completion": true,
+      "wall_seconds": 8.12,
+      "clarification_turns": 0,
+      "terminal_exposure_zero_construction": 0,
+      "intent_invocations": 1,
+      "recovery_success": null,
+      "note": "dedicated verb, bypasses the resolver entirely"
+    },
+    {
+      "id": "recover_from_mid_activation_failure",
+      "utterance": "install mpv",
+      "capability": "app.install",
+      "completion": true,
+      "wall_seconds": 20.11,
+      "clarification_turns": 0,
+      "terminal_exposure_zero_construction": 0,
+      "intent_invocations": 2,
+      "recovery_success": true,
+      "note": "first `do` triggers the chaos unit during switch-to-configuration; health check catches the fresh failure, the transaction is aborted and the system is auto-restored to the prior blessed closure with no user shell step; second `do` is the same utterance retried after the injected fault is cleared"
+    }
+  ],
+  "post_failure_trust": 5,
+  "notes": "Trust is 5/5 because the orchestrator detected the injected activation failure, aborted the transaction, restored the prior blessed closure automatically, and completed the same request after the injected fault was cleared, without exposing a recovery shell step."
+}

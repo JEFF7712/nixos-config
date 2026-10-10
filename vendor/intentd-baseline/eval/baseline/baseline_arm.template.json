@@ -1,0 +1,104 @@
+{
+  "_template": "Copy to baseline_arm.json and fill in. Keys beginning with _ are documentation and are ignored by eval/baseline/compare.py. Null transport metadata comes from the patcher JSON; null task and trust fields are measurements described in RUNBOOK.md section 3 and PROTOCOL.md section 5.",
+  "arm": "baseline",
+  "protocol": "eval/baseline/PROTOCOL.md",
+  "runbook": "eval/baseline/RUNBOOK.md",
+  "nixpkgs_rev": "e7a3ca8092b61ff85b6a45bf863ea2b2d6a661b3",
+  "_agent": "Record the coding-agent name, model, authentication mode, and exact pinned nix-agent revision (317334c76aa07ade539918014b977685501f7aaa). Cursor CLI is fixed to 2026.08.11-e8db854 and must match the transport metadata. This arm is not deterministic and is reproducible only in spirit; see RUNBOOK.md section 2 and PROTOCOL.md section 3.3.",
+  "agent": {
+    "name": null,
+    "model": null,
+    "cli_version": "2026.08.11-e8db854",
+    "authentication_mode": null,
+    "nix_agent_rev": null
+  },
+  "_cursor_mcp_transport_compatibility": "Copy the two untimed patcher statuses, exact immutable store path, and version outputs immediately before and after the measured chat. They must be 'patched', 'already_patched', the pinned store path, and the pinned version twice. Invoke only through baseline-cursor-agent, which verifies the immutable Node and bundle, normalizes PATH, and forces --disable-auto-update. compare.py rejects missing or mismatched transport metadata.",
+  "cursor_mcp_transport_compatibility": {
+    "official_cli_version": "2026.08.11-e8db854",
+    "official_archive_sha256": "bfff4bf6f4e9dd30c1d0ef0a70b6077b074015dd2948e4c50685d53afdcfce5a",
+    "official_bundle_sha256": "f6fd4e6bf3d6ecbf66cc2dcabcf708b8a7c37b400d10c82a58658b5e331c36d0",
+    "task_facing_node_sha256": "e0e46d3a1c0667117303412647cafcbcefb1be7612493015ec8fd6b7440162a4",
+    "patched_bundle_sha256": "7ffab05b9b62b90d3abe22d02a1fbcabe16b01897853aa810ce2694425d1aa3a",
+    "mcp_timeout_ms": 300000,
+    "immutable_store_path": "/nix/store/1my44nnw4m6w9g5ja5wdqm8x89m36zc2-cursor-agent-2026.08.11-e8db854",
+    "first_application_status": null,
+    "idempotence_verification_status": null,
+    "pre_chat_cli_version": null,
+    "post_chat_cli_version": null,
+    "auto_update_disabled": true
+  },
+  "_terminal_exposure_definition": "PROTOCOL section 5.4: the coding-agent transcript and tool-call log are primary for every distinct shell/tool-call command the agent ran or asked you to run/approve. The root-owned /var/log/nix-agent-baseline/usage.jsonl records only nix-agent MCP events; use per-task line boundaries as a privileged-operation and bypass cross-check, not as a record of arbitrary shell commands. The intentd arm reports terminal_exposure_zero_construction and intent_invocations separately; compare.py keeps them distinct.",
+  "_task_6_fault": "Inject eval/baseline/vm/fault.nix as the activation-time failure. Let the agent complete its first response without steering. If it removes the fault import, record fault_variant 'agent_cleared'. Otherwise, only after that attempt concludes, the observer removes the import, re-issues 'install mpv', and records 'human_cleared', mirroring the intentd harness clearing its fault. See RUNBOOK.md section 3 and PROTOCOL.md section 3.2.",
+  "tasks": [
+    {
+      "id": "install_named_free_app",
+      "utterance": "install firefox",
+      "verify": "which firefox",
+      "completion": null,
+      "wall_seconds": null,
+      "clarification_turns": null,
+      "terminal_exposure": null,
+      "recovery_success": null,
+      "notes": null
+    },
+    {
+      "id": "install_unfree_app_with_license",
+      "utterance": "put obsidian on my machine",
+      "verify": "which obsidian",
+      "completion": null,
+      "wall_seconds": null,
+      "clarification_turns": null,
+      "terminal_exposure": null,
+      "recovery_success": null,
+      "notes": null
+    },
+    {
+      "id": "remove_an_app",
+      "utterance": "remove firefox",
+      "verify": "which firefox now fails",
+      "completion": null,
+      "wall_seconds": null,
+      "clarification_turns": null,
+      "terminal_exposure": null,
+      "recovery_success": null,
+      "notes": null
+    },
+    {
+      "id": "install_by_description",
+      "utterance": "i need something to watch videos, get vlc",
+      "verify": "which vlc",
+      "completion": null,
+      "wall_seconds": null,
+      "clarification_turns": null,
+      "terminal_exposure": null,
+      "recovery_success": null,
+      "notes": null
+    },
+    {
+      "id": "revert_last_change",
+      "utterance": "undo that",
+      "verify": "nixos-rebuild list-generations, and vlc gone again",
+      "completion": null,
+      "wall_seconds": null,
+      "clarification_turns": null,
+      "terminal_exposure": null,
+      "recovery_success": null,
+      "notes": null
+    },
+    {
+      "id": "recover_from_mid_activation_failure",
+      "utterance": "install mpv",
+      "verify": "which mpv, systemctl is-failed baseline-chaos",
+      "completion": null,
+      "wall_seconds": null,
+      "clarification_turns": null,
+      "terminal_exposure": null,
+      "recovery_success": null,
+      "fault_variant": null,
+      "notes": null
+    }
+  ],
+  "_post_failure_trust": "PROTOCOL section 5.6: 1-5, asked once after task 6. 1 = would not run it again unsupervised, 5 = fully trust it. Score the intentd arm too and write it into intentd_arm.json, which currently has null.",
+  "post_failure_trust": null,
+  "notes": null
+}

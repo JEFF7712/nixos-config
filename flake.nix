@@ -36,7 +36,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     intentd = {
-      url = "path:/nix/store/fc3xz62rzfkck8cnz62zx2xmxbcxgw9m-intentd-baseline-source";
+      # Vendored baseline snapshot (vendor/intentd-baseline): the upstream
+      # checkout has no remote, and the previous absolute /nix/store path
+      # input evaluated only on machines already holding that store path.
+      # Refresh vendor/ deliberately and re-lock when rebasing.
+      url = "path:./vendor/intentd-baseline";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.lanzaboote.follows = "lanzaboote";
     };
