@@ -7,6 +7,9 @@ actions="$state_dir/actions.log"
 lifecycles="$state_dir/playerctl-lifecycle.log"
 printf '%q ' "$@" >>"$state_dir/playerctl-calls.log"
 printf '\n' >>"$state_dir/playerctl-calls.log"
+if [ "${1-}" = status ] && [ "$#" -eq 1 ]; then
+  date +%s%3N >>"$state_dir/status-times.log"
+fi
 
 read_value() {
   jq -r "if has(\"players\") then .defaultPlayer as \$default | .players[] | select(.name == \$default) | $1 else $1 end" "$state_file"
@@ -75,7 +78,7 @@ case "${1-}" in
     if [ -f "$state_dir/slow-snapshot.once" ]; then
       delay=$(cat "$state_dir/slow-snapshot.once")
       rm -f "$state_dir/slow-snapshot.once"
-      : >"$state_dir/slow-snapshot.active"
+      printf 'active\n' >"$state_dir/slow-snapshot.active"
       sleep "$delay"
       rm -f "$state_dir/slow-snapshot.active"
     fi

@@ -31,24 +31,37 @@
           };
         };
 
-        pythonEnv = myPython.withPackages (
+        pythonPackages =
           ps: with ps; [
             numpy
             pandas
             requests
             matplotlib
             openpyxl
-            scikit-learn
             scipy
+            plotly
+          ];
+        pythonEnv = myPython.withPackages pythonPackages;
+        cbeEnv = myPython.withPackages (
+          ps:
+          pythonPackages ps
+          ++ [
+            ps.openmm
+            ps.mdtraj
+          ]
+        );
+        mlEnv = myPython.withPackages (
+          ps:
+          pythonPackages ps
+          ++ (with ps; [
+            scikit-learn
             torch
             torch-geometric
             openmm
             mdtraj
-            plotly
             jupyterlab
-            pip
             virtualenv
-          ]
+          ])
         );
       in
       {
@@ -83,7 +96,7 @@
 
           cbe = pkgs.mkShell {
             packages = [
-              pythonEnv
+              cbeEnv
               pkgs.openblas
             ];
             shellHook = ''echo "CBE Shell ready." '';
@@ -91,19 +104,17 @@
 
           ml = pkgs.mkShell {
             packages = [
-              pythonEnv
+              mlEnv
+              pkgs.uv
             ];
 
             shellHook = ''
               if [ ! -d ".venv" ]; then
                 echo "Creating new virtual environment..."
-                virtualenv .venv
+                uv venv --system-site-packages --python ${mlEnv}/bin/python3 .venv
               fi
               source .venv/bin/activate
-
-              export PIP_PREFIX="$(pwd)/.build/pip_packages"
-              export PYTHONPATH="$PIP_PREFIX/${pkgs.python3.sitePackages}:$PYTHONPATH"
-              export PATH="$PIP_PREFIX/bin:$PATH"
+              export PYTHONPATH="${mlEnv}/${myPython.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}"
 
               export LD_LIBRARY_PATH="/run/opengl-driver/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.libGL}/lib:$LD_LIBRARY_PATH"
 

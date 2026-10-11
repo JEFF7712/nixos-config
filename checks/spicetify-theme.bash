@@ -73,3 +73,32 @@ COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" apply_spicetify_theme "$runtime_fi
 assert_eq $'spicetify config current_theme Comfy color_scheme tinted inject_theme_js 0\npgrep -f spotify-spiced\nspicetify -n apply' \
   "$(cat "$log_file")" \
   "closed Spotify is patched without launching"
+
+state="$tmpdir/activation"
+mkdir -p "$state/app/Apps"
+touch "$state/app/Apps/xpui.spa"
+cat > "$bin_dir/spicetify" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$COMMAND_LOG"
+exit "${APPLY_STATUS:-0}"
+EOF
+
+: > "$log_file"
+if COMMAND_LOG="$log_file" APPLY_STATUS=1 bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" sig-a fresh "$bin_dir/spicetify"; then
+  printf 'FAIL: failed apply returned success\n' >&2
+  exit 1
+fi
+[ ! -e "$state/.apply-stamp" ]
+COMMAND_LOG="$log_file" bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" sig-a '' "$bin_dir/spicetify"
+assert_eq sig-a "$(cat "$state/.apply-stamp")" 'retry stamps a successful apply'
+COMMAND_LOG="$log_file" bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" sig-a '' "$bin_dir/spicetify"
+assert_eq 2 "$(wc -l < "$log_file" | tr -d ' ')" 'unchanged successful activation skips apply'
+
+if COMMAND_LOG="$log_file" APPLY_STATUS=1 bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" sig-a fresh "$bin_dir/spicetify"; then
+  exit 1
+fi
+[ ! -e "$state/.apply-stamp" ]
+COMMAND_LOG="$log_file" bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" sig-a '' "$bin_dir/spicetify"
+assert_eq sig-a "$(cat "$state/.apply-stamp")" 'fresh-copy failure removes an older matching stamp'
+COMMAND_LOG="$log_file" DRY_RUN_CMD=echo bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" sig-b fresh "$bin_dir/spicetify"
+assert_eq sig-a "$(cat "$state/.apply-stamp")" 'dry activation preserves the stamp'

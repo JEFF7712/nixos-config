@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+legacy=${1:?profile filename is required}
+uuid=${2:?profile UUID is required}
+
+# NetworkManager also reads extensionless files in /etc, so backups must end in ~.
+for backup in "$legacy".pre-declarative.*; do
+  if [ -f "$backup" ] && [ "${backup%~}" = "$backup" ] && grep -Fxq "uuid=$uuid" "$backup"; then
+    mv -- "$backup" "$backup~"
+  fi
+done
+if [ -f "$legacy" ] && grep -Fxq "uuid=$uuid" "$legacy"; then
+  mv -- "$legacy" "$legacy.pre-declarative.$(date +%s%N)~"
+fi

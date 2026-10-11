@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+shopt -s nullglob
 
 tmpdir="$(mktemp -d)"
 trap 'chmod -R u+w "$tmpdir" 2>/dev/null || true; rm -rf "$tmpdir"' EXIT
@@ -825,7 +826,8 @@ exercise_interrupted_publication() {
   assert_status 137 "$PIPELINE_STATUS" "${name}_first_run"
   [[ $(cat "$CASE_DIR/state/pending-weekly/state") == publishing ]] ||
     fail "${name} did not retain the publishing state"
-  if compgen -G "$repo/.flake.lock.snapshot.*" >/dev/null; then
+  local snapshots=("$repo"/.flake.lock.snapshot.*)
+  if ((${#snapshots[@]})); then
     fail "${name} wrote a publication snapshot into the editable repository"
   fi
 
@@ -864,7 +866,7 @@ case_partial_publication_recovery() {
     fail 'partial_publication recovery left flake.lock dirty'
   cmp -s "$repo/flake.lock" <("$real_git" -C "$repo" show HEAD:flake.lock) ||
     fail 'partial_publication recovery did not publish the candidate lock'
-  mapfile -t temporary_files < <(compgen -G "$repo/.flake.lock.update.*")
+  temporary_files=("$repo"/.flake.lock.update.*)
   [[ ${#temporary_files[@]} -eq 1 && ${temporary_files[0]} == "$repo/.flake.lock.update.unrelated" ]] ||
     fail 'partial_publication recovery left an updater-owned temporary file'
   [[ $(cat "$repo/.flake.lock.update.unrelated") == 'unrelated temporary' ]] ||
@@ -881,7 +883,8 @@ case_marker_before_temp_creation() {
   assert_status 137 "$PIPELINE_STATUS" marker_before_temp_first_run
   [[ -r $CASE_DIR/state/pending-weekly/publication-temp ]] ||
     fail 'marker_before_temp did not retain the publication temp marker'
-  if compgen -G "$repo/.flake.lock.update.*" >/dev/null; then
+  local temporary_files=("$repo"/.flake.lock.update.*)
+  if ((${#temporary_files[@]})); then
     fail 'marker_before_temp created a repository temp before recording it'
   fi
 
@@ -892,7 +895,8 @@ case_marker_before_temp_creation() {
     fail 'marker_before_temp recovery left the candidate active'
   "$real_git" -C "$repo" diff --quiet -- flake.lock ||
     fail 'marker_before_temp recovery left flake.lock dirty'
-  if compgen -G "$repo/.flake.lock.update.*" >/dev/null; then
+  temporary_files=("$repo"/.flake.lock.update.*)
+  if ((${#temporary_files[@]})); then
     fail 'marker_before_temp recovery left an updater-owned temporary file'
   fi
   repo="$saved_repo"
@@ -954,7 +958,8 @@ case_real_dirty_noop() {
   assert_log_lacks 'nix-cascade-guard ' real_dirty_noop
   assert_log_lacks ' commit ' real_dirty_noop
   assert_log_lacks 'nixos-rebuild ' real_dirty_noop
-  if compgen -G "$repo/.flake.lock.snapshot.*" >/dev/null; then
+  local snapshots=("$repo"/.flake.lock.snapshot.*)
+  if ((${#snapshots[@]})); then
     fail 'real_dirty_noop left a lock snapshot behind'
   fi
   repo="$saved_repo"
@@ -987,7 +992,8 @@ case_real_restore() {
     fail "real_$name did not preserve the pre-run lock mode"
   [[ $(stat -c %Y "$repo/flake.lock") == "$expected_mtime" ]] ||
     fail "real_$name did not preserve the pre-run lock mtime"
-  if compgen -G "$repo/.flake.lock.snapshot.*" >/dev/null; then
+  local snapshots=("$repo"/.flake.lock.snapshot.*)
+  if ((${#snapshots[@]})); then
     fail "real_$name left a lock snapshot behind"
   fi
   repo="$saved_repo"

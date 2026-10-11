@@ -67,40 +67,14 @@
     pciutils
     rsync
     git
-    (pkgs.writeShellScriptBin "get-config" ''
-      echo "Checking internet connection..."
-      if ping -c 1 github.com &> /dev/null; then
-          echo "Connected! Updating repository..."
-
-          TARGET_DIR="/home/rupan/nixos"
-
-          if [ -d "$TARGET_DIR/.git" ]; then
-              # reset instead of pull: survives upstream history rewrites
-              ${pkgs.git}/bin/git -C "$TARGET_DIR" fetch origin main
-              ${pkgs.git}/bin/git -C "$TARGET_DIR" reset --hard origin/main
-              echo "✅ Config updated from GitHub."
-          else
-              echo "Resyncing fresh from GitHub..."
-              rm -rf "$TARGET_DIR"
-              ${pkgs.git}/bin/git clone https://github.com/JEFF7712/nixos-config.git "$TARGET_DIR"
-              echo "✅ Config downloaded to $TARGET_DIR"
-          fi
-
-          ASSETS_DIR="/home/rupan/nixos-assets"
-
-          if [ -d "$ASSETS_DIR/.git" ]; then
-              ${pkgs.git}/bin/git -C "$ASSETS_DIR" fetch origin main
-              ${pkgs.git}/bin/git -C "$ASSETS_DIR" reset --hard origin/main
-              echo "✅ Assets updated from GitHub."
-          else
-              rm -rf "$ASSETS_DIR"
-              ${pkgs.git}/bin/git clone --depth 1 https://github.com/JEFF7712/nixos-assets.git "$ASSETS_DIR"
-              echo "✅ Assets downloaded to $ASSETS_DIR"
-          fi
-      else
-          echo "❌ No Internet Connection."
-      fi
-    '')
+    (pkgs.writeShellApplication {
+      name = "get-config";
+      runtimeInputs = with pkgs; [
+        git
+        coreutils
+      ];
+      text = builtins.readFile ../../home/scripts/get-config;
+    })
   ];
 
   services.power-profiles-daemon.enable = true;

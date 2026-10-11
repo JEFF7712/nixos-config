@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+iface=${1-}
+action=${2:?event is required}
+[ -n "$iface" ] || exit 0
+management_iface=${HOMELAB_MANAGEMENT_INTERFACE:-enp0s13f0u1u1}
+state_dir=${HOMELAB_NETWORK_STATE_DIR:-/run/homelab-network}
+
+case "$action" in
+  up|reapply|connectivity-change|dhcp4-change)
+    addresses=$(ip -4 -j address show dev "$iface") || exit 0
+    source_address=$(jq -r '[.[].addr_info[] | select(.family == "inet" and (.local | startswith("10.0.10."))) | .local][0] // empty' <<<"$addresses")
+    if [ -n "$source_address" ]; then
+      resolvectl dns "$iface" 10.0.30.10
+      resolvectl domain "$iface" '~homelab'
+    fi
+    ;;
+  down) source_address= ;;
+  *) exit 0 ;;
+esac
+
+[ "$iface" = "$management_iface" ] || exit 0
+install -d -m 0700 "$state_dir"
+exec 9>"$state_dir/lock"
+flock 9
+state_file="$state_dir/source"
+
+if [ -r "$state_file" ]; then
+  previous_address=$(cat "$state_file")
+  ip rule del from "$previous_address/32" lookup 1001 priority 100 2>/dev/null || true
+  rm -f -- "$state_file"
+fi
+ip route flush table 1001 dev "$iface" 2>/dev/null || true
+
+if [ -n "$source_address" ]; then
+  printf '%s\n' "$source_address" > "$state_file"
+  ip route replace 10.0.10.0/24 dev "$iface" src "$source_address" table 1001
+  ip route replace default via 10.0.10.1 dev "$iface" metric 50 table 1001
+  ip route replace 10.0.30.0/24 via 10.0.10.1 dev "$iface" metric 50 table 1001
+  ip rule add from "$source_address/32" lookup 1001 priority 100
+fi

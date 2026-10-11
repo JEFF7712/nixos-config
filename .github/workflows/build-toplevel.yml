@@ -1,6 +1,6 @@
 name: Build Toplevel
 
-# Remote builder for `just switch`: builds the laptop toplevel on nas-01 and
+# Remote builder for `just switch`: builds the laptop toplevel on homelab-04 and
 # pushes the closure to Attic, so a switch mostly substitutes instead of
 # building locally (notably the unfree CUDA overlay packages, which never hit
 # the public cache). The laptop's own watch-store covers paths it builds
@@ -13,15 +13,14 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - '**.nix'
-      - 'flake.lock'
-      - '.github/workflows/build-toplevel.yml'
 
 # Cancel superseded builds: a newer commit makes an older toplevel worthless.
 concurrency:
   group: build-toplevel-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build-toplevel:
@@ -31,6 +30,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v7
+      with:
+        persist-credentials: false
 
     - name: Build laptop toplevel
       run: |

@@ -218,11 +218,12 @@ in
             e: ''run install -m644 "${e.src}/${e.name}" "$SPICETIFY_CONFIG/Extensions/${e.name}"''
           ) spiceExtensions}
 
+          sp_config_ok=1
           run ${spicetifyBin} config \
             spotify_path "$state/app" \
             prefs_path "$HOME/.config/spotify/prefs" \
             inject_css 1 replace_colors 1 overwrite_assets 1 \
-            extensions "${extList}" > /dev/null 2>&1 || true
+            extensions "${extList}" > /dev/null 2>&1 || sp_config_ok=0
 
           # Re-apply the active profile's theme so a rebuild doesn't leave Spotify stale.
           sp_active=$(cat "$HOME/.config/desktop-profiles/active" 2>/dev/null || echo "")
@@ -239,22 +240,17 @@ in
               sp_js=$(printf '%s' "$sp_pick" | ${pkgs.jq}/bin/jq -r '.js // 0')
             fi
           fi
-          run ${spicetifyBin} config current_theme "$sp_theme" color_scheme "$sp_scheme" inject_theme_js "$sp_js" > /dev/null 2>&1 || true
+          run ${spicetifyBin} config current_theme "$sp_theme" color_scheme "$sp_scheme" inject_theme_js "$sp_js" > /dev/null 2>&1 || sp_config_ok=0
 
           # -n: don't restart a running Spotify; patched xpui loads on next launch.
           # Apply is a ~100MB spa rezip; stamp so unchanged rebuilds skip it.
-          apply_stamp="$state/.apply-stamp"
           apply_sig="${pkgs.spotify}|$sp_active|$sp_variant|$sp_theme|$sp_scheme|$sp_js|${spiceSig}|${extSig}"
-          prev_apply=$(cat "$apply_stamp" 2>/dev/null || echo "")
-          if [ -n "''${fresh:-}" ] || [ "$prev_apply" != "$apply_sig" ]; then
-            if [ -e "$state/app/Apps/xpui.spa" ] || [ -n "''${fresh:-}" ]; then
-              run ${spicetifyBin} -n backup apply > /dev/null 2>&1 || echo "spicetify: backup apply failed" >&2
-            else
-              run ${spicetifyBin} -n apply > /dev/null 2>&1 || echo "spicetify: apply failed" >&2
-            fi
-            if [ -z "''${DRY_RUN_CMD:-}" ]; then
-              printf '%s' "$apply_sig" > "$apply_stamp"
-            fi
+          if [ "$sp_config_ok" = 1 ]; then
+            run ${pkgs.bash}/bin/bash ${../../home/scripts/spicetify-apply} \
+              "$state" "$apply_sig" "''${fresh:-}" ${spicetifyBin} || true
+          else
+            run rm -f "$state/.apply-stamp"
+            echo "spicetify: configuration failed; will retry on the next activation" >&2
           fi
         '';
 

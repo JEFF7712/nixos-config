@@ -13,6 +13,8 @@ ShellRoot {
     property var stableState: ({})
     property int offBaseline: 0
     property int monitoringBaseline: 0
+    property int completionBaseline: 0
+    property int monitoringStatusBaseline: 0
     property double monitoringEnabledAt: 0
     property int stoppedBaseline: 0
     property int followBaseline: 0
@@ -89,6 +91,28 @@ ShellRoot {
         snapshotPulse.restart();
     }
 
+    function completionCount(): int {
+        completionsFile.reload();
+        completionsFile.waitForJob();
+        return completionsFile.text().split("\n").filter(line => line === "complete").length;
+    }
+
+    function monitoringStarts(): var {
+        statusTimesFile.reload();
+        statusTimesFile.waitForJob();
+        const times = statusTimesFile.text().trim().split("\n").filter(line => line.length > 0).map(Number);
+        // Available-player snapshots check status twice before reading metadata.
+        return times.slice(root.monitoringStatusBaseline).filter((time, index) => index % 2 === 0);
+    }
+
+    Connections {
+        target: mediaService
+        function onPositionSecondsChanged(): void {
+            if (root.phase === 10 && mediaService.positionSeconds >= root.interpolationStart + 0.5)
+                root.interpolationPassed = true;
+        }
+    }
+
     function writePlayer(state): void {
         playerFile.setText(JSON.stringify(state) + "\n");
     }
@@ -154,6 +178,24 @@ ShellRoot {
     FileView {
         id: callsFile
         path: root.stateDir + "/playerctl-calls.log"
+        blockLoading: true
+    }
+
+    FileView {
+        id: completionsFile
+        path: root.stateDir + "/snapshot-completions.log"
+        blockLoading: true
+    }
+
+    FileView {
+        id: statusTimesFile
+        path: root.stateDir + "/status-times.log"
+        blockLoading: true
+    }
+
+    FileView {
+        id: slowSnapshotActiveFile
+        path: root.stateDir + "/slow-snapshot.active"
         blockLoading: true
     }
 
@@ -310,6 +352,10 @@ ShellRoot {
                 if (root.positionCallCount() !== root.offBaseline)
                     return root.finish(false, "detailedMonitoring false produced periodic snapshots");
                 root.monitoringBaseline = root.positionCallCount();
+                root.completionBaseline = root.completionCount();
+                statusTimesFile.reload();
+                statusTimesFile.waitForJob();
+                root.monitoringStatusBaseline = statusTimesFile.text().trim().split("\n").filter(line => line.length > 0).length;
                 root.monitoringEnabledAt = root.now();
                 mediaService.detailedMonitoring = true;
                 root.phase = 9;
@@ -317,8 +363,8 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 9 && root.positionCallCount() >= root.monitoringBaseline + 1) {
-                root.immediatePollPassed = elapsed < 700;
+            if (root.phase === 9 && root.positionCallCount() >= root.monitoringBaseline + 1 && root.completionCount() >= root.completionBaseline + 1) {
+                root.immediatePollPassed = root.monitoringStarts()[0] - root.monitoringEnabledAt < 700;
                 root.interpolationStart = mediaService.positionSeconds;
                 root.phase = 10;
                 root.phaseStarted = root.now();
@@ -326,17 +372,17 @@ ShellRoot {
             }
 
             if (root.phase === 10 && elapsed >= 700) {
-                root.noDuplicateEnablePassed = root.positionCallCount() === root.monitoringBaseline + 1;
+                root.noDuplicateEnablePassed = root.monitoringStarts().filter(time => time - root.monitoringEnabledAt < 1400).length === 1;
                 if (!root.noDuplicateEnablePassed)
                     return root.finish(false, "detailed monitoring enable produced a duplicate refresh before 1500ms");
-                root.interpolationPassed = mediaService.positionSeconds >= root.interpolationStart + 0.5;
+                root.interpolationPassed = root.interpolationPassed || mediaService.positionSeconds >= root.interpolationStart + 0.5;
                 root.phase = 11;
                 root.phaseStarted = root.now();
                 return;
             }
 
             if (root.phase === 11 && root.positionCallCount() >= root.monitoringBaseline + 2) {
-                root.periodicPollPassed = root.now() - root.monitoringEnabledAt >= 1400;
+                root.periodicPollPassed = root.monitoringStarts()[1] - root.monitoringEnabledAt >= 1400;
                 if (!root.periodicPollPassed)
                     return root.finish(false, "second monitoring snapshot occurred before the 1500ms poll window");
                 mediaService.detailedMonitoring = false;
@@ -382,9 +428,6 @@ ShellRoot {
                 if (!root.followRestartPassed)
                     return root.finish(false, "follow process restart was missing or duplicated");
                 root.followBaseline = root.positionCallCount();
-                // Keep the snapshot in flight well past the phase-16 event
-                // writes (~750ms out): both follow events must be consumed
-                // while it runs or they schedule two follow-ups instead of one.
                 slowSnapshotFile.setText("2.0\n");
                 root.requestSnapshot();
                 root.phase = 16;
@@ -392,7 +435,11 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 16 && elapsed >= 150) {
+            if (root.phase === 16) {
+                slowSnapshotActiveFile.reload();
+                slowSnapshotActiveFile.waitForJob();
+                if (slowSnapshotActiveFile.text().trim() !== "active")
+                    return;
                 const pending = root.policy.scenarios.recovery.state;
                 pending.title = "Pending invalidation update";
                 root.writePlayer(pending);
