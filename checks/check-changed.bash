@@ -44,10 +44,24 @@ diff-check' \
   hosts/laptop/base.nix
 
 assert_selection 'fmt-check
+shell-check
+get-config-check
 build-iso
 eval iso
 diff-check' \
   hosts/iso/configuration.nix
+
+assert_selection 'fmt-check
+shell-check
+network-check
+eval laptop
+diff-check' \
+  home/scripts/homelab-network-event
+
+assert_selection 'shell-check
+wallpaper-script-check
+diff-check' \
+  home/scripts/spicetify-apply
 
 assert_selection 'fmt-check
 eval-all

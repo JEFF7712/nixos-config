@@ -10,4 +10,9 @@ if [ "${1-}" = -cn ] && [ -f "$state_dir/malformed-snapshot.once" ]; then
   exit 0
 fi
 
-exec "$real_jq" "$@"
+if [ "${1-}" = -cn ]; then
+  "$real_jq" "$@"
+  printf 'complete\n' >>"$state_dir/snapshot-completions.log"
+else
+  exec "$real_jq" "$@"
+fi

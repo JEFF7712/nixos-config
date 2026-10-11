@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+temporary=
+trap 'if [ -n "$temporary" ]; then rm -rf -- "$temporary"; fi' EXIT
+
+update_repo() {
+  local url=$1 target=$2 status backup
+  if [ -e "$target/.git" ]; then
+    status=$(git -C "$target" status --porcelain)
+    if [ -n "$status" ]; then
+      printf 'Refusing to update %s: local changes are present.\n' "$target" >&2
+      return 1
+    fi
+    if [ "$(git -C "$target" branch --show-current)" != main ]; then
+      printf 'Refusing to update %s: the checkout is not on main.\n' "$target" >&2
+      return 1
+    fi
+    git -C "$target" fetch origin main
+    git -C "$target" merge --ff-only origin/main
+  else
+    mkdir -p "$(dirname "$target")"
+    temporary=$(mktemp -d "$target.download.XXXXXX")
+    git clone -- "$url" "$temporary"
+    git -C "$temporary" rev-parse --verify HEAD >/dev/null
+    if [ -e "$target" ]; then
+      backup="$target.backup.$(date +%s%N)"
+      mv -T -- "$target" "$backup"
+      printf 'Preserved the previous copy at %s\n' "$backup"
+    fi
+    mv -T -- "$temporary" "$target"
+    temporary=
+  fi
+  printf 'Config updated: %s\n' "$target"
+}
+
+update_repo "${GET_CONFIG_URL:-https://github.com/JEFF7712/nixos-config.git}" "${GET_CONFIG_TARGET_DIR:-$HOME/nixos}"
+update_repo "${GET_CONFIG_ASSETS_URL:-https://github.com/JEFF7712/nixos-assets.git}" "${GET_CONFIG_ASSETS_DIR:-$HOME/nixos-assets}"

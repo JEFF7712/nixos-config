@@ -29,7 +29,7 @@ in
       dataDir = "/home/rupan";
       configDir = "/home/rupan/.config/syncthing";
       inherit (cfg) guiAddress;
-      openDefaultPorts = true;
+      openDefaultPorts = false;
       overrideDevices = true;
       overrideFolders = true;
       settings = {

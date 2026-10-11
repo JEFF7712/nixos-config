@@ -403,7 +403,7 @@ in
           cpu_poll_seconds = 3.0;
           memory_poll_seconds = 3.0;
           network_poll_seconds = 3.0;
-          disk_poll_seconds = 3.0;
+          disk_poll_seconds = 60.0;
         };
       };
     };

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state=${1:?state directory is required}
+signature=${2:?signature is required}
+fresh=${3-}
+spicetify=${4:?spicetify binary is required}
+stamp="$state/.apply-stamp"
+
+[ -z "${DRY_RUN_CMD:-}" ] || exit 0
+previous=$(cat "$stamp" 2>/dev/null || true)
+[ -n "$fresh" ] || [ "$previous" != "$signature" ] || exit 0
+
+args=()
+if [ -e "$state/app/Apps/xpui.spa" ] || [ -n "$fresh" ]; then
+  args+=(backup)
+fi
+if "$spicetify" -n "${args[@]}" apply >/dev/null 2>&1; then
+  printf '%s' "$signature" > "$stamp"
+else
+  rm -f -- "$stamp"
+  printf 'spicetify: apply failed; will retry on the next activation\n' >&2
+  exit 1
+fi

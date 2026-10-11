@@ -4,36 +4,48 @@ on:
     branches: [main]
   pull_request:
 
-# Self-hosted runners on nas-01: cancel superseded runs so rapid pushes do
-# not queue stale jobs behind each other.
+permissions:
+  contents: read
+
 concurrency:
   group: check-${{ github.ref }}
   cancel-in-progress: true
 
-# Runs on the nas-01 self-hosted runners (homelab-new
-# flake/modules/github-runner-nixos.nix). Warm /nix/store plus the LAN Attic
-# cache is what makes this fast; there is deliberately no Nix installer,
-# Cachix, or GH-cache step. Tool installs resolve from this flake's locked
-# nixpkgs via --inputs-from so CI uses the same revisions as local dev.
-# check.yml is secret-free by design, so fork PRs cannot exfiltrate anything.
+# PR-controlled formatters and checks run on disposable machines outside the homelab.
 jobs:
   validate:
-    runs-on: [self-hosted, homelab, nixos]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@2cb76beab460be7e44442c7ebdcbc30b638416df
+        with:
+          determinate: false
+          extra-conf: |
+            max-jobs = 2
+            cores = 2
       - name: Check formatting
         run: nix fmt -- --fail-on-change --no-cache
       - name: Check flake
         run: nix flake check --no-write-lock-file
       - name: Fast checks
         run: |
-          nix shell --inputs-from . nixpkgs#just nixpkgs#jq nixpkgs#nixfmt nixpkgs#shellcheck nixpkgs#ripgrep nixpkgs#fd nixpkgs#python3 -c \
-            bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check && just check-flake-update && just impermanence-check && just check-local-bin && just lid-close-check'
+          nix shell --inputs-from . nixpkgs#just nixpkgs#jq nixpkgs#nixfmt nixpkgs#shellcheck nixpkgs#ripgrep nixpkgs#fd nixpkgs#python3 nixpkgs#bc -c \
+            bash -c 'just check-agent-docs && just check-agent-workflows && just shell-check && just check-flake-update && just network-check && just get-config-check && just impermanence-check && just check-local-bin && just lid-close-check'
 
   profiles:
-    runs-on: [self-hosted, homelab, nixos]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@2cb76beab460be7e44442c7ebdcbc30b638416df
+        with:
+          determinate: false
+          extra-conf: |
+            max-jobs = 2
+            cores = 2
       - name: Profile and theme checks
         run: |
           nix shell --inputs-from . nixpkgs#just nixpkgs#python3 nixpkgs#matugen nixpkgs#ripgrep nixpkgs#jq .#iris-python -c \

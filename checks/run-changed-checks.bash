@@ -36,6 +36,23 @@ classify() {
       add shell-check
       add lid-close-check
       ;;
+    home/scripts/homelab-network-event | home/scripts/preserve-management-profile | modules/nixos/homelab.nix)
+      add shell-check
+      add network-check
+      add fmt-check
+      add 'eval laptop'
+      ;;
+    home/scripts/get-config | hosts/iso/configuration.nix)
+      add shell-check
+      add get-config-check
+      add fmt-check
+      add build-iso
+      add 'eval iso'
+      ;;
+    home/scripts/spicetify-apply)
+      add shell-check
+      add wallpaper-script-check
+      ;;
     home/scripts/profile-* | home/scripts/switch-profile | home/scripts/toggle-variant | \
       home/scripts/random-wallpaper | home/scripts/waypaper-backend-sync | \
       home/scripts/lock-screen | home/scripts/iris.py | home/scripts/iris-render.py | \
@@ -144,6 +161,8 @@ else
     fmt-check \
     shell-check \
     lid-close-check \
+    network-check \
+    get-config-check \
     wallpaper-script-check \
     plymouth-theme-check \
     qml-lint \

@@ -14,6 +14,8 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Add or tune a desktop profile | `modules/home-manager/profiles/`, `home/scripts/new-profile` | `modules/home-manager/profiles/<name>.nix`, `~/nixos-assets/wallpapers/<name>/` (separate repo) | `just check-profiles && just fmt-check` |
 | Change runtime profile scripts | `home/scripts/profile-common`, target script | `home/scripts/<script>` | `just shell-check && just wallpaper-script-check` |
 | Change lid-close / Stasis stay-awake | `home/scripts/lid-close-action`, `home/rupan/laptop.nix` | same | `just lid-close-check && just shell-check` |
+| Change management networking | `modules/nixos/homelab.nix`, `home/scripts/homelab-network-event` | same | `just network-check && just shell-check && just eval laptop` |
+| Change ISO checkout recovery | `home/scripts/get-config`, `hosts/iso/configuration.nix` | same | `just get-config-check && just shell-check && just eval iso` |
 | Change Quickshell UI | `home/configs/quickshell*/`, profile bar references | QML/config files under `home/configs/quickshell*/` | `just qml-lint && just eval laptop` |
 | Add a local package | `pkgs/`, `overlays/local-packages.nix` | `pkgs/<name>/default.nix`, overlay export | `nix build .#nixosConfigurations.laptop.pkgs.<name>` (stage new files first) |
 | Change overlays | `overlays/default.nix`, target overlay file | `overlays/<name>.nix` | `nix build` the overlayed package attr, or `just eval laptop` if eval is enough |

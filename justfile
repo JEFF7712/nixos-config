@@ -35,6 +35,12 @@ check-flake-update:
   bash checks/nix-pin-nixpkgs.bash
   bash checks/flake-update-gated.bash
 
+network-check:
+  bash checks/network-events.bash
+
+get-config-check:
+  bash checks/get-config.bash
+
 check-agent-docs:
   bash checks/agent-docs.bash
 
@@ -104,6 +110,8 @@ check:
   just plymouth-theme-check
   just check-local-bin
   just check-flake-update
+  just network-check
+  just get-config-check
   just fmt-check
   just shell-check
   just lid-close-check
