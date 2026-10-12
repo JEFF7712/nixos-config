@@ -10,6 +10,12 @@ let
   vaultObsidian = "${cfg.vaultPath}/.obsidian";
   cmuFonts = pkgs.cm_unicode;
   configRoot = "${config.repoPath}/home/configs/obsidian";
+  cupertinoTheme = pkgs.fetchFromGitHub {
+    owner = "svnaxis";
+    repo = "obsidian-cupertino";
+    rev = "31eb16ffa00d46ac4f83d5ce8b808c548e7b5740";
+    hash = "sha256-ATwILAnbjBGQXhLrGbmM3ojslGmunK+U77erCGCF2ac=";
+  };
 in
 {
   options.obsidian = {
@@ -43,6 +49,9 @@ in
       };
 
     # Custom Font Loader needs real font files; merge appearance.json without clobbering iris theme fields.
+    # Cupertino is a real-file copy (not a symlink): Obsidian reads themes from
+    # inside the vault and the vault syncs via Syncthing, where symlinks are fragile.
+    # Bump `rev` + `hash` in cupertinoTheme to update (upstream: svnaxis/obsidian-cupertino).
     # One failed command under set -e aborts the entire home-manager activation,
     # so only scaffold once the vault exists and only merge when Obsidian has
     # actually created appearance.json.
@@ -52,9 +61,10 @@ in
       fonts_dir="$vault/fonts"
       appearance="$vault/appearance.json"
       cmu_src=${lib.escapeShellArg "${cmuFonts}/share/fonts/opentype"}
+      cupertino_src=${lib.escapeShellArg "${cupertinoTheme}"}
 
       if [ -d "$vault" ]; then
-        mkdir -p "$fonts_dir" "$vault/snippets" "$vault/plugins/custom-font-loader"
+        mkdir -p "$fonts_dir" "$vault/snippets" "$vault/plugins/custom-font-loader" "$vault/themes/Cupertino"
 
         # Copy CMU Serif fonts for the vault fonts folder
         if [ -f "$cmu_src/cmunrm.otf" ]; then
@@ -75,6 +85,11 @@ in
         rm -f "$fonts_dir"/Newsreader*.ttf
         rm -f "$vault/plugins/custom-font-loader"/newsreader*.css
         rm -f "$vault/plugins/custom-font-loader"/cmu*.css
+
+        # Install the Cupertino theme files (real copies, writable for Obsidian)
+        cp -f "$cupertino_src/theme.css" "$vault/themes/Cupertino/theme.css"
+        cp -f "$cupertino_src/manifest.json" "$vault/themes/Cupertino/manifest.json"
+        chmod u+w "$vault/themes/Cupertino/theme.css" "$vault/themes/Cupertino/manifest.json" 2>/dev/null || true
 
         if [ -f "$appearance" ]; then
           ${pkgs.jq}/bin/jq --indent 2 '
