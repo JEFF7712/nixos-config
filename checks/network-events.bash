@@ -27,6 +27,7 @@ export PATH="$tmpdir/bin:$PATH"
 
 bash home/scripts/homelab-network-event fixture-mgmt up
 grep -Fxq 'resolvectl dns fixture-mgmt 10.0.30.10' "$EVENT_LOG"
+grep -Fxq "resolvectl domain fixture-mgmt ~homelab ~rupan.dev" "$EVENT_LOG"
 grep -Fxq 'ip rule add from 10.0.10.42/32 lookup 1001 priority 100' "$EVENT_LOG"
 [ "$(cat "$HOMELAB_NETWORK_STATE_DIR/source")" = 10.0.10.42 ]
 
