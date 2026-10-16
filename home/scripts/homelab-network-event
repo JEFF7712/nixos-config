@@ -13,7 +13,7 @@ case "$action" in
     source_address=$(jq -r '[.[].addr_info[] | select(.family == "inet" and (.local | startswith("10.0.10."))) | .local][0] // empty' <<<"$addresses")
     if [ -n "$source_address" ]; then
       resolvectl dns "$iface" 10.0.30.10
-      resolvectl domain "$iface" '~homelab'
+      resolvectl domain "$iface" '~homelab' '~rupan.dev'
     fi
     ;;
   down) source_address= ;;
