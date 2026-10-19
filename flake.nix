@@ -75,9 +75,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # Daily LLM agent binaries. Dedicated opencode-nix flakes are archived.
+    # Does NOT follow the main nixpkgs: its packages (e.g. fx) need a zig
+    # version newer than our pin, so it carries its own newer nixpkgs.
     opencode-nix = {
       url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-agent = {
       url = "github:JEFF7712/nix-agent?ref=v0.11.0";
@@ -101,10 +102,6 @@
     };
     vicinae = {
       url = "github:vicinaehq/vicinae";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    terax = {
-      url = "github:JEFF7712/terax-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     asus-numberpad-driver = {
