@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Pause or resume comin, which deploys origin/deploy/laptop (published by
+# homelab CI). `just switch` pauses it so a local experiment is not replaced by
+# the next deployment; resume hands the laptop back to deploy/laptop.
+set -euo pipefail
+
+pause_file=/var/lib/nixos-deploy/paused
+repo="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.."
+
+activating() {
+  pgrep -f 'bin/switch-to-configuration' >/dev/null
+}
+
+case "${1:-status}" in
+  pause)
+    if activating; then
+      echo "a system activation is running; retry when it finishes" >&2
+      exit 1
+    fi
+    touch "$pause_file"
+    systemctl stop comin.service
+    echo "comin paused; 'nixos-deploy resume' returns the laptop to deploy/laptop"
+    ;;
+  resume)
+    rm -f "$pause_file"
+    systemctl start comin.service
+    echo "comin resumed; it switches at the next new deploy/laptop commit"
+    ;;
+  status)
+    if [ -e "$pause_file" ]; then
+      echo "comin: paused since $(date -r "$pause_file" '+%F %R')"
+    else
+      echo "comin: $(systemctl is-active comin.service || true)"
+    fi
+    deployed="$(git -C "$repo" ls-remote origin refs/heads/deploy/laptop | cut -f1)"
+    head="$(git -C "$repo" rev-parse HEAD)"
+    echo "deploy/laptop: ${deployed:0:12}  checkout HEAD: ${head:0:12}"
+    if [ -n "$deployed" ] && [ "$deployed" != "$head" ]; then
+      echo "checkout differs from deploy/laptop; out-of-store links in home/ follow the checkout"
+    fi
+    ;;
+  *)
+    echo "usage: nixos-deploy [pause|resume|status]" >&2
+    exit 2
+    ;;
+esac

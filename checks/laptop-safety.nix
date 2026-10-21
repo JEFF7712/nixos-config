@@ -7,7 +7,8 @@ let
   ) config.preservation.preserveAt."/persist".directories;
   numberpadService = config.systemd.services.asus-numberpad-driver;
   numberpadPath = config.systemd.paths.asus-numberpad-driver;
-  autoUpdateService = config.systemd.services.nixos-auto-update;
+  cominService = config.systemd.services.comin;
+  cominRemotes = config.services.comin.remotes;
   nixDaemon = config.systemd.services.nix-daemon;
   nvidiaCdi = config.systemd.services.nvidia-container-toolkit-cdi-generator;
   userServices = config.home-manager.users.rupan.systemd.user.services;
@@ -26,9 +27,17 @@ assert builtins.elem "/etc/subuid" preservedFiles;
 assert builtins.elem "/etc/subgid" preservedFiles;
 assert builtins.elem "/var/lib/asus-numberpad-driver" preservedDirectories;
 assert numberpadService.serviceConfig.StateDirectory == "asus-numberpad-driver";
-assert autoUpdateService.serviceConfig.StateDirectory == "nixos-auto-update";
-assert builtins.elem "/var/lib/${autoUpdateService.serviceConfig.StateDirectory}"
-  preservedDirectories;
+assert !config.auto-update.enable;
+assert builtins.elem "/var/lib/comin" preservedDirectories;
+assert builtins.elem "/var/lib/nixos-deploy" preservedDirectories;
+assert builtins.match ".*max-jobs = 0\n.*" cominService.environment.NIX_CONFIG != null;
+assert
+  builtins.match ".*always-allow-substitutes = true\n.*" cominService.environment.NIX_CONFIG != null;
+assert builtins.all (
+  remote:
+  remote.branches.main.name == "deploy/laptop"
+  && remote.branches.testing.name == "deploy/laptop-testing"
+) cominRemotes;
 assert nixDaemon.serviceConfig.CPUWeight == 25;
 assert nixDaemon.serviceConfig.IOWeight == 25;
 assert nixDaemon.serviceConfig.MemoryHigh == "22G";

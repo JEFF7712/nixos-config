@@ -29,6 +29,7 @@
           codex_dir="${config.home.homeDirectory}/.codex"
           codex_skills="$codex_dir/skills"
           codex_instructions="$codex_dir/AGENTS.md"
+          home_instructions="${config.home.homeDirectory}/AGENTS.md"
 
           mkdir -p "$codex_dir" "$codex_skills"
 
@@ -98,6 +99,8 @@
                 !skip { print }
               ' "$claude_instructions"
             } > "$codex_instructions"
+            # Clients started under the home directory read this copy; a hand-kept one drifted.
+            cp "$codex_instructions" "$home_instructions"
           fi
         '';
       };

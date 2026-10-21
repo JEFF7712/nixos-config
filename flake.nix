@@ -4,7 +4,9 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
-    chatgpt-nixpkgs.url = "github:Moraxyc/nixpkgs/chatgpt-linux";
+    # The chatgpt-linux branch was deleted when NixOS/nixpkgs#551713 merged;
+    # a branch ref makes every `nix flake update` fail.
+    chatgpt-nixpkgs.url = "github:Moraxyc/nixpkgs/38964bbbe2d2b277eb2d1659d2be52a082cfa487";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
     treefmt-nix = {
@@ -50,6 +52,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     preservation.url = "github:nix-community/preservation";
+    comin = {
+      url = "github:nlewo/comin/v0.14.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -75,9 +81,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # Daily LLM agent binaries. Dedicated opencode-nix flakes are archived.
+    # Does NOT follow the main nixpkgs: its packages (e.g. fx) need a zig
+    # version newer than our pin, so it carries its own newer nixpkgs.
     opencode-nix = {
       url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-agent = {
       url = "github:JEFF7712/nix-agent?ref=v0.11.0";
@@ -101,10 +108,6 @@
     };
     vicinae = {
       url = "github:vicinaehq/vicinae";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    terax = {
-      url = "github:JEFF7712/terax-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     asus-numberpad-driver = {
