@@ -4,7 +4,9 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
-    chatgpt-nixpkgs.url = "github:Moraxyc/nixpkgs/chatgpt-linux";
+    # The chatgpt-linux branch was deleted when NixOS/nixpkgs#551713 merged;
+    # a branch ref makes every `nix flake update` fail.
+    chatgpt-nixpkgs.url = "github:Moraxyc/nixpkgs/38964bbbe2d2b277eb2d1659d2be52a082cfa487";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
     treefmt-nix = {

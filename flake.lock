@@ -87,8 +87,8 @@
       },
       "original": {
         "owner": "Moraxyc",
-        "ref": "chatgpt-linux",
         "repo": "nixpkgs",
+        "rev": "38964bbbe2d2b277eb2d1659d2be52a082cfa487",
         "type": "github"
       }
     },
