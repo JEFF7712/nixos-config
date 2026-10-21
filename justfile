@@ -221,6 +221,10 @@ switch:
     echo "then rerun 'just switch', or wait for it to finish." >&2
     exit 1
   fi
+  # A local switch is an experiment: keep comin from replacing it.
+  if systemctl cat comin.service >/dev/null 2>&1 && [ ! -e /var/lib/nixos-deploy/paused ]; then
+    ./home/scripts/nixos-deploy pause
+  fi
   # Refuse a toolchain-cascade switch. FORCE=1 to override.
   toplevel=".#nixosConfigurations.laptop.config.system.build.toplevel"
   pin=./home/scripts/nix-pin-nixpkgs-running

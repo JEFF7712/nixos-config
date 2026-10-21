@@ -329,7 +329,7 @@
   networking.networkmanager.wifi.macAddress = "preserve";
   networking.wireless.iwd.enable = false;
 
-  auto-update.enable = true;
+  cominDeploy.enable = true;
   focusMode.enable = true;
 
   programs.nh = {

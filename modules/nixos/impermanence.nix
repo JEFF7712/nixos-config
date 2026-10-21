@@ -157,7 +157,10 @@ in
           }
           "/var/lib/asusd"
           "/var/lib/asus-numberpad-driver"
-          "/var/lib/nixos-auto-update"
+          # comin's last deployed commit; without it a hard-reset deploy branch
+          # could roll the laptop back.
+          "/var/lib/comin"
+          "/var/lib/nixos-deploy"
           # pcrlock measurements; losing them turns TPM2 LUKS into passphrase-only.
           "/var/lib/pcrlock.d"
           "/var/lib/upower"
