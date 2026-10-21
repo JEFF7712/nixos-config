@@ -1021,8 +1021,12 @@ case_marker_before_temp_creation
 case_real_dirty_restore_timestamp
 case_staged_newer_lock
 
-weekly_service=$(nix eval --raw --no-write-lock-file \
-  '.#nixosConfigurations.laptop.config.systemd.services.nixos-auto-update.script')
+# The laptop deploys through comin with auto-update off; keep the module's
+# service contract checked for re-enabling it.
+weekly_service=$(nix eval --raw --impure --no-write-lock-file --expr '
+  ((builtins.getFlake (toString ./.)).nixosConfigurations.laptop.extendModules {
+    modules = [ { auto-update.enable = true; } ];
+  }).config.systemd.services.nixos-auto-update.script')
 
 [[ $weekly_service == *'--eval-failure hard'* ]] ||
   fail 'weekly service did not evaluate with --eval-failure hard'
