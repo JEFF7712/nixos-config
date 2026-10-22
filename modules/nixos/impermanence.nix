@@ -160,7 +160,12 @@ in
           # comin's last deployed commit; without it a hard-reset deploy branch
           # could roll the laptop back.
           "/var/lib/comin"
-          "/var/lib/nixos-deploy"
+          # nixos-deploy pause writes here as the desktop user.
+          {
+            directory = "/var/lib/nixos-deploy";
+            user = config.cominDeploy.user;
+            group = "users";
+          }
           # pcrlock measurements; losing them turns TPM2 LUKS into passphrase-only.
           "/var/lib/pcrlock.d"
           "/var/lib/upower"
