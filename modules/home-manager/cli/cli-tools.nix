@@ -38,6 +38,8 @@
         nvd
         nix-output-monitor
         nixfmt
+        statix
+        deadnix
         shellcheck
         nurl
         nix-init
