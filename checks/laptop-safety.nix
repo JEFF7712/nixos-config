@@ -29,7 +29,9 @@ assert builtins.elem "/var/lib/asus-numberpad-driver" preservedDirectories;
 assert numberpadService.serviceConfig.StateDirectory == "asus-numberpad-driver";
 assert !config.auto-update.enable;
 assert builtins.elem "/var/lib/comin" preservedDirectories;
-assert builtins.elem "/var/lib/nixos-deploy" preservedDirectories;
+assert builtins.any (
+  entry: entry.directory == "/var/lib/nixos-deploy" && entry.user == config.cominDeploy.user
+) config.preservation.preserveAt."/persist".directories;
 assert builtins.match ".*max-jobs = 0\n.*" cominService.environment.NIX_CONFIG != null;
 assert
   builtins.match ".*always-allow-substitutes = true\n.*" cominService.environment.NIX_CONFIG != null;
