@@ -206,7 +206,7 @@
           };
 
           mkSystem =
-            host: userModule:
+            host: user: userModule:
             nixpkgs.lib.nixosSystem {
               inherit system pkgs;
               specialArgs = {
@@ -235,7 +235,7 @@
                       ;
                   };
                   home-manager.backupFileExtension = "backup";
-                  home-manager.users.rupan = import userModule;
+                  home-manager.users.${user} = import userModule;
                 }
               ];
             };
@@ -243,8 +243,9 @@
         in
         {
           nixosConfigurations = {
-            laptop = mkSystem "laptop" ./home/rupan/laptop.nix;
-            iso = mkSystem "iso" ./home/rupan/iso.nix;
+            laptop = mkSystem "laptop" "rupan" ./home/rupan/laptop.nix;
+            iso = mkSystem "iso" "rupan" ./home/rupan/iso.nix;
+            agent-rupan = mkSystem "agent-rupan" "developer" ./home/rupan/agent-vm.nix;
           };
           homeConfigurations = {
             workspace = home-manager.lib.homeManagerConfiguration {
