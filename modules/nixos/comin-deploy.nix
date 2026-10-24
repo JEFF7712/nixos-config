@@ -70,8 +70,6 @@ in
       publicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDncXBv6ZbH5pJOfaW+KdKG1pBkjwA5UzAKx/k5TwbyVajI5J4dBkp+LnemjIsNgluwrHAZDcZ8LiBazkcAYJyZ8bh3K1YKeKiOaTuCPCk+hPxuw9Q/rwOugecgjyc8fLMDMA+7wEZwSysqpqHp898tu/OXgO2Au2UCWBR9hudFzdtt+N13I5H4or7YTG9kVgoErnxL7lvlhC5unxBD0GvmT2k9dJkx/wYDruyKsSuxOqvbMHdzki/Vozr8s2IQjeLALnb2h8ml3gZ69IUNwg0vx8FSV6WMv1ng4xg5JWsuDWdk2QBPTje+ayCrSnVFWk2uNG33wRlDMo+mikpVTbhaLCcs3swGKYIcFQ1KpN4pVWRHwEF4p7RLx9F3xxIiTX9uJoPJfCYQ1PEkxlpa+ufswDlgzfQ/ScNlinQJE5srtRgqcC8Le5xS6czBsrb1g++hzCGSkSfOaDiYj6G5cdI3iRG28eRmk9x5qSRpVyE9uBbyl1vzTVZAEd/NFi4P/nY1JTqPzjfGmhgqYhztgccz39STcJL3I3Y/eTZyJwoIHcGKVLsfXMJH1NjZnSFrgzl+KGZ/E7T2RycGWVKoTFy42uwqcOLV4k97jEhOX2LEBSqEBQggcbDw5OUuETJHhjaXwiM170+ZOdF2vofI7o/zIX+dKTdJFu80DI3ZRe3zgQ==";
     };
 
-    systemd.tmpfiles.rules = [ "d ${stateDirectory} 0755 ${cfg.user} users -" ];
-
     security.polkit.enable = true;
     security.polkit.extraConfig = ''
       polkit.addRule(function(action, subject) {

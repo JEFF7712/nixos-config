@@ -8,6 +8,11 @@
 
 {
   options.ai-tools.enable = lib.mkEnableOption "ai-tools";
+  options.ai-tools.desktop = lib.mkOption {
+    type = lib.types.bool;
+    default = true;
+    description = "Install graphical AI applications alongside the shared CLI tools.";
+  };
 
   config = lib.mkIf config.ai-tools.enable (
     let
@@ -38,9 +43,9 @@
           piCli
           codexCli
           claudeCode
-          antigravity
-          antigravityCli
-        ];
+        ]
+        ++ lib.optional config.ai-tools.desktop antigravity
+        ++ [ antigravityCli ];
 
       xdg.configFile."rtk/config.toml".text = ''
         # RTK config. Partial - unspecified sections use built-in defaults.
