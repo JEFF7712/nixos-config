@@ -93,7 +93,7 @@
     inherit lib pkgs config;
     format = "qcow2";
     partitionTableType = "legacy";
-    diskSize = 98304;
+    diskSize = 8192;
     memSize = 2048;
   };
 }

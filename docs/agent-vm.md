@@ -38,6 +38,13 @@ an existing VM disk is destructive and requires explicit replacement authorizati
 Use the homelab workspace runbook and its Rupan-specific domain XML for installation.
 Do not use the Ubuntu cloud-image workspace provisioner for this guest.
 
+The installation artifact is 8 GiB. Expand its installed copy to 96 GiB with
+`qemu-img resize` before boot; the guest grows its partition and ext4 filesystem
+on first boot. Building a compact artifact also avoids the pinned LKL builder's
+[large-volume hang](https://github.com/lkl/linux/issues/466), caused by its small
+internal kernel memory allocation. Increasing `memSize` only changes the later
+bootloader-installation VM and does not increase the filesystem copier's memory.
+
 Connect through the actual hypervisor:
 
 ```sh
