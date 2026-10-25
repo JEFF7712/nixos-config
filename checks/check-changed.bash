@@ -22,7 +22,6 @@ assert_selection 'diff-check'
 
 assert_selection 'qml-lint
 quickshell-test
-eval laptop
 diff-check' \
   home/configs/quickshell/Topbar.qml
 
