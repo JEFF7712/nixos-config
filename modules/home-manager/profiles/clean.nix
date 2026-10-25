@@ -75,11 +75,17 @@ in
       second = "#e8e8e8";
       warm = "#e6dcc6";
       fresh = "#d6eadc";
-      barHeight = "38";
+      barHeight = "30";
+      barMarginTop = "7";
+      exclusiveZoneOffset = "-3";
+      barRadius = "10";
+      pillBg = "#00000000";
+      pillBorder = "#00000000";
       showClockDate = "false";
+      showWorkspaceNumbers = "false";
       popupAnimationStyle = "quickFade";
       motionStyle = "dry";
-      showWorkspaceIndicator = "false";
+      showWorkspaceIndicator = "true";
       barFont = "JetBrainsMono Nerd Font";
     };
 
@@ -116,11 +122,7 @@ in
       animations = animations.snappy;
       gaps = 12;
       cornerRadius = 15;
-      borderOff = false;
-      borderWidth = 0.5;
-      # Scale 2: 0.5 logical = 1 physical px. Alpha so the hairline isn't chunky.
-      borderActiveColor = "#ffffff66";
-      borderInactiveColor = "#ffffff33";
+      borderOff = true;
       focusRingOff = true;
       shadowSoftness = 34;
       shadowSpread = 2;
