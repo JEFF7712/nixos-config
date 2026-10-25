@@ -16,7 +16,7 @@ just dry           # dry-activate laptop config (resolved nixos-rebuild)
 just check-changed # checks selected from staged, unstaged, and untracked files; optional Git base argument
 just check         # full validation: agent docs/workflows + local-bin + flake-update + fmt-check + shell/lid-close/wallpaper + qml-lint + quickshell-test + flake check (host evals + laptop-safety) + check-profiles + git diff --check
 just fmt-check     # nix fmt --fail-on-change (mirrors CI; fails if anything is unformatted)
-just quick         # laptop eval (~70s) + git diff --check
+just quick         # laptop eval (~50s, skipped when no eval-relevant change) + git diff --check
 just eval [target] # eval a host's toplevel drvPath (default laptop)
 just build [target]# realize a host's toplevel closure (default laptop) — catches build failures eval misses
 just build-iso     # build the live ISO
@@ -50,7 +50,7 @@ The `repoPath` option (default `$HOME/nixos`) drives these paths — keep it con
 ## Gotchas
 
 - Activation, sudo, deploys, GC, and publication: read `docs/deployment.md` first. Short version: `just switch` is the only activation path (flock against auto-update OOM, cascade guard, comin pause); only exact-ref `nixos-rebuild`/`nh` sudo is passwordless and agents have no interactive sudo; comin replaces commits that exist only locally; no `nix.gc`/`system.autoUpgrade`.
-- `just quick` / `just eval` take about 70s (toplevel `drvPath` is never eval-cached). Run them once after a batch of edits, not after each edit.
+- `just eval` takes about 50s (toplevel `drvPath` is never eval-cached, and this Nix has no parallel eval). `just quick` and `just check-changed` skip it when no changed file can affect evaluation (docs, QML, most `home/scripts/`); run them once per batch of edits.
 - home-manager uses `backupFileExtension = "backup"`: activation renames conflicting existing files to `*.backup` instead of failing.
 - Some packages pull from `nixpkgs-stable` (26.05): grep `pkgs-stable` before adding similar ones.
 - Overlays live in `overlays/` (imported by `flake.nix`): `local-packages`, `nix-vscode-extensions`, `orca-slicer`.

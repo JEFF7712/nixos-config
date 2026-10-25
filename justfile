@@ -124,10 +124,10 @@ check:
   just check-profiles
   just diff-check
 
-# ~70s: toplevel drvPath is never eval-cached. Run once per batch of edits.
+# Laptop eval (~50s, never eval-cached) only when changes can affect eval;
+# QUICK_FORCE_EVAL=1 forces it. Run once per batch of edits.
 quick:
-  just eval laptop
-  just diff-check
+  bash checks/quick.bash
 
 agent-context:
   #!/usr/bin/env bash

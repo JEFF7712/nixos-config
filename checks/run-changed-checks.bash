@@ -27,10 +27,10 @@ classify() {
       ;;
     README.md | docs/* | *.md | .gitignore | LICENSE*)
       ;;
+    # QML is launched out-of-store from repoPath; Nix never reads it.
     home/configs/quickshell/* | home/configs/quickshell-*/* | *.qml)
       add qml-lint
       add quickshell-test
-      add 'eval laptop'
       ;;
     home/scripts/lid-close-action)
       add shell-check
