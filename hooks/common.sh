@@ -147,6 +147,10 @@ agent_hooks_shell_command() {
   jq -r '.command // .tool_input.command // empty' <<<"$HOOK_INPUT"
 }
 
+agent_hooks_switch_message() {
+  printf '%s' "Activate with \`just switch\`, not nixos-rebuild/nh or nix-agent switch(): it holds the auto-update flock (two builds OOM this box), refuses toolchain-cascade switches, and pauses comin so the next deploy does not revert the change. Roll back with nix-agent generations()."
+}
+
 agent_hooks_trim() {
   local s=$1
   s=${s#"${s%%[![:space:]]*}"}
@@ -278,18 +282,13 @@ agent_hooks_rewrite_no_ext_diff() {
 }
 
 # Always print JSON. Cursor CLI classifies empty stdout as a failed hook
-# (errorClass empty_stdout) even when the process exits 0.
+# (errorClass empty_stdout) even when the process exits 0. Claude/Codex
+# PreToolUse no-ops stay `{}`: an explicit "allow" would skip the user's
+# permission prompts for every command in the repo.
 agent_hooks_emit_ok() {
   case "${HOOK_EVENT_NAME:-}" in
-    beforeShellExecution | preToolUse)
+    beforeShellExecution | beforeMCPExecution | preToolUse)
       jq -n '{permission:"allow"}'
-      ;;
-    PreToolUse)
-      if jq -e '.turn_id != null' <<<"$HOOK_INPUT" >/dev/null; then
-        jq -n '{}'
-      else
-        jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'
-      fi
       ;;
     *)
       jq -n '{}'
@@ -305,7 +304,7 @@ agent_hooks_ok_exit() {
 agent_hooks_emit_deny() {
   local reason=$1
   case "${HOOK_EVENT_NAME:-}" in
-    beforeShellExecution | preToolUse)
+    beforeShellExecution | beforeMCPExecution | preToolUse)
       jq -n --arg r "$reason" \
         '{permission:"deny",agent_message:$r,user_message:$r}'
       ;;

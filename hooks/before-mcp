@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Before an MCP tool call: send nix-agent switch() to `just switch`, which
+# carries the flock, cascade guard, and comin pause. Shared by Cursor,
+# Claude, and Codex.
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+agent_hooks_load || {
+  printf '%s\n' '{}'
+  exit 0
+}
+agent_hooks_in_repo_cwd || agent_hooks_ok_exit
+
+tool=$(jq -r '.tool_name // empty' <<<"$HOOK_INPUT")
+server=$(jq -r '.mcp_server_name // .server_name // empty' <<<"$HOOK_INPUT")
+
+case "$tool" in
+  mcp__nix-agent__switch) ;;
+  switch) [ "$server" = nix-agent ] || agent_hooks_ok_exit ;;
+  *) agent_hooks_ok_exit ;;
+esac
+
+agent_hooks_emit_deny "$(agent_hooks_switch_message)"
+exit 0

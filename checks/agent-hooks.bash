@@ -12,13 +12,9 @@ fail() {
 assert_ok_json() {
   local out=$1 event=$2
   case "$event" in
-    preToolUse)
+    preToolUse | beforeMCPExecution)
       printf '%s\n' "$out" | jq -e '.permission == "allow"' >/dev/null \
         || fail "expected preToolUse allow JSON, got: $out"
-      ;;
-    PreToolUse)
-      printf '%s\n' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "allow"' >/dev/null \
-        || fail "expected PreToolUse allow JSON, got: $out"
       ;;
     *)
       printf '%s\n' "$out" | jq -e '. == {}' >/dev/null \
@@ -279,3 +275,49 @@ claude_ctx=$(
 )
 printf '%s\n' "$claude_ctx" | jq -e '.hookSpecificOutput.additionalContext | test("just agent-context")' >/dev/null \
   || fail "Claude session-start missing agent-context: $claude_ctx"
+
+# A Claude/Codex no-op must not answer "allow": that skips permission prompts.
+claude_skip=$(
+  run_before_shell "$(
+    jq -n --arg cwd "$PWD" '{hook_event_name:"PreToolUse",cwd:$cwd,tool_input:{command:"rm -rf ./scratch"}}'
+  )"
+)
+assert_ok_json "$claude_skip" PreToolUse
+
+expect_switch_deny() {
+  local out=$1 what=$2
+  printf '%s\n' "$out" | jq -e '
+    ((.hookSpecificOutput.permissionDecisionReason // .agent_message) | test("just switch"))
+    and ((.hookSpecificOutput.permissionDecision // .permission) == "deny")
+  ' >/dev/null || fail "$what was not sent to just switch: $out"
+}
+
+for cmd in "sudo nixos-rebuild switch --flake .#laptop" "nh os switch ." "FOO=1 nixos-rebuild boot"; do
+  expect_switch_deny "$(
+    run_before_shell "$(jq -n --arg cwd "$PWD" --arg c "$cmd" '{hook_event_name:"PreToolUse",cwd:$cwd,tool_input:{command:$c}}')"
+  )" "$cmd"
+done
+
+assert_ok_json "$(
+  run_before_shell "$(jq -n --arg cwd "$PWD" '{hook_event_name:"PreToolUse",cwd:$cwd,tool_input:{command:"nh os info"}}')"
+)" PreToolUse
+
+run_before_mcp() {
+  printf '%s\n' "$1" | hooks/before-mcp
+}
+
+expect_switch_deny "$(
+  run_before_mcp "$(jq -n --arg cwd "$PWD" '{hook_event_name:"PreToolUse",cwd:$cwd,tool_name:"mcp__nix-agent__switch",tool_input:{}}')"
+)" "Claude nix-agent switch()"
+
+expect_switch_deny "$(
+  run_before_mcp "$(jq -n --arg cwd "$PWD" '{hook_event_name:"beforeMCPExecution",cwd:$cwd,tool_name:"switch",mcp_server_name:"nix-agent",tool_input:{}}')"
+)" "Cursor nix-agent switch()"
+
+assert_ok_json "$(
+  run_before_mcp "$(jq -n --arg cwd "$PWD" '{hook_event_name:"PreToolUse",cwd:$cwd,tool_name:"mcp__nix-agent__build",tool_input:{}}')"
+)" PreToolUse
+
+assert_ok_json "$(
+  run_before_mcp "$(jq -n --arg cwd "$PWD" '{hook_event_name:"beforeMCPExecution",cwd:$cwd,tool_name:"switch",mcp_server_name:"other",tool_input:{}}')"
+)" beforeMCPExecution

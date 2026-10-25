@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-26.05";
     # The chatgpt-linux branch was deleted when NixOS/nixpkgs#551713 merged;
     # a branch ref makes every `nix flake update` fail.
     chatgpt-nixpkgs.url = "github:Moraxyc/nixpkgs/38964bbbe2d2b277eb2d1659d2be52a082cfa487";

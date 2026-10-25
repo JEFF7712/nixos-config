@@ -31,7 +31,7 @@ Prefer durable changes that make the next agent faster or less error-prone:
 ## Closeout Flow
 
 1. Run the relevant validation for the task.
-2. Run `agent-self-improve --check`, or `home/scripts/agent-self-improve --check` if needed.
+2. If the session hit friction, run `agent-self-improve --check`, or `home/scripts/agent-self-improve --check` if needed.
 3. If durable friction appeared, edit the smallest relevant doc, check, script, or `just` recipe.
 4. Re-run the validation that covers that improvement.
 5. Mention only whether a self-improvement change was made.

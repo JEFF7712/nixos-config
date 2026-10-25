@@ -1,5 +1,5 @@
 {
-  "description": "Repo agent hooks: session context; git add/diff policy; format/parse/stage after edits; nudge on validation friction.",
+  "description": "Repo agent hooks: session context; git add/diff and switch policy; format/parse/stage after edits; nudge on validation friction.",
   "hooks": {
     "SessionStart": [
       {
@@ -22,6 +22,17 @@
             "command": "\"$(git rev-parse --show-toplevel)/hooks/before-shell\"",
             "timeout": 5,
             "statusMessage": "Checking git add/diff policy"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__nix-agent__switch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(git rev-parse --show-toplevel)/hooks/before-mcp\"",
+            "timeout": 5,
+            "statusMessage": "Checking nix-agent switch policy"
           }
         ]
       }

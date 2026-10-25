@@ -33,6 +33,12 @@
         "timeout": 10,
         "loop_limit": 1
       }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": "hooks/before-mcp",
+        "timeout": 5
+      }
     ]
   }
 }

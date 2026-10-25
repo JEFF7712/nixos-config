@@ -29,9 +29,21 @@ agent_hooks_nix_redirect_segment() {
   read -r -a words <<<"$segment" || return 1
   [ "${#words[@]}" -gt 1 ] || return 1
   case "${words[0]} ${words[1]}" in
-    "nixos-rebuild switch" | "nixos-rebuild boot" | "nixos-rebuild test" | \
-      "nixos-rebuild dry-activate" | "nixos-rebuild build")
-      printf '%s' "Use the nix-agent MCP tool instead of shell: switch() activates (records rollback_generation, reports summary.health), check(\"dry-activate\") previews, build() builds without activating. Raw nixos-rebuild output bypasses the structured envelope."
+    "nixos-rebuild switch" | "nixos-rebuild boot" | "nixos-rebuild test")
+      agent_hooks_switch_message
+      return 0
+      ;;
+    "nh os")
+      case "${words[2]:-}" in
+        switch | boot | test)
+          agent_hooks_switch_message
+          return 0
+          ;;
+      esac
+      return 1
+      ;;
+    "nixos-rebuild dry-activate" | "nixos-rebuild build")
+      printf '%s' "Use the nix-agent MCP tool instead of shell: check(\"dry-activate\") previews, build() builds without activating. Raw nixos-rebuild output bypasses the structured envelope."
       return 0
       ;;
     "home-manager switch" | "home-manager build")

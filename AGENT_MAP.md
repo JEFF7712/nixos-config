@@ -27,6 +27,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Change agent tooling | `modules/home-manager/ai-tools.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md` | `just check-agent-docs && just eval laptop` |
 | Change Rupan's headless VM | `docs/agent-vm.md`, `hosts/agent-rupan/configuration.nix`, `home/rupan/agent-vm.nix` | VM host and home config; shared CLI module when needed | `just eval agent-rupan && just check-agent-docs && just fmt-check`; build and boot the qcow2 image for installation changes |
 | Change agent hooks | `hooks/`, `.cursor/hooks.json`, `.claude/settings.json`, `.codex/hooks.json` | shared `hooks/` scripts only; keep the three configs pointing at the same commands | `just check-agent-workflows && just shell-check` |
+| Change activation / deploy flow | `docs/deployment.md`, `justfile` (`switch`), `hooks/before-shell`, `hooks/before-mcp` | same | `just check-agent-workflows && just check-agent-docs` |
 | Change agent invariants or scaffolds | `checks/agent-invariants.bash`, `checks/agent-workflows.bash`, `home/scripts/new-*module` | invariant checker, workflow test, scaffold scripts | `just check-agent-workflows && just shell-check` |
 | Change agent self-improvement behavior | `docs/agent-self-improvement.md`, `AGENT_MAP.md`, `checks/agent-*.bash` | protocol doc, agent checks, helper scripts | `just check-agent-docs && just check-agent-workflows` |
 
@@ -47,13 +48,14 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 - `git diff` renders through difftastic here; `hooks/before-shell` injects `--no-ext-diff` after the `diff` subcommand on agent `git diff`, and leaves every other git subcommand alone. Pass it yourself for a real unified patch outside the agent (`git apply`, hunk staging, or any machine parsing). Position matters: `git diff --no-ext-diff`, never `git --no-ext-diff diff` (git rejects it as a global option).
 - Use `new-nixos-module <name>` and `new-home-module <name>` for new auto-discovered modules.
 - Repo agent hooks live in `hooks/` and are wired from `.cursor/hooks.json`, `.claude/settings.json`, and `.codex/hooks.json`. Do not fork per-agent copies of the scripts. SessionStart injects `just agent-context`; do not run that recipe first.
+- Activate only with `just switch` (see `docs/deployment.md`). `hooks/before-shell` denies `nixos-rebuild switch|boot|test` / `nh os switch|boot|test`, and `hooks/before-mcp` denies nix-agent `switch()`; nix-agent `build()`, `diff()`, `check()`, `eval_config()`, and `generations()` stay the preferred tools.
 
 ## Validation
 
 Run the smallest command that proves the touched surface; the "Validate" column above is the per-task minimum. Use `just check-changed` for normal handoffs and `just check` for broad or risky changes.
 
 - `just check-changed [base]` - detect staged, unstaged, and untracked files, deduplicate their mapped checks, and fall back to `just check` for validation infrastructure, flake inputs, or other broad-risk surfaces. Pass a Git revision such as `origin/main` to include committed changes since that base.
-- `just quick` - fast default for low-risk Nix edits: laptop eval plus whitespace.
+- `just quick` - default for low-risk Nix edits: laptop eval (~70s, never eval-cached) plus whitespace. Run it once per batch of edits.
 - `just check` - broad local gate: agent checks, local-bin, flake-update, fmt, shell/wallpaper, qml-lint, quickshell-test, flake check (includes host toplevel evals and the laptop-safety flake check), profiles, whitespace. Superset of CI. Local-only: `just eval-all` (explicit host evals outside flake check), `just check-laptop-safety` (impure standalone eval of the same asserts), `just check-flake-update` (update/pin script tests), `just check-local-bin` (inspects live `~/.local/bin` and user systemd `*.service.d` drop-ins for hardcoded `/nix/store` paths), and `just quickshell-test` (needs host `quickshell` + qmltestrunner; runs offscreen, no Wayland).
 - `just build <host>` - realizes the closure and catches build failures eval misses. Use for package, overlay, or flake-input changes.
 - `just dry` / `just switch` - activation and final apply for laptop changes; intentional, they touch system state.
@@ -61,7 +63,7 @@ Run the smallest command that proves the touched surface; the "Validate" column 
 
 ## Session Closeout
 
-Run `agent-self-improve --check` when a session hits durable friction (unexplained validation failures, unclear ownership, missing or weak docs/checks, time hunting conventions), not as a per-session ritual (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH). Shared `hooks/` Stop hooks (Cursor, Claude, Codex) surface failed `just`/`nix` runs as a nudge. If friction appeared, fix the smallest relevant doc, check, script, or `just` recipe; a clean session needs no note. Full protocol: `docs/agent-self-improvement.md`.
+Friction-triggered, not a ritual: when validation fails unexpectedly, ownership is unclear, or conventions took time to find (the shared Stop hook nudges on failed `just`/`nix` runs), run `agent-self-improve --check` (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH) and fix the smallest relevant doc, check, script, or `just` recipe. A clean session needs no note. Protocol: `docs/agent-self-improvement.md`.
 
 ## Search Shortcuts
 

@@ -8,7 +8,7 @@ fmt-check:
   nix fmt -- --fail-on-change --no-cache
 
 shell-check:
-  git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b' -- home/scripts checks hooks | xargs -r shellcheck -S error
+  git grep -IlE '^#!.*\b(bash|sh|dash|ksh)\b|^# shellcheck shell=bash' -- home/scripts checks hooks | xargs -r shellcheck -S error
 
 lid-close-check:
   bash checks/lid-close-action.bash
@@ -78,6 +78,7 @@ eval target="laptop":
 eval-all:
   just eval laptop
   just eval iso
+  just eval agent-rupan
 
 # The vmVariant is a separate eval; `just eval` won't catch breakage in it.
 eval-vm target="laptop":
@@ -123,6 +124,7 @@ check:
   just check-profiles
   just diff-check
 
+# ~70s: toplevel drvPath is never eval-cached. Run once per batch of edits.
 quick:
   just eval laptop
   just diff-check
