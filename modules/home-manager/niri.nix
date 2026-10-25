@@ -130,6 +130,28 @@
           done
         '';
       };
+
+      swayosdWatchdog = pkgs.writeShellApplication {
+        name = "swayosd-watchdog";
+        runtimeInputs = [
+          pkgs.systemd
+          pkgs.gnugrep
+        ];
+        text = ''
+          # SwayOSD's server can lose its internal GUI channel while the
+          # process stays alive ("Channel Send error: sending into a closed
+          # channel", a known GTK4-port defect). The client still exits 0,
+          # so brightness/volume keys silently stop working until the
+          # service restarts. Recycle it when the signature shows up in
+          # recent logs; a restart is invisible (the server holds no state).
+          if journalctl --user --unit=swayosd.service --since="10 minutes ago" \
+            --grep="Channel Send error" --output=cat --no-pager 2>/dev/null \
+            | grep -q "Channel Send error"; then
+            echo "swayosd-watchdog: wedged channel detected, restarting swayosd"
+            systemctl --user restart swayosd.service
+          fi
+        '';
+      };
     in
     {
 
@@ -216,6 +238,18 @@
             WantedBy = [ "graphical-session.target" ];
           };
         };
+
+        swayosd-watchdog = {
+          Unit = {
+            Description = "Restart SwayOSD when its GUI channel wedges";
+            PartOf = [ "graphical-session.target" ];
+            After = [ "graphical-session.target" ];
+          };
+          Service = {
+            Type = "oneshot";
+            ExecStart = lib.getExe swayosdWatchdog;
+          };
+        };
       };
 
       systemd.user.timers.battery-low-notify = {
@@ -228,6 +262,22 @@
           OnActiveSec = "1m";
           OnUnitActiveSec = "1m";
           Unit = "battery-low-notify.service";
+        };
+        Install = {
+          WantedBy = [ "graphical-session.target" ];
+        };
+      };
+
+      systemd.user.timers.swayosd-watchdog = {
+        Unit = {
+          Description = "Poll SwayOSD health for watchdog restarts";
+          PartOf = [ "graphical-session.target" ];
+          After = [ "graphical-session.target" ];
+        };
+        Timer = {
+          OnActiveSec = "2m";
+          OnUnitActiveSec = "5m";
+          Unit = "swayosd-watchdog.service";
         };
         Install = {
           WantedBy = [ "graphical-session.target" ];
