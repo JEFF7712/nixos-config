@@ -13,3 +13,6 @@ dist
 .mypy_cache
 .pytest_cache
 .ruff_cache
+.git
+.worktrees
+.muse

@@ -21,6 +21,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "mcp__nix-agent__switch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(git rev-parse --show-toplevel)/hooks/before-mcp\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [

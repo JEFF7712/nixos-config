@@ -111,8 +111,7 @@ fi
 self_improve_output=$(home/scripts/agent-self-improve --check)
 for expected in \
   'Self-improvement check' \
-  'Session trigger' \
-  'Hurdle trigger' \
+  'friction only, not a per-session ritual' \
   'Update target'; do
   if ! grep -Fq "$expected" <<<"$self_improve_output"; then
     echo "agent-self-improve --check missing: $expected" >&2

@@ -17,13 +17,9 @@ fi
 cat <<'EOF'
 Self-improvement check
 
-Session trigger:
-  Use this at closeout for coding-agent sessions that changed files,
-  investigated behavior, or made a recommendation in this repo.
-
-Hurdle trigger:
-  Also use it after failed assumptions, unclear ownership, missing validation,
-  brittle commands, or wasted convention-search time.
+Trigger (friction only, not a per-session ritual):
+  Failed assumptions, unclear ownership, missing validation, brittle
+  commands, or wasted convention-search time.
 
 Update target:
   If durable friction appeared, make the smallest useful change to AGENT_MAP.md,
