@@ -17,6 +17,9 @@
       kitty
     ];
 
+    xdg.configFile."eza/theme.yml".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/eza/theme.yml";
+
     programs.tealdeer.enable = true;
 
     programs.bash = {
