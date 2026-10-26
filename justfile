@@ -275,7 +275,7 @@ switch:
   sudo "$(readlink -f "$(command -v nh)")" os switch -R "{{ justfile_directory() }}" -H laptop -- --max-jobs 2 --cores 8
 
 # Deliver the current branch to protected main: preflight, checks, push,
-# PR, wait for Woodpecker green, merge, sync. See docs/deployment.md.
+# PR, wait for Woodpecker green, merge, sync, delete the branch. See docs/deployment.md.
 [positional-arguments]
 ship *args:
   ./home/scripts/nixos-ship "$@"

@@ -2,7 +2,8 @@
 # Deliver the current branch to Forgejo protected main.
 #
 # Preflight, validation, push, PR (reuse or open), wait for Woodpecker
-# green, merge, sync local main. See docs/deployment.md.
+# green, merge, sync local main, delete the branch locally and on origin.
+# See docs/deployment.md.
 set -euo pipefail
 
 TIMEOUT_MINS=45
@@ -216,4 +217,13 @@ if ! git merge-base --is-ancestor "$SHA" origin/main; then
 fi
 git checkout --quiet main
 git pull --ff-only --quiet
-echo "landed on origin/main; clean up with: git branch -d $BRANCH && git push origin --delete $BRANCH"
+git branch -d "$BRANCH" || {
+  echo "landed on origin/main; could not delete local branch $BRANCH; run: git branch -d $BRANCH" >&2
+  exit 1
+}
+if git push origin --delete "$BRANCH"; then
+  echo "landed on origin/main; deleted branch $BRANCH locally and on origin"
+else
+  echo "landed on origin/main; local branch deleted, remote delete failed; retry with: git push origin --delete $BRANCH" >&2
+  exit 1
+fi
