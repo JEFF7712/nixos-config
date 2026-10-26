@@ -239,6 +239,7 @@ let
     flatMode = "true";
     showClockDate = "false";
     showWorkspaceNumbers = "true";
+    showIdleGreeting = "true";
     showBarDividers = "false";
     barFont = "Maple Mono NF";
     barBorder = "#00000000";
