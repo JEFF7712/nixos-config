@@ -289,6 +289,7 @@ let
           barHeight = "32";
           showClockDate = "false";
           showWorkspaceNumbers = "false";
+          showIdleGreeting = "true";
           barFont = monoFont;
           barBorder = "#00000000";
           pillBorder = alpha "1d" r.bg1;
