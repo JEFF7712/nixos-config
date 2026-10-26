@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "hass" as Hass
 import "services" as Services
 
 ShellRoot {
@@ -48,6 +49,10 @@ ShellRoot {
         detailedMonitoring: bluetoothPopup.active || bluetoothPopup.warming
     }
 
+    Hass.Service {
+        id: hassService
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -65,6 +70,7 @@ ShellRoot {
     readonly property Services.NiriService sharedNiriService: niriService
     readonly property Services.NetworkService sharedNetworkService: networkService
     readonly property Services.BluetoothService sharedBluetoothService: bluetoothService
+    readonly property QtObject sharedHassService: hassService
     readonly property bool anyBarCavaRequested: {
         for (const bar of barVariants.instances) {
             if (bar.cavaRequested)
@@ -91,6 +97,7 @@ ShellRoot {
     property bool showNotifications: true
     property bool showSystem: true
     property bool showTray: true
+    property bool showHass: true
     property string barFont: "JetBrainsMono Nerd Font"
     property bool flatMode: false
     property bool showBarDividers: true
@@ -137,6 +144,7 @@ ShellRoot {
         root.showNotifications = true;
         root.showSystem = true;
         root.showTray = true;
+        root.showHass = true;
         root.barFont = "JetBrainsMono Nerd Font";
         root.flatMode = false;
         root.showBarDividers = true;
@@ -153,7 +161,7 @@ ShellRoot {
     }
 
     function applyTheme(theme) {
-        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
+        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup, hassPopup];
         for (const p of popups) {
             if (p)
                 p.suppressPrewarm = true;
@@ -219,6 +227,8 @@ ShellRoot {
                 root.showSystem = theme.showSystem === "true";
             if (theme.showTray)
                 root.showTray = theme.showTray === "true";
+            if (theme.showHass)
+                root.showHass = theme.showHass === "true";
             if (theme.barFont)
                 root.barFont = theme.barFont;
             if (theme.flatMode)
@@ -318,13 +328,13 @@ ShellRoot {
             root.reloadTheme()
     }
 
-    readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active
-    readonly property bool anyPopupWarming: volumePopup.warming || wifiPopup.warming || bluetoothPopup.warming || batteryPopup.warming || calendarPopup.warming || notificationsPopup.warming || systemPopup.warming || mediaPopup.warming
+    readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active || hassPopup.active
+    readonly property bool anyPopupWarming: volumePopup.warming || wifiPopup.warming || bluetoothPopup.warming || batteryPopup.warming || calendarPopup.warming || notificationsPopup.warming || systemPopup.warming || mediaPopup.warming || hassPopup.warming
 
     function showOnly(target, centerX, screen) {
         root.popupScreen = screen;
         target.anchorCenterX = (centerX === undefined || centerX === null) ? -1 : centerX;
-        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup];
+        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup, hassPopup];
         for (const p of popups) {
             if (p !== target)
                 p.close();
@@ -346,6 +356,7 @@ ShellRoot {
         notificationsPopup.close();
         systemPopup.close();
         mediaPopup.close();
+        hassPopup.close();
     }
 
     Variants {
@@ -364,6 +375,7 @@ ShellRoot {
             niriService: root.sharedNiriService
             networkService: root.sharedNetworkService
             bluetoothService: root.sharedBluetoothService
+            hassService: root.sharedHassService
             themeReady: root.themeLoaded
             themeFg: root.themeFg
             themeBg: root.themeBg
@@ -390,6 +402,7 @@ ShellRoot {
             showNotifications: root.showNotifications
             showSystem: root.showSystem
             showTray: root.showTray
+            showHass: root.showHass
             barFont: root.barFont
             flatMode: root.flatMode
             showBarDividers: root.showBarDividers
@@ -410,6 +423,7 @@ ShellRoot {
             onNotificationsClicked: centerX => root.showOnly(notificationsPopup, centerX, modelData)
             onSystemClicked: centerX => root.showOnly(systemPopup, centerX, modelData)
             onMediaClicked: centerX => root.showOnly(mediaPopup, centerX, modelData)
+            onHassClicked: centerX => root.showOnly(hassPopup, centerX, modelData)
             onVolumeHovered: root.prewarmOn(volumePopup, modelData)
             onWifiHovered: root.prewarmOn(wifiPopup, modelData)
             onBluetoothHovered: root.prewarmOn(bluetoothPopup, modelData)
@@ -418,6 +432,7 @@ ShellRoot {
             onNotificationsHovered: root.prewarmOn(notificationsPopup, modelData)
             onSystemHovered: root.prewarmOn(systemPopup, modelData)
             onMediaHovered: root.prewarmOn(mediaPopup, modelData)
+            onHassHovered: root.prewarmOn(hassPopup, modelData)
         }
     }
 
@@ -598,6 +613,27 @@ ShellRoot {
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent
+        themeRawBg: root.themeRawBg
+        themeBorder: root.barBorderColor
+        innerHighlight: root.barInnerHighlight
+        dividerColor: root.dividerColor
+        pillBg: root.pillBg
+        pillBorder: root.pillBorder
+        flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
+        topMargin: root.popupTopMargin
+        barMargin: root.barMargin
+    }
+
+    HassPopup {
+        id: hassPopup
+        screen: root.popupScreen
+        hassService: hassService
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+        themeSecond: root.themeSecond
         themeRawBg: root.themeRawBg
         themeBorder: root.barBorderColor
         innerHighlight: root.barInnerHighlight

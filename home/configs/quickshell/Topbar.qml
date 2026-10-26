@@ -19,6 +19,7 @@ PanelWindow {
     required property Services.NiriService niriService
     required property Services.NetworkService networkService
     required property Services.BluetoothService bluetoothService
+    required property QtObject hassService
 
     property color themeFg
     property color themeBg
@@ -46,6 +47,7 @@ PanelWindow {
     property bool showNotifications: true
     property bool showSystem: true
     property bool showTray: true
+    property bool showHass: true
     property string barFont: "JetBrainsMono Nerd Font"
     // Proportional NF icons draw past 1em; AlignHCenter parks them. Mono keeps ink in-cell.
     property string iconFont: "Symbols Nerd Font Mono"
@@ -91,6 +93,7 @@ PanelWindow {
     signal notificationsClicked(real anchorCenterX)
     signal systemClicked(real anchorCenterX)
     signal mediaClicked(real anchorCenterX)
+    signal hassClicked(real anchorCenterX)
     // Predictive layershell prewarm before click (InfoPopup.prewarm).
     signal wifiHovered
     signal volumeHovered
@@ -100,6 +103,7 @@ PanelWindow {
     signal notificationsHovered
     signal systemHovered
     signal mediaHovered
+    signal hassHovered
 
     function pillCenterX(item) {
         if (!item || !item.visible)
@@ -155,6 +159,10 @@ PanelWindow {
         if (percent > 10)
             return "󰁼";
         return "󰂎";
+    }
+
+    function hassConnected() {
+        return topbarWindow.hassService && topbarWindow.hassService.phase === "connected";
     }
 
     WlrLayershell.namespace: "quickshell-topbar"
@@ -338,6 +346,16 @@ PanelWindow {
                 tint: topbarWindow.notificationCount > 0 ? topbarWindow.themeAccent : topbarWindow.themeSecond
                 onActivated: topbarWindow.notificationsClicked(topbarWindow.pillCenterX(notifPill))
                 onHovered: topbarWindow.notificationsHovered()
+            }
+            StatPill {
+                id: hassPill
+                visible: topbarWindow.showHass
+                icon: "󰋜"
+                value: ""
+                tint: topbarWindow.hassConnected() ? topbarWindow.themeAccent : topbarWindow.themeSecond
+                onActivated: topbarWindow.hassClicked(topbarWindow.pillCenterX(hassPill))
+                onHovered: topbarWindow.hassHovered()
+                onRightClicked: topbarWindow.hassService.refresh()
             }
             StatPill {
                 id: systemPill

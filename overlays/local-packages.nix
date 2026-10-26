@@ -4,6 +4,7 @@ final: prev: {
   muse-code = final.callPackage ../pkgs/muse-code { };
   maple-mono-nf = final.callPackage ../pkgs/maple-mono { };
   iris-python = final.callPackage ../pkgs/iris-python { };
+  hass-bridge = final.callPackage ../pkgs/hass-bridge { };
   swayosd = prev.swayosd.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [ ../pkgs/swayosd/osd-fade.patch ];
   });

@@ -139,6 +139,7 @@
   atticPush.enable = true;
   quickshell.enable = true;
   bluetooth.enable = true;
+  hass.enable = true;
   noctalia.enable = true;
   programs.noctalia.settings = {
     location = {
