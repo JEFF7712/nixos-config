@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# Deliver the current branch to Forgejo protected main.
+#
+# Preflight, validation, push, PR (reuse or open), wait for Woodpecker
+# green, merge, sync local main. See docs/deployment.md.
+set -euo pipefail
+
+TIMEOUT_MINS=45
+RUN_CHECKS=1
+DO_MERGE=1
+TITLE=""
+# Woodpecker status context that must go green before merge. Its absence
+# counts as pending, never as success.
+REQUIRED_CI_CONTEXT="ci/woodpecker/application-validation"
+
+usage() {
+  cat <<EOF
+usage: nixos-ship [--no-checks] [--no-merge] [--timeout-mins N] [--title TEXT]
+
+Deliver the current branch to protected main on Forgejo.
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --no-checks) RUN_CHECKS=0 ;;
+    --no-merge) DO_MERGE=0 ;;
+    --timeout-mins) TIMEOUT_MINS="${2:?missing value for --timeout-mins}"; shift ;;
+    --timeout-mins=*) TIMEOUT_MINS="${1#*=}" ;;
+    --title) TITLE="${2:?missing value for --title}"; shift ;;
+    --title=*) TITLE="${1#*=}" ;;
+    -h | --help) usage; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; usage >&2; exit 1 ;;
+  esac
+  shift
+done
+
+ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$ROOT" || exit 1
+
+if ! command -v tea >/dev/null 2>&1; then
+  tea() { nix shell --inputs-from "$ROOT" nixpkgs#tea -c tea "$@"; }
+fi
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "missing required tool: $1$2" >&2
+    exit 1
+  }
+}
+need git ""
+need just " (run from a checkout with the justfile)"
+need python3 ""
+need tea " (nixpkgs#tea; its login needs write access to JEFF7712/nixos-config)"
+
+BRANCH="$(git branch --show-current)"
+if [ -z "$BRANCH" ]; then echo "refusing: detached HEAD" >&2; exit 1; fi
+if [ "$BRANCH" = "main" ]; then echo "refusing: already on main" >&2; exit 1; fi
+
+git fetch origin --quiet
+
+if ! git diff --quiet -- . || ! git diff --cached --quiet -- .; then
+  echo "refusing: uncommitted tracked changes (commit or stash first)" >&2
+  exit 1
+fi
+
+AHEAD="$(git rev-list --count origin/main..HEAD)"
+if [ "$AHEAD" -eq 0 ]; then echo "refusing: no commits beyond origin/main" >&2; exit 1; fi
+
+SLUG="$(git remote get-url origin | python3 -c 'import re,sys; m = re.search(r"([^/:]+/[^/]+?)(?:\.git)?$", sys.stdin.read().strip()); print(m.group(1) if m else "")')"
+if [ -z "$SLUG" ]; then echo "cannot derive owner/repo from origin URL" >&2; exit 1; fi
+
+if [ "$RUN_CHECKS" -eq 1 ]; then
+  just check-changed origin/main
+fi
+
+git push -u origin "$BRANCH" --force-with-lease
+SHA="$(git rev-parse HEAD)"
+
+# Open PR number for this checkout's branch, or empty. The branch name and
+# the source repository travel as argv (never environment), and the match
+# requires the main base: a same-named branch from a fork, or a PR
+# retargeted elsewhere, is never selected.
+pr_index_for_branch() {
+  tea api "/repos/$SLUG/pulls?state=open&limit=50" |
+    python3 -c '
+import json,sys
+slug, branch = sys.argv[1], sys.argv[2]
+for p in json.load(sys.stdin):
+    head, base = p.get("head", {}), p.get("base", {})
+    if ((head.get("repo") or {}).get("full_name") == slug
+            and head.get("label") == branch
+            and base.get("ref") == "main"):
+        print(p.get("number", ""))
+        break
+' "$SLUG" "$BRANCH"
+}
+
+# Fails closed unless the PR is still open, still targets main from this
+# checkout's branch and repository, and still points at the validated SHA.
+assert_pr_unchanged() {
+  local verdict
+  verdict="$(tea api "/repos/$SLUG/pulls/$INDEX" | python3 -c '
+import json,sys
+slug, branch, sha = sys.argv[1], sys.argv[2], sys.argv[3]
+p = json.load(sys.stdin)
+head, base = p.get("head", {}), p.get("base", {})
+ok = (p.get("state") == "open"
+      and base.get("ref") == "main"
+      and (head.get("repo") or {}).get("full_name") == slug
+      and head.get("label") == branch
+      and head.get("sha") == sha)
+print("ok" if ok else "changed")
+' "$SLUG" "$BRANCH" "$SHA")"
+  if [ "$verdict" != "ok" ]; then
+    echo "PR $INDEX changed since green (retargeted, closed, or new commits); rerun" >&2
+    exit 1
+  fi
+}
+
+INDEX="$(pr_index_for_branch)"
+if [ -z "$INDEX" ]; then
+  if [ -z "$TITLE" ]; then
+    if [ "$AHEAD" -eq 1 ]; then TITLE="$(git log -1 --format=%s HEAD)"; else TITLE="$BRANCH"; fi
+  fi
+  tea pulls create --repo "$SLUG" --base main --head "$BRANCH" --title "$TITLE"
+  INDEX="$(pr_index_for_branch)"
+  [ -n "$INDEX" ] || {
+    echo "PR created but not found; finish in the Forgejo UI" >&2
+    exit 1
+  }
+fi
+echo "PR: https://git.internal/$SLUG/pulls/$INDEX"
+
+echo "waiting for Woodpecker green on $SHA ..."
+NOW="$(date +%s)"
+DEADLINE=$((NOW + TIMEOUT_MINS * 60))
+while :; do
+  STATUS_JSON="$(tea api "/repos/$SLUG/commits/$SHA/status")"
+  VERDICT="$(printf '%s' "$STATUS_JSON" | python3 -c '
+import json,sys
+want = sys.argv[1]
+statuses = json.load(sys.stdin).get("statuses") or []
+match = [s for s in statuses if s.get("context") == want]
+if not match or match[0].get("status") not in ("success", "failure", "error"):
+    print("pending")
+elif match[0]["status"] == "success":
+    print("green")
+else:
+    print("red")
+' "$REQUIRED_CI_CONTEXT")"
+  case "$VERDICT" in
+    green) break ;;
+    red)
+      printf '%s' "$STATUS_JSON" | python3 -c 'import json,sys; [print(s.get("context"), s.get("status")) for s in (json.load(sys.stdin).get("statuses") or [])]'
+      echo "validation failed for $REQUIRED_CI_CONTEXT; fix and rerun" >&2
+      exit 1
+      ;;
+  esac
+  if [ "$(date +%s)" -ge "$DEADLINE" ]; then echo "timed out waiting for green" >&2; exit 1; fi
+  sleep 30
+done
+
+if [ "$DO_MERGE" -eq 0 ]; then echo "green; leaving PR open per --no-merge"; exit 0; fi
+
+assert_pr_unchanged
+tea pulls merge --repo "$SLUG" "$INDEX"
+git fetch origin --quiet
+if ! git merge-base --is-ancestor "$SHA" origin/main; then
+  echo "merge ran but $SHA is not in origin/main yet; sync manually" >&2
+  exit 1
+fi
+git checkout --quiet main
+git pull --ff-only --quiet
+echo "landed on origin/main; clean up with: git branch -d $BRANCH && git push origin --delete $BRANCH"

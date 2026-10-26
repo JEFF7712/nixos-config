@@ -113,11 +113,8 @@ PanelWindow {
     exclusiveZone: -1
     color: "transparent"
 
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        cursorShape: Qt.PointingHandCursor
-        onClicked: greetingWindow.dismissed = !greetingWindow.dismissed
+    mask: Region {
+        item: contentContainer
     }
 
     component StatRow: Item {
@@ -194,167 +191,182 @@ PanelWindow {
             }
         }
 
-        Row {
+        Item {
+            id: contentContainer
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -140
-            spacing: 150
+            width: contentRow.width + 32
+            height: contentRow.height + 24
 
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 2
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: !greetingWindow.dismissed ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: greetingWindow.dismissed = !greetingWindow.dismissed
+            }
 
-                Row {
-                    spacing: 18
-                    transform: Translate {
-                        x: -9
-                    }
+            Row {
+                id: contentRow
+                anchors.centerIn: parent
+                spacing: 150
 
-                    Text {
-                        id: clockTime
-                        text: greetingWindow.clockParts(greetingWindow.now).time
-                        color: greetingWindow.themeFg
-                        font {
-                            family: greetingWindow.barFont
-                            pixelSize: 132
-                            weight: Font.Light
-                            letterSpacing: 2
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
+
+                    Row {
+                        spacing: 18
+                        transform: Translate {
+                            x: -9
+                        }
+
+                        Text {
+                            id: clockTime
+                            text: greetingWindow.clockParts(greetingWindow.now).time
+                            color: greetingWindow.themeFg
+                            font {
+                                family: greetingWindow.barFont
+                                pixelSize: 132
+                                weight: Font.Light
+                                letterSpacing: 2
+                            }
+                        }
+
+                        Text {
+                            id: ampmText
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 30
+                            text: greetingWindow.clockParts(greetingWindow.now).ap
+                            color: greetingWindow.themeSecond
+                            opacity: 0.65
+                            font {
+                                family: greetingWindow.barFont
+                                pixelSize: 19
+                                weight: Font.Medium
+                                letterSpacing: 3
+                            }
                         }
                     }
 
                     Text {
-                        id: ampmText
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 30
-                        text: greetingWindow.clockParts(greetingWindow.now).ap
+                        id: clockDate
+                        transform: Translate {
+                            y: -20
+                        }
+                        text: greetingWindow.clockParts(greetingWindow.now).date
                         color: greetingWindow.themeSecond
                         opacity: 0.65
                         font {
                             family: greetingWindow.barFont
-                            pixelSize: 19
+                            pixelSize: 16
                             weight: Font.Medium
-                            letterSpacing: 3
-                        }
-                    }
-                }
-
-                Text {
-                    id: clockDate
-                    transform: Translate {
-                        y: -20
-                    }
-                    text: greetingWindow.clockParts(greetingWindow.now).date
-                    color: greetingWindow.themeSecond
-                    opacity: 0.65
-                    font {
-                        family: greetingWindow.barFont
-                        pixelSize: 16
-                        weight: Font.Medium
-                        letterSpacing: 2.5
-                    }
-                }
-
-                Item {
-                    width: 1
-                    height: 16
-                }
-
-                Row {
-                    spacing: 10
-
-                    Text {
-                        id: greetingHello
-                        text: greetingWindow.clockParts(greetingWindow.now).hello
-                        color: greetingWindow.themeAccent
-                        font {
-                            family: greetingWindow.barFont
-                            pixelSize: 28
-                            weight: Font.Normal
-                            letterSpacing: 1.5
+                            letterSpacing: 2.5
                         }
                     }
 
-                    Text {
-                        text: "Rupan"
-                        color: greetingWindow.themeSecond
-                        font {
-                            family: greetingWindow.barFont
-                            pixelSize: 28
-                            weight: Font.Normal
-                            letterSpacing: 1.5
-                        }
+                    Item {
+                        width: 1
+                        height: 16
                     }
-                }
-            }
-
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                width: 400
-                spacing: 8
-
-                StatRow {
-                    label: "CPU"
-                    value: greetingWindow.cpuValue
-                    amount: greetingWindow.cpuAmount
-                }
-
-                StatRow {
-                    label: "RAM"
-                    value: greetingWindow.ramValue
-                    amount: greetingWindow.ramAmount
-                }
-
-                StatRow {
-                    label: "DSK"
-                    value: greetingWindow.diskValue
-                    amount: greetingWindow.diskAmount
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.18)
-                }
-
-                Item {
-                    width: parent.width
-                    height: 76
 
                     Row {
-                        anchors.bottom: parent.bottom
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        height: 76
-                        spacing: 6
-                        opacity: greetingWindow.cavaService.values.length > 0 ? 1 : 0.3
-                        Repeater {
-                            model: Math.max(12, greetingWindow.cavaService.values.length)
-                            delegate: Rectangle {
-                                readonly property int barValue: index < greetingWindow.cavaService.values.length ? greetingWindow.cavaService.values[index] : 0
-                                width: (400 - 11 * 6) / 12
-                                radius: 3
-                                anchors.bottom: parent.bottom
-                                height: Math.max(4, Math.min(76, (barValue / 100) * 76))
-                                color: greetingWindow.themeAccent
-                                Behavior on height {
-                                    NumberAnimation {
-                                        duration: 90
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
+                        spacing: 10
+
+                        Text {
+                            id: greetingHello
+                            text: greetingWindow.clockParts(greetingWindow.now).hello
+                            color: greetingWindow.themeAccent
+                            font {
+                                family: greetingWindow.barFont
+                                pixelSize: 28
+                                weight: Font.Normal
+                                letterSpacing: 1.5
+                            }
+                        }
+
+                        Text {
+                            text: "Rupan"
+                            color: greetingWindow.themeSecond
+                            font {
+                                family: greetingWindow.barFont
+                                pixelSize: 28
+                                weight: Font.Normal
+                                letterSpacing: 1.5
                             }
                         }
                     }
                 }
 
-                Text {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    text: greetingWindow.trackLine
-                    color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.6)
-                    elide: Text.ElideRight
-                    font {
-                        family: greetingWindow.barFont
-                        pixelSize: 13
-                        italic: true
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 400
+                    spacing: 8
+
+                    StatRow {
+                        label: "CPU"
+                        value: greetingWindow.cpuValue
+                        amount: greetingWindow.cpuAmount
+                    }
+
+                    StatRow {
+                        label: "RAM"
+                        value: greetingWindow.ramValue
+                        amount: greetingWindow.ramAmount
+                    }
+
+                    StatRow {
+                        label: "DSK"
+                        value: greetingWindow.diskValue
+                        amount: greetingWindow.diskAmount
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.18)
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: 76
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            height: 76
+                            spacing: 6
+                            opacity: greetingWindow.cavaService.values.length > 0 ? 1 : 0.3
+                            Repeater {
+                                model: Math.max(12, greetingWindow.cavaService.values.length)
+                                delegate: Rectangle {
+                                    readonly property int barValue: index < greetingWindow.cavaService.values.length ? greetingWindow.cavaService.values[index] : 0
+                                    width: (400 - 11 * 6) / 12
+                                    radius: 3
+                                    anchors.bottom: parent.bottom
+                                    height: Math.max(4, Math.min(76, (barValue / 100) * 76))
+                                    color: greetingWindow.themeAccent
+                                    Behavior on height {
+                                        NumberAnimation {
+                                            duration: 90
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: greetingWindow.trackLine
+                        color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.6)
+                        elide: Text.ElideRight
+                        font {
+                            family: greetingWindow.barFont
+                            pixelSize: 13
+                            italic: true
+                        }
                     }
                 }
             }
