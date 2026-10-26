@@ -6,7 +6,7 @@ Sam's `agent-sam` guest and Akshath's `omarchy-akshath` guest are separate owner
 and must not be redefined, restarted, or have their disks touched by this workflow.
 
 The guest keeps the existing `developer` SSH username, MAC `02:00:00:10:00:02`,
-address `172.31.10.2/30`, and gateway `172.31.10.1`. It has 2 virtual CPUs, 4 GiB
+address `172.31.10.2/30`, and gateway `172.31.10.1`. It has 2 virtual CPUs, 8 GiB
 RAM, the existing 100 percent whole-domain CPU limit, and a fresh 96 GiB disk.
 Use the existing host-enforced network isolation; this guest is not a cluster
 node and receives no infrastructure credentials or host filesystem shares.
