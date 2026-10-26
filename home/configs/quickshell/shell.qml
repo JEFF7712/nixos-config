@@ -21,7 +21,7 @@ ShellRoot {
     Services.CavaService {
         id: cavaService
         playing: mediaService.playing
-        requested: root.anyBarCavaRequested || mediaPopup.active
+        requested: root.anyBarCavaRequested || mediaPopup.active || root.anyIdleGreetingShown
     }
 
     Services.PowerService {
@@ -31,7 +31,7 @@ ShellRoot {
 
     Services.SystemService {
         id: systemService
-        detailedMonitoring: systemPopup.active || systemPopup.warming
+        detailedMonitoring: systemPopup.active || systemPopup.warming || root.anyIdleGreetingShown
     }
 
     Services.NiriService {
@@ -97,6 +97,7 @@ ShellRoot {
     property string moduleAnimationStyle: "fade"
     property string motionStyle: "default"
     property bool showWorkspaceIndicator: true
+    property bool showIdleGreeting: false
     property bool popupAttachToBar: false
     property string popupAnimationStyle: "softPop"
     property color dividerColor: "#1affffff"
@@ -142,6 +143,7 @@ ShellRoot {
         root.moduleAnimationStyle = "fade";
         root.motionStyle = "default";
         root.showWorkspaceIndicator = true;
+        root.showIdleGreeting = false;
         // Don't reset popupAttachToBar here: false→true on every sharp retheme prewarm-flashes InfoPopup.
         root.dividerColor = "#1affffff";
         root.barBorderColor = "#3dffffff";
@@ -229,6 +231,8 @@ ShellRoot {
                 root.motionStyle = theme.motionStyle;
             if (theme.showWorkspaceIndicator)
                 root.showWorkspaceIndicator = theme.showWorkspaceIndicator === "true";
+            if (theme.showIdleGreeting)
+                root.showIdleGreeting = theme.showIdleGreeting === "true";
             if (theme.dividerColor)
                 root.dividerColor = theme.dividerColor;
             if (theme.barBorder)
@@ -414,6 +418,34 @@ ShellRoot {
             onNotificationsHovered: root.prewarmOn(notificationsPopup, modelData)
             onSystemHovered: root.prewarmOn(systemPopup, modelData)
             onMediaHovered: root.prewarmOn(mediaPopup, modelData)
+        }
+    }
+
+    readonly property bool anyIdleGreetingShown: {
+        for (const g of greetingVariants.instances) {
+            if (g.revealed)
+                return true;
+        }
+        return false;
+    }
+
+    Variants {
+        id: greetingVariants
+        model: Quickshell.screens
+
+        IdleGreeting {
+            property var modelData
+            screen: modelData
+            niriService: root.sharedNiriService
+            systemService: root.sharedSystemService
+            mediaService: root.sharedMediaService
+            cavaService: root.sharedCavaService
+            themeReady: root.themeLoaded
+            enabled: root.showIdleGreeting
+            themeFg: root.themeFg
+            themeSecond: root.themeSecond
+            themeAccent: root.themeAccent
+            barFont: root.barFont
         }
     }
 
