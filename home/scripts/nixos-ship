@@ -38,9 +38,52 @@ done
 ROOT="$(git rev-parse --show-toplevel)" || exit 1
 cd "$ROOT" || exit 1
 
+# This machine carries two Forgejo logins on one URL and tea always uses
+# the default, so tea runs under a scoped config where nixos-agent is the
+# default. Single-login machines fall through to plain tea. The scoped copy
+# is regenerated whenever the main tea config changes (token rotation).
+TEA_SCOPED_CONFIG="$HOME/.config/tea-nixos/tea/config.yml"
+ensure_tea_login() {
+  local src="$HOME/.config/tea/config.yml"
+  if [ ! -f "$src" ]; then return 0; fi
+  if [ -f "$TEA_SCOPED_CONFIG" ] && ! [ "$src" -nt "$TEA_SCOPED_CONFIG" ]; then return 0; fi
+  mkdir -p "$(dirname "$TEA_SCOPED_CONFIG")"
+  if python3 - "$src" "$TEA_SCOPED_CONFIG" <<'EOF'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+out, current, found = [], None, False
+for line in open(src):
+    stripped = line.lstrip()
+    if stripped.startswith("- name:"):
+        current = stripped.split(":", 1)[1].strip()
+    if stripped.startswith("default:"):
+        indent = line[:len(line) - len(stripped)]
+        if current == "nixos-agent":
+            found = True
+        line = "%sdefault: %s\n" % (indent, "true" if current == "nixos-agent" else "false")
+    out.append(line)
+if found:
+    open(dst, "w").write("".join(out))
+else:
+    print("warning: nixos-agent login not found; using default tea login", file=sys.stderr)
+EOF
+  then
+    chmod 600 "$TEA_SCOPED_CONFIG" 2>/dev/null || true
+  fi
+}
+
 if ! command -v tea >/dev/null 2>&1; then
-  tea() { nix shell --inputs-from "$ROOT" nixpkgs#tea -c tea "$@"; }
+  _tea_bin() { nix shell --inputs-from "$ROOT" nixpkgs#tea -c tea "$@"; }
+else
+  _tea_bin() { command tea "$@"; }
 fi
+tea() {
+  if [ -f "$TEA_SCOPED_CONFIG" ]; then
+    XDG_CONFIG_HOME="${TEA_SCOPED_CONFIG%/tea/config.yml}" _tea_bin "$@"
+  else
+    _tea_bin "$@"
+  fi
+}
 
 need() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -52,6 +95,7 @@ need git ""
 need just " (run from a checkout with the justfile)"
 need python3 ""
 need tea " (nixpkgs#tea; its login needs write access to JEFF7712/nixos-config)"
+ensure_tea_login
 
 BRANCH="$(git branch --show-current)"
 if [ -z "$BRANCH" ]; then echo "refusing: detached HEAD" >&2; exit 1; fi
@@ -74,7 +118,7 @@ if [ "$RUN_CHECKS" -eq 1 ]; then
   just check-changed origin/main
 fi
 
-git push -u origin "$BRANCH" --force-with-lease
+git push -u origin "$BRANCH"
 SHA="$(git rev-parse HEAD)"
 
 # Open PR number for this checkout's branch, or empty. The branch name and
