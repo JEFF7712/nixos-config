@@ -14,6 +14,14 @@
     useNetworkd = true;
     enableIPv6 = false;
     nameservers = [ "1.1.1.1" ];
+    # Public DNS cannot resolve the homelab service names that ship and tea use.
+    hosts = {
+      "10.0.30.20" = [
+        "git.internal"
+        "s3.internal"
+      ];
+      "10.0.30.14" = [ "ci.internal" ];
+    };
     firewall.allowedTCPPorts = [ 22 ];
   };
   systemd.network.networks."10-workspace" = {
