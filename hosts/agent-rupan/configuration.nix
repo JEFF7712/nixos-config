@@ -41,6 +41,19 @@
     enable = true;
     memoryPercent = 25;
   };
+  # Kill the largest offender before swap thrashing starves sshd; the guest has
+  # no other OOM protection and otherwise livelocks under nix-eval-jobs.
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 5;
+    freeSwapThreshold = 10;
+    extraArgs = [
+      "--prefer"
+      "^(nix-eval-jobs|nix|node|gitleaks)$"
+      "--avoid"
+      "^(sshd|sshd-session|tmux.*|systemd.*|qemu-ga|nix-daemon)$"
+    ];
+  };
 
   users.users.developer = {
     isNormalUser = true;
