@@ -35,6 +35,30 @@ Detail behind the short Gotchas in `CLAUDE.md`. Read this before touching `just 
 - `just switch` pauses comin (`nixos-deploy pause|resume|status`, polkit-allowed). Resuming does not revert; it switches at the next new `deploy/laptop` commit.
 - Out-of-store links in `home/` still follow the local checkout.
 
+## Landing changes on protected main
+
+`main` on Forgejo is protected: every change lands through a pull request.
+Direct pushes to `main` are rejected. The delivery path is:
+
+```sh
+just ship
+```
+
+It runs preflight (refuses `main`, a dirty tree, or a branch with nothing beyond `origin/main`), `just check-changed origin/main`, pushes the branch, opens (or reuses) the PR, waits for the `ci/woodpecker/application-validation` status to go green, re-verifies the PR still targets `main` from the same branch and SHA, merges, and syncs local `main`. Flags: `--no-checks`, `--no-merge` (stop once the PR is green), `--timeout-mins N` (default 45), `--title TEXT` (default: single-commit subject, else branch name). History uses merge commits (`Merge pull request '...' (#N) from <branch> into main`).
+
+Prerequisites: `tea` on PATH with a login that can write `JEFF7712/nixos-config` (one-time human setup in the Forgejo UI, same pattern as homelab's agent access: machine user, token, `tea login add --url http://git.internal:3000`). `ship` fails closed without it.
+
+Manual fallback (no `tea`, or a PR needing a human in the UI):
+
+1. Start from current main: `git checkout main && git pull --ff-only && git checkout -b <type>/<short-name>` (`feat/`, `fix/`, `chore/`, `style/`, matching existing history). Keep local `main` clean and tracking `origin/main`.
+2. Edit, then validate: `just check-changed` (or `just check-changed origin/main` once the branch has commits), escalating to `just quick` / `just check` per `AGENT_MAP.md`. Stage specific files only, never `git add .`.
+3. Push the branch: `git push -u origin <type>/<short-name>`. Pushing alone publishes nothing (see below).
+4. Open a pull request in Forgejo (`https://git.internal/JEFF7712/nixos-config`), from the branch into `main`. Woodpecker validates every push and PR; GitHub checks are mirror-only.
+5. After green validation, merge via the Forgejo UI. Agents: ad-hoc pushes, PRs, and merges outside `just ship` need user confirmation first; local commits do not.
+6. Sync back: `git checkout main && git pull --ff-only`, optionally deleting the feature branch locally and remotely.
+
+Merging to `main` does not switch the running system. Either wait for comin to follow `deploy/laptop` once homelab CI publishes that commit's closure to Attic, or apply immediately with `just switch` after syncing. Commits that exist only locally are replaced at the next deploy, so land the PR before switching to it.
+
 ## CI and publication
 
 - Forgejo `JEFF7712/nixos-config` is source authority. Server-owned Woodpecker validation checks every push and PR in a retained local image. GitHub `check.yml` supplies optional mirror checks on disposable runners and has no artifact publishing authority.

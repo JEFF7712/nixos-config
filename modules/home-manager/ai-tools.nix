@@ -37,6 +37,7 @@
           sox
           rtk
           muse-code
+          tea
         ])
         ++ [
           opencodeCli

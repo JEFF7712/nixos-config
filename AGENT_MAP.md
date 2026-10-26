@@ -28,6 +28,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Change Rupan's headless VM | `docs/agent-vm.md`, `hosts/agent-rupan/configuration.nix`, `home/rupan/agent-vm.nix` | VM host and home config; shared CLI module when needed | `just eval agent-rupan && just check-agent-docs && just fmt-check`; build and boot the qcow2 image for installation changes |
 | Change agent hooks | `hooks/`, `.cursor/hooks.json`, `.claude/settings.json`, `.codex/hooks.json` | shared `hooks/` scripts only; keep the three configs pointing at the same commands | `just check-agent-workflows && just shell-check` |
 | Change activation / deploy flow | `docs/deployment.md`, `justfile` (`switch`), `hooks/before-shell`, `hooks/before-mcp` | same | `just check-agent-workflows && just check-agent-docs` |
+| Land a branch on protected main | `docs/deployment.md` (landing section), `home/scripts/nixos-ship` | feature branch | `just ship` (needs `tea` login with repo write; never push `main` directly) |
 | Change agent invariants or scaffolds | `checks/agent-invariants.bash`, `checks/agent-workflows.bash`, `home/scripts/new-*module` | invariant checker, workflow test, scaffold scripts | `just check-agent-workflows && just shell-check` |
 | Change agent self-improvement behavior | `docs/agent-self-improvement.md`, `AGENT_MAP.md`, `checks/agent-*.bash` | protocol doc, agent checks, helper scripts | `just check-agent-docs && just check-agent-workflows` |
 

@@ -31,7 +31,7 @@ nix develop ./shells[#c|#python|#cbe|#ml|#homelab]   # dev shells (ml default; s
 
 Before broad repo search, read `AGENT_MAP.md` (routing, edit rules, validation, closeout). SessionStart injects `just agent-context` via `hooks/session-start`. `hooks/before-shell` denies shotgun `git add`, rewrites `git diff` to `--no-ext-diff`, and denies raw activation; `hooks/before-mcp` denies nix-agent `switch()`. Activate only with `just switch`. Run `just check-changed` before handoff.
 
-Commit history here is disposable: when asked to commit, commit freely (batching unrelated changes is fine). Relaxes the global commit rules for this repo only.
+Commit history here is disposable: when asked to commit, commit freely (batching unrelated changes is fine). Relaxes the global commit rules for this repo only. A request to deliver, land, or ship a change authorizes `just ship` end to end: push the branch, open the PR, merge once Woodpecker is green, sync `main`. Never push to `main` directly or merge on red.
 
 ## Architecture
 
