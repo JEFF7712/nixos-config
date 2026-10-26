@@ -86,6 +86,7 @@ in
       popupAnimationStyle = "quickFade";
       motionStyle = "dry";
       showWorkspaceIndicator = "true";
+      showIdleGreeting = "true";
       barFont = "JetBrainsMono Nerd Font";
     };
 
