@@ -46,7 +46,7 @@ just ship
 
 It runs preflight (refuses `main`, a dirty tree, or a branch with nothing beyond `origin/main`), `just check-changed origin/main`, pushes the branch, opens (or reuses) the PR, waits for the `ci/woodpecker/application-validation` status to go green, re-verifies the PR still targets `main` from the same branch and SHA, merges, and syncs local `main`. Flags: `--no-checks`, `--no-merge` (stop once the PR is green), `--timeout-mins N` (default 45), `--title TEXT` (default: single-commit subject, else branch name). History uses merge commits (`Merge pull request '...' (#N) from <branch> into main`).
 
-Prerequisites: `tea` on PATH with a login that can write `JEFF7712/nixos-config` (one-time human setup in the Forgejo UI, same pattern as homelab's agent access: machine user, token, `tea login add --url http://git.internal:3000`). `ship` fails closed without it.
+Prerequisites: `tea` on PATH with an `nixos-agent` login that can write `JEFF7712/nixos-config` (one-time human setup in the Forgejo UI, same pattern as homelab's agent access: machine user, token, `tea login add --url http://git.internal:3000`). This machine also carries the `homelab-agent` login on the same URL and tea always uses the default, so `ship` derives `~/.config/tea-nixos` (same logins, `nixos-agent` as default) from the main tea config on each run and points tea at it; the machine default is left alone for homelab flows. After rotating the token, re-run `tea login add`; the scoped copy regenerates automatically. `ship` fails closed without a usable login.
 
 Manual fallback (no `tea`, or a PR needing a human in the UI):
 
