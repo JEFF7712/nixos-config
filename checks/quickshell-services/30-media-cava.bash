@@ -17,6 +17,25 @@ run_media_service_probe() {
   cp "$repo_root/home/configs/quickshell/services/internal/PipewireAudioBackend.qml" "$state_dir/config/services/internal/PipewireAudioBackend.qml"
   cp "$repo_root/home/configs/quickshell/services/internal/MediaParser.js" "$state_dir/config/services/internal/MediaParser.js"
   cp "$repo_root/home/configs/quickshell/services/internal/MediaModel.qml" "$state_dir/config/services/internal/MediaModel.qml"
+  python3 - "$state_dir/config/services/MediaService.qml" "$state_dir/config/services/internal/MediaModel.qml" <<'PY'
+import pathlib
+import sys
+
+service, model = map(pathlib.Path, sys.argv[1:])
+def replace_once(text, old, new):
+    if text.count(old) != 1:
+        raise SystemExit(f"fixture instrumentation expected one occurrence of {old!r}")
+    return text.replace(old, new, 1)
+
+text = service.read_text()
+text = replace_once(text, '    Internal.MediaModel {', '    readonly property bool fixtureIdle: model.fixtureIdle\n    readonly property bool fixtureSnapshotQueued: model._snapshotIsQueued()\n    readonly property bool fixtureSnapshotPending: model._snapshotPending\n    readonly property bool fixtureDebouncing: model.fixtureDebouncing\n    readonly property int fixtureFollowReads: model.fixtureFollowReads\n    readonly property int fixtureSnapshotsCompleted: model.fixtureSnapshotsCompleted\n\n    Internal.MediaModel {')
+service.write_text(text)
+text = model.read_text()
+text = replace_once(text, '    property bool _available: false', '    property int fixtureFollowReads: 0\n    property int fixtureSnapshotsCompleted: 0\n    readonly property bool fixtureDebouncing: refreshDebounce.running\n    readonly property bool fixtureIdle: !commandProcess.running && !_currentJob && _queue.length === 0 && !_snapshotPending && !refreshDebounce.running\n\n    property bool _available: false')
+text = replace_once(text, '                root._followFailures = 0;', '                root.fixtureFollowReads++;\n                root._followFailures = 0;')
+text = replace_once(text, '            const job = root._currentJob;', '            const job = root._currentJob;\n            if (job && job.snapshot) root.fixtureSnapshotsCompleted++;')
+model.write_text(text)
+PY
   : >"$state_dir/actions.log"
   mkfifo "$state_dir/follow.fifo"
   jq -e '.selection == "bare playerctl default selection" and
@@ -35,7 +54,7 @@ run_media_service_probe() {
   qs_pid=$!
   register_fixture_qs "$qs_pid"
   wait_for_path "$state_dir/ready" 10 || fail 'media fixture did not become ready'
-  wait_for_process "$qs_pid" 50 || rc=$?
+  wait_for_process "$qs_pid" 110 || rc=$?
   ((rc == 0)) || {
     sed -n '1,240p' "$state_dir/quickshell.log" >&2
     fail "media fixture exited unsuccessfully or timed out (rc=${rc})"

@@ -18,6 +18,8 @@ ShellRoot {
     property double monitoringEnabledAt: 0
     property int stoppedBaseline: 0
     property int followBaseline: 0
+    property int followReadTarget: 0
+    property int snapshotTarget: 0
     property real interpolationStart: 0
     property bool malformedPreserved: false
     property bool disappearancePreserved: false
@@ -219,8 +221,26 @@ ShellRoot {
     }
 
     FileView {
+        id: slowSnapshotReleaseFile
+        path: root.stateDir + "/slow-snapshot.release"
+        blockWrites: true
+    }
+
+    FileView {
         id: slowActionFile
         path: root.stateDir + "/slow-action.once"
+        blockWrites: true
+    }
+
+    FileView {
+        id: slowActionActiveFile
+        path: root.stateDir + "/slow-action.active"
+        blockLoading: true
+    }
+
+    FileView {
+        id: slowActionReleaseFile
+        path: root.stateDir + "/slow-action.release"
         blockWrites: true
     }
 
@@ -286,16 +306,17 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 1 && mediaService.status === "Paused" && mediaService.shuffleEnabled && mediaService.loopMode === "Playlist" && Math.abs(mediaService.effectiveVolume - 0.42) < 0.001 && Math.abs(mediaService.positionSeconds - 25) < 0.01) {
+            if (root.phase === 1 && mediaService.fixtureIdle && mediaService.status === "Paused" && mediaService.shuffleEnabled && mediaService.loopMode === "Playlist" && Math.abs(mediaService.effectiveVolume - 0.42) < 0.001 && Math.abs(mediaService.positionSeconds - 25) < 0.01) {
                 root.stableState = root.scalarState();
                 malformedFile.setText("malformed\n");
+                root.snapshotTarget = mediaService.fixtureSnapshotsCompleted + 1;
                 root.requestSnapshot();
                 root.phase = 2;
                 root.phaseStarted = root.now();
                 return;
             }
 
-            if (root.phase === 2 && elapsed >= 500) {
+            if (root.phase === 2 && mediaService.fixtureSnapshotsCompleted >= root.snapshotTarget && mediaService.fixtureIdle) {
                 root.malformedPreserved = mediaService.available && root.sameScalars(root.stableState, root.scalarState());
                 if (!root.malformedPreserved)
                     return root.finish(false, "malformed snapshot changed the last complete state");
@@ -341,7 +362,7 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 7 && elapsed >= 400) {
+            if (root.phase === 7 && elapsed >= 400 && mediaService.fixtureIdle) {
                 root.offBaseline = root.positionCallCount();
                 root.phase = 8;
                 root.phaseStarted = root.now();
@@ -391,7 +412,7 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 12 && elapsed >= 250) {
+            if (root.phase === 12 && elapsed >= 250 && mediaService.fixtureIdle) {
                 root.stoppedBaseline = root.positionCallCount();
                 root.phase = 13;
                 root.phaseStarted = root.now();
@@ -406,29 +427,31 @@ ShellRoot {
                 followed.title = "Follow coalesced update";
                 root.writePlayer(followed);
                 root.followBaseline = root.positionCallCount();
-                followFifo.setText("event-one\nevent-two\nevent-three\n");
+                root.followReadTarget = mediaService.fixtureFollowReads + 3;
+                followFifo.setText("event-one\\nevent-two\\nevent-three\n");
                 root.phase = 14;
                 root.phaseStarted = root.now();
                 return;
             }
 
-            if (root.phase === 14 && mediaService.title === "Follow coalesced update" && elapsed >= 450) {
+            if (root.phase === 14 && mediaService.fixtureFollowReads >= root.followReadTarget && mediaService.fixtureIdle && mediaService.title === "Follow coalesced update") {
                 root.followCoalesced = root.positionCallCount() === root.followBaseline + 1;
                 if (!root.followCoalesced)
                     return root.finish(false, "follow records did not debounce to one snapshot");
                 followExitFile.setText("exit\n");
+                root.followReadTarget = mediaService.fixtureFollowReads + 1;
                 followFifo.setText("force-exit\n");
                 root.phase = 15;
                 root.phaseStarted = root.now();
                 return;
             }
 
-            if (root.phase === 15 && root.followStartCount() >= 2 && elapsed >= 600) {
+            if (root.phase === 15 && root.followStartCount() >= 2 && mediaService.fixtureFollowReads >= root.followReadTarget && mediaService.fixtureIdle) {
                 root.followRestartPassed = root.followStartCount() === 2;
                 if (!root.followRestartPassed)
                     return root.finish(false, "follow process restart was missing or duplicated");
                 root.followBaseline = root.positionCallCount();
-                slowSnapshotFile.setText("2.0\n");
+                slowSnapshotFile.setText("hold\n");
                 root.requestSnapshot();
                 root.phase = 16;
                 root.phaseStarted = root.now();
@@ -443,18 +466,25 @@ ShellRoot {
                 const pending = root.policy.scenarios.recovery.state;
                 pending.title = "Pending invalidation update";
                 root.writePlayer(pending);
-                followFifo.setText("during-snapshot-one\nduring-snapshot-two\n");
+                root.followReadTarget = mediaService.fixtureFollowReads + 2;
+                followFifo.setText("during-snapshot-one\\nduring-snapshot-two\n");
                 root.phase = 17;
                 root.phaseStarted = root.now();
                 return;
             }
 
-            if (root.phase === 17 && elapsed >= 3000 && mediaService.title === "Pending invalidation update") {
+            if (root.phase === 17 && mediaService.fixtureFollowReads >= root.followReadTarget && mediaService.fixtureSnapshotPending) {
+                slowSnapshotReleaseFile.setText("release\n");
+                root.phase = 25;
+                return;
+            }
+
+            if (root.phase === 25 && mediaService.fixtureIdle && mediaService.title === "Pending invalidation update") {
                 root.pendingInvalidationPassed = root.positionCallCount() === root.followBaseline + 2;
                 if (!root.pendingInvalidationPassed)
                     return root.finish(false, "in-flight invalidation was lost or produced more than one follow-up snapshot");
                 root.followBaseline = root.positionCallCount();
-                slowActionFile.setText("0.7\n");
+                slowActionFile.setText("hold\n");
                 suppressActionNotifyFile.setText("1\n");
                 mediaService.togglePlaying();
                 root.phase = 18;
@@ -462,22 +492,33 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 18 && elapsed >= 200) {
+            if (root.phase === 18) {
+                slowActionActiveFile.reload();
+                slowActionActiveFile.waitForJob();
+                if (slowActionActiveFile.text().trim() !== "active")
+                    return;
                 const queued = root.policy.scenarios.recovery.state;
                 queued.title = "Queued invalidation update";
                 root.writePlayer(queued);
+                root.followReadTarget = mediaService.fixtureFollowReads + 1;
                 followFifo.setText("while-snapshot-queued\n");
                 root.phase = 19;
                 root.phaseStarted = root.now();
                 return;
             }
 
-            if (root.phase === 19 && elapsed >= 1300 && mediaService.title === "Queued invalidation update") {
+            if (root.phase === 19 && mediaService.fixtureFollowReads >= root.followReadTarget && mediaService.fixtureSnapshotQueued) {
+                slowActionReleaseFile.setText("release\n");
+                root.phase = 24;
+                return;
+            }
+
+            if (root.phase === 24 && mediaService.fixtureIdle && mediaService.title === "Queued invalidation update") {
                 root.queuedInvalidationPassed = root.positionCallCount() === root.followBaseline + 1;
                 if (!root.queuedInvalidationPassed)
                     return root.finish(false, "queued snapshot incorrectly scheduled a redundant follow-up");
                 root.followBaseline = root.positionCallCount();
-                slowActionFile.setText("1.5\n");
+                slowActionFile.setText("hold-second\n");
                 suppressActionNotifyFile.setText("2\n");
                 mediaService.previous();
                 root.phase = 20;
@@ -485,22 +526,28 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 20 && elapsed >= 50) {
+            if (root.phase === 20) {
+                slowActionActiveFile.reload();
+                slowActionActiveFile.waitForJob();
+                if (slowActionActiveFile.text().trim() !== "active")
+                    return;
                 root.requestSnapshot();
+                root.followReadTarget = mediaService.fixtureFollowReads + 1;
                 followFifo.setText("queue-between-actions\n");
                 root.phase = 21;
                 root.phaseStarted = root.now();
                 return;
             }
 
-            if (root.phase === 21 && elapsed >= 500) {
+            if (root.phase === 21 && mediaService.fixtureFollowReads >= root.followReadTarget && !mediaService.fixtureDebouncing && mediaService.fixtureSnapshotQueued) {
                 mediaService.togglePlaying();
+                slowActionReleaseFile.setText("release-second\n");
                 root.phase = 22;
                 root.phaseStarted = root.now();
                 return;
             }
 
-            if (root.phase === 22 && elapsed >= 2400) {
+            if (root.phase === 22 && mediaService.fixtureIdle) {
                 root.actionOrderPassed = mediaService.status === "Playing" && root.positionCallCount() === root.followBaseline + 2;
                 if (!root.actionOrderPassed)
                     return root.finish(false, "A,S,B ordering did not reconcile exactly once after action B");
@@ -512,7 +559,7 @@ ShellRoot {
                 return;
             }
 
-            if (root.phase === 23 && elapsed >= 700) {
+            if (root.phase === 23 && elapsed >= 700 && mediaService.fixtureIdle) {
                 root.delayedActionPassed = mediaService.status === "Paused" && root.positionCallCount() === root.followBaseline + 1;
                 if (!root.delayedActionPassed)
                     return root.finish(false, "delayed action settlement did not coalesce to one final snapshot");
@@ -522,7 +569,7 @@ ShellRoot {
     }
 
     Timer {
-        interval: 25000
+        interval: 90000
         running: true
         repeat: false
         onTriggered: root.finish(false, "media fixture timed out")
