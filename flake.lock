@@ -646,16 +646,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1787445182,
-        "narHash": "sha256-y4G2PrnhW9W1rKZSEASaiNCh8sGD5+qq9FmZSMbhUP0=",
+        "lastModified": 1792704737,
+        "narHash": "sha256-cowgJzCLSdmIcVldh+KxUZemxvn5546W38h2kG7g+hw=",
         "owner": "JEFF7712",
         "repo": "nix-agent",
-        "rev": "38680524a3570b856eb00fc37c1f193213f169e7",
+        "rev": "4302bd65a87b9831f0d0dbc01e773ff61cc2995a",
         "type": "github"
       },
       "original": {
         "owner": "JEFF7712",
-        "ref": "v0.11.0",
+        "ref": "v0.14.0",
         "repo": "nix-agent",
         "type": "github"
       }

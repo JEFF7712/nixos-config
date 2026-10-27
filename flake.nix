@@ -87,7 +87,7 @@
       url = "github:numtide/llm-agents.nix";
     };
     nix-agent = {
-      url = "github:JEFF7712/nix-agent?ref=v0.11.0";
+      url = "github:JEFF7712/nix-agent?ref=v0.14.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     compchem-cctop = {
