@@ -53,7 +53,7 @@ if [ "$#" -eq 4 ] && [ "$1" = --follow ] && [ "$2" = metadata ] && [ "$3" = --fo
   printf '%s\n' "$$" >"$state_dir/follow.active"
   while true; do
     while IFS= read -r line; do
-      printf '%s\n' "$line"
+      printf '%b\n' "$line"
       if [ -f "$state_dir/follow-exit.once" ]; then
         rm -f "$state_dir/follow-exit.once"
         printf 'forced-exit %s\n' "$$" >>"$lifecycles"
@@ -70,6 +70,9 @@ if ! mkdir "$lock" 2>/dev/null; then
   exit 75
 fi
 trap 'rmdir "$lock"' EXIT
+if [ -n "${QS_TEST_MEDIA_CALL_DELAY:-}" ]; then
+  sleep "$QS_TEST_MEDIA_CALL_DELAY"
+fi
 require_player || exit 1
 
 case "${1-}" in
@@ -79,7 +82,12 @@ case "${1-}" in
       delay=$(cat "$state_dir/slow-snapshot.once")
       rm -f "$state_dir/slow-snapshot.once"
       printf 'active\n' >"$state_dir/slow-snapshot.active"
-      sleep "$delay"
+      if [[ "$delay" = hold* ]]; then
+        while [ ! -f "$state_dir/slow-snapshot.release" ]; do sleep 0.05; done
+        rm -f "$state_dir/slow-snapshot.release"
+      else
+        sleep "$delay"
+      fi
       rm -f "$state_dir/slow-snapshot.active"
     fi
     read_value '.status'
@@ -147,7 +155,13 @@ case "${1-}" in
     if [ -f "$state_dir/slow-action.once" ]; then
       delay=$(cat "$state_dir/slow-action.once")
       rm -f "$state_dir/slow-action.once"
-      sleep "$delay"
+      if [[ "$delay" = hold* ]]; then
+        printf 'active\n' >"$state_dir/slow-action.active"
+        while [ ! -f "$state_dir/slow-action.release" ]; do sleep 0.05; done
+        rm -f "$state_dir/slow-action.active" "$state_dir/slow-action.release"
+      else
+        sleep "$delay"
+      fi
     fi
     if [ "$1" = play-pause ] && [ -f "$state_dir/delayed-play-pause.once" ]; then
       delayed_notify=1
