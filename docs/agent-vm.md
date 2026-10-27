@@ -8,8 +8,17 @@ and must not be redefined, restarted, or have their disks touched by this workfl
 The guest keeps the existing `developer` SSH username, MAC `02:00:00:10:00:02`,
 address `172.31.10.2/30`, and gateway `172.31.10.1`. It has 2 virtual CPUs, 8 GiB
 RAM, the existing 100 percent whole-domain CPU limit, and a fresh 96 GiB disk.
-Use the existing host-enforced network isolation; this guest is not a cluster
-node and receives no infrastructure credentials or host filesystem shares.
+It is not a cluster node and has no host filesystem shares. Since 2026-10-26 it
+is a full operator workstation equivalent to the laptop: the homelab runbook
+`docs/runbooks/agent-workspaces.md` lists the credentials it holds, its
+host-enforced egress grants, and how to revoke them. The image itself carries
+no credentials; they live in the developer home directory.
+
+`networking.hosts` maps `git.internal`, `s3.internal` and `ci.internal`, since
+the guest uses public DNS. `earlyoom` kills the largest build or evaluation
+process before memory pressure starves `sshd`. Pull updates over
+`git-agent:JEFF7712/nixos-config.git`; `git.rupan.dev` sits behind Cloudflare
+Access and rejects the guest.
 
 ## Shared environment
 
