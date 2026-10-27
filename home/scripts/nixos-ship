@@ -215,14 +215,29 @@ if ! git merge-base --is-ancestor "$SHA" origin/main; then
   echo "merge ran but $SHA is not in origin/main yet; sync manually" >&2
   exit 1
 fi
-git checkout --quiet main
-git pull --ff-only --quiet
+# A linked worktree cannot check out main while another worktree holds it, so
+# fast-forward main where it lives and detach here to free the branch.
+if [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ]; then
+  main_tree="$(git worktree list --porcelain | awk '/^worktree /{p=substr($0,10)} $0=="branch refs/heads/main"{print p}')"
+  if [ -z "$main_tree" ]; then
+    git fetch origin main:main --quiet
+  elif ! git -C "$main_tree" merge --ff-only --quiet origin/main; then
+    echo "landed on origin/main; could not fast-forward main in $main_tree" >&2
+  fi
+  git checkout --quiet --detach origin/main
+else
+  git checkout --quiet main
+  git pull --ff-only --quiet
+fi
 git branch -d "$BRANCH" || {
   echo "landed on origin/main; could not delete local branch $BRANCH; run: git branch -d $BRANCH" >&2
   exit 1
 }
 if git push origin --delete "$BRANCH"; then
   echo "landed on origin/main; deleted branch $BRANCH locally and on origin"
+  if [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ]; then
+    echo "this worktree is now detached at origin/main; remove it with: git worktree remove $(git rev-parse --show-toplevel)"
+  fi
 else
   echo "landed on origin/main; local branch deleted, remote delete failed; retry with: git push origin --delete $BRANCH" >&2
   exit 1
