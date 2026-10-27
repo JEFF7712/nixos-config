@@ -87,6 +87,10 @@
   services.logind.settings.Login.KillUserProcesses = false;
   programs.fish.enable = true;
   programs.nix-ld.enable = true;
+  programs.nix-agent = {
+    enable = true;
+    flake = /home/developer/nixos;
+  };
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
