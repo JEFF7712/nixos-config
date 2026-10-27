@@ -275,7 +275,7 @@ PanelWindow {
                         Text {
                             id: greetingHello
                             text: greetingWindow.clockParts(greetingWindow.now).hello
-                            color: greetingWindow.themeAccent
+                            color: greetingWindow.themeFg
                             font {
                                 family: greetingWindow.barFont
                                 pixelSize: 28
@@ -286,7 +286,7 @@ PanelWindow {
 
                         Text {
                             text: "Rupan"
-                            color: greetingWindow.themeSecond
+                            color: greetingWindow.themeAccent
                             font {
                                 family: greetingWindow.barFont
                                 pixelSize: 28
