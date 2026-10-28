@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repo.
 
 ## What This Is
 
-NixOS flake-based system config for multiple hosts (`laptop`, `iso`, `agent-rupan`) with home-manager. Lives at `~/nixos`, single source of truth for system + user config. State version `25.11`.
+NixOS flake-based system config for multiple hosts (`laptop`, `iso`, `vm`) with home-manager. Lives at `~/nixos`, single source of truth for system + user config. State version `25.11`.
 
 ## Commands
 
@@ -35,7 +35,7 @@ Commit history here is disposable: when asked to commit, commit freely (batching
 
 ## Architecture
 
-`flake.nix` defines `laptop` (full: NVIDIA, gaming, heavy apps, VPN, stasis, LUKS2 plus btrfs plus impermanence via `disko.nix`), `iso` (lighter live image, auto-clones repo on boot), and `agent-rupan` (headless development VM, `developer` user) via a `mkSystem` helper, using `flake-parts`. Each host has `hosts/<name>/configuration.nix` plus a home config under `home/rupan/`; the VM uses `agent-vm.nix` and shares the laptop's pinned CLI tools through `ai-tools.nix` with `ai-tools.desktop = false`. See `docs/agent-vm.md` for VM deployment. `laptop` also has `hardware-configuration.nix`, `base.nix` (nearly all config), `disko.nix`, and generated `resume-offset.nix`; `iso` has no `hardware-configuration.nix`.
+`flake.nix` defines `laptop` (full: NVIDIA, gaming, heavy apps, VPN, stasis, LUKS2 plus btrfs plus impermanence via `disko.nix`), `iso` (lighter live image, auto-clones repo on boot), and `vm` (headless development VM, `developer` user) via a `mkSystem` helper, using `flake-parts`. Each host has `hosts/<name>/configuration.nix` plus a home config under `home/rupan/`; the VM uses `vm.nix` and shares the laptop's pinned CLI tools through `ai-tools.nix` with `ai-tools.desktop = false`. See `docs/vm.md` for VM deployment. `laptop` also has `hardware-configuration.nix`, `base.nix` (nearly all config), `disko.nix`, and generated `resume-offset.nix`; `iso` has no `hardware-configuration.nix`.
 
 **Modules** live in `modules/nixos/` (system) and `modules/home-manager/` (user). Most use the `lib.mkEnableOption` / `lib.mkIf config.<name>.enable` pattern, toggled per-host; profile modules in `modules/home-manager/profiles/` declare no options (they populate `desktopProfiles.profiles.<name>`). **Auto-discovered via `import-tree`**: dropping a new `.nix` file in either dir is enough to register it. Read the dir to see what exists; each module's option name matches its purpose.
 

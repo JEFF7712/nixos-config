@@ -245,7 +245,7 @@
           nixosConfigurations = {
             laptop = mkSystem "laptop" "rupan" ./home/rupan/laptop.nix;
             iso = mkSystem "iso" "rupan" ./home/rupan/iso.nix;
-            agent-rupan = mkSystem "agent-rupan" "developer" ./home/rupan/agent-vm.nix;
+            vm = mkSystem "vm" "developer" ./home/rupan/vm.nix;
           };
           homeConfigurations = {
             workspace = home-manager.lib.homeManagerConfiguration {

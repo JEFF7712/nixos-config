@@ -9,7 +9,7 @@
   imports = [ "${modulesPath}/profiles/qemu-guest.nix" ];
 
   networking = {
-    hostName = "agent-rupan";
+    hostName = "vm";
     useDHCP = false;
     useNetworkd = true;
     enableIPv6 = false;

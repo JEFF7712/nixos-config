@@ -1,6 +1,6 @@
 # Rupan's development VM
 
-`nixosConfigurations.agent-rupan` is the headless NixOS guest on `homelab-04`.
+`nixosConfigurations.vm` is the headless NixOS guest on `homelab-04`.
 The hypervisor definition and isolated network belong to the homelab repository.
 Sam's `agent-sam` guest and Akshath's `omarchy-akshath` guest are separate owners
 and must not be redefined, restarted, or have their disks touched by this workflow.
@@ -22,7 +22,7 @@ Access and rejects the guest.
 
 ## Shared environment
 
-`home/rupan/agent-vm.nix` imports the same `ai-tools.nix` module as the laptop.
+`home/rupan/vm.nix` imports the same `ai-tools.nix` module as the laptop.
 Codex, Claude Code, OpenCode and Pi therefore use the same flake input pins.
 `ai-tools.desktop = false` omits graphical Antigravity; the CLI remains installed.
 The VM adds fish, tmux, Git, Node, Python/uv, build tools, and Nix development
@@ -45,7 +45,7 @@ this guest TCP access to the NAS cache at `10.0.30.20:8080`.
 Build the installed BIOS qcow2 image with:
 
 ```sh
-nix build .#nixosConfigurations.agent-rupan.config.system.build.qcow2
+nix build .#nixosConfigurations.vm.config.system.build.qcow2
 ```
 
 This produces `result/nixos.qcow2`. Building is safe; installing that image over
@@ -72,6 +72,6 @@ reconnecting. A guest reboot terminates running processes; saved conversations
 can be resumed, but tmux does not preserve a live process across reboot.
 
 For subsequent updates, copy or clone this configuration onto the guest, retain
-the lock file, and build/switch the `agent-rupan` target inside the guest.
+the lock file, and build/switch the `vm` target inside the guest.
 The guest's developer account has administrative access within this VM only.
 No unattended update service or laptop deployment branch controls this host.
