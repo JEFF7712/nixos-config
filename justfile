@@ -191,6 +191,10 @@ build target="laptop":
 build-iso:
   nix build .#nixosConfigurations.iso.config.system.build.isoImage
 
+# Build the live ISO, push to homelab Attic cache, and publish to https://nix.rupan.dev
+publish-iso:
+  ./home/scripts/publish-iso
+
 # Boot the host config in a throwaway QEMU VM (login rupan/rupan, see
 # virtualisation.vmVariant in the host config). Disk image lives in /tmp so
 # state never accumulates in the repo.

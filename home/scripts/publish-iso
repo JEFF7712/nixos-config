@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Build and publish the NixOS live installer ISO to Attic cache and cluster storage.
+set -euo pipefail
+
+repo="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.."
+cd "$repo"
+
+echo "=== Building live ISO ==="
+nix build .#nixosConfigurations.iso.config.system.build.isoImage --out-link result-iso
+
+iso_out="$(readlink -f result-iso)"
+iso_file="$(ls "$iso_out"/iso/*.iso | head -n 1)"
+
+if [ ! -f "$iso_file" ]; then
+  echo "Error: ISO not found in $iso_out/iso/" >&2
+  exit 1
+fi
+
+echo "=== Pushing closure to Attic cache ==="
+attic push homelab:homelab "$iso_out" || echo "Warning: Attic push encountered non-fatal error; continuing."
+
+echo "=== Deploying ISO to cluster storage ==="
+dest_dir="/tank/cluster/nix-nix-iso-data-pvc-37fd1efa-9717-4d29-9ec5-fd3f4e8c952e"
+
+rsync -P -h --inplace "$iso_file" "nas-01:$dest_dir/nixos.iso.tmp"
+sha256sum "$iso_file" | awk '{print $1 "  nixos.iso"}' | ssh nas-01 "cat > '$dest_dir/nixos.iso.sha256.tmp'"
+git rev-parse HEAD | ssh nas-01 "cat > '$dest_dir/commit.txt.tmp'"
+
+ssh nas-01 "mv '$dest_dir/nixos.iso.tmp' '$dest_dir/nixos.iso' && \
+            mv '$dest_dir/nixos.iso.sha256.tmp' '$dest_dir/nixos.iso.sha256' && \
+            mv '$dest_dir/commit.txt.tmp' '$dest_dir/commit.txt' && \
+            chmod 644 '$dest_dir/nixos.iso' '$dest_dir/nixos.iso.sha256' '$dest_dir/commit.txt'"
+
+echo "=== Verification ==="
+curl -s -I https://nix.rupan.dev/nixos.iso | head -n 5
+echo "Published successfully to https://nix.rupan.dev/nixos.iso"
