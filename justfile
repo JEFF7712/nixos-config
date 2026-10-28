@@ -78,7 +78,7 @@ eval target="laptop":
 eval-all:
   just eval laptop
   just eval iso
-  just eval agent-rupan
+  just eval vm
 
 # The vmVariant is a separate eval; `just eval` won't catch breakage in it.
 eval-vm target="laptop":
