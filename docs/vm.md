@@ -14,11 +14,16 @@ is a full operator workstation equivalent to the laptop: the homelab runbook
 host-enforced egress grants, and how to revoke them. The image itself carries
 no credentials; they live in the developer home directory.
 
-`networking.hosts` maps `git.internal`, `s3.internal` and `ci.internal`, since
+`networking.hosts` maps `git.internal`, `s3.internal`, `ci.internal` and
+`OPNsense.internal` (`192.168.1.1`, matching homelab's DNS inventory), since
 the guest uses public DNS. `earlyoom` kills the largest build or evaluation
 process before memory pressure starves `sshd`. Pull updates over
 `git-agent:JEFF7712/nixos-config.git`; `git.rupan.dev` sits behind Cloudflare
 Access and rejects the guest.
+
+OPNsense diagnostics also require the homelab hypervisor's Rupan-only TCP 443
+egress grant. This hostname mapping alone does not grant network access. Use
+the scoped read-only API credentials and retain CA and hostname verification.
 
 ## Shared environment
 

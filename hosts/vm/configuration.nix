@@ -21,6 +21,7 @@
         "s3.internal"
       ];
       "10.0.30.14" = [ "ci.internal" ];
+      "192.168.1.1" = [ "OPNsense.internal" ];
     };
     firewall.allowedTCPPorts = [ 22 ];
   };
