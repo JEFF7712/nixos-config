@@ -215,6 +215,7 @@
       "wheel"
       "networkmanager"
       "dialout"
+      "i2c"
     ];
   };
 
