@@ -1,6 +1,11 @@
 { pkgs, ... }:
 {
-  imports = [ ../../modules/home-manager/ai-tools.nix ];
+  imports = [
+    ../../modules/home-manager/ai-tools.nix
+    ../../modules/home-manager/agent-browser.nix
+  ];
+
+  agent-browser.enable = true;
 
   home = {
     username = "developer";
