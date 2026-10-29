@@ -247,7 +247,7 @@ in
           apply_sig="${pkgs.spotify}|$sp_active|$sp_variant|$sp_theme|$sp_scheme|$sp_js|${spiceSig}|${extSig}"
           if [ "$sp_config_ok" = 1 ]; then
             run ${pkgs.bash}/bin/bash ${../../home/scripts/spicetify-apply} \
-              "$state" "$apply_sig" "''${fresh:-}" ${spicetifyBin} || true
+              "$state" "$apply_sig" "''${fresh:-}" ${spicetifyBin} "${pkgs.spotify}/share/spotify" || true
           else
             run rm -f "$state/.apply-stamp"
             echo "spicetify: configuration failed; will retry on the next activation" >&2
