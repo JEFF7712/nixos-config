@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+INTERNAL_DEV="${MONITOR_BRIGHTNESS_INTERNAL:-intel_backlight}"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/monitor-brightness"
+CACHE_FILE="$CACHE_DIR/buses"
+
+internal_percent() {
+  local line cur max
+  line="$(brightnessctl -m -d "$INTERNAL_DEV" 2>/dev/null | head -n 1)" || return 1
+  [ -n "$line" ] || return 1
+  cur="$(brightnessctl -d "$INTERNAL_DEV" get 2>/dev/null)" || return 1
+  max="$(brightnessctl -d "$INTERNAL_DEV" max 2>/dev/null)" || return 1
+  [ "$max" -gt 0 ] || return 1
+  printf '%d' "$(( (cur * 100 + max / 2) / max ))"
+}
+
+ddc_mapping() {
+  awk '
+    /^Display / { if (n != "") print n, bus; n = $2; bus = "" }
+    $1 == "I2C" && $2 == "bus:" { b = $3; sub(/.*i2c-/, "", b); bus = b }
+    END { if (n != "") print n, bus }'
+}
+
+ddc_labels() {
+  awk '
+    /^Display / { if (n != "") print n, label; n = $2; label = "" }
+    $1 == "Monitor:" { m = $2; c = split(m, p, ":"); label = (c >= 2 && p[2] != "") ? p[2] : "" }
+    END { if (n != "") print n, label }'
+}
+
+cache_boot() {
+  cat /proc/sys/kernel/random/boot_id 2>/dev/null || printf 'unknown'
+}
+
+write_cache() {
+  mkdir -p "$CACHE_DIR"
+  {
+    printf 'BOOT=%s\n' "$(cache_boot)"
+    cat
+  } >"$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
+}
+
+ddc_bus() {
+  local n="$1" header bus
+  [ -f "$CACHE_FILE" ] || return 1
+  read -r header <"$CACHE_FILE" || return 1
+  [ "${header#BOOT=}" = "$(cache_boot)" ] || return 1
+  bus="$(awk -v d="$n" '$1 == d && $2 != "" { print $2; exit }' "$CACHE_FILE")" || return 1
+  [ -n "$bus" ] || return 1
+  printf '%s' "$bus"
+}
+
+ddc_addr() {
+  local n="$1" bus
+  bus="$(ddc_bus "$n" || true)"
+  if [ -n "$bus" ]; then
+    printf -- '--bus %s' "$bus"
+  else
+    printf -- '--display %s' "$n"
+  fi
+}
+
+ddc_percent() {
+  local out
+  out="$(ddcutil --brief $(ddc_addr "$1") getvcp 10 2>/dev/null)" || return 1
+  printf '%s' "$out" | awk '$1 == "VCP" && $2 == "10" { print $4; ok = 1; exit } END { if (!ok) exit 1 }'
+}
+
+cmd_list() {
+  local first=1 pct label n bus displays detected mapping
+  declare -A labels=() buses=()
+  printf '['
+  if pct="$(internal_percent)"; then
+    printf '{"id":"internal","kind":"internal","label":"Laptop panel","percent":%d}' "$pct"
+    first=0
+  fi
+  detected="$(ddcutil --brief detect 2>/dev/null)"
+  mapping="$(printf '%s\n' "$detected" | ddc_mapping)"
+  printf '%s\n' "$mapping" | write_cache
+  displays="$(printf '%s\n' "$mapping" | awk '{ print $1 }')"
+  while read -r n bus; do
+    [ -n "$n" ] && [ -n "$bus" ] && buses["$n"]="$bus"
+  done <<<"$mapping"
+  while read -r n label; do
+    [ -n "$n" ] && labels["$n"]="${label:-External $n}"
+  done < <(printf '%s\n' "$detected" | ddc_labels)
+  for n in $displays; do
+    bus="${buses[$n]:-}"
+    if [ -n "$bus" ]; then
+      pct="$(ddcutil --brief --bus "$bus" getvcp 10 2>/dev/null | awk '$1 == "VCP" && $2 == "10" { print $4; ok = 1; exit } END { if (!ok) exit 1 }')" || continue
+    else
+      pct="$(ddc_percent "$n" 2>/dev/null)" || continue
+    fi
+    label="${labels[$n]:-External $n}"
+    label="${label//\\/\\\\}"
+    label="${label//\"/\\\"}"
+    [ "$first" -eq 1 ] || printf ','
+    printf '{"id":"ddc-%s","kind":"ddc","display":%s,"label":"%s","percent":%s}' "$n" "$n" "$label" "$pct"
+    first=0
+  done
+  printf ']\n'
+}
+
+cmd_get() {
+  case "${1:-}" in
+    internal) internal_percent; echo ;;
+    ddc-*) ddc_percent "${1#ddc-}"; echo ;;
+    *) echo "unknown display id: ${1:-}" >&2; return 1 ;;
+  esac
+}
+
+cmd_set() {
+  local id="${1:-}" pct="${2:-}" n
+  [[ "$pct" =~ ^[0-9]+$ ]] || { echo "percent must be 0-100" >&2; return 1; }
+  [ "$pct" -ge 0 ] && [ "$pct" -le 100 ] || { echo "percent must be 0-100" >&2; return 1; }
+  case "$id" in
+    internal)
+      [ "$pct" -lt 1 ] && pct=1
+      exec brightnessctl -d "$INTERNAL_DEV" s "${pct}%" -q
+      ;;
+    ddc-*)
+      n="${id#ddc-}"
+      [ "$pct" -lt 5 ] && pct=5
+      exec ddcutil $(ddc_addr "$n") setvcp 10 "$pct" >/dev/null
+      ;;
+    *) echo "unknown display id: $id" >&2; return 1 ;;
+  esac
+}
+
+case "${1:-list}" in
+  list) cmd_list ;;
+  get) cmd_get "${2:-}" ;;
+  set) cmd_set "${2:-}" "${3:-}" ;;
+  *) echo "usage: monitor-brightness [list|get <id>|set <id> <0-100>]" >&2; exit 1 ;;
+esac

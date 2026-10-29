@@ -13,6 +13,11 @@ ShellRoot {
         id: audioService
     }
 
+    Services.BrightnessService {
+        id: brightnessService
+        detailedMonitoring: brightnessPopup.active
+    }
+
     Services.MediaService {
         id: mediaService
         audioService: audioService
@@ -63,6 +68,7 @@ ShellRoot {
     property color themeFresh: "#d6eadc"
     property var popupScreen: null
     readonly property Services.AudioService sharedAudioService: audioService
+    readonly property Services.BrightnessService sharedBrightnessService: brightnessService
     readonly property Services.MediaService sharedMediaService: mediaService
     readonly property Services.CavaService sharedCavaService: cavaService
     readonly property Services.PowerService sharedPowerService: powerService
@@ -91,6 +97,7 @@ ShellRoot {
     property bool showActiveWindow: false
     property bool showMedia: true
     property bool showVolume: true
+    property bool showBrightness: true
     property bool showNetwork: true
     property bool showBluetooth: true
     property bool showBattery: true
@@ -138,6 +145,7 @@ ShellRoot {
         root.showActiveWindow = false;
         root.showMedia = true;
         root.showVolume = true;
+        root.showBrightness = true;
         root.showNetwork = true;
         root.showBluetooth = true;
         root.showBattery = true;
@@ -161,7 +169,7 @@ ShellRoot {
     }
 
     function applyTheme(theme) {
-        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup, hassPopup];
+        const popups = [volumePopup, brightnessPopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup, hassPopup];
         for (const p of popups) {
             if (p)
                 p.suppressPrewarm = true;
@@ -215,6 +223,8 @@ ShellRoot {
                 root.showMedia = theme.showMedia === "true";
             if (theme.showVolume)
                 root.showVolume = theme.showVolume === "true";
+            if (theme.showBrightness)
+                root.showBrightness = theme.showBrightness === "true";
             if (theme.showNetwork)
                 root.showNetwork = theme.showNetwork === "true";
             if (theme.showBluetooth)
@@ -328,13 +338,13 @@ ShellRoot {
             root.reloadTheme()
     }
 
-    readonly property bool anyPopupShown: volumePopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active || hassPopup.active
-    readonly property bool anyPopupWarming: volumePopup.warming || wifiPopup.warming || bluetoothPopup.warming || batteryPopup.warming || calendarPopup.warming || notificationsPopup.warming || systemPopup.warming || mediaPopup.warming || hassPopup.warming
+    readonly property bool anyPopupShown: volumePopup.active || brightnessPopup.active || wifiPopup.active || bluetoothPopup.active || batteryPopup.active || calendarPopup.active || notificationsPopup.active || systemPopup.active || mediaPopup.active || hassPopup.active
+    readonly property bool anyPopupWarming: volumePopup.warming || brightnessPopup.warming || wifiPopup.warming || bluetoothPopup.warming || batteryPopup.warming || calendarPopup.warming || notificationsPopup.warming || systemPopup.warming || mediaPopup.warming || hassPopup.warming
 
     function showOnly(target, centerX, screen) {
         root.popupScreen = screen;
         target.anchorCenterX = (centerX === undefined || centerX === null) ? -1 : centerX;
-        const popups = [volumePopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup, hassPopup];
+        const popups = [volumePopup, brightnessPopup, wifiPopup, bluetoothPopup, batteryPopup, calendarPopup, notificationsPopup, systemPopup, mediaPopup, hassPopup];
         for (const p of popups) {
             if (p !== target)
                 p.close();
@@ -349,6 +359,7 @@ ShellRoot {
 
     function closeAll() {
         volumePopup.close();
+        brightnessPopup.close();
         wifiPopup.close();
         bluetoothPopup.close();
         batteryPopup.close();
@@ -368,6 +379,7 @@ ShellRoot {
             property var modelData
             screen: modelData
             audioService: root.sharedAudioService
+            brightnessService: root.sharedBrightnessService
             mediaService: root.sharedMediaService
             cavaService: root.sharedCavaService
             powerService: root.sharedPowerService
@@ -396,6 +408,7 @@ ShellRoot {
             showActiveWindow: root.showActiveWindow
             showMedia: root.showMedia
             showVolume: root.showVolume
+            showBrightness: root.showBrightness
             showNetwork: root.showNetwork
             showBluetooth: root.showBluetooth
             showBattery: root.showBattery
@@ -416,6 +429,7 @@ ShellRoot {
             pillBorder: root.pillBorder
             notificationCount: NotifService.count
             onVolumeClicked: centerX => root.showOnly(volumePopup, centerX, modelData)
+            onBrightnessClicked: centerX => root.showOnly(brightnessPopup, centerX, modelData)
             onWifiClicked: centerX => root.showOnly(wifiPopup, centerX, modelData)
             onBluetoothClicked: centerX => root.showOnly(bluetoothPopup, centerX, modelData)
             onBatteryClicked: centerX => root.showOnly(batteryPopup, centerX, modelData)
@@ -425,6 +439,7 @@ ShellRoot {
             onMediaClicked: centerX => root.showOnly(mediaPopup, centerX, modelData)
             onHassClicked: centerX => root.showOnly(hassPopup, centerX, modelData)
             onVolumeHovered: root.prewarmOn(volumePopup, modelData)
+            onBrightnessHovered: root.prewarmOn(brightnessPopup, modelData)
             onWifiHovered: root.prewarmOn(wifiPopup, modelData)
             onBluetoothHovered: root.prewarmOn(bluetoothPopup, modelData)
             onBatteryHovered: root.prewarmOn(batteryPopup, modelData)
@@ -468,6 +483,26 @@ ShellRoot {
         id: volumePopup
         screen: root.popupScreen
         audioService: audioService
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+        themeRawBg: root.themeRawBg
+        themeBorder: root.barBorderColor
+        innerHighlight: root.barInnerHighlight
+        dividerColor: root.dividerColor
+        pillBg: root.pillBg
+        pillBorder: root.pillBorder
+        flatMode: root.flatMode
+        popupAttachToBar: root.popupAttachToBar
+        popupAnimationStyle: root.popupAnimationStyle
+        topMargin: root.popupTopMargin
+        barMargin: root.barMargin
+    }
+
+    BrightnessPopup {
+        id: brightnessPopup
+        screen: root.popupScreen
+        brightnessService: brightnessService
         themeFg: root.themeFg
         themeBg: root.popupBg
         themeAccent: root.themeAccent

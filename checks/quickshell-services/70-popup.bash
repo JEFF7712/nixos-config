@@ -43,7 +43,8 @@ run_popup_only_composition_probe() {
     .diagnostics.bluetoothOk == true and
     .diagnostics.powerOk == true and
     .diagnostics.systemOk == true and
-    .diagnostics.mediaOk == true' \
+    .diagnostics.mediaOk == true and
+    .diagnostics.brightnessOk == true' \
     "$state_dir/result.json" >/dev/null || {
     jq . "$state_dir/result.json" >&2 || true
     fail 'popup-only fixture reported invalid composition diagnostics'

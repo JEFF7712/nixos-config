@@ -24,6 +24,7 @@ run_native_construction_probes
 run_media_service_probe
 run_cava_service_probe
 run_power_service_probe
+run_brightness_service_probe
 run_power_destruction_probe probe
 run_power_destruction_probe action
 run_power_native_construction_probe
