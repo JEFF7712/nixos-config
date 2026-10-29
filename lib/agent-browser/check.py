@@ -148,11 +148,21 @@ def main() -> None:
             screenshots.append(
                 {"path": str(path), "width": actual_width, "height": actual_height}
             )
+        inline = client.request(
+            "tools/call", {"name": "browser_take_screenshot", "arguments": {}}
+        )
+        assert not inline.get("isError"), inline
+        assert any(block.get("type") == "image" for block in inline.get("content", []))
         if args.url:
             client.tool("browser_navigate", {"url": args.url})
         print(
             json.dumps(
-                {"status": "ok", "interaction": "Count: 1", "screenshots": screenshots},
+                {
+                    "status": "ok",
+                    "interaction": "Count: 1",
+                    "inline_image": True,
+                    "screenshots": screenshots,
+                },
                 indent=2,
             )
         )
