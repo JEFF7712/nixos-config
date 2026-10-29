@@ -233,6 +233,48 @@ assert_no_view_processes_for_migrated_domains() {
       || fail "PowerService.qml is missing typed action signature: $signature"
   done
 
+  local brightness_service="$production_dir/services/BrightnessService.qml"
+  local brightness_model="$production_dir/services/internal/BrightnessModel.qml"
+  local brightness_popup="$production_dir/BrightnessPopup.qml"
+  [ -f "$brightness_service" ] || fail 'BrightnessService.qml is missing'
+  [ -f "$brightness_model" ] || fail 'BrightnessModel.qml is missing'
+  rg -q 'Internal\.BrightnessModel[[:space:]]*\{' "$brightness_service" \
+    || fail 'BrightnessService.qml must compose the deep internal BrightnessModel'
+  [ "$(rg '^[[:space:]]*property' "$brightness_service" | rg -v 'readonly property' | sed 's/^[[:space:]]*//' | sort)" = 'property bool detailedMonitoring: false' ] \
+    || fail 'BrightnessService.qml must expose only the narrow detailed-monitoring demand input'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io' "$brightness_service" \
+    || fail 'BrightnessService.qml must stay a thin facade with no owned processes or command literals'
+  for public_property in displays available averagePercent busy lastError; do
+    rg -q "readonly property [^:]* ${public_property}:" "$brightness_service" \
+      || fail "BrightnessService.qml is missing readonly public property: $public_property"
+  done
+  for signature in \
+    'function setBrightness(id: string, percent: int): void' \
+    'function adjustAll(direction: int): void' \
+    'function refresh(): void'; do
+    rg -F -q "$signature" "$brightness_service" \
+      || fail "BrightnessService.qml is missing typed action signature: $signature"
+  done
+  ! rg -n -g '*.qml' -g '!BrightnessModel.qml' '"monitor-brightness"|ddcutil|brightnessctl' "$production_dir" \
+    || fail 'brightness command construction exists outside BrightnessModel.qml'
+  [ "$(rg -o 'Services\.BrightnessService[[:space:]]*\{' "$shell" | wc -l)" -eq 1 ] \
+    || fail 'production shell.qml must instantiate exactly one Services.BrightnessService'
+  rg -q 'id:[[:space:]]*brightnessService' "$shell" \
+    || fail 'production shell.qml must name the BrightnessService brightnessService'
+  rg -U -q 'Topbar[[:space:]]*\{[^}]*brightnessService:[[:space:]]*root\.sharedBrightnessService' "$shell" \
+    || fail 'production shell.qml does not wire root brightnessService directly to Topbar'
+  rg -U -q 'BrightnessPopup[[:space:]]*\{[^}]*brightnessService:[[:space:]]*brightnessService' "$shell" \
+    || fail 'production shell.qml does not wire brightnessService directly to BrightnessPopup'
+  rg -U -q 'Services\.BrightnessService[[:space:]]*\{[^}]*detailedMonitoring:[[:space:]]*brightnessPopup\.active' "$shell" \
+    || fail 'production shell.qml must bind brightness cadence demand to BrightnessPopup active state'
+  rg -q 'required property Services\.BrightnessService brightnessService' "$production_dir/Topbar.qml" \
+    || fail 'Topbar.qml must require BrightnessService'
+  rg -q 'required property Services\.BrightnessService brightnessService' "$brightness_popup" \
+    || fail 'BrightnessPopup.qml must require BrightnessService'
+  ! rg -n '(^|[[:space:]])Process[[:space:]]*\{|(^|[[:space:]])Timer[[:space:]]*\{|Quickshell\.Io|ddcutil|brightnessctl|monitor-brightness' \
+    "$brightness_popup" \
+    || fail 'BrightnessPopup.qml still owns brightness processes, timers, imports, or command construction'
+
   local system_service="$production_dir/services/SystemService.qml"
   local system_model="$production_dir/services/internal/SystemModel.qml"
   local system_popup="$production_dir/SystemPopup.qml"
@@ -503,7 +545,7 @@ assert_no_view_processes_for_migrated_domains() {
 
   # Final presentation-split invariants (Task 12).
   local migrated_view
-  for migrated_view in Topbar.qml VolumePopup.qml WifiPopup.qml BluetoothPopup.qml BatteryPopup.qml SystemPopup.qml MediaPopup.qml; do
+  for migrated_view in Topbar.qml VolumePopup.qml BrightnessPopup.qml WifiPopup.qml BluetoothPopup.qml BatteryPopup.qml SystemPopup.qml MediaPopup.qml; do
     ! rg -n '(^|[[:space:]])Process[[:space:]]*\{' "$production_dir/$migrated_view" \
       || fail "$migrated_view still owns a Process block"
     ! rg -n 'Quickshell\.execDetached|execDetached\(' "$production_dir/$migrated_view" \
@@ -520,6 +562,7 @@ assert_no_view_processes_for_migrated_domains() {
     || fail 'migrated views still contain domain command literals'
   ! rg -n 'topbar\.' \
     "$production_dir"/VolumePopup.qml \
+    "$production_dir"/BrightnessPopup.qml \
     "$production_dir"/WifiPopup.qml \
     "$production_dir"/BluetoothPopup.qml \
     "$production_dir"/BatteryPopup.qml \
@@ -568,6 +611,7 @@ assert_no_view_processes_for_migrated_domains() {
   # shell themeReloadTimer. Migrated domain views must not grow new poll timers.
   ! rg -n '(^|[[:space:]])Timer[[:space:]]*\{' \
     "$production_dir/VolumePopup.qml" \
+    "$production_dir/BrightnessPopup.qml" \
     "$production_dir/WifiPopup.qml" \
     "$production_dir/BluetoothPopup.qml" \
     "$production_dir/BatteryPopup.qml" \
@@ -580,7 +624,7 @@ assert_variant_topbar_bindings_are_root_qualified() {
   local shell="$repo_root/home/configs/quickshell/shell.qml"
   local service
 
-  for service in audio media cava power system niri network bluetooth; do
+  for service in audio brightness media cava power system niri network bluetooth; do
     rg -q "readonly property Services\\.${service^}Service shared${service^}Service:[[:space:]]*${service}Service" "$shell" \
       || fail "ShellRoot must expose ${service}Service under an unshadowed shared property"
     rg -U -q "Topbar[[:space:]]*\\{[^}]*${service}Service:[[:space:]]*root\\.shared${service^}Service" "$shell" \

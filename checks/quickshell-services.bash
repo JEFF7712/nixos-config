@@ -16,6 +16,7 @@ network_native_fixture_qml="${repo_root}/tests/quickshell/integration/network-na
 bluetooth_fixture_qml="${repo_root}/tests/quickshell/integration/bluetooth-service"
 bluetooth_native_fixture_qml="${repo_root}/tests/quickshell/integration/bluetooth-native"
 popup_only_fixture_qml="${repo_root}/tests/quickshell/integration/popup-only"
+brightness_fixture_qml="${repo_root}/tests/quickshell/integration/brightness-service"
 audio_fixture_bin="${repo_root}/tests/quickshell/fixtures/bin"
 quickshell_bin=$(command -v quickshell || true)
 declare -a fixture_state_dirs=()

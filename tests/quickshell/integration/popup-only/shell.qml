@@ -50,9 +50,19 @@ ShellRoot {
         detailedMonitoring: false
     }
 
+    Services.BrightnessService {
+        id: brightnessService
+        detailedMonitoring: false
+    }
+
     VolumePopup {
         id: volumePopup
         audioService: audioService
+    }
+
+    BrightnessPopup {
+        id: brightnessPopup
+        brightnessService: brightnessService
     }
 
     WifiPopup {
@@ -89,12 +99,13 @@ ShellRoot {
         const powerOk = typeof batteryPopup.powerService.available === "boolean" && typeof batteryPopup.powerService.chargePercent === "number";
         const systemOk = typeof systemPopup.systemService.available === "boolean" && typeof systemPopup.systemService.cpuPercent === "number" && typeof systemPopup.niriService.activeWorkspaceId === "number";
         const mediaOk = typeof mediaPopup.mediaService.status === "string" && mediaPopup.cavaService.values !== undefined;
+        const brightnessOk = typeof brightnessPopup.brightnessService.available === "boolean" && typeof brightnessPopup.brightnessService.displays.count === "number";
 
         // Command-backed recorders only — never mutate native radio/power/BT/session.
         systemPopup.systemService.lock();
         bluetoothPopup.bluetoothService.openManager();
 
-        const passed = audioOk && networkOk && bluetoothOk && powerOk && systemOk && mediaOk;
+        const passed = audioOk && networkOk && bluetoothOk && powerOk && systemOk && mediaOk && brightnessOk;
         resultFile.setText(JSON.stringify({
             passed: passed,
             diagnostics: {
@@ -104,6 +115,7 @@ ShellRoot {
                 powerOk: powerOk,
                 systemOk: systemOk,
                 mediaOk: mediaOk,
+                brightnessOk: brightnessOk,
                 volumePercent: volumePopup.audioService.volumePercent,
                 networkConnected: wifiPopup.networkService.connected,
                 bluetoothAvailable: bluetoothPopup.bluetoothService.available,

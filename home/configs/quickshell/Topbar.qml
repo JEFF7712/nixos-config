@@ -12,6 +12,7 @@ PanelWindow {
     id: topbarWindow
 
     required property Services.AudioService audioService
+    required property Services.BrightnessService brightnessService
     required property Services.MediaService mediaService
     required property Services.CavaService cavaService
     required property Services.PowerService powerService
@@ -41,6 +42,7 @@ PanelWindow {
     property bool showActiveWindow: false
     property bool showMedia: true
     property bool showVolume: true
+    property bool showBrightness: true
     property bool showNetwork: true
     property bool showBluetooth: true
     property bool showBattery: true
@@ -87,6 +89,7 @@ PanelWindow {
 
     signal wifiClicked(real anchorCenterX)
     signal volumeClicked(real anchorCenterX)
+    signal brightnessClicked(real anchorCenterX)
     signal bluetoothClicked(real anchorCenterX)
     signal batteryClicked(real anchorCenterX)
     signal clockClicked(real anchorCenterX)
@@ -97,6 +100,7 @@ PanelWindow {
     // Predictive layershell prewarm before click (InfoPopup.prewarm).
     signal wifiHovered
     signal volumeHovered
+    signal brightnessHovered
     signal bluetoothHovered
     signal batteryHovered
     signal clockHovered
@@ -142,6 +146,17 @@ PanelWindow {
         if (percent < 67)
             return "󰖀";
         return "󰕾";
+    }
+
+    function brightnessIcon() {
+        const percent = topbarWindow.brightnessService.averagePercent;
+        if (!topbarWindow.brightnessService.available || percent <= 0)
+            return "󰃞";
+        if (percent < 34)
+            return "󰃞";
+        if (percent < 67)
+            return "󰃟";
+        return "󰃠";
     }
 
     function batteryIcon() {
@@ -306,6 +321,16 @@ PanelWindow {
                 onMiddleClicked: topbarWindow.audioService.toggleMute()
                 onRightClicked: topbarWindow.audioService.openMixer()
                 onScrolled: delta => topbarWindow.audioService.adjustVolume(delta)
+            }
+            StatPill {
+                id: brightnessPill
+                visible: topbarWindow.showBrightness
+                icon: topbarWindow.brightnessIcon()
+                value: topbarWindow.brightnessService.available ? topbarWindow.brightnessService.averagePercent + "%" : ""
+                tint: topbarWindow.themeAccent
+                onActivated: topbarWindow.brightnessClicked(topbarWindow.pillCenterX(brightnessPill))
+                onHovered: topbarWindow.brightnessHovered()
+                onScrolled: delta => topbarWindow.brightnessService.adjustAll(delta > 0 ? 1 : -1)
             }
             StatPill {
                 id: networkPill

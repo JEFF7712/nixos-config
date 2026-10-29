@@ -102,3 +102,26 @@ COMMAND_LOG="$log_file" bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" 
 assert_eq sig-a "$(cat "$state/.apply-stamp")" 'fresh-copy failure removes an older matching stamp'
 COMMAND_LOG="$log_file" DRY_RUN_CMD=echo bash "$REPO_ROOT/home/scripts/spicetify-apply" "$state" sig-b fresh "$bin_dir/spicetify"
 assert_eq sig-a "$(cat "$state/.apply-stamp")" 'dry activation preserves the stamp'
+
+# Reseed recovery: consumed xpui.spa plus a stale recorded backup fails bare
+# apply forever; a store copy reseeds the .spa and one backup retry heals it.
+rstate="$tmpdir/reseed-state"
+mkdir -p "$rstate/app/Apps"
+rstore="$tmpdir/store/spotify"
+mkdir -p "$rstore/Apps"
+touch "$rstore/Apps/xpui.spa" "$rstore/Apps/login.spa"
+cat > "$bin_dir/spicetify" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$COMMAND_LOG"
+case " $* " in
+  *" backup "*) exit 0 ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$bin_dir/spicetify"
+: > "$log_file"
+COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" bash "$REPO_ROOT/home/scripts/spicetify-apply" \
+  "$rstate" sig-r '' "$bin_dir/spicetify" "$rstore"
+assert_eq sig-r "$(cat "$rstate/.apply-stamp")" 'reseed retry stamps a successful apply'
+[ -f "$rstate/app/Apps/xpui.spa" ]
+[ "$(wc -l < "$log_file" | tr -d ' ')" = 2 ]

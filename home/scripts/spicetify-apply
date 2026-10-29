@@ -5,20 +5,47 @@ state=${1:?state directory is required}
 signature=${2:?signature is required}
 fresh=${3-}
 spicetify=${4:?spicetify binary is required}
+store_spotify=${5-}
 stamp="$state/.apply-stamp"
 
 [ -z "${DRY_RUN_CMD:-}" ] || exit 0
 previous=$(cat "$stamp" 2>/dev/null || true)
 [ -n "$fresh" ] || [ "$previous" != "$signature" ] || exit 0
 
-args=()
-if [ -e "$state/app/Apps/xpui.spa" ] || [ -n "$fresh" ]; then
-  args+=(backup)
-fi
-if "$spicetify" -n "${args[@]}" apply >/dev/null 2>&1; then
-  printf '%s' "$signature" > "$stamp"
-else
+run_apply() {
+  local with_backup="$1"
+  local args=()
+  if [ -n "$with_backup" ]; then
+    args+=(backup)
+  fi
+  # -n: don't restart a running Spotify; patched xpui loads on next launch.
+  # Apply is a ~100MB spa rezip; the stamp lets unchanged rebuilds skip it.
+  if "$spicetify" -n "${args[@]}" apply >/dev/null 2>&1; then
+    printf '%s' "$signature" > "$stamp"
+    return 0
+  fi
   rm -f -- "$stamp"
-  printf 'spicetify: apply failed; will retry on the next activation\n' >&2
-  exit 1
+  return 1
+}
+
+want_backup=""
+if [ -e "$state/app/Apps/xpui.spa" ] || [ -n "$fresh" ]; then
+  want_backup=1
 fi
+run_apply "$want_backup" && exit 0
+
+# A Spotify update that slipped past backup (or a failed backup) leaves the
+# recorded Backup version behind the installed app while xpui.spa is already
+# consumed, so bare `apply` retries fail forever. Reseed the .spa files from
+# the store copy and retry once with a backup.
+if [ -n "$store_spotify" ] && [ -f "$store_spotify/Apps/xpui.spa" ]; then
+  cp "$store_spotify/Apps/xpui.spa" "$state/app/Apps/xpui.spa"
+  if [ -f "$store_spotify/Apps/login.spa" ]; then
+    cp "$store_spotify/Apps/login.spa" "$state/app/Apps/login.spa"
+  fi
+  chmod u+w "$state/app/Apps/xpui.spa" "$state/app/Apps/login.spa" 2>/dev/null || true
+  run_apply 1 && exit 0
+fi
+
+printf 'spicetify: apply failed; will retry on the next activation\n' >&2
+exit 1
