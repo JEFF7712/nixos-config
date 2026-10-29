@@ -5,6 +5,9 @@ Detail behind the short Gotchas in `CLAUDE.md`. Read this before touching `just 
 ## Activation (`just switch`)
 
 - `just switch` runs `nh os switch -R . -H laptop -- --max-jobs 2 --cores 8` through the resolved `nh` store path so the `nh` UI is preserved while sudoers stays pinned to that exact command (root ignores `~/.config/nix/nix.conf`).
+- On the development guest, `just switch vm` selects the VM target with one
+  build and two cores. The lock, cascade guard and activation path are the same;
+  the default remains the laptop. No sudoers or hook permissions are changed.
 - It is the only activation path for agents: `hooks/before-shell` denies `nixos-rebuild switch|boot|test` and `nh os switch|boot|test`, and `hooks/before-mcp` denies nix-agent `switch()`, because only `just switch` does the three steps below.
   1. Takes the `flock` on `/run/nixos-auto-update.lock` shared with the auto-update service, so two full builds never run concurrently (two at once OOM the ~31G box). If auto-update holds it, `just switch` bails with a hint; if a manual switch holds it, auto-update skips that run. To preempt a mid-build auto-update: `sudo systemctl stop nixos-auto-update.service`, then rerun.
   2. Runs the cascade guard (below).

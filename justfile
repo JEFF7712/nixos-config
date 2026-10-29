@@ -215,9 +215,14 @@ dry:
 
 # Caps must match hosts/laptop/base.nix sudoers pin. Root ignores user nix.conf.
 # flock vs auto-update: two full builds OOM the ~31G box.
-switch:
+switch host="laptop":
   #!/usr/bin/env bash
   set -euo pipefail
+  case '{{host}}' in
+    laptop) max_jobs=2; build_cores=8 ;;
+    vm) max_jobs=1; build_cores=2 ;;
+    *) echo "unsupported switch target: {{host}}" >&2; exit 1 ;;
+  esac
   lock=/run/nixos-auto-update.lock
   [ -w "$lock" ] || lock="${TMPDIR:-/tmp}/nixos-switch.lock"
   exec {fd}>>"$lock"
@@ -232,7 +237,7 @@ switch:
     ./home/scripts/nixos-deploy pause
   fi
   # Refuse a toolchain-cascade switch. FORCE=1 to override.
-  toplevel=".#nixosConfigurations.laptop.config.system.build.toplevel"
+  toplevel=".#nixosConfigurations.{{host}}.config.system.build.toplevel"
   pin=./home/scripts/nix-pin-nixpkgs-running
   if [ "${FORCE:-0}" != "1" ]; then
     rc=0
@@ -276,7 +281,7 @@ switch:
       echo "cascade-guard error (rc=$rc); proceeding without it." >&2
     fi
   fi
-  sudo "$(readlink -f "$(command -v nh)")" os switch -R "{{ justfile_directory() }}" -H laptop -- --max-jobs 2 --cores 8
+  sudo "$(readlink -f "$(command -v nh)")" os switch -R "{{ justfile_directory() }}" -H '{{host}}' -- --max-jobs "$max_jobs" --cores "$build_cores"
 
 # Deliver the current branch to protected main: preflight, checks, push,
 # PR, wait for Woodpecker green, merge, sync, delete the branch. See docs/deployment.md.
