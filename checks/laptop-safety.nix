@@ -70,28 +70,5 @@ assert quickshellService.Service.RestartSec == 2;
 assert quickshellService.Service.StandardOutput == "journal";
 assert quickshellService.Service.StandardError == "journal";
 assert !(quickshellService ? Install);
-assert config.intentd-host.enable;
-assert builtins.elem "/var/lib/intentd" preservedDirectories;
-assert config.services.intentd.reliability.journalCredential == "/var/lib/intentd/journal.key";
-assert config.systemd.services.intentd-state-init.serviceConfig.StateDirectoryMode == "0700";
-assert builtins.elem "intentd-state-init.service"
-  config.systemd.services.intentd-boot-guard.requires;
-assert builtins.elem "intentd-baseline-adopt.service"
-  config.systemd.services.intentd-boot-guard.requires;
-assert builtins.elem "intentd-baseline-adopt.service"
-  config.systemd.services.intentd-boot-guard.after;
-assert
-  config.systemd.services.intentd-baseline-adopt.unitConfig.ConditionPathExists
-  == "!/var/lib/intentd/journal.jsonl";
-assert builtins.elem "intentd-display-ready.service"
-  config.systemd.services.intentd-boot-guard.after;
-assert config.boot.lanzaboote.bootCounting.initialTries == 1;
-assert config.systemd.targets.boot-complete.unitConfig.X-OnlyManualStart;
-assert config.systemd.services.intentd-boot-guard.unitConfig.X-OnlyManualStart;
-assert !config.systemd.services.intentd-boot-guard.restartIfChanged;
-assert config.systemd.services.intentd-baseline-adopt.unitConfig.X-OnlyManualStart;
-assert !config.systemd.services.intentd-baseline-adopt.restartIfChanged;
-assert
-  config.systemd.services.intentd-boot-guard.serviceConfig.ExecCondition
-  == config.systemd.services.intentd-baseline-adopt.serviceConfig.ExecCondition;
+assert !config.intentd-host.enable;
 true

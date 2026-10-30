@@ -33,7 +33,9 @@
   nvidia.enable = true;
   secrets.enable = true;
   secureboot.enable = true;
-  intentd-host.enable = true;
+  # Paused: the boot guard force-reboots any directly switched generation.
+  # Re-enable only alongside the intentd host-transaction staging path.
+  intentd-host.enable = false;
   niri.enable = true;
   niri-greeter.enable = true;
   asus-numpad.enable = true;
