@@ -199,5 +199,28 @@ Scope {
             if (root._queue.length > 0)
                 root._startNext();
         }
+        onRunningChanged: {
+            if (!running && root._currentJob !== null) {
+                const job = root._currentJob;
+                root._currentJob = null;
+                if (job.kind === "list") {
+                    root._lastError = "command unavailable";
+                } else {
+                    let stillOut = false;
+                    for (let i = 0; i < root._queue.length; i++) {
+                        if (root._queue[i].kind === "set" && root._queue[i].id === job.id) {
+                            stillOut = true;
+                            break;
+                        }
+                    }
+                    if (!stillOut)
+                        delete root._pending[job.id];
+                    delete root._sentState[job.id];
+                    root._lastError = "set failed";
+                }
+                if (root._queue.length > 0)
+                    root._startNext();
+            }
+        }
     }
 }
