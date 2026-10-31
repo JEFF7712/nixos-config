@@ -11,14 +11,26 @@ case "$action" in
   up|reapply|connectivity-change|dhcp4-change)
     addresses=$(ip -4 -j address show dev "$iface") || exit 0
     source_address=$(jq -r '[.[].addr_info[] | select(.family == "inet" and (.local | startswith("10.0.10."))) | .local][0] // empty' <<<"$addresses")
+    wifi_address=$(jq -r '[.[].addr_info[] | select(.family == "inet" and (.local | startswith("10.0.20."))) | .local][0] // empty' <<<"$addresses")
     if [ -n "$source_address" ]; then
       resolvectl dns "$iface" 10.0.30.10
       resolvectl domain "$iface" '~homelab' '~rupan.dev'
     fi
     ;;
-  down) source_address= ;;
+  down)
+    source_address=
+    wifi_address=
+    ip route del 10.0.40.0/24 dev "$iface" 2>/dev/null || true
+    ;;
   *) exit 0 ;;
 esac
+
+# Home Wi-Fi (10.0.20.x): route the Services subnet via the local gateway in
+# the main table. Off-home 10.20.x networks would blackhole only 10.0.40/24
+# until disconnect, which removes the route above.
+if [ -n "$wifi_address" ]; then
+  ip route replace 10.0.40.0/24 via 10.0.20.1 dev "$iface" metric 600
+fi
 
 [ "$iface" = "$management_iface" ] || exit 0
 install -d -m 0700 "$state_dir"
@@ -38,5 +50,6 @@ if [ -n "$source_address" ]; then
   ip route replace 10.0.10.0/24 dev "$iface" src "$source_address" table 1001
   ip route replace default via 10.0.10.1 dev "$iface" metric 50 table 1001
   ip route replace 10.0.30.0/24 via 10.0.10.1 dev "$iface" metric 50 table 1001
+  ip route replace 10.0.40.0/24 via 10.0.10.1 dev "$iface" metric 50 table 1001
   ip rule add from "$source_address/32" lookup 1001 priority 100
 fi

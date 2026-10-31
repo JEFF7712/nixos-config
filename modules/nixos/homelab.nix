@@ -111,6 +111,7 @@ in
           route-metric = 700;
           never-default = true;
           route1 = "10.0.30.0/24,10.0.10.1,50";
+          route2 = "10.0.40.0/24,10.0.10.1,50";
         };
         ipv6.method = "disabled";
       };

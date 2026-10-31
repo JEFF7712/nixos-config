@@ -32,8 +32,15 @@ grep -Fxq 'ip rule add from 10.0.10.42/32 lookup 1001 priority 100' "$EVENT_LOG"
 [ "$(cat "$HOMELAB_NETWORK_STATE_DIR/source")" = 10.0.10.42 ]
 
 : > "$EVENT_LOG"
+FIXTURE_ADDRESS=10.0.20.5 bash home/scripts/homelab-network-event wlo1 up
+grep -Fxq 'ip route replace 10.0.40.0/24 via 10.0.20.1 dev wlo1 metric 600' "$EVENT_LOG"
+[ "$(wc -l < "$EVENT_LOG")" = 1 ]
+[ "$(cat "$HOMELAB_NETWORK_STATE_DIR/source")" = 10.0.10.42 ]
+
+: > "$EVENT_LOG"
 bash home/scripts/homelab-network-event wlo1 down
-[ ! -s "$EVENT_LOG" ]
+grep -Fxq 'ip route del 10.0.40.0/24 dev wlo1' "$EVENT_LOG"
+[ "$(wc -l < "$EVENT_LOG")" = 1 ]
 [ "$(cat "$HOMELAB_NETWORK_STATE_DIR/source")" = 10.0.10.42 ]
 
 FIXTURE_ADDRESS=10.0.10.43 bash home/scripts/homelab-network-event fixture-mgmt dhcp4-change
@@ -53,6 +60,7 @@ FIXTURE_IP_MISSING=1 bash home/scripts/homelab-network-event fixture-mgmt up
 
 FIXTURE_ADDRESS=146.151.1.2 bash home/scripts/homelab-network-event wlo1 up
 [ ! -s "$EVENT_LOG" ]
+
 printf 'network event checks passed\n'
 
 legacy="$tmpdir/management.nmconnection"
