@@ -39,11 +39,12 @@ Provider logins, MCP credentials, and mutable conversation state are runtime
 data. They are not embedded in the image and are not copied from the laptop by
 building this configuration.
 
-The VM preconfigures the signed homelab binary cache and accepts flake settings,
+The VM preconfigures the signed homelab binary caches (niks3, then Attic) and accepts flake settings,
 as the laptop does. This avoids an interactive Nix configuration prompt inside
 direnv, which has no terminal input. Signature verification remains enabled;
 the developer user is not added to `trusted-users`. The hypervisor must grant
-this guest TCP access to the NAS cache at `10.0.30.20:8080`.
+this guest TCP access to the NAS caches at `10.0.30.20:8090` (niks3) and
+`10.0.30.20:8080` (Attic).
 
 ## Browser and screenshots
 
