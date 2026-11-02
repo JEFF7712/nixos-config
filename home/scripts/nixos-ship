@@ -168,7 +168,9 @@ if [ -z "$INDEX" ]; then
   if [ -z "$TITLE" ]; then
     if [ "$AHEAD" -eq 1 ]; then TITLE="$(git log -1 --format=%s HEAD)"; else TITLE="$BRANCH"; fi
   fi
-  tea pulls create --repo "$SLUG" --base main --head "$BRANCH" --title "$TITLE"
+  # Without a description tea prompts for one and blocks forever on a non-TTY.
+  tea pulls create --repo "$SLUG" --base main --head "$BRANCH" --title "$TITLE" \
+    --description "$(git log --format=%B origin/main..HEAD)" </dev/null
   INDEX="$(pr_index_for_branch)"
   [ -n "$INDEX" ] || {
     echo "PR created but not found; finish in the Forgejo UI" >&2
