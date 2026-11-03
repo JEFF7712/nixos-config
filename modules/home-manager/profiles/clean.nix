@@ -336,21 +336,6 @@ in
         recolorDark = fg0;
       };
 
-      spotifast = theme.mkSpotifastPalette {
-        base = "dark";
-        inherit
-          bg0
-          bg1
-          bg2
-          bg3
-          fg0
-          fg1
-          fg2
-          accent
-          ;
-        onAccent = bg0;
-        danger = err;
-      };
     };
   };
 }

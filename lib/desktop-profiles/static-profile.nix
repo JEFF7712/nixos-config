@@ -43,7 +43,7 @@ let
     // p;
 
   mkColorsFor =
-    base: r: overrides:
+    _base: r: overrides:
     let
       ov = slot: applyOv (overrides.${slot} or { }) r;
     in
@@ -232,25 +232,6 @@ let
         // ov "zathura"
       );
 
-      spotifast = theme.mkSpotifastPalette (
-        {
-          inherit base;
-          inherit (r)
-            bg0
-            bg1
-            bg2
-            bg3
-            fg0
-            fg1
-            fg2
-            accent
-            onAccent
-            ;
-          danger = r.red;
-          warning = r.yellow;
-        }
-        // ov "spotifast"
-      );
     };
 
   mkStaticProfile =

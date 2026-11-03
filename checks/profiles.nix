@@ -15,7 +15,6 @@ let
     "hyprlock-colors.conf"
     "cava-colors"
     "zathura-colors"
-    "spotifast.json"
     "gtk-3.0-light.css"
     "gtk-4.0-light.css"
     "qt6ct-light.conf"
@@ -28,7 +27,6 @@ let
     "hyprlock-colors-light.conf"
     "cava-colors-light"
     "zathura-colors-light"
-    "spotifast-light.json"
   ];
 
   vicinaeThemeFiles = [
