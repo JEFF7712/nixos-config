@@ -5,6 +5,13 @@
   ...
 }:
 
+let
+  fishInit = pkgs.runCommand "terminal-fish-init" { } ''
+    mkdir -p $out
+    ${lib.getExe pkgs.starship} init fish --print-full-init > $out/starship.fish
+    ${lib.getExe pkgs.zoxide} init fish > $out/zoxide.fish
+  '';
+in
 {
   options.terminal.enable = lib.mkEnableOption "user terminal config";
 
@@ -82,16 +89,22 @@
         # Cursor Agent's ▄/▀ prompt padding is opaque foreground; Kitty can only
         # tint matching cell backgrounds. Keep the bar as a background fill.
         set -gx AGENT_CLI_DISABLE_HALF_BLOCK_PROMPT_BAR true
+
+        source ${fishInit}/zoxide.fish
+        if test "$TERM" != dumb
+          source ${fishInit}/starship.fish
+        end
       '';
     };
 
     programs.starship = {
       enable = true;
+      enableFishIntegration = false;
     };
 
     programs.zoxide = {
       enable = true;
-      enableFishIntegration = true;
+      enableFishIntegration = false;
     };
   };
 }
