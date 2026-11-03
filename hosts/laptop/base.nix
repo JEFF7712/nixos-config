@@ -90,6 +90,7 @@
   '';
   users.users.rupan.shell = pkgs.fish;
   programs.fish.enable = true;
+  programs.fish.useBabelfish = true;
 
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
