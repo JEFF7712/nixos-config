@@ -51,13 +51,6 @@ let
   spotifyLauncher = pkgs.writeShellScriptBin "spotify" ''
     exec "$HOME/${spiceState}/app/spotify" "$@"
   '';
-  # Player-bar transport disc uses palette.text (white) upstream; patch it to
-  # the theme accent. Refresh against the pinned rev on spotifast updates.
-  spotifastAccented =
-    inputs.spotifast.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs
-      (old: {
-        patches = (old.patches or [ ]) ++ [ ../../patches/spotifast-player-disc-accent.patch ];
-      });
 in
 {
   options.common-apps.enable = lib.mkEnableOption "common-apps";
@@ -70,7 +63,6 @@ in
       spotify-player
       spicetify-cli
       spotifyLauncher
-      spotifastAccented
       zathura
     ];
 

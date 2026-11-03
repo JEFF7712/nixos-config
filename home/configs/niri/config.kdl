@@ -183,7 +183,7 @@ binds {
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "lock-screen"; }
     Mod+F { spawn "firefox"; }
     Mod+W { spawn "profile-dispatch" "wallpaper"; }
-    Mod+S { spawn "spotifast"; }
+    Mod+S { spawn "spotify"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "toggle-bar"; }

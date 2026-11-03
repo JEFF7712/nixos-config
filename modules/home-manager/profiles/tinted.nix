@@ -38,7 +38,7 @@ let
   };
 
   mkColors =
-    base: p:
+    _base: p:
     theme.mkGtkPair {
       inherit (p) title accent;
       accentBg = p.accent;
@@ -205,21 +205,6 @@ let
         recolorDark = p.fg0;
       };
 
-      spotifast = theme.mkSpotifastPalette {
-        inherit base;
-        inherit (p)
-          bg0
-          bg1
-          bg2
-          bg3
-          fg0
-          fg1
-          fg2
-          accent
-          ;
-        onAccent = p.bg0;
-        danger = p.err;
-      };
     };
 
   # Opaque quickshell theme: bar, popups and base are all the main (accent)
