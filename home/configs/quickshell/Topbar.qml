@@ -326,7 +326,7 @@ PanelWindow {
                 id: brightnessPill
                 visible: topbarWindow.showBrightness
                 icon: topbarWindow.brightnessIcon()
-                value: topbarWindow.brightnessService.available ? topbarWindow.brightnessService.averagePercent + "%" : ""
+                value: (!topbarWindow.brightnessService.available || topbarWindow.brightnessService.averagePercent === 100 || topbarWindow.brightnessService.averagePercent === 0) ? "" : topbarWindow.brightnessService.averagePercent + "%"
                 tint: topbarWindow.themeAccent
                 onActivated: topbarWindow.brightnessClicked(topbarWindow.pillCenterX(brightnessPill))
                 onHovered: topbarWindow.brightnessHovered()
