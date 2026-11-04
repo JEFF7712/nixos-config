@@ -164,17 +164,13 @@ case "${1-}" in
       fi
     fi
     if [ "$1" = play-pause ] && [ -f "$state_dir/delayed-play-pause.once" ]; then
+      # Flip synchronously with no follow event: a background flip raced the
+      # reconcile debounce under load and settled into two snapshots.
       delayed_notify=1
       delay=$(cat "$state_dir/delayed-play-pause.once")
       rm -f "$state_dir/delayed-play-pause.once"
-      (
-        trap - EXIT
-        sleep "$delay"
-        tmp=$(mktemp "$state_dir/player.XXXXXX")
-        jq 'if has("players") then .defaultPlayer as $default | .players |= map(if .name == $default then (.status = (if .status == "Playing" then "Paused" else "Playing" end)) else . end) else .status = (if .status == "Playing" then "Paused" else "Playing" end) end' "$state_file" >"$tmp"
-        mv "$tmp" "$state_file"
-        printf '%s\n' "$(read_value '.status')" >"$state_dir/follow.fifo"
-      ) </dev/null >/dev/null 2>&1 &
+      sleep "$delay"
+      update '.status = (if .status == "Playing" then "Paused" else "Playing" end)'
     elif [ "$1" = play-pause ]; then
       update '.status = (if .status == "Playing" then "Paused" else "Playing" end)'
     fi
