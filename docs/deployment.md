@@ -35,7 +35,7 @@ Detail behind the short Gotchas in `CLAUDE.md`. Read this before touching `just 
 
 - comin runs with `max-jobs = 0`, so a path missing from the cache fails the deploy and keeps the running system. It authenticates with the host SSH key as a read-only deploy key.
 - Forgejo `main` is truth: commits that only exist locally are replaced at the next deploy.
-- `just switch` pauses comin (`nixos-deploy pause|resume|status`, polkit-allowed). `just ship` resumes it after a successful merge once the checkout is back on `origin/main`. Resuming does not revert; it switches at the next new `deploy/laptop` commit.
+- `just switch` pauses comin (`nixos-deploy pause|resume|status`, polkit-allowed). `just ship` resumes it after a successful merge once the checkout is back on `origin/main`. Resuming does not revert; it switches at the next new `deploy/laptop` commit. A pause older than 7 days raises a desktop notice (once per pause) via `systemHealthNotify`.
 - Out-of-store links in `home/` still follow the local checkout.
 
 ## Landing changes on protected main
