@@ -2,8 +2,8 @@
 # Deliver the current branch to Forgejo protected main.
 #
 # Preflight, validation, push, PR (reuse or open), wait for Woodpecker
-# green, merge, sync local main, delete the branch locally and on origin.
-# See docs/deployment.md.
+# green, merge, sync local main, resume comin, delete the branch locally
+# and on origin. See docs/deployment.md.
 set -euo pipefail
 
 TIMEOUT_MINS=45
@@ -230,6 +230,12 @@ if [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ]; then
 else
   git checkout --quiet main
   git pull --ff-only --quiet
+fi
+# Back on origin/main, so a pause left by `just switch` is no longer guarding a
+# local experiment. Re-arm comin; resume never reverts, it only follows the
+# next new deploy/laptop commit.
+if [ -e /var/lib/nixos-deploy/paused ] && systemctl cat comin.service >/dev/null 2>&1; then
+  "$ROOT/home/scripts/nixos-deploy" resume || echo "warning: landed but 'nixos-deploy resume' failed; run it manually" >&2
 fi
 git branch -d "$BRANCH" || {
   echo "landed on origin/main; could not delete local branch $BRANCH; run: git branch -d $BRANCH" >&2
