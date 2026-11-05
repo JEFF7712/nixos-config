@@ -6,7 +6,7 @@
 }:
 
 {
-  options.systemHealthNotify.enable = lib.mkEnableOption "desktop notifications for failed system maintenance";
+  options.systemHealthNotify.enable = lib.mkEnableOption "desktop notifications for failed system maintenance and a stale comin pause";
 
   config = lib.mkIf config.systemHealthNotify.enable (
     let
@@ -23,6 +23,8 @@
 
           state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/system-health-notify"
           escalate_after=3
+          pause_warn_after_days=7
+          pause_file="/var/lib/nixos-deploy/paused"
           mkdir -p "$state_dir"
 
           units=(nixos-auto-update.service comin.service)
@@ -79,6 +81,28 @@
 
             printf '%s\n%s\n%s\n' "$invocation_id" "$consecutive" "$notified_level" > "$state_file"
           done
+
+          # A pause left by `just switch` is invisible until the next deploy is
+          # missed. Nudge once per pause once it outlives the threshold; resume
+          # clears the state.
+          pause_state="$state_dir/comin-paused"
+          if [ -e "$pause_file" ]; then
+            mtime="$(stat -c %Y "$pause_file" 2>/dev/null || true)"
+            case "$mtime" in
+              '''|*[!0-9]*) ;;
+              *)
+                if [ "$(( $(date +%s) - mtime ))" -ge "$(( pause_warn_after_days * 86400 ))" ]; then
+                  if [ ! -r "$pause_state" ] || [ "$(cat "$pause_state")" != "$mtime" ]; then
+                    notify-send -u normal "comin paused" \
+                      "not following deploy/laptop since $(date -d "@$mtime" '+%F %R'); 'nixos-deploy resume' when ready"
+                    printf '%s\n' "$mtime" > "$pause_state"
+                  fi
+                fi
+                ;;
+            esac
+          else
+            rm -f "$pause_state"
+          fi
         '';
       };
     in
