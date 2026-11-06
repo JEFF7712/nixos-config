@@ -183,6 +183,7 @@ in
         lockscreen = {
           enabled = true;
           lock_before_suspend = true;
+          allow_empty_password = true;
         };
 
         theme = {

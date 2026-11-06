@@ -157,6 +157,7 @@ in
           }
           "/var/lib/asusd"
           "/var/lib/asus-numberpad-driver"
+          "/var/lib/howdy"
           # comin's last deployed commit; without it a hard-reset deploy branch
           # could roll the laptop back.
           "/var/lib/comin"
