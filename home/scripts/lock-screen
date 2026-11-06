@@ -142,7 +142,7 @@ else
 
 general {
     hide_cursor = true
-    ignore_empty_input = true
+    ignore_empty_input = false
     immediate_render = true
 }
 
