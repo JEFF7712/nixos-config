@@ -83,18 +83,33 @@
         text = ''
           set -u
 
+          ensure_niri_socket() {
+            if [ -n "''${NIRI_SOCKET:-}" ] && [ -S "$NIRI_SOCKET" ]; then
+              return 0
+            fi
+            for s in "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/niri.*.sock; do
+              if [ -S "$s" ]; then
+                export NIRI_SOCKET="$s"
+                return 0
+              fi
+            done
+            return 1
+          }
+
           connected_external_outputs() {
             local status_file connector
             for status_file in /sys/class/drm/card*-DP-*/status /sys/class/drm/card*-HDMI-*/status; do
               [ -r "$status_file" ] || continue
-              [ "$(cat "$status_file")" = connected ] || continue
+              [ "$(<"$status_file")" = connected ] || continue
               connector="$(basename "$(dirname "$status_file")")"
-              printf '%s\n' "$connector"
+              connector="''${connector#card*-}"
+              printf '%s\n' "$connector" 2>/dev/null || true
             done
           }
 
           niri_lost_external_output() {
             local connector outputs
+            ensure_niri_socket || return 1
             outputs="$(niri msg -j outputs 2>/dev/null)" || return 1
             while IFS= read -r connector; do
               [ -n "$connector" ] || continue
