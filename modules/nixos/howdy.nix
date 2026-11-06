@@ -24,7 +24,7 @@
         };
 
         video = {
-          certainty = 3.5;
+          certainty = 4.2;
           timeout = 4;
           device_path = "/dev/v4l/by-path/pci-0000:00:14.0-usb-0:8:1.2-video-index0";
           warn_no_device = true;
