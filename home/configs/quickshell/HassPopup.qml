@@ -1,4 +1,6 @@
 import QtQuick
+import Quickshell
+import Quickshell.Io
 
 InfoPopup {
     id: root
@@ -13,6 +15,72 @@ InfoPopup {
     property string browseFilter: ""
     property string expandedEntityId: ""
     property int browseTotal: 0
+
+    property bool matrixStreaming: false
+    property bool ledfxRunning: false
+    property string matrixInput: "music"
+    property bool matrixDropdownOpen: false
+    property bool matrixBusy: false
+
+    function refreshMatrixStatus() {
+        if (!matrixStatusProc.running && !matrixCmdProc.running) {
+            matrixStatusProc.running = true;
+        }
+    }
+
+    function runMatrixCmd(args) {
+        root.matrixBusy = true;
+        matrixCmdProc.command = [Quickshell.env("HOME") + "/.local/bin/matrix-sync"].concat(args);
+        matrixCmdProc.running = true;
+    }
+
+    Process {
+        id: matrixStatusProc
+        command: [Quickshell.env("HOME") + "/.local/bin/matrix-sync", "status"]
+        stdout: StdioCollector {
+            id: statusOut
+        }
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode === 0 && statusOut.text.trim()) {
+                try {
+                    const s = JSON.parse(statusOut.text.trim());
+                    root.matrixStreaming = !!s.streamer;
+                    root.ledfxRunning = !!s.ledfx;
+                    if (s.input)
+                        root.matrixInput = s.input;
+                } catch (e) {}
+            }
+            root.matrixBusy = false;
+        }
+    }
+
+    Process {
+        id: matrixCmdProc
+        stdout: StdioCollector {
+            id: cmdOut
+        }
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode === 0 && cmdOut.text.trim()) {
+                try {
+                    const s = JSON.parse(cmdOut.text.trim());
+                    root.matrixStreaming = !!s.streamer;
+                    root.ledfxRunning = !!s.ledfx;
+                    if (s.input)
+                        root.matrixInput = s.input;
+                } catch (e) {}
+            }
+            root.matrixBusy = false;
+            root.refreshMatrixStatus();
+        }
+    }
+
+    Timer {
+        id: matrixPollTimer
+        interval: 3000
+        repeat: true
+        running: root.shown
+        onTriggered: root.refreshMatrixStatus()
+    }
 
     ListModel {
         id: browseModel
@@ -84,6 +152,9 @@ InfoPopup {
             root.browseOpen = false;
             root.browseFilter = "";
             root.expandedEntityId = "";
+            root.matrixDropdownOpen = false;
+        } else {
+            root.refreshMatrixStatus();
         }
     }
 
@@ -255,6 +326,173 @@ InfoPopup {
         visible: !root.settingsOpen && !root.browseOpen
         width: parent.width
         spacing: 2
+
+        Rectangle {
+            id: matrixCard
+            width: parent.width
+            implicitHeight: matrixCardContent.implicitHeight + 16
+            radius: root.flatMode ? 0 : 8
+            color: Qt.rgba(root.pillBg.r, root.pillBg.g, root.pillBg.b, 0.45)
+            border.width: root.flatMode ? 0 : 1
+            border.color: root.matrixStreaming ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.4) : root.pillBorder
+
+            Column {
+                id: matrixCardContent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 8
+                spacing: 6
+
+                Item {
+                    width: parent.width
+                    height: 28
+
+                    Column {
+                        anchors.left: parent.left
+                        anchors.right: matrixToggleBtn.left
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+
+                        Row {
+                            spacing: 6
+                            Rectangle {
+                                width: 6
+                                height: 6
+                                radius: 3
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: root.matrixStreaming ? root.themeAccent : (root.ledfxRunning ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.5) : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.3))
+                            }
+                            Text {
+                                text: "MATRIX MUSIC SYNC"
+                                color: root.themeFg
+                                font {
+                                    family: "JetBrainsMono Nerd Font"
+                                    pixelSize: 10
+                                    weight: Font.Medium
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: root.matrixStreaming ? "Streaming to Pico W (10.0.20.136)" : (root.ledfxRunning ? "LedFx ready • Click Start" : "Offline • Cluster fallback active")
+                            color: root.matrixStreaming ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.5)
+                            font {
+                                family: "JetBrainsMono Nerd Font"
+                                pixelSize: 8
+                            }
+                            elide: Text.ElideRight
+                            width: parent.width
+                        }
+                    }
+
+                    HassButton {
+                        id: matrixToggleBtn
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 62
+                        height: 26
+                        label: root.matrixStreaming ? "STOP" : "START"
+                        active: root.matrixStreaming
+                        enabled: !root.matrixBusy
+                        themeFg: root.themeFg
+                        themeAccent: root.themeAccent
+                        pillBg: root.pillBg
+                        pillBorder: root.pillBorder
+                        flatMode: root.flatMode
+                        onActivated: {
+                            if (root.matrixStreaming) {
+                                root.runMatrixCmd(["stop"]);
+                            } else {
+                                root.runMatrixCmd(["start", root.matrixInput]);
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: root.dividerColor
+                }
+
+                Row {
+                    width: parent.width
+                    height: 26
+                    spacing: 6
+
+                    HassButton {
+                        width: parent.width - 76
+                        height: 26
+                        label: (root.matrixInput === "mic" ? "🎙 MIC" : "🎵 BOSE (MUSIC)") + (root.matrixDropdownOpen ? "  ▴" : "  ▾")
+                        themeFg: root.themeFg
+                        themeAccent: root.themeAccent
+                        pillBg: root.pillBg
+                        pillBorder: root.pillBorder
+                        flatMode: root.flatMode
+                        onActivated: root.matrixDropdownOpen = !root.matrixDropdownOpen
+                    }
+
+                    HassButton {
+                        width: 70
+                        height: 26
+                        label: "LEDFX UI"
+                        themeFg: root.themeFg
+                        themeAccent: root.themeAccent
+                        pillBg: root.pillBg
+                        pillBorder: root.pillBorder
+                        flatMode: root.flatMode
+                        onActivated: root.runMatrixCmd(["open-ui"])
+                    }
+                }
+
+                Column {
+                    visible: root.matrixDropdownOpen
+                    width: parent.width
+                    spacing: 3
+
+                    HassButton {
+                        width: parent.width
+                        height: 24
+                        label: "🎵 Bose SoundLink (Music)"
+                        active: root.matrixInput === "music"
+                        themeFg: root.themeFg
+                        themeAccent: root.themeAccent
+                        pillBg: root.pillBg
+                        pillBorder: root.pillBorder
+                        flatMode: root.flatMode
+                        onActivated: {
+                            root.matrixInput = "music";
+                            root.matrixDropdownOpen = false;
+                            root.runMatrixCmd(["input", "music"]);
+                        }
+                    }
+
+                    HassButton {
+                        width: parent.width
+                        height: 24
+                        label: "🎙 Laptop Mic (Room Sound)"
+                        active: root.matrixInput === "mic"
+                        themeFg: root.themeFg
+                        themeAccent: root.themeAccent
+                        pillBg: root.pillBg
+                        pillBorder: root.pillBorder
+                        flatMode: root.flatMode
+                        onActivated: {
+                            root.matrixInput = "mic";
+                            root.matrixDropdownOpen = false;
+                            root.runMatrixCmd(["input", "mic"]);
+                        }
+                    }
+                }
+            }
+        }
+
+        Item {
+            width: parent.width
+            height: 4
+        }
 
         Text {
             visible: root.hassService && !root.hassService.configured

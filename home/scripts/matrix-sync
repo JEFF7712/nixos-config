@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+# matrix-sync: Manage LedFx and laptop LED matrix streaming
+set -euo pipefail
+
+HOMELAB_DIR="/home/rupan/homelab"
+LOG_FILE="/tmp/laptop_streamer.log"
+
+STATE_INPUT_FILE="/tmp/matrix_sync_input"
+
+find_bose_monitor() {
+  pactl list sources short 2>/dev/null | awk '{print $2}' | grep -E 'bluez_output.*monitor' | head -n 1 || echo "@DEFAULT_MONITOR@"
+}
+
+find_mic_source() {
+  pactl list sources short 2>/dev/null | awk '{print $2}' | grep -i 'mic1' | head -n 1 || echo "@DEFAULT_SOURCE@"
+}
+
+get_current_input() {
+  if [ -f "$STATE_INPUT_FILE" ]; then
+    cat "$STATE_INPUT_FILE"
+  else
+    echo "music"
+  fi
+}
+
+set_current_input() {
+  echo "$1" > "$STATE_INPUT_FILE"
+}
+
+is_ledfx_running() {
+  docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^ledfx-laptop$'
+}
+
+is_streamer_running() {
+  pgrep -f "laptop_streamer.py" >/dev/null 2>&1
+}
+
+do_status() {
+  local ledfx_run streamer_run cur_input
+  is_ledfx_running && ledfx_run=true || ledfx_run=false
+  is_streamer_running && streamer_run=true || streamer_run=false
+  cur_input=$(get_current_input)
+
+  cat <<EOF
+{"running":$streamer_run,"streamer":$streamer_run,"ledfx":$ledfx_run,"input":"$cur_input"}
+EOF
+}
+
+sync_ledfx_audio() {
+  local target="$1"
+  local stream_ids
+  stream_ids=$(pactl list source-outputs 2>/dev/null | grep -B 2 -A 20 "ALSA plug-in \[python3.12\]" | grep "Source Output #" | awk -F'#' '{print $2}' || true)
+  for sid in $stream_ids; do
+    pactl move-source-output "$sid" "$target" 2>/dev/null || true
+  done
+}
+
+do_start() {
+  local input_choice="${1:-music}"
+  set_current_input "$input_choice"
+
+  # 1. Start LedFx container if not running
+  if ! is_ledfx_running; then
+    docker start ledfx-laptop >/dev/null 2>&1 || true
+    sleep 1
+  fi
+
+  # 2. Sync audio input target
+  local target_source
+  if [ "$input_choice" = "mic" ]; then
+    target_source=$(find_mic_source)
+  else
+    target_source=$(find_bose_monitor)
+  fi
+  sync_ledfx_audio "$target_source"
+
+  # 3. Start streamer if not running
+  if ! is_streamer_running; then
+    cd "$HOMELAB_DIR/services/led-matrix"
+    nohup env -u PYTHONPATH uv run python laptop_streamer.py --input "$input_choice" > "$LOG_FILE" 2>&1 &
+    sleep 0.5
+  else
+    # If streamer is already running, update audio routing
+    local parec_pids
+    parec_pids=$(pactl list source-outputs 2>/dev/null | grep -B 2 -A 20 "application.name = \"parec\"" | grep "Source Output #" | awk -F'#' '{print $2}' || true)
+    for pid in $parec_pids; do
+      pactl move-source-output "$pid" "$target_source" 2>/dev/null || true
+    done
+  fi
+
+  do_status
+}
+
+do_stop() {
+  # 1. Stop streamer
+  pkill -f "laptop_streamer.py" >/dev/null 2>&1 || true
+
+  # 2. Stop LedFx container
+  docker stop ledfx-laptop >/dev/null 2>&1 || true
+
+  # 3. Revert Home Assistant bedroom_matrix_mode to Auto
+  local token
+  token=$(secret-tool lookup service hass origin 'https://ha.rupan.dev:443' 2>/dev/null || true)
+  if [ -n "$token" ]; then
+    curl -s -X POST -H "Authorization: Bearer $token" \
+      -H "Content-Type: application/json" \
+      -d '{"entity_id":"input_select.bedroom_matrix_mode","option":"Auto"}' \
+      http://10.0.40.13:8123/api/services/input_select/select_option >/dev/null 2>&1 || true
+  fi
+
+  do_status
+}
+
+do_input() {
+  local input_choice="${1:-music}"
+  set_current_input "$input_choice"
+  local target_source
+  if [ "$input_choice" = "mic" ]; then
+    target_source=$(find_mic_source)
+  else
+    target_source=$(find_bose_monitor)
+  fi
+
+  sync_ledfx_audio "$target_source"
+
+  # Also update parec if running
+  local parec_pids
+  parec_pids=$(pactl list source-outputs 2>/dev/null | grep -B 2 -A 20 "application.name = \"parec\"" | grep "Source Output #" | awk -F'#' '{print $2}' || true)
+  for pid in $parec_pids; do
+    pactl move-source-output "$pid" "$target_source" 2>/dev/null || true
+  done
+
+  do_status
+}
+
+do_open_ui() {
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "http://localhost:8888" >/dev/null 2>&1 &
+  fi
+}
+
+case "${1:-status}" in
+  status)
+    do_status
+    ;;
+  start)
+    do_start "${2:-music}"
+    ;;
+  stop)
+    do_stop
+    ;;
+  toggle)
+    if is_streamer_running || is_ledfx_running; then
+      do_stop
+    else
+      do_start "${2:-music}"
+    fi
+    ;;
+  input)
+    do_input "${2:-music}"
+    ;;
+  open-ui)
+    do_open_ui
+    ;;
+  ledfx-start)
+    docker start ledfx-laptop >/dev/null 2>&1 || true
+    do_status
+    ;;
+  ledfx-stop)
+    docker stop ledfx-laptop >/dev/null 2>&1 || true
+    do_status
+    ;;
+  ledfx-toggle)
+    if is_ledfx_running; then
+      docker stop ledfx-laptop >/dev/null 2>&1 || true
+    else
+      docker start ledfx-laptop >/dev/null 2>&1 || true
+    fi
+    do_status
+    ;;
+  *)
+    echo "Usage: matrix-sync {status|start [music|mic]|stop|toggle|input [music|mic]|open-ui|ledfx-start|ledfx-stop|ledfx-toggle}" >&2
+    exit 1
+    ;;
+esac
