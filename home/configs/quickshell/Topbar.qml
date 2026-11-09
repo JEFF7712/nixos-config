@@ -180,6 +180,47 @@ PanelWindow {
         return topbarWindow.hassService && topbarWindow.hassService.phase === "connected";
     }
 
+    readonly property bool onHomeNetwork: {
+        if (!topbarWindow.networkService)
+            return false;
+
+        const activeSsid = topbarWindow.networkService.activeSsid;
+        const wiredConnected = topbarWindow.networkService.wiredConnected;
+
+        if (activeSsid === "JSR")
+            return true;
+
+        const wiredList = topbarWindow.networkService.wiredConnections;
+        if (wiredConnected && wiredList) {
+            for (let i = 0; i < wiredList.count; i++) {
+                const conn = wiredList.get(i);
+                if (conn && conn.active) {
+                    const name = (conn.name || "").toLowerCase();
+                    if (name.includes("opnsense"))
+                        return true;
+                }
+            }
+        }
+
+        if (topbarWindow.hassService && topbarWindow.hassService.trustedNetwork) {
+            const trusted = topbarWindow.hassService.trustedNetwork.split(",").map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
+            if (activeSsid && trusted.includes(activeSsid.toLowerCase()))
+                return true;
+            if (wiredConnected && wiredList) {
+                for (let i = 0; i < wiredList.count; i++) {
+                    const conn = wiredList.get(i);
+                    if (conn && conn.active) {
+                        const name = (conn.name || "").toLowerCase();
+                        if (trusted.includes(name))
+                            return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     WlrLayershell.namespace: "quickshell-topbar"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -374,7 +415,7 @@ PanelWindow {
             }
             StatPill {
                 id: hassPill
-                visible: topbarWindow.showHass
+                visible: topbarWindow.showHass && topbarWindow.onHomeNetwork
                 icon: "󰋜"
                 value: ""
                 tint: topbarWindow.hassConnected() ? topbarWindow.themeAccent : topbarWindow.themeSecond
