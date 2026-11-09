@@ -59,7 +59,7 @@ do_prism_start() {
     if ! is_streamer_running; then
       ddp_host="10.0.40.15"
     fi
-    setsid node "$PRISM_DIR/server.js" --ddp "$ddp_host" --ddp-port 4048 --port 8080 < /dev/null > "$PRISM_LOG" 2>&1 &
+    setsid node "$PRISM_DIR/server.js" --listen 0.0.0.0 --ddp "$ddp_host" --ddp-port 4048 --port 8080 < /dev/null > "$PRISM_LOG" 2>&1 &
     sleep 0.5
   fi
   do_status
