@@ -56,7 +56,7 @@ sync_ledfx_audio() {
 }
 
 do_start() {
-  local input_choice="${1:-music}"
+  local input_choice="${1:-$(get_current_input)}"
   set_current_input "$input_choice"
 
   # 1. Start LedFx container if not running
