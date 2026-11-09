@@ -19,17 +19,18 @@ InfoPopup {
     property bool matrixStreaming: false
     property bool ledfxRunning: false
     property string matrixInput: "music"
-    property bool matrixDropdownOpen: false
     property bool matrixBusy: false
 
     function refreshMatrixStatus() {
         if (!matrixStatusProc.running && !matrixCmdProc.running) {
+            matrixStatusProc.running = false;
             matrixStatusProc.running = true;
         }
     }
 
     function runMatrixCmd(args) {
         root.matrixBusy = true;
+        matrixCmdProc.running = false;
         matrixCmdProc.command = [Quickshell.env("HOME") + "/.local/bin/matrix-sync"].concat(args);
         matrixCmdProc.running = true;
     }
@@ -43,7 +44,8 @@ InfoPopup {
         onExited: (exitCode, exitStatus) => {
             if (exitCode === 0 && statusOut.text.trim()) {
                 try {
-                    const s = JSON.parse(statusOut.text.trim());
+                    const lines = statusOut.text.trim().split("\n");
+                    const s = JSON.parse(lines[lines.length - 1].trim());
                     root.matrixStreaming = !!s.streamer;
                     root.ledfxRunning = !!s.ledfx;
                     if (s.input)
@@ -62,7 +64,8 @@ InfoPopup {
         onExited: (exitCode, exitStatus) => {
             if (exitCode === 0 && cmdOut.text.trim()) {
                 try {
-                    const s = JSON.parse(cmdOut.text.trim());
+                    const lines = cmdOut.text.trim().split("\n");
+                    const s = JSON.parse(lines[lines.length - 1].trim());
                     root.matrixStreaming = !!s.streamer;
                     root.ledfxRunning = !!s.ledfx;
                     if (s.input)
@@ -493,15 +496,35 @@ InfoPopup {
                     spacing: 6
 
                     HassButton {
-                        width: parent.width - 76
+                        width: Math.floor((parent.width - 76 - 6) / 2)
                         height: 26
-                        label: (root.matrixInput === "mic" ? "🎙 MIC" : "🎵 BOSE (MUSIC)") + (root.matrixDropdownOpen ? "  ▴" : "  ▾")
+                        label: "🎵 MUSIC"
+                        active: root.matrixInput === "music"
                         themeFg: root.themeFg
                         themeAccent: root.themeAccent
                         pillBg: root.pillBg
                         pillBorder: root.pillBorder
                         flatMode: root.flatMode
-                        onActivated: root.matrixDropdownOpen = !root.matrixDropdownOpen
+                        onActivated: {
+                            root.matrixInput = "music";
+                            root.runMatrixCmd(["input", "music"]);
+                        }
+                    }
+
+                    HassButton {
+                        width: Math.floor((parent.width - 76 - 6) / 2)
+                        height: 26
+                        label: "🎙 MIC"
+                        active: root.matrixInput === "mic"
+                        themeFg: root.themeFg
+                        themeAccent: root.themeAccent
+                        pillBg: root.pillBg
+                        pillBorder: root.pillBorder
+                        flatMode: root.flatMode
+                        onActivated: {
+                            root.matrixInput = "mic";
+                            root.runMatrixCmd(["input", "mic"]);
+                        }
                     }
 
                     HassButton {
@@ -514,46 +537,6 @@ InfoPopup {
                         pillBorder: root.pillBorder
                         flatMode: root.flatMode
                         onActivated: root.runMatrixCmd(["open-ui"])
-                    }
-                }
-
-                Column {
-                    visible: root.matrixDropdownOpen
-                    width: parent.width
-                    spacing: 3
-
-                    HassButton {
-                        width: parent.width
-                        height: 24
-                        label: "🎵 Bose SoundLink (Music)"
-                        active: root.matrixInput === "music"
-                        themeFg: root.themeFg
-                        themeAccent: root.themeAccent
-                        pillBg: root.pillBg
-                        pillBorder: root.pillBorder
-                        flatMode: root.flatMode
-                        onActivated: {
-                            root.matrixInput = "music";
-                            root.matrixDropdownOpen = false;
-                            root.runMatrixCmd(["input", "music"]);
-                        }
-                    }
-
-                    HassButton {
-                        width: parent.width
-                        height: 24
-                        label: "🎙 Laptop Mic (Room Sound)"
-                        active: root.matrixInput === "mic"
-                        themeFg: root.themeFg
-                        themeAccent: root.themeAccent
-                        pillBg: root.pillBg
-                        pillBorder: root.pillBorder
-                        flatMode: root.flatMode
-                        onActivated: {
-                            root.matrixInput = "mic";
-                            root.matrixDropdownOpen = false;
-                            root.runMatrixCmd(["input", "mic"]);
-                        }
                     }
                 }
             }
