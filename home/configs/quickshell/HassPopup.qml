@@ -327,6 +327,76 @@ InfoPopup {
         width: parent.width
         spacing: 2
 
+        Text {
+            visible: root.hassService && !root.hassService.configured
+            width: parent.width
+            text: "No Home Assistant connection yet. Open setup, paste the instance URL and a long-lived access token."
+            wrapMode: Text.WordWrap
+            color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.6)
+            font {
+                family: "JetBrainsMono Nerd Font"
+                pixelSize: 10
+            }
+        }
+
+        Text {
+            visible: root.hassService && root.hassService.configured && root.hassService.rows.count === 0
+            width: parent.width
+            text: root.hassService && root.hassService.phase === "connected" ? "Connected, but this tab is empty. Star devices from another tab." : "Waiting for Home Assistant…"
+            wrapMode: Text.WordWrap
+            color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.6)
+            font {
+                family: "JetBrainsMono Nerd Font"
+                pixelSize: 10
+            }
+        }
+
+        Repeater {
+            model: root.hassService ? root.hassService.rows : null
+
+            HassRow {
+                width: parent.width
+                hassService: root.hassService
+                themeFg: root.themeFg
+                themeAccent: root.themeAccent
+                themeSecond: root.themeSecond
+                pillBg: root.pillBg
+                pillBorder: root.pillBorder
+                flatMode: root.flatMode
+                entityId: model.entityId
+                rowName: model.name
+                rowSubtitle: model.subtitle
+                rowBadge: model.badge
+                glyph: model.icon
+                domain: model.domain
+                control: model.control
+                rowKind: model.rowKind
+                controlEntityId: model.controlEntityId
+                isOn: model.isOn
+                pending: model.pending
+                expandable: model.expandable
+                available: model.available
+                expanded: root.expandedEntityId === model.entityId
+                onToggleExpand: root.expandedEntityId = root.expandedEntityId === model.entityId ? "" : model.entityId
+            }
+        }
+
+        Item {
+            width: parent.width
+            height: 4
+        }
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: root.dividerColor
+        }
+
+        Item {
+            width: parent.width
+            height: 2
+        }
+
         Rectangle {
             id: matrixCard
             width: parent.width
@@ -486,65 +556,6 @@ InfoPopup {
                         }
                     }
                 }
-            }
-        }
-
-        Item {
-            width: parent.width
-            height: 4
-        }
-
-        Text {
-            visible: root.hassService && !root.hassService.configured
-            width: parent.width
-            text: "No Home Assistant connection yet. Open setup, paste the instance URL and a long-lived access token."
-            wrapMode: Text.WordWrap
-            color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.6)
-            font {
-                family: "JetBrainsMono Nerd Font"
-                pixelSize: 10
-            }
-        }
-
-        Text {
-            visible: root.hassService && root.hassService.configured && root.hassService.rows.count === 0
-            width: parent.width
-            text: root.hassService && root.hassService.phase === "connected" ? "Connected, but this tab is empty. Star devices from another tab." : "Waiting for Home Assistant…"
-            wrapMode: Text.WordWrap
-            color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.6)
-            font {
-                family: "JetBrainsMono Nerd Font"
-                pixelSize: 10
-            }
-        }
-
-        Repeater {
-            model: root.hassService ? root.hassService.rows : null
-
-            HassRow {
-                width: parent.width
-                hassService: root.hassService
-                themeFg: root.themeFg
-                themeAccent: root.themeAccent
-                themeSecond: root.themeSecond
-                pillBg: root.pillBg
-                pillBorder: root.pillBorder
-                flatMode: root.flatMode
-                entityId: model.entityId
-                rowName: model.name
-                rowSubtitle: model.subtitle
-                rowBadge: model.badge
-                glyph: model.icon
-                domain: model.domain
-                control: model.control
-                rowKind: model.rowKind
-                controlEntityId: model.controlEntityId
-                isOn: model.isOn
-                pending: model.pending
-                expandable: model.expandable
-                available: model.available
-                expanded: root.expandedEntityId === model.entityId
-                onToggleExpand: root.expandedEntityId = root.expandedEntityId === model.entityId ? "" : model.entityId
             }
         }
     }
