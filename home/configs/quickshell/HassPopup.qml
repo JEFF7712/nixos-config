@@ -332,7 +332,7 @@ InfoPopup {
             width: parent.width
             implicitHeight: matrixCardContent.implicitHeight + 16
             radius: root.flatMode ? 0 : 8
-            color: Qt.rgba(root.pillBg.r, root.pillBg.g, root.pillBg.b, 0.45)
+            color: "transparent"
             border.width: root.flatMode ? 0 : 1
             border.color: root.matrixStreaming ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.4) : root.pillBorder
 
