@@ -4,6 +4,8 @@ set -euo pipefail
 
 HOMELAB_DIR="/home/rupan/homelab"
 LOG_FILE="/tmp/laptop_streamer.log"
+PRISM_DIR="/home/rupan/matrixprism/composer"
+PRISM_LOG="/tmp/matrixprism.log"
 
 STATE_INPUT_FILE="/tmp/matrix_sync_input"
 
@@ -31,19 +33,50 @@ is_ledfx_running() {
   docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^ledfx-laptop$'
 }
 
+is_prism_running() {
+  pgrep -f "matrixprism/composer/server.js" >/dev/null 2>&1
+}
+
 is_streamer_running() {
   pgrep -f "laptop_streamer.py" >/dev/null 2>&1
 }
 
 do_status() {
-  local ledfx_run streamer_run cur_input
+  local ledfx_run streamer_run prism_run cur_input
   is_ledfx_running && ledfx_run=true || ledfx_run=false
+  is_prism_running && prism_run=true || prism_run=false
   is_streamer_running && streamer_run=true || streamer_run=false
   cur_input=$(get_current_input)
 
   cat <<EOF
-{"running":$streamer_run,"streamer":$streamer_run,"ledfx":$ledfx_run,"input":"$cur_input"}
+{"running":$streamer_run,"streamer":$streamer_run,"ledfx":$ledfx_run,"prism":$prism_run,"input":"$cur_input"}
 EOF
+}
+
+do_prism_start() {
+  if ! is_prism_running; then
+    local ddp_host="127.0.0.1"
+    if ! is_streamer_running; then
+      ddp_host="10.0.40.15"
+    fi
+    setsid node "$PRISM_DIR/server.js" --listen 0.0.0.0 --ddp "$ddp_host" --ddp-port 4048 --port 8080 < /dev/null > "$PRISM_LOG" 2>&1 &
+    sleep 0.5
+  fi
+  do_status
+}
+
+do_prism_stop() {
+  pkill -f "matrixprism/composer/server.js" >/dev/null 2>&1 || true
+  do_status
+}
+
+do_prism_ui() {
+  if ! is_prism_running; then
+    do_prism_start >/dev/null 2>&1 || true
+  fi
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "http://localhost:8080" >/dev/null 2>&1 &
+  fi
 }
 
 sync_ledfx_audio() {
@@ -98,7 +131,10 @@ do_stop() {
   # 2. Stop LedFx container
   docker stop ledfx-laptop >/dev/null 2>&1 || true
 
-  # 3. Revert Home Assistant bedroom_matrix_mode to Auto
+  # 3. Stop MatrixPrism
+  pkill -f "matrixprism/composer/server.js" >/dev/null 2>&1 || true
+
+  # 4. Revert Home Assistant bedroom_matrix_mode to Auto
   local token
   token=$(secret-tool lookup service hass origin 'https://ha.rupan.dev:443' 2>/dev/null || true)
   if [ -n "$token" ]; then
@@ -162,6 +198,22 @@ case "${1:-status}" in
   open-ui)
     do_open_ui
     ;;
+  prism-start)
+    do_prism_start
+    ;;
+  prism-stop)
+    do_prism_stop
+    ;;
+  prism-toggle)
+    if is_prism_running; then
+      do_prism_stop
+    else
+      do_prism_start
+    fi
+    ;;
+  prism-ui)
+    do_prism_ui
+    ;;
   ledfx-start)
     docker start ledfx-laptop >/dev/null 2>&1 || true
     do_status
@@ -179,7 +231,7 @@ case "${1:-status}" in
     do_status
     ;;
   *)
-    echo "Usage: matrix-sync {status|start [music|mic]|stop|toggle|input [music|mic]|open-ui|ledfx-start|ledfx-stop|ledfx-toggle}" >&2
+    echo "Usage: matrix-sync {status|start [music|mic]|stop|toggle|input [music|mic]|open-ui|prism-start|prism-stop|prism-toggle|prism-ui|ledfx-start|ledfx-stop|ledfx-toggle}" >&2
     exit 1
     ;;
 esac
