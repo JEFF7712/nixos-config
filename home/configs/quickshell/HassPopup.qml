@@ -18,6 +18,7 @@ InfoPopup {
 
     property bool matrixStreaming: false
     property bool ledfxRunning: false
+    property bool prismRunning: false
     property string matrixInput: "music"
     property bool matrixBusy: false
 
@@ -48,6 +49,7 @@ InfoPopup {
                     const s = JSON.parse(lines[lines.length - 1].trim());
                     root.matrixStreaming = !!s.streamer;
                     root.ledfxRunning = !!s.ledfx;
+                    root.prismRunning = !!s.prism;
                     if (s.input)
                         root.matrixInput = s.input;
                 } catch (e) {}
@@ -68,6 +70,7 @@ InfoPopup {
                     const s = JSON.parse(lines[lines.length - 1].trim());
                     root.matrixStreaming = !!s.streamer;
                     root.ledfxRunning = !!s.ledfx;
+                    root.prismRunning = !!s.prism;
                     if (s.input)
                         root.matrixInput = s.input;
                 } catch (e) {}
@@ -435,7 +438,7 @@ InfoPopup {
                                 height: 6
                                 radius: 3
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: root.matrixStreaming ? root.themeAccent : (root.ledfxRunning ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.5) : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.3))
+                                color: root.matrixStreaming ? root.themeAccent : ((root.ledfxRunning || root.prismRunning) ? Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.5) : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.3))
                             }
                             Text {
                                 text: "MATRIX MUSIC SYNC"
@@ -449,7 +452,7 @@ InfoPopup {
                         }
 
                         Text {
-                            text: root.matrixStreaming ? "Streaming to Pico W (10.0.20.136)" : (root.ledfxRunning ? "LedFx ready • Click Start" : "Offline • Cluster fallback active")
+                            text: root.matrixStreaming ? (root.prismRunning ? "Prism WebGL Active (8080) • Streaming" : "Streaming to Pico W (10.0.20.136)") : (root.prismRunning ? "Prism ready (8080) • Click Start" : (root.ledfxRunning ? "LedFx ready • Click Start" : "Offline • Cluster fallback active"))
                             color: root.matrixStreaming ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.5)
                             font {
                                 family: "JetBrainsMono Nerd Font"
@@ -493,10 +496,10 @@ InfoPopup {
                 Row {
                     width: parent.width
                     height: 26
-                    spacing: 6
+                    spacing: 4
 
                     HassButton {
-                        width: Math.floor((parent.width - 76 - 6) / 2)
+                        width: Math.floor((parent.width - 12) / 4)
                         height: 26
                         label: "🎵 MUSIC"
                         active: root.matrixInput === "music"
@@ -512,7 +515,7 @@ InfoPopup {
                     }
 
                     HassButton {
-                        width: Math.floor((parent.width - 76 - 6) / 2)
+                        width: Math.floor((parent.width - 12) / 4)
                         height: 26
                         label: "🎙 MIC"
                         active: root.matrixInput === "mic"
@@ -528,15 +531,29 @@ InfoPopup {
                     }
 
                     HassButton {
-                        width: 70
+                        width: Math.floor((parent.width - 12) / 4)
                         height: 26
-                        label: "LEDFX UI"
+                        label: "LEDFX"
+                        active: root.ledfxRunning
                         themeFg: root.themeFg
                         themeAccent: root.themeAccent
                         pillBg: root.pillBg
                         pillBorder: root.pillBorder
                         flatMode: root.flatMode
                         onActivated: root.runMatrixCmd(["open-ui"])
+                    }
+
+                    HassButton {
+                        width: Math.floor((parent.width - 12) / 4)
+                        height: 26
+                        label: "PRISM"
+                        active: root.prismRunning
+                        themeFg: root.themeFg
+                        themeAccent: root.themeAccent
+                        pillBg: root.pillBg
+                        pillBorder: root.pillBorder
+                        flatMode: root.flatMode
+                        onActivated: root.runMatrixCmd(["prism-ui"])
                     }
                 }
             }
