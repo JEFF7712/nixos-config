@@ -1,0 +1,16 @@
+{
+    "version": "1.0.0",
+    "id": "com_rupan_UsageBars",
+    "name": "Usage Bars",
+    "descriptions": {
+        "en_US": "Claude Code and Codex rate-limit usage as bars."
+    },
+    "short-descriptions": {
+        "en_US": "Claude and Codex usage bars"
+    },
+    "tags": ["Utilities"],
+    "minimum-app-version": "1.5.0-beta",
+    "app-version": "1.5.0-beta",
+    "description": "Claude Code and Codex rate-limit usage as bars.",
+    "short-description": "Claude and Codex usage bars"
+}

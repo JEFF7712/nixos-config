@@ -53,7 +53,7 @@ The `repoPath` option (default `$HOME/nixos`) drives these paths — keep it con
 - `just eval` takes about 50s (toplevel `drvPath` is never eval-cached, and this Nix has no parallel eval). `just quick` and `just check-changed` skip it when no changed file can affect evaluation (docs, QML, most `home/scripts/`); run them once per batch of edits.
 - home-manager uses `backupFileExtension = "backup"`: activation renames conflicting existing files to `*.backup` instead of failing.
 - Some packages pull from `nixpkgs-stable` (26.05): grep `pkgs-stable` before adding similar ones.
-- Overlays live in `overlays/` (imported by `flake.nix`): `local-packages`, `nix-vscode-extensions`, `orca-slicer`.
+- Overlays live in `overlays/` (imported by `flake.nix`): `local-packages`, `nix-vscode-extensions`, `orca-slicer`, `streamcontroller` (adds a niri backend for page auto-switching).
 - Quickshell bar work lives in `home/configs/quickshell*/`. `nix fmt` includes `qmlformat`; use `just qml-lint` for agent/manual checks. It intentionally disables unresolved import/type/property categories until Quickshell qmltypes/import metadata is wired up.
 - GPU: Intel iGPU + NVIDIA Prime offload, with a `performance` specialisation for sync mode (`modules/nixos/nvidia.nix`).
 - For NixOS/nixpkgs questions use the `mcp-nixos` MCP tools; training data lags nixpkgs.

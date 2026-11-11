@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HA_ORIGIN='https://ha.rupan.dev:443'
+HA_URL='https://ha.rupan.dev'
+SCENES=(relax movie bright pink)
+SCENE_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/deck-ha/scene"
+
+usage() {
+  cat >&2 <<'EOF'
+Usage: deck-ha <command>
+  call <domain> <service> <entity_id>   call any HA service on one entity
+  lights                                toggle the bedroom lights via the on/off scripts
+  scene <name>                          activate scene.bedroom_<name>
+  scene-next                            cycle relax -> movie -> bright -> pink, print the name
+  matrix-mode-next                      advance the LED matrix mode, print the new mode
+  matrix-power                          toggle the LED matrix
+  printer-status                        A1 task, progress and time left, one per line
+  printer-temps                         A1 nozzle and bed temperatures
+  printer-pause-toggle                  pause the A1 if printing, resume if paused
+  printer-stop                          stop the current A1 print
+EOF
+  exit 1
+}
+
+token() {
+  secret-tool lookup service hass origin "$HA_ORIGIN"
+}
+
+api() {
+  local method=$1 path=$2 body=${3:-}
+  curl -sf --max-time 5 -X "$method" \
+    -H "Authorization: Bearer $(token)" \
+    -H "Content-Type: application/json" \
+    ${body:+-d "$body"} \
+    "$HA_URL/api/$path"
+}
+
+call() {
+  api POST "services/$1/$2" "{\"entity_id\":\"$3\"}" >/dev/null
+}
+
+state() {
+  api GET "states/$1" | jq -r .state
+}
+
+A1=a1_03900d642327265
+
+# Prints the state of each sensor.$A1_<name>, one per line, from a single request.
+printer_sensors() {
+  local template="" name
+  for name in "$@"; do
+    template+="{{ states('sensor.${A1}_${name}') }}"$'\n'
+  done
+  api POST template "$(jq -n --arg t "$template" '{template: $t}')"
+  echo
+}
+
+case "${1:-}" in
+  call)
+    [ $# -eq 4 ] || usage
+    call "$2" "$3" "$4"
+    ;;
+  lights)
+    if [ "$(state light.floor_lamp_floor_lamp)" = on ]; then
+      call script turn_on script.bedroom_lights_off
+    else
+      call script turn_on script.bedroom_lights_on
+    fi
+    ;;
+  scene)
+    [ $# -eq 2 ] || usage
+    call scene turn_on "scene.bedroom_$2"
+    ;;
+  scene-next)
+    mkdir -p "$(dirname "$SCENE_STATE")"
+    last=$(cat "$SCENE_STATE" 2>/dev/null || true)
+    next=${SCENES[0]}
+    for i in "${!SCENES[@]}"; do
+      if [ "${SCENES[$i]}" = "$last" ]; then
+        next=${SCENES[$(((i + 1) % ${#SCENES[@]}))]}
+      fi
+    done
+    call scene turn_on "scene.bedroom_$next"
+    printf '%s\n' "$next" >"$SCENE_STATE"
+    printf '%s\n' "${next^}"
+    ;;
+  matrix-mode-next)
+    call input_select select_next input_select.bedroom_matrix_mode
+    state input_select.bedroom_matrix_mode
+    ;;
+  matrix-power)
+    call input_boolean toggle input_boolean.bedroom_matrix_power
+    ;;
+  printer-status)
+    {
+      read -r status
+      read -r task
+      read -r progress
+      read -r remaining
+    } < <(printer_sensors print_status task_name print_progress remaining_time)
+    case "$status" in
+      running | pause)
+        mins=$(awk -v h="$remaining" 'BEGIN { printf "%d", h * 60 + 0.5 }')
+        if [ "$mins" -ge 60 ]; then
+          left="$((mins / 60))h $((mins % 60))m"
+        else
+          left="${mins}m"
+        fi
+        [ "$status" = pause ] && left="paused"
+        printf '%s\n%s%%\n%s\n' "${task:0:10}" "$progress" "$left"
+        ;;
+      finish) printf 'A1\nDone\n' ;;
+      failed) printf 'A1\nFailed\n' ;;
+      unknown | unavailable) printf 'A1\nOffline\n' ;;
+      *) printf 'A1\nIdle\n' ;;
+    esac
+    ;;
+  printer-temps)
+    {
+      read -r nozzle
+      read -r bed
+    } < <(printer_sensors nozzle_temperature bed_temperature)
+    printf 'N %.0f°\nB %.0f°\n' "$nozzle" "$bed"
+    ;;
+  printer-pause-toggle)
+    case "$(printer_sensors print_status)" in
+      running) call button press "button.${A1}_pause" ;;
+      pause) call button press "button.${A1}_resume" ;;
+    esac
+    ;;
+  printer-stop)
+    call button press "button.${A1}_stop"
+    ;;
+  *)
+    usage
+    ;;
+esac
