@@ -3,6 +3,7 @@ from src.backend.PluginManager.ActionHolder import ActionHolder
 from src.backend.PluginManager.ActionInputSupport import ActionInputSupport
 from src.backend.PluginManager.PluginBase import PluginBase
 
+from .actions.CommandText import CommandText
 from .actions.UsageBar import UsageBar
 from .usage import UsageData
 
@@ -19,6 +20,20 @@ class UsageBarsPlugin(PluginBase):
                 action_base=UsageBar,
                 action_id_suffix="UsageBar",
                 action_name="Usage Bar",
+                action_support={
+                    Input.Key: ActionInputSupport.SUPPORTED,
+                    Input.Dial: ActionInputSupport.UNSUPPORTED,
+                    Input.Touchscreen: ActionInputSupport.UNSUPPORTED,
+                },
+            )
+        )
+
+        self.add_action_holder(
+            ActionHolder(
+                plugin_base=self,
+                action_base=CommandText,
+                action_id_suffix="CommandText",
+                action_name="Command Text",
                 action_support={
                     Input.Key: ActionInputSupport.SUPPORTED,
                     Input.Dial: ActionInputSupport.UNSUPPORTED,
