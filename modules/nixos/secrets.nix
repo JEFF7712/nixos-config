@@ -24,6 +24,12 @@
         owner = "rupan";
         mode = "0400";
       };
+
+      # Home Assistant long-lived token for the StreamController HA plugin.
+      secrets.hass-token = {
+        owner = "rupan";
+        mode = "0400";
+      };
     };
 
     # sshd stays off, but a fresh install / wiped /persist/etc/ssh still

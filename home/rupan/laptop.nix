@@ -201,6 +201,7 @@
     science.enable = true;
   };
   obsidian.enable = true;
+  streamcontroller.enable = true;
   cli-toys.enable = true;
   cli-tools.enable = true;
   ai-tools.enable = true;

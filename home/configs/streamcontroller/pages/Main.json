@@ -1,0 +1,369 @@
+{
+    "settings": {},
+    "keys": {
+        "0x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "HomeAssistantPlugin::ShowIcon",
+                            "settings": {
+                                "version": 1,
+                                "entity": {
+                                    "version": 1,
+                                    "domain": "light",
+                                    "entity": "light.floor_lamp_floor_lamp"
+                                },
+                                "icon": {
+                                    "icon": "lightbulb",
+                                    "color": [
+                                        255,
+                                        200,
+                                        80,
+                                        255
+                                    ],
+                                    "scale": 70,
+                                    "opacity": 100,
+                                    "customizations": [
+                                        {
+                                            "condition": {
+                                                "attribute": "state",
+                                                "operator": "!=",
+                                                "value": "on"
+                                            },
+                                            "icon": "lightbulb-outline",
+                                            "color": [
+                                                110,
+                                                110,
+                                                110,
+                                                255
+                                            ],
+                                            "scale": null,
+                                            "opacity": null
+                                        }
+                                    ]
+                                }
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha lights",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha scene night_light",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Hold Start": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "Lights",
+                            "font-size": 11
+                        }
+                    }
+                }
+            }
+        },
+        "1x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha scene-next",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha scene party",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Hold Start": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        0,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "media": {
+                        "path": "/etc/profiles/per-user/rupan/share/icons/Papirus-Dark/64x64/apps/preferences-desktop-color.svg",
+                        "size": 0.6,
+                        "valign": -0.3
+                    },
+                    "labels": {
+                        "bottom": {
+                            "text": "Scene",
+                            "font-size": 11
+                        }
+                    }
+                }
+            }
+        },
+        "2x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::PlayPause",
+                            "settings": {
+                                "show_label": true,
+                                "show_thumbnail": true
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        },
+                        {
+                            "id": "com_core447_MediaPlugin::Next",
+                            "settings": {
+                                "show_label": true,
+                                "show_thumbnail": true
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null,
+                                "Key Hold Start": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null
+                }
+            }
+        },
+        "0x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "HomeAssistantPlugin::ShowIcon",
+                            "settings": {
+                                "version": 1,
+                                "entity": {
+                                    "version": 1,
+                                    "domain": "input_boolean",
+                                    "entity": "input_boolean.bedroom_matrix_power"
+                                },
+                                "icon": {
+                                    "icon": "led-strip-variant",
+                                    "color": [
+                                        120,
+                                        200,
+                                        255,
+                                        255
+                                    ],
+                                    "scale": 70,
+                                    "opacity": 100,
+                                    "customizations": [
+                                        {
+                                            "condition": {
+                                                "attribute": "state",
+                                                "operator": "!=",
+                                                "value": "on"
+                                            },
+                                            "icon": "led-strip-variant-off",
+                                            "color": [
+                                                110,
+                                                110,
+                                                110,
+                                                255
+                                            ],
+                                            "scale": null,
+                                            "opacity": null
+                                        }
+                                    ]
+                                }
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha matrix-mode-next",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha matrix-power",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Hold Start": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        1,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "Matrix",
+                            "font-size": 11
+                        }
+                    }
+                }
+            }
+        },
+        "1x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "matrix-sync toggle >/dev/null",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        },
+                        {
+                            "id": "com_rupan_UsageBars::CommandText",
+                            "settings": {
+                                "command": "matrix-sync status | jq -r 'if .streamer then \"LedFx\\nON\" else \"LedFx\\noff\" end'",
+                                "interval": 3
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null,
+                                "Key Short Up": null,
+                                "Key Hold Start": null,
+                                "Key Hold Stop": null
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        1,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "media": {
+                        "path": "/etc/profiles/per-user/rupan/share/icons/Papirus-Dark/64x64/apps/projectM.svg",
+                        "size": 0.5,
+                        "valign": -0.4
+                    }
+                }
+            }
+        },
+        "2x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::ChangePage",
+                            "settings": {
+                                "selected_page": "/home/rupan/.var/app/com.core447.StreamController/data/pages/AI.json"
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "AI",
+                            "font-size": 11
+                        }
+                    },
+                    "media": {
+                        "path": "/etc/profiles/per-user/rupan/share/icons/Papirus-Dark/24x24/symbolic/actions/go-next-symbolic.svg",
+                        "size": 0.6,
+                        "valign": -0.3
+                    }
+                }
+            }
+        }
+    }
+}
