@@ -1,0 +1,140 @@
+{
+    "settings": {
+        "auto-change": {
+            "enable": true,
+            "wm-class": "^kitty (claude|codex)$",
+            "title": ".*",
+            "stay-on-page": false,
+            "decks": [
+                "A00DA6261LQJ"
+            ]
+        }
+    },
+    "keys": {
+        "0x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_rupan_UsageBars::UsageBar",
+                            "settings": {
+                                "source": "claude",
+                                "window": "5h"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null
+                }
+            }
+        },
+        "1x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_rupan_UsageBars::UsageBar",
+                            "settings": {
+                                "source": "claude",
+                                "window": "week"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null
+                }
+            }
+        },
+        "0x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_rupan_UsageBars::UsageBar",
+                            "settings": {
+                                "source": "codex",
+                                "window": "5h"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null
+                }
+            }
+        },
+        "1x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_rupan_UsageBars::UsageBar",
+                            "settings": {
+                                "source": "codex",
+                                "window": "week"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null
+                }
+            }
+        },
+        "2x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::ChangePage",
+                            "settings": {
+                                "selected_page": "/home/rupan/.var/app/com.core447.StreamController/data/pages/Main.json"
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "Home",
+                            "font-size": 11
+                        }
+                    },
+                    "media": {
+                        "path": "/etc/profiles/per-user/rupan/share/icons/Papirus-Dark/24x24/symbolic/actions/go-previous-symbolic.svg",
+                        "size": 0.6,
+                        "valign": -0.3
+                    }
+                }
+            }
+        }
+    }
+}

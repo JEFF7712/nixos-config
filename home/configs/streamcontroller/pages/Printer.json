@@ -1,0 +1,255 @@
+{
+    "settings": {
+        "auto-change": {
+            "enable": true,
+            "wm-class": "^OrcaSlicer$",
+            "title": ".*",
+            "stay-on-page": false,
+            "decks": [
+                "A00DA6261LQJ"
+            ]
+        }
+    },
+    "keys": {
+        "0x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_rupan_UsageBars::CommandText",
+                            "settings": {
+                                "command": "deck-ha printer-status",
+                                "interval": 10
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        0,
+                        null
+                    ],
+                    "background-control-action": null
+                }
+            }
+        },
+        "1x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_rupan_UsageBars::CommandText",
+                            "settings": {
+                                "command": "deck-ha printer-temps",
+                                "interval": 15
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        0,
+                        null
+                    ],
+                    "background-control-action": null
+                }
+            }
+        },
+        "2x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "HomeAssistantPlugin::ShowIcon",
+                            "settings": {
+                                "version": 1,
+                                "entity": {
+                                    "version": 1,
+                                    "domain": "light",
+                                    "entity": "light.a1_03900d642327265_chamber_light"
+                                },
+                                "icon": {
+                                    "icon": "lightbulb",
+                                    "color": [
+                                        255,
+                                        200,
+                                        80,
+                                        255
+                                    ],
+                                    "scale": 70,
+                                    "opacity": 100,
+                                    "customizations": [
+                                        {
+                                            "condition": {
+                                                "attribute": "state",
+                                                "operator": "!=",
+                                                "value": "on"
+                                            },
+                                            "icon": "lightbulb-outline",
+                                            "color": [
+                                                110,
+                                                110,
+                                                110,
+                                                255
+                                            ],
+                                            "scale": null,
+                                            "opacity": null
+                                        }
+                                    ]
+                                }
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha call light toggle light.a1_03900d642327265_chamber_light",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "Chamber",
+                            "font-size": 11
+                        }
+                    }
+                }
+            }
+        },
+        "0x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha printer-pause-toggle",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Hold Start": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "Hold: pause",
+                            "font-size": 11
+                        }
+                    },
+                    "media": {
+                        "path": "/etc/profiles/per-user/rupan/share/icons/Papirus-Dark/24x24/actions/media-playback-pause.svg",
+                        "size": 0.5,
+                        "valign": -0.2
+                    }
+                }
+            }
+        },
+        "1x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "deck-ha printer-stop",
+                                "detached": true,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "keep_auto_run_in_background": false
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Hold Start": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "Hold: stop",
+                            "font-size": 11
+                        }
+                    },
+                    "media": {
+                        "path": "/etc/profiles/per-user/rupan/share/icons/Papirus-Dark/24x24/actions/process-stop.svg",
+                        "size": 0.5,
+                        "valign": -0.2
+                    }
+                }
+            }
+        },
+        "2x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::ChangePage",
+                            "settings": {
+                                "selected_page": "/home/rupan/.var/app/com.core447.StreamController/data/pages/Main.json"
+                            },
+                            "event-assignments": {
+                                "Key Down": null,
+                                "Key Up": null,
+                                "Key Short Up": "Key Down"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "background-control-action": null,
+                    "labels": {
+                        "bottom": {
+                            "text": "Home",
+                            "font-size": 11
+                        }
+                    },
+                    "media": {
+                        "path": "/etc/profiles/per-user/rupan/share/icons/Papirus-Dark/24x24/symbolic/actions/go-previous-symbolic.svg",
+                        "size": 0.6,
+                        "valign": -0.3
+                    }
+                }
+            }
+        }
+    }
+}

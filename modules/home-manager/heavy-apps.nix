@@ -27,7 +27,6 @@ in
           # (Blackmagic silently re-uploaded the 21.1 zip + their CDN is flaky)
           # davinci-resolve
           obs-studio
-          streamcontroller
           vlc
           mpv
           avidemux
