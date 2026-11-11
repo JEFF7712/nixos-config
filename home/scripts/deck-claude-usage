@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Reads the rate limits Claude Code hands its statusline, cached by
+# ~/.claude/statusline-command.sh, so the value matches /usage exactly.
+# Prints percent remaining to match the Codex usage key.
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code/rate-limits.json"
+
+case "${1:-}" in
+  5h) window=five_hour ;;
+  7d) window=seven_day ;;
+  *)
+    echo "Usage: deck-claude-usage 5h|7d" >&2
+    exit 1
+    ;;
+esac
+
+pct=""
+resets_at=""
+if [ -f "$CACHE" ]; then
+  pct=$(jq -r ".${window}.used_percentage // empty" "$CACHE")
+  resets_at=$(jq -r ".${window}.resets_at // empty" "$CACHE")
+fi
+now=$(date +%s)
+
+if [ -z "$pct" ]; then
+  printf 'CLAUDE\n—\n%s · no data\n' "$1"
+  exit 0
+fi
+
+if [ -n "$resets_at" ] && [ "$resets_at" -le "$now" ]; then
+  printf 'CLAUDE\n100%%\n%s · reset\n' "$1"
+  exit 0
+fi
+
+left=""
+if [ -n "$resets_at" ]; then
+  remaining=$((resets_at - now))
+  days=$((remaining / 86400))
+  hours=$(((remaining % 86400) / 3600))
+  mins=$(((remaining % 3600) / 60))
+  if [ "$days" -gt 0 ]; then
+    left=" · ${days}d"
+  elif [ "$hours" -gt 0 ]; then
+    left=" · ${hours}h"
+  else
+    left=" · ${mins}m"
+  fi
+fi
+
+printf 'CLAUDE\n%.0f%%\n%s%s\n' "$(awk -v p="$pct" 'BEGIN { print 100 - p }')" "$1" "$left"
