@@ -39,6 +39,14 @@ def render(source: str, window: str, used: float | None) -> Image.Image:
     radius = 18
     draw.rounded_rectangle((x0, y0, x1, y1), radius=radius, fill=TRACK)
     remaining = None if used is None else 100 - used
+    if remaining is None:
+        draw.text(
+            (SIZE // 2, (y0 + y1) // 2),
+            "?",
+            anchor="mm",
+            font=font(46),
+            fill=LABEL,
+        )
     if remaining is not None and remaining > 0:
         width = max(2 * radius, round((x1 - x0) * remaining / 100))
         draw.rounded_rectangle(
@@ -71,7 +79,7 @@ class UsageBar(ActionBase):
             self._draw()
 
     def on_key_down(self):
-        self.plugin_base.usage.refresh_codex()
+        self.plugin_base.usage.refresh()
 
     def _draw(self):
         source, window = self._target()
