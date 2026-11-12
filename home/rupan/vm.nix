@@ -37,6 +37,13 @@
       statix
       deadnix
       shellcheck
+      # Agent shells are non-interactive, so direnv never loads the homelab
+      # dev shell; keep its live cluster tools on PATH directly.
+      kubectl
+      kubernetes-helm
+      fluxcd
+      sops
+      age
       btop
       ncdu
     ];
