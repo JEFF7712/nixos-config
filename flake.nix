@@ -194,13 +194,6 @@
             config.allowUnfree = true;
           };
 
-          # vmWithDisko passes a module as vmTools `kernel` (nixpkgs 2026-06 / disko #1027).
-          disko-patched = pkgs.applyPatches {
-            name = "disko-patched";
-            src = inputs.disko;
-            patches = [ ./patches/disko-vmtools-kernel.patch ];
-          };
-
           mkSystem =
             host: user: userModule:
             nixpkgs.lib.nixosSystem {
@@ -212,7 +205,7 @@
                   pkgs-stable
                   self
                   ;
-                diskoModule = "${disko-patched}/module.nix";
+                diskoModule = "${inputs.disko}/module.nix";
               };
               modules = [
                 ./hosts/${host}/configuration.nix
