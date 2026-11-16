@@ -1,0 +1,101 @@
+--- a/src/backend/DeckManagement/DeckController.py
++++ b/src/backend/DeckManagement/DeckController.py
+@@ -174,25 +174,26 @@
+
+-            if not self.pause:
+-                has_bg_video = False
+-
+-                if self.deck_controller.background.video is not None:
+-                    if self.deck_controller.background.video.page is self.deck_controller.active_page:
+-                        has_bg_video = True
+-                        # There is a background video
+-                        video_each_nth_frame = self.FPS // self.deck_controller.background.video.fps
+-                        if self.media_ticks % video_each_nth_frame == 0:
+-                            self.deck_controller.background.update_tiles()
+-
+-                # Only iterate keys if there is animated content to update
+-                if has_bg_video or self._needs_key_ticks():
+-                    #TODO: generalize
+-                    for key in self.deck_controller.inputs[Input.Key]:
+-                        cast("ControllerKey", key).on_media_player_tick()
+-
+-                    for dial in self.deck_controller.inputs[Input.Dial]:
+-                        cast("ControllerDial", dial).on_media_player_tick()
+-                    # self.deck_controller.update_all_inputs()
+-
+-                # Perform media player tasks
+-                self.perform_media_player_tasks()
++            with self.deck_controller._page_lock:
++                if not self.pause:
++                    has_bg_video = False
++
++                    if self.deck_controller.background.video is not None:
++                        if self.deck_controller.background.video.page is self.deck_controller.active_page:
++                            has_bg_video = True
++                            # There is a background video
++                            video_each_nth_frame = self.FPS // self.deck_controller.background.video.fps
++                            if self.media_ticks % video_each_nth_frame == 0:
++                                self.deck_controller.background.update_tiles()
++
++                    # Only iterate keys if there is animated content to update
++                    if has_bg_video or self._needs_key_ticks():
++                        #TODO: generalize
++                        for key in self.deck_controller.inputs[Input.Key]:
++                            cast("ControllerKey", key).on_media_player_tick()
++
++                        for dial in self.deck_controller.inputs[Input.Dial]:
++                            cast("ControllerDial", dial).on_media_player_tick()
++                        # self.deck_controller.update_all_inputs()
++
++                    # Perform media player tasks
++                    self.perform_media_player_tasks()
+
+@@ -305,2 +306,6 @@
+     def perform_media_player_tasks(self):
++        with self.deck_controller._page_lock:
++            self._perform_media_player_tasks()
++
++    def _perform_media_player_tasks(self):
+         for task in self.tasks.copy():
+@@ -316,4 +321,5 @@
+             try:
+-                self.image_tasks[key].run()
+-                del self.image_tasks[key]
++                task = self.image_tasks.pop(key)
++                if task.page is self.deck_controller.active_page:
++                    task.run()
+             except KeyError:
+@@ -343,2 +349,3 @@
+         self.deck_manager: DeckManager = deck_manager
++        self._page_lock = threading.RLock()
+         # Open the deck - why store it as self.deck? So that self.get_alive() returns True in get_deck_settings
+@@ -714,3 +721,7 @@
+     @log.catch
+-    def load_page(self, page: Page, load_brightness: bool = True, load_screensaver: bool = True, load_background: bool = True, load_inputs: bool = True, allow_reload: bool = True):
++    def load_page(self, *args, **kwargs):
++        with self._page_lock:
++            return self._load_page(*args, **kwargs)
++
++    def _load_page(self, page: Page, load_brightness: bool = True, load_screensaver: bool = True, load_background: bool = True, load_inputs: bool = True, allow_reload: bool = True):
+         if not self.get_alive(): return
+@@ -740,7 +751,2 @@
+         self.clear_media_player_tasks()
+-
+-        old_tick = self.media_player.media_ticks
+-        old_time = time.time()
+-        while self.media_player.media_ticks <= old_tick and time.time() - old_time <= 0.5:
+-            time.sleep(0.05)
+
+@@ -897,8 +903,5 @@
+     def clear_media_player_tasks(self):
+-        ticks = self.media_player.media_ticks
+-        self.media_player.tasks.clear()
+-        self.media_player.image_tasks.clear()
+-
+-        # Wait until tick is over
+-        while self.media_player.media_ticks <= ticks:
+-            time.sleep(1/60)
++        with self._page_lock:
++            self.media_player.tasks.clear()
++            self.media_player.image_tasks.clear()
++            self.media_player.touchscreen_task = None
