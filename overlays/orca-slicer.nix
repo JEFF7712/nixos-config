@@ -11,11 +11,12 @@ let
       gst-libav
     ]
   );
-  # Upstream nixpkgs#557126 (unmerged): gcc-unwrapped puts a static
+  # Merged upstream in nixpkgs#557126, but absent from our pinned nixpkgs:
+  # gcc-unwrapped puts a static
   # libstdc++.a on the link line, so the executable carries its own C++
   # runtime while the dlopen'd Bambu network plugin uses the shared one.
   # Freeing across that boundary SIGABRTs on Print. Use only its lib
-  # output until upstream merges.
+  # output until the nixpkgs pin contains cb3ee9815692e6f5bb663be24582b022695a490a.
   orca-fixed =
     (prev.orca-slicer.override {
       gcc-unwrapped = prev.lib.getLib prev.gcc-unwrapped;
