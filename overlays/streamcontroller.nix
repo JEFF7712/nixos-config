@@ -2,6 +2,10 @@ _final: prev: {
   # StreamController's page auto-switching has no niri backend upstream.
   # It also re-creates its autostart entry when autostart is disabled.
   streamcontroller = prev.streamcontroller.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [
+      ./streamcontroller-page-refresh.patch
+      ./streamcontroller-auto-return.patch
+    ];
     postPatch = (old.postPatch or "") + ''
       cp ${./streamcontroller-niri.py} src/backend/WindowGrabber/Integrations/Niri.py
       substituteInPlace src/backend/WindowGrabber/WindowGrabber.py \
@@ -23,6 +27,10 @@ _final: prev: {
         --replace-fail \
           'setup_autostart_flatpak(False)' \
           'if is_flatpak(): setup_autostart_flatpak(False)'
+
+      ${prev.python3}/bin/python3 ${../checks/test-streamcontroller-page-refresh.py} \
+        src/backend/DeckManagement/DeckController.py \
+        src/backend/WindowGrabber/WindowGrabber.py
     '';
   });
 }
