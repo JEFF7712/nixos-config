@@ -26,6 +26,20 @@ in
       default = "${config.home.homeDirectory}/obsidian/vaults/main";
       description = "Absolute path to the Obsidian vault whose .obsidian/ config is managed";
     };
+
+    goodreadsSync = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable daily Goodreads sync timer for books";
+      };
+
+      calendar = lib.mkOption {
+        type = lib.types.str;
+        default = "*-*-* 09:00:00";
+        description = "systemd OnCalendar schedule for the Goodreads sync";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -106,5 +120,34 @@ in
         fi
       fi
     '';
+
+    systemd.user.services.obsidian-goodreads-sync = lib.mkIf cfg.goodreadsSync.enable {
+      Unit = {
+        Description = "Sync Goodreads books to Obsidian vault and Quartz";
+        After = [ "network-online.target" ];
+        Wants = [ "network-online.target" ];
+      };
+      Service = {
+        Type = "oneshot";
+        WorkingDirectory = "${config.home.homeDirectory}/obsidian";
+        ExecStart = "${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/obsidian/scripts/sync_goodreads.py";
+        TimeoutStartSec = 180;
+      };
+    };
+
+    systemd.user.timers.obsidian-goodreads-sync = lib.mkIf cfg.goodreadsSync.enable {
+      Unit = {
+        Description = "Run Goodreads vault sync daily";
+      };
+      Timer = {
+        OnCalendar = cfg.goodreadsSync.calendar;
+        Persistent = true;
+        RandomizedDelaySec = "300s";
+        Unit = "obsidian-goodreads-sync.service";
+      };
+      Install = {
+        WantedBy = [ "timers.target" ];
+      };
+    };
   };
 }
