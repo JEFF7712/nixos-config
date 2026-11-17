@@ -158,7 +158,6 @@ InfoPopup {
             root.browseOpen = false;
             root.browseFilter = "";
             root.expandedEntityId = "";
-            root.matrixDropdownOpen = false;
         } else {
             root.refreshMatrixStatus();
         }
@@ -208,7 +207,7 @@ InfoPopup {
                 text: root.statusText().toUpperCase()
                 color: root.hassService && root.hassService.phase === "connected" ? root.themeAccent : root.themeFg
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                     weight: Font.Medium
                 }
@@ -221,7 +220,7 @@ InfoPopup {
                 visible: text !== ""
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                 }
                 elide: Text.ElideRight
@@ -319,7 +318,7 @@ InfoPopup {
                     text: tab.title.toUpperCase()
                     color: parent.active ? parent.themeAccent : Qt.rgba(parent.themeFg.r, parent.themeFg.g, parent.themeFg.b, 0.75)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 10
                         weight: parent.active ? Font.Medium : Font.Normal
                     }
@@ -340,7 +339,7 @@ InfoPopup {
             wrapMode: Text.WordWrap
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.6)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
             }
         }
@@ -352,7 +351,7 @@ InfoPopup {
             wrapMode: Text.WordWrap
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.6)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
             }
         }
@@ -444,7 +443,7 @@ InfoPopup {
                                 text: "MATRIX MUSIC SYNC"
                                 color: root.themeFg
                                 font {
-                                    family: "JetBrainsMono Nerd Font"
+                                    family: root.barFont
                                     pixelSize: 10
                                     weight: Font.Medium
                                 }
@@ -455,7 +454,7 @@ InfoPopup {
                             text: root.matrixStreaming ? (root.prismRunning ? "Prism WebGL Active (8080) • Streaming" : "Streaming to Pico W (10.0.20.136)") : (root.prismRunning ? "Prism ready (8080) • Click Start" : (root.ledfxRunning ? "LedFx ready • Click Start" : "Offline • Cluster fallback active"))
                             color: root.matrixStreaming ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.5)
                             font {
-                                family: "JetBrainsMono Nerd Font"
+                                family: root.barFont
                                 pixelSize: 8
                             }
                             elide: Text.ElideRight
@@ -588,7 +587,7 @@ InfoPopup {
             text: root.browseTotal + (root.browseTotal === 1 ? " device" : " devices") + (root.browseTotal > browseModel.count ? ", first " + browseModel.count + " shown — refine the filter" : "")
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 9
             }
         }
@@ -602,6 +601,7 @@ InfoPopup {
 
                 HassRow {
                     width: parent.width
+                    unrestricted: true
                     hassService: root.hassService
                     themeFg: root.themeFg
                     themeAccent: root.themeAccent
@@ -639,7 +639,7 @@ InfoPopup {
             text: "CONNECTION"
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
                 weight: Font.Medium
             }
@@ -757,7 +757,7 @@ InfoPopup {
             wrapMode: Text.WordWrap
             color: Qt.rgba(1, 0.45, 0.4, 0.9)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
             }
         }
@@ -773,6 +773,7 @@ InfoPopup {
         property color pillBg: Qt.rgba(1, 1, 1, 0.05)
         property color pillBorder: Qt.rgba(1, 1, 1, 0.1)
         property bool flatMode: false
+        property bool unrestricted: false
         property bool expanded: false
         signal toggleExpand
 
@@ -825,7 +826,7 @@ InfoPopup {
             var idLower = String(rowRoot.entityId).toLowerCase();
             return idLower.indexOf("bedroom") !== -1 || idLower.indexOf("rupan") !== -1;
         }
-        visible: isToggleOrLight && isTargetArea
+        visible: rowRoot.unrestricted || rowRoot.starred || (isToggleOrLight && isTargetArea)
         height: visible ? (mainRow.height + (rowRoot.expanded && rowRoot.canExpand ? expandBox.height + 4 : 0)) : 0
 
         function primaryAction() {
@@ -893,7 +894,7 @@ InfoPopup {
                     text: rowRoot.rowName
                     color: rowRoot.available ? rowRoot.themeFg : Qt.rgba(rowRoot.themeFg.r, rowRoot.themeFg.g, rowRoot.themeFg.b, 0.45)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 11
                         weight: Font.Medium
                     }
@@ -906,7 +907,7 @@ InfoPopup {
                     visible: text !== ""
                     color: Qt.rgba(rowRoot.themeFg.r, rowRoot.themeFg.g, rowRoot.themeFg.b, 0.5)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 9
                     }
                     elide: Text.ElideRight
@@ -952,7 +953,7 @@ InfoPopup {
                     text: rowRoot.expanded ? "▾" : "▸"
                     color: Qt.rgba(rowRoot.themeFg.r, rowRoot.themeFg.g, rowRoot.themeFg.b, 0.55)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 11
                     }
                 }
@@ -1353,7 +1354,7 @@ InfoPopup {
                 text: buttonRoot.icon
                 color: buttonRoot.foregroundColor(0.7)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                 }
             }
@@ -1363,7 +1364,7 @@ InfoPopup {
                 text: buttonRoot.label
                 color: buttonRoot.foregroundColor(0.78)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 10
                     weight: buttonRoot.active ? Font.Medium : Font.Normal
                 }
@@ -1415,7 +1416,7 @@ InfoPopup {
             text: sliderRoot.label
             color: Qt.rgba(sliderRoot.themeFg.r, sliderRoot.themeFg.g, sliderRoot.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
             }
         }
@@ -1470,7 +1471,7 @@ InfoPopup {
             text: sliderRoot.shownPercent + sliderRoot.suffix
             color: sliderRoot.themeFg
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
                 weight: Font.Medium
             }
@@ -1497,7 +1498,7 @@ InfoPopup {
             text: stepperRoot.label
             color: Qt.rgba(stepperRoot.themeFg.r, stepperRoot.themeFg.g, stepperRoot.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
             }
         }
@@ -1525,7 +1526,7 @@ InfoPopup {
                 text: stepperRoot.value
                 color: stepperRoot.themeFg
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 10
                     weight: Font.Medium
                 }
@@ -1578,7 +1579,7 @@ InfoPopup {
             text: fieldRoot.title
             color: Qt.rgba(fieldRoot.themeFg.r, fieldRoot.themeFg.g, fieldRoot.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 9
             }
         }
@@ -1602,7 +1603,7 @@ InfoPopup {
                 color: fieldRoot.themeFg
                 echoMode: fieldRoot.secret ? TextInput.Password : TextInput.Normal
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 11
                 }
                 onTextEdited: {

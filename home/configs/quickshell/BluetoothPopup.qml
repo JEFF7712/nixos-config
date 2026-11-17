@@ -54,7 +54,7 @@ InfoPopup {
             text: root.statusLabel()
             color: root.bluetoothService.enabled && root.bluetoothService.available ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.48)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 11
                 weight: Font.Medium
             }
@@ -90,7 +90,7 @@ InfoPopup {
         text: root.statusMeta()
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 9
         }
         elide: Text.ElideRight
@@ -131,7 +131,7 @@ InfoPopup {
                 text: model.connected ? "󰂱" : "󰂯"
                 color: model.connected || (root.flatMode && rowMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                 }
             }
@@ -149,7 +149,7 @@ InfoPopup {
                     text: model.name
                     color: model.connected || (root.flatMode && rowMouse.containsMouse) ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 10
                         weight: model.connected ? Font.Medium : Font.Normal
                     }
@@ -161,7 +161,7 @@ InfoPopup {
                     text: root.deviceMeta(model)
                     color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 8
                     }
                     elide: Text.ElideRight
@@ -176,7 +176,7 @@ InfoPopup {
                 text: model.busy ? "..." : (model.connected ? "on" : "")
                 color: model.connected ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.46)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                     weight: Font.Medium
                 }
@@ -202,7 +202,7 @@ InfoPopup {
         visible: root.bluetoothService.enabled && root.bluetoothService.devices.count === 0
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.36)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 9
             italic: true
         }

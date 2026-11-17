@@ -82,8 +82,8 @@ let
         highlightedText = p.bg2;
         linkVisited = p.fg2;
         alternateBase = p.bg0;
-        tooltipBase = p.bg0;
-        tooltipText = p.bg1;
+        tooltipBase = p.bg1;
+        tooltipText = p.fg1;
         secondaryText = p.fg2;
         inactiveText = p.fg2;
         disabledText = p.fg2;
@@ -277,7 +277,7 @@ in
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
       iconTheme = "Papirus-Dark";
-      iconThemeLight = "Papirus-Dark";
+      iconThemeLight = "Papirus-Light";
       kittyCursorTrail = trails.snappy;
       motion = motionPresets.snappy;
     };
@@ -332,11 +332,6 @@ in
             match namespace="^rofi$"
             geometry-corner-radius 0
             opacity 1.0
-        }
-
-        layer-rule {
-            match namespace="^quickshell-notifications$"
-            geometry-corner-radius 0
         }
       '';
     };

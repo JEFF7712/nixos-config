@@ -111,8 +111,36 @@ HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
 
 generated=$(cat "$config_copy")
 assert_contains '$font = Try Font UI' "$generated" "try-font override wins over the manifest UI font"
-assert_contains '$mono_font = Try Font Mono' "$generated" "try-font override wins over the manifest mono font"
+assert_contains '$mono_font = Try Font Mono' "$generated" "password field uses the profile mono font"
 assert_contains 'color = rgb(' "$generated" "lock background has a solid fallback if the image texture fails"
+
+printf '{"fg":"#112233","flatMode":"true"}\n' > "$profile_dir/quickshell-theme-light.json"
+printf 'light\n' > "$profiles/active-variant"
+cat > "$home/.config/hypr/profile-motion.conf" <<'EOF'
+$hyprlock_fade_speed = 7
+$hyprlock_dots_speed = 3
+EOF
+
+HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
+  HYPRLOCK_CONFIG_COPY="$config_copy" REAL_JQ="$real_jq" PATH="$bin_dir:$PATH" \
+  "$REPO_ROOT/home/scripts/lock-screen"
+
+generated=$(cat "$config_copy")
+assert_contains '$fg = rgb(112233)' "$generated" "light variant selects quickshell-theme-light.json"
+assert_contains 'animation = fadeIn, 1, 7, smooth' "$generated" "lock screen honors profile-motion.conf fade speed"
+assert_contains 'rounding = 0' "$generated" "flat profile sets zero rounding on input field"
+
+printf '{"fg":"#abcdef"}\n' > "$profiles/runtime-quickshell-theme.json"
+printf 'nord\n' > "$profiles/runtime-theme-profile"
+printf 'light\n' > "$profiles/runtime-theme-variant"
+
+HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
+  HYPRLOCK_CONFIG_COPY="$config_copy" REAL_JQ="$real_jq" PATH="$bin_dir:$PATH" \
+  "$REPO_ROOT/home/scripts/lock-screen"
+
+generated=$(cat "$config_copy")
+assert_contains '$fg = rgb(abcdef)' "$generated" "matching runtime-quickshell-theme.json overrides baked theme"
+printf 'dark\n' > "$profiles/active-variant"
 
 # A running hyprlock already owns the session lock: exit 0 without spawning
 # a second instance (niri refuses it, the loser lingers and can stall input

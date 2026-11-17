@@ -1,5 +1,5 @@
 * {
-    font:                        "JetBrainsMono Nerd Font 11";
+    font:                        "Inter 11";
     background-color:            {{colors.surface_container_lowest.default.hex}};
     text-color:                  {{colors.on_surface.default.hex}};
     border-color:                {{colors.outline_variant.default.hex}};
@@ -75,5 +75,5 @@ element-text {
     horizontal-align:   0.5;
     vertical-align:     0.5;
     text-color:         inherit;
-    font:               "JetBrainsMono Nerd Font 12";
+    font:               "Inter 12";
 }

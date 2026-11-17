@@ -132,6 +132,8 @@ apply_system_preferences() {
   return "$failed"
 }
 
+COMMITTED_WALLPAPER=""
+
 apply_static_wallpaper() {
   local wallpaper="" waypaper_config waypaper_folder
   [ -d "$TARGET_WALLPAPER_DIR" ] || return 0
@@ -140,7 +142,10 @@ apply_static_wallpaper() {
     echo "Warning: no supported wallpapers found in $TARGET_WALLPAPER_DIR" >&2
     return 0
   fi
-  set_wallpaper "$wallpaper"
+  # Defer apply_wallpaper_theme until post-commit adapters finish so its
+  # theme-generation bump does not self-cancel gsettings/cursor/color-scheme.
+  PROFILE_SKIP_WALLPAPER_THEME=1 set_wallpaper "$wallpaper"
+  COMMITTED_WALLPAPER="$wallpaper"
   waypaper_config="$HOME/.config/waypaper/config.ini"
   if [ -f "$waypaper_config" ]; then
     ensure_waypaper_post_command "$waypaper_config"
@@ -246,6 +251,17 @@ dispatch_post_commit_adapters() {
     fi
     run_post_commit_adapter notification run_theme_side_effect_if_current \
       "$THEME_GENERATION" send_profile_notification
+  fi
+
+  if [ -n "${COMMITTED_WALLPAPER:-}" ] && profile_wallpaper_theming "$TARGET"; then
+    if [ "$(PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" "$SCRIPT_DIR/profile-publish" current "$THEME_GENERATION")" = current ]; then
+      if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+        apply_wallpaper_theme "$COMMITTED_WALLPAPER" || true
+      else
+        (run_wallpaper_theme_detached "$COMMITTED_WALLPAPER") 9>&- &
+        disown 2>/dev/null || true
+      fi
+    fi
   fi
 
   if [ -s "$ADAPTER_FAILURE_LOG" ]; then

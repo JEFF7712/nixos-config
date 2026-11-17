@@ -60,9 +60,7 @@ if [ "$(profile_bar "$PROFILE")" = "quickshell" ]; then
       rm -f "$tmp"
     fi
   fi
-  pkill -f "quickshell.*quickshell/shell.qml" 2>/dev/null || true
-  quickshell -p "$REPO_HOME/configs/quickshell/shell.qml" >/dev/null 2>&1 &
-  disown
+  nudge_quickshell_theme_reload
 fi
 
 nudge_gtk_reload

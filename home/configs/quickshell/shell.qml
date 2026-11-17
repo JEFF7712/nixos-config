@@ -496,6 +496,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -516,6 +517,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -536,6 +538,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -556,6 +559,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -576,6 +580,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -595,6 +600,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -615,6 +621,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -637,6 +644,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -658,6 +666,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }
@@ -679,6 +688,7 @@ ShellRoot {
         flatMode: root.flatMode
         popupAttachToBar: root.popupAttachToBar
         popupAnimationStyle: root.popupAnimationStyle
+        barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
     }

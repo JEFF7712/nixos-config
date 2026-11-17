@@ -5,8 +5,6 @@ spawn-at-startup "switch-profile" "--startup"
 screenshot-path "~/media/images/screenshots/ss-%Y-%m-%d-%H-%M-%S.png"
 
 environment {
-    XCURSOR_SIZE "28"
-    XCURSOR_THEME "Adwaita"
     QT_QPA_PLATFORM "wayland;xcb"
     GDK_SCALE "1"
     QT_QPA_PLATFORMTHEME "qt6ct"
@@ -100,6 +98,18 @@ hotkey-overlay {
     skip-at-startup
 }
 
+// Default rounded Quickshell layers; included before active-niri-overrides.kdl
+// so flat/sharp profiles (geometry-corner-radius 0) win.
+layer-rule {
+  match namespace="^quickshell-topbar$"
+  geometry-corner-radius 15
+}
+
+layer-rule {
+  match namespace="^quickshell-popup$"
+  geometry-corner-radius 15
+}
+
 // Include before the active profile override so that override wins.
 include "./noctalia.kdl"
 
@@ -144,16 +154,6 @@ window-rule {
 layer-rule {
   match namespace="^awww-daemon$"
   place-within-backdrop true
-}
-
-layer-rule {
-  match namespace="^quickshell-topbar$"
-  geometry-corner-radius 15
-}
-
-layer-rule {
-  match namespace="^quickshell-popup$"
-  geometry-corner-radius 15
 }
 
 overview {

@@ -47,7 +47,7 @@ InfoPopup {
                 text: root.hostName
                 color: root.themeFg
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                     weight: Font.Medium
                 }
@@ -59,7 +59,7 @@ InfoPopup {
                 text: root.systemMeta()
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.44)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                 }
                 elide: Text.ElideRight
@@ -70,6 +70,7 @@ InfoPopup {
     InfoRow {
         label: "uptime"
         value: root.uptime
+        barFont: root.barFont
         themeFg: root.themeFg
         active: root.shown
     }
@@ -193,7 +194,7 @@ InfoPopup {
             text: rowRoot.label
             color: Qt.rgba(rowRoot.themeFg.r, rowRoot.themeFg.g, rowRoot.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
             }
         }
@@ -231,7 +232,7 @@ InfoPopup {
             text: rowRoot.value
             color: rowRoot.themeFg
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
                 weight: Font.Medium
             }
@@ -270,7 +271,7 @@ InfoPopup {
             text: actionRoot.icon
             color: actionRoot.warm || (root.flatMode && actionMouse.containsMouse) ? actionRoot.themeAccent : Qt.rgba(actionRoot.themeFg.r, actionRoot.themeFg.g, actionRoot.themeFg.b, 0.68)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 12
             }
         }
@@ -282,7 +283,7 @@ InfoPopup {
             text: actionRoot.label
             color: actionRoot.warm || (root.flatMode && actionMouse.containsMouse) ? actionRoot.themeAccent : Qt.rgba(actionRoot.themeFg.r, actionRoot.themeFg.g, actionRoot.themeFg.b, 0.86)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 11
                 weight: actionRoot.warm ? Font.Medium : Font.Normal
             }

@@ -87,7 +87,7 @@ InfoPopup {
             text: root.statusLabel()
             color: root.networkService.connected ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.48)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 11
                 weight: Font.Medium
             }
@@ -121,7 +121,7 @@ InfoPopup {
         text: root.statusMeta()
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 9
         }
         elide: Text.ElideRight
@@ -134,7 +134,7 @@ InfoPopup {
         visible: root.networkService.wiredConnections.count > 0
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 8
             weight: Font.Medium
         }
@@ -168,7 +168,7 @@ InfoPopup {
                 text: "󰈀"
                 color: model.active || (root.flatMode && wiredMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                 }
             }
@@ -186,7 +186,7 @@ InfoPopup {
                     text: model.name
                     color: model.active || (root.flatMode && wiredMouse.containsMouse) ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 10
                         weight: model.active ? Font.Medium : Font.Normal
                     }
@@ -198,7 +198,7 @@ InfoPopup {
                     text: root.wiredMeta(model)
                     color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 8
                     }
                     elide: Text.ElideRight
@@ -219,7 +219,7 @@ InfoPopup {
                 }
                 color: model.active ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.46)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                     weight: Font.Medium
                 }
@@ -255,7 +255,7 @@ InfoPopup {
         visible: root.networkService.wiredConnections.count > 0 && root.networkService.wifiAvailable
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 8
             weight: Font.Medium
         }
@@ -291,7 +291,7 @@ InfoPopup {
                 text: root.signalIcon(model.signal)
                 color: networkRow.activeNetwork || (root.flatMode && rowMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.62)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                 }
             }
@@ -309,7 +309,7 @@ InfoPopup {
                     text: model.ssid
                     color: networkRow.activeNetwork || (root.flatMode && rowMouse.containsMouse) ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.88)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 10
                         weight: networkRow.activeNetwork ? Font.Medium : Font.Normal
                     }
@@ -321,7 +321,7 @@ InfoPopup {
                     text: root.networkMeta(model)
                     color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 8
                     }
                     elide: Text.ElideRight
@@ -336,7 +336,7 @@ InfoPopup {
                 text: model.busy ? "..." : (networkRow.activeNetwork ? "on" : "")
                 color: networkRow.activeNetwork ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.46)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                     weight: Font.Medium
                 }
@@ -367,7 +367,7 @@ InfoPopup {
         visible: root.networkService.wifiAvailable && (!root.networkService.wifiEnabled || root.networkService.networks.count === 0)
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.36)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 9
             italic: true
         }

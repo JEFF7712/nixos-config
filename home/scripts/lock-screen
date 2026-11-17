@@ -41,9 +41,20 @@ if pgrep -x hyprlock >/dev/null 2>&1; then
   exit 0
 fi
 PROFILE_DIR="$PROFILES_DIR/$PROFILE"
+VARIANT=$(cat "$PROFILES_DIR/active-variant" 2>/dev/null || echo "dark")
   THEME_FILE="$PROFILE_DIR/quickshell-theme.json"
+  if [ "$VARIANT" = "light" ] && [ -r "$PROFILE_DIR/quickshell-theme-light.json" ]; then
+    THEME_FILE="$PROFILE_DIR/quickshell-theme-light.json"
+  fi
+  if [ -s "$PROFILES_DIR/runtime-quickshell-theme.json" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null || true)" = "$PROFILE" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-variant" 2>/dev/null || true)" = "$VARIANT" ]; then
+    THEME_FILE="$PROFILES_DIR/runtime-quickshell-theme.json"
+  fi
   WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
   FONT_FILE="$HOME/.config/hypr/profile-font.conf"
+  COLORS_FILE="$HOME/.config/hypr/profile-colors.conf"
+  MOTION_FILE="$HOME/.config/hypr/profile-motion.conf"
   CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/hyprlock"
   RUNTIME_CONFIG="$CACHE_DIR/profile.conf"
 
@@ -92,8 +103,22 @@ PROFILE_DIR="$PROFILES_DIR/$PROFILE"
     fi
 
     if [ -n "$wallpaper" ] && [ -f "$wallpaper" ]; then
-      printf '%s\n' "$wallpaper"
-      return 0
+      case "${wallpaper,,}" in
+        *.mp4 | *.webm | *.mkv | *.mov)
+          mkdir -p "$CACHE_DIR"
+          local frame="$CACHE_DIR/video-backdrop.png"
+          if command -v ffmpeg >/dev/null 2>&1 \
+            && ffmpeg -y -loglevel error -i "$wallpaper" -frames:v 1 "$frame" >/dev/null 2>&1 \
+            && [ -s "$frame" ]; then
+            printf '%s\n' "$frame"
+            return 0
+          fi
+          ;;
+        *)
+          printf '%s\n' "$wallpaper"
+          return 0
+          ;;
+      esac
     fi
 
     local variant wallpaper_dir profile
@@ -115,8 +140,58 @@ PROFILE_DIR="$PROFILES_DIR/$PROFILE"
   muted=$(theme_value second "#aeb7c5")
   accent=$(theme_value accent "#88c0d0")
   surface=$(theme_value rawBg "#171b22")
+  if [ "$(normalize_hex "$fg" "eceff4")" = "$(normalize_hex "$surface" "171b22")" ]; then
+    surface=$(theme_value bg "#171b22")
+  fi
   panel=$(theme_value popupBg "#cc171b22")
   error=$(theme_value warm "#bf616a")
+
+  fg_expr=$(rgb_color "$fg" "eceff4")
+  muted_expr=$(rgb_color "$muted" "aeb7c5")
+  accent_expr=$(rgb_color "$accent" "88c0d0")
+  surface_expr=$(rgba_color "$surface" "171b22" "d9")
+  surface_alt_expr=$(rgba_color "$panel" "171b22" "cc")
+  border_expr=$(rgba_color "$accent" "88c0d0" "e6")
+  error_expr=$(rgba_color "$error" "bf616a" "e6")
+  backdrop_rgb=$(rgb_color "$surface" "171b22")
+  scrim_rgba=$(rgba_color "$surface" "171b22" "40")
+
+  if [ -s "$COLORS_FILE" ]; then
+    loaded=$(hyprlock_font_var "$COLORS_FILE" '$fg')
+    [ -n "$loaded" ] && fg_expr="$loaded"
+    loaded=$(hyprlock_font_var "$COLORS_FILE" '$muted')
+    [ -n "$loaded" ] && muted_expr="$loaded"
+    loaded=$(hyprlock_font_var "$COLORS_FILE" '$accent')
+    [ -n "$loaded" ] && accent_expr="$loaded"
+    loaded=$(hyprlock_font_var "$COLORS_FILE" '$surface')
+    if [ -n "$loaded" ]; then
+      surface_expr="$loaded"
+      hex_only=$(printf '%s' "$loaded" | sed -nE 's/^rgba?\(([0-9A-Fa-f]{6}).*\)$/\1/p')
+      if [ -n "$hex_only" ]; then
+        backdrop_rgb="rgb($hex_only)"
+        scrim_rgba="rgba(${hex_only}40)"
+      fi
+    fi
+    loaded=$(hyprlock_font_var "$COLORS_FILE" '$surface_alt')
+    [ -n "$loaded" ] && surface_alt_expr="$loaded"
+    loaded=$(hyprlock_font_var "$COLORS_FILE" '$border')
+    [ -n "$loaded" ] && border_expr="$loaded"
+    loaded=$(hyprlock_font_var "$COLORS_FILE" '$error')
+    [ -n "$loaded" ] && error_expr="$loaded"
+  fi
+
+  fade_speed=$(hyprlock_font_var "$MOTION_FILE" '$hyprlock_fade_speed')
+  dots_speed=$(hyprlock_font_var "$MOTION_FILE" '$hyprlock_dots_speed')
+  fade_speed="${fade_speed:-4}"
+  dots_speed="${dots_speed:-2}"
+
+  flat_mode=$(theme_value flatMode "false")
+  bar_radius=$(theme_value barRadius "10")
+  input_rounding=10
+  if [ "$flat_mode" = "true" ] || [ "$bar_radius" = "0" ]; then
+    input_rounding=0
+  fi
+
   wallpaper=$(current_wallpaper)
   IFS=$'\t' read -r ui_font mono_font < <(resolve_lock_fonts "$PROFILE" "$FONT_FILE")
   ui_font="${ui_font:-$DEFAULT_LOCK_FONT}"
@@ -126,13 +201,13 @@ PROFILE_DIR="$PROFILES_DIR/$PROFILE"
   cat > "$RUNTIME_CONFIG" <<EOF
 \$font = $ui_font
 \$mono_font = $mono_font
-\$fg = $(rgb_color "$fg" "eceff4")
-\$muted = $(rgb_color "$muted" "aeb7c5")
-\$accent = $(rgb_color "$accent" "88c0d0")
-\$surface = $(rgba_color "$surface" "171b22" "d9")
-\$surface_alt = $(rgba_color "$panel" "171b22" "cc")
-\$border = $(rgba_color "$accent" "88c0d0" "e6")
-\$error = $(rgba_color "$error" "bf616a" "e6")
+\$fg = $fg_expr
+\$muted = $muted_expr
+\$accent = $accent_expr
+\$surface = $surface_expr
+\$surface_alt = $surface_alt_expr
+\$border = $border_expr
+\$error = $error_expr
 
 general {
     hide_cursor = true
@@ -143,16 +218,16 @@ general {
 animations {
     enabled = true
     bezier = smooth, 0.22, 1, 0.36, 1
-    animation = fadeIn, 1, 4, smooth
-    animation = fadeOut, 1, 4, smooth
-    animation = inputFieldDots, 1, 2, smooth
+    animation = fadeIn, 1, $fade_speed, smooth
+    animation = fadeOut, 1, $fade_speed, smooth
+    animation = inputFieldDots, 1, $dots_speed, smooth
 }
 
 background {
     monitor =
     path = $wallpaper
     # Deterministic backdrop if the image texture fails (e.g. post-resume).
-    color = $(rgb_color "$surface" "171b22")
+    color = $backdrop_rgb
     blur_passes = 2
     blur_size = 5
     noise = 0.008
@@ -165,7 +240,7 @@ background {
 shape {
     monitor =
     size = 100%, 100%
-    color = $(rgba_color "$surface" "171b22" "40")
+    color = $scrim_rgba
     rounding = 0
     position = 0, 0
     halign = center
@@ -198,7 +273,7 @@ input-field {
     monitor =
     size = 360, 54
     outline_thickness = 0
-    rounding = 10
+    rounding = $input_rounding
 
     outer_color = rgba(00000000)
     inner_color = rgba(00000000)

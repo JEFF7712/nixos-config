@@ -88,7 +88,7 @@ in
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
       iconTheme = "Papirus-Dark";
-      iconThemeLight = "Papirus-Dark";
+      iconThemeLight = "Papirus-Light";
       kittyCursorTrail = trails.snappy;
       motion = motionPresets.snappy;
     };
@@ -129,11 +129,6 @@ in
             match namespace="^rofi$"
             geometry-corner-radius 0
             opacity 1.0
-        }
-
-        layer-rule {
-            match namespace="^quickshell-notifications$"
-            geometry-corner-radius 0
         }
       '';
     };

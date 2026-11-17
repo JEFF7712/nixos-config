@@ -92,7 +92,7 @@ InfoPopup {
                 text: root.statusLabel()
                 color: root.themeFg
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                     weight: Font.Medium
                 }
@@ -105,7 +105,7 @@ InfoPopup {
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.44)
                 visible: text !== ""
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                 }
                 elide: Text.ElideRight
@@ -143,6 +143,7 @@ InfoPopup {
     InfoRow {
         label: "profile"
         value: root.profileLabel()
+        barFont: root.barFont
         themeFg: root.themeFg
         active: root.shown
     }
@@ -191,7 +192,7 @@ InfoPopup {
                         text: modelData.icon
                         color: parent.parent.selected || (root.flatMode && profileMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.64)
                         font {
-                            family: "JetBrainsMono Nerd Font"
+                            family: root.barFont
                             pixelSize: 11
                         }
                     }
@@ -200,7 +201,7 @@ InfoPopup {
                         text: modelData.label
                         color: parent.parent.selected || (root.flatMode && profileMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.74)
                         font {
-                            family: "JetBrainsMono Nerd Font"
+                            family: root.barFont
                             pixelSize: 9
                             weight: parent.parent.selected ? Font.Medium : Font.Normal
                         }
@@ -226,6 +227,7 @@ InfoPopup {
 
     InfoToggle {
         label: root.powerService.idleInhibited ? "idle inhibit on" : "idle inhibit off"
+        barFont: root.barFont
         checked: root.powerService.idleInhibited
         flatMode: root.flatMode
         themeFg: root.themeFg
@@ -244,6 +246,7 @@ InfoPopup {
 
     InfoToggle {
         label: root.powerService.chargeLimit >= 100 ? "charge limit off" : "charge limit " + root.powerService.chargeLimit + "%"
+        barFont: root.barFont
         checked: root.powerService.chargeLimit < 100
         visible: root.powerService.thresholdWritable
         flatMode: root.flatMode
@@ -260,7 +263,7 @@ InfoPopup {
         text: root.powerService.lastError
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.5)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 9
         }
         elide: Text.ElideRight
@@ -286,7 +289,7 @@ InfoPopup {
             text: rowRoot.label
             color: Qt.rgba(rowRoot.themeFg.r, rowRoot.themeFg.g, rowRoot.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
             }
         }
@@ -324,7 +327,7 @@ InfoPopup {
             text: rowRoot.value
             color: rowRoot.themeFg
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
                 weight: Font.Medium
             }

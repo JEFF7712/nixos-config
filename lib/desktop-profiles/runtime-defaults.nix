@@ -200,6 +200,7 @@ in
       theme = "Iris Tinted";
       icon = "Material Icon Theme";
     };
+    vesktop.dark = "sharp.theme.css";
     spicetify.dark = spice "Comfy" "tinted" 0;
     spicetify.light = spice "Comfy" "tinted" 0;
   };

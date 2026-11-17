@@ -151,10 +151,10 @@ let
         elementBackground = p.bg1;
         elementSelectedBackground = p.bg2;
         elementSelectedBorder = p.accent;
-        windowRadius = 16;
-        inputRadius = 12;
-        elementRadius = 12;
-        iconRadius = 10;
+        windowRadius = 0;
+        inputRadius = 0;
+        elementRadius = 0;
+        iconRadius = 0;
       };
 
       btop = theme.mkBtopTheme {
@@ -267,7 +267,7 @@ in
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
       iconTheme = "Papirus-Dark";
-      iconThemeLight = "Papirus-Dark";
+      iconThemeLight = "Papirus-Light";
       kittyCursorTrail = trails.soft;
       motion = motionPresets.soft;
     };
@@ -277,6 +277,7 @@ in
     niri = {
       animations = animations.soft;
       gaps = 12;
+      cornerRadius = 0;
       borderOff = true;
       focusRingOff = true;
       # Opaque: solid windows, no per-focus dimming, no blur.
@@ -294,6 +295,11 @@ in
       tabIndicatorActiveColor = dark.accent;
       tabIndicatorInactiveColor = dark.bg3;
       extraConfig = ''
+        window-rule {
+            geometry-corner-radius 0
+            clip-to-geometry true
+        }
+
         layer-rule {
             match namespace="^quickshell-topbar$"
             geometry-corner-radius 0
@@ -301,11 +307,6 @@ in
 
         layer-rule {
             match namespace="^quickshell-popup$"
-            geometry-corner-radius 0
-        }
-
-        layer-rule {
-            match namespace="^quickshell-notifications$"
             geometry-corner-radius 0
         }
       '';

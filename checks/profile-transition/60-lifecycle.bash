@@ -67,7 +67,7 @@ assert_eq 'gtk-old-dark' "$(cat "$home/.config/gtk-3.0/noctalia.css")" \
 assert_eq '{"payload":"qs-runtime-dark"}' \
   "$(cat "$profiles/runtime-quickshell-theme.json")" \
   "late transition A cannot replace B quickshell theme"
-for script in "$REPO_ROOT/home/scripts/profile-transition" "$REPO_ROOT/home/scripts/toggle-bar"; do
+for script in "$REPO_ROOT/home/scripts/profile-transition" "$REPO_ROOT/home/scripts/toggle-bar" "$REPO_ROOT/home/scripts/try-font"; do
   if rg -q 'pkill -f .*quickshell.*/shell\.qml|quickshell -p .*configs/quickshell/shell\.qml' "$script"; then
     printf 'FAIL: %s still owns the Quickshell bar process directly\n' "$script" >&2
     exit 1

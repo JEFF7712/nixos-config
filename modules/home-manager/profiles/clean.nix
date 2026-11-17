@@ -233,8 +233,8 @@ in
         highlightedText = bg2;
         linkVisited = fg2;
         alternateBase = bg1;
-        tooltipBase = bg0;
-        tooltipText = bg1;
+        tooltipBase = bg1;
+        tooltipText = fg1;
         secondaryText = fg2;
         inactiveText = fg2;
         disabledText = fg2;

@@ -130,16 +130,16 @@ rec {
       disabledText,
       disabledHighlight,
       base ? window,
+      noRole ? window,
       link ? highlight,
       accent ? highlight,
       text ? windowText,
       buttonText ? windowText,
-      placeholderText ? text,
+      placeholderText ? secondaryText,
       inactiveText ? text,
       inactiveWindowText ? inactiveText,
       inactiveButtonText ? inactiveText,
-      inactivePlaceholderText ? inactiveText,
-      inactiveSecondaryText ? secondaryText,
+      inactivePlaceholderText ? placeholderText,
       disabledHighlightedText ? highlightedText,
       disabledLink ? disabledHighlight,
       disabledAccent ? disabledHighlight,
@@ -167,10 +167,10 @@ rec {
         link
         linkVisited
         alternateBase
+        noRole
         tooltipBase
         tooltipText
         placeholderText
-        secondaryText
         accent
       ];
       disabled = [
@@ -191,9 +191,9 @@ rec {
         disabledLink
         linkVisited
         alternateBase
+        noRole
         tooltipBase
         tooltipText
-        disabledText
         disabledSecondaryText
         disabledAccent
       ];
@@ -215,10 +215,10 @@ rec {
         link
         linkVisited
         alternateBase
+        noRole
         tooltipBase
         tooltipText
         inactivePlaceholderText
-        inactiveSecondaryText
         accent
       ];
     };

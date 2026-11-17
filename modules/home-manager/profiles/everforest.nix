@@ -131,7 +131,7 @@ in
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
       iconTheme = "Papirus-Dark";
-      iconThemeLight = "Papirus-Dark";
+      iconThemeLight = "Papirus-Light";
       kittyCursorTrail = trails.glide;
       motion = motionPresets.glide;
     };

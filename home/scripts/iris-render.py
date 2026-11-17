@@ -200,8 +200,8 @@ def qt(p, out):
         p["dim"],
         p["surface"],
         p["surface"],
+        p["surface"],
         p["fg"],
-        p["dim"],
         p["dim"],
         p["accent"],
     ]

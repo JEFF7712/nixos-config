@@ -89,8 +89,9 @@ let
           highlightedText = r.bg0;
           linkVisited = r.blue;
           alternateBase = r.bg1;
-          tooltipBase = r.bgDim;
-          tooltipText = r.bg1;
+          noRole = r.bgDim;
+          tooltipBase = r.bg1;
+          tooltipText = r.fg1;
           secondaryText = r.fg4;
           inactiveText = r.fg2;
           disabledText = r.fg4;

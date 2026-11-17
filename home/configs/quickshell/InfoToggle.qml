@@ -3,6 +3,7 @@ import QtQuick
 Item {
     id: root
     property string label: ""
+    property string barFont: "JetBrainsMono Nerd Font"
     property bool checked: false
     property bool flatMode: false
     property color themeFg: "#ffffff"
@@ -20,7 +21,7 @@ Item {
         text: root.label
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.65)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 10
         }
     }

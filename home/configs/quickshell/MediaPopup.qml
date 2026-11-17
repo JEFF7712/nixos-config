@@ -115,7 +115,7 @@ InfoPopup {
                 text: "󰎈"
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.3)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 40
                 }
                 visible: cover.status !== Image.Ready
@@ -133,7 +133,7 @@ InfoPopup {
             text: root.mediaService.title || "—"
             color: root.themeFg
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 13
                 weight: Font.Bold
             }
@@ -147,7 +147,7 @@ InfoPopup {
             text: root.mediaService.artist
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 11
             }
             elide: Text.ElideRight
@@ -159,7 +159,7 @@ InfoPopup {
             text: root.mediaService.album
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 9
                 italic: true
             }
@@ -208,7 +208,7 @@ InfoPopup {
             text: root.fmt(root.displayedPosition)
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 9
             }
         }
@@ -219,7 +219,7 @@ InfoPopup {
             text: root.fmt(root.mediaService.lengthSeconds)
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.7)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 9
             }
         }
@@ -318,7 +318,7 @@ InfoPopup {
             text: root.mediaService.effectiveVolume <= 0 ? "󰖁" : root.mediaService.effectiveVolume < 0.5 ? "󰖀" : "󰕾"
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.75)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 13
             }
         }
@@ -329,7 +329,7 @@ InfoPopup {
             text: root.mediaService.volumeIsPlayer ? "APP" : "SYS"
             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.35)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 7
                 weight: Font.Bold
                 letterSpacing: 0.5
@@ -421,7 +421,7 @@ InfoPopup {
             text: btn.icon
             color: (btn.active || btnMouse.containsMouse) ? root.themeAccent : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.85)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: btn.primary ? 19 : 15
             }
             Behavior on color {
