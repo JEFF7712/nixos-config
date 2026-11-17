@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import "services" as Services
 
 PanelWindow {
     id: greetingWindow
@@ -9,6 +10,7 @@ PanelWindow {
     required property var systemService
     required property var mediaService
     required property var cavaService
+    required property var bluetoothService
     property color themeFg: "#ffffff"
     property color themeSecond: "#e8e8e8"
     property color themeAccent: "#ffffff"
@@ -25,10 +27,75 @@ PanelWindow {
         return false;
     }
     readonly property int idleDelayMs: 3000
+    readonly property int layoutMotionMs: 650
     readonly property bool revealed: greetingWindow.visible && !greetingWindow.dismissed
     property bool rested: false
     property bool dismissed: false
+    property bool poseSettled: false
+    readonly property bool motionActive: greetingWindow.visible && greetingWindow.poseSettled && fadeRoot.opacity > 0.01
     property date now: new Date()
+    readonly property bool compact: !placementService.result || placementService.result.name === "compact"
+    property real compactProgress: greetingWindow.compact ? 1 : 0
+    readonly property real compactWidth: 400
+    readonly property real wideClockHeight: 260
+    readonly property real compactClockHeight: 184
+    readonly property int connectedDeviceCount: bluetoothService.available && bluetoothService.enabled ? bluetoothService.connectedCount : 0
+    readonly property int deviceRows: Math.ceil(greetingWindow.connectedDeviceCount / 3)
+    readonly property real statsHeight: 236 + (greetingWindow.deviceRows > 0 ? 36 + greetingWindow.deviceRows * 120 + (greetingWindow.deviceRows - 1) * 16 : 0)
+    readonly property real wideInnerHeight: Math.max(greetingWindow.wideClockHeight, greetingWindow.statsHeight)
+    readonly property real compactInnerHeight: greetingWindow.compactClockHeight + 24 + greetingWindow.statsHeight
+    readonly property var layoutCandidates: [
+        {
+            name: "wide",
+            width: 1048,
+            height: greetingWindow.wideInnerHeight + 48
+        },
+        {
+            name: "compact",
+            width: greetingWindow.compactWidth + 48,
+            height: greetingWindow.compactInnerHeight + 48
+        }
+    ]
+    property color contentAccent: placementService.result ? placementService.result.accent : greetingWindow.themeAccent
+    property color contentFg: placementService.result && placementService.result.foreground ? placementService.result.foreground : greetingWindow.themeFg
+
+    Behavior on compactProgress {
+        enabled: greetingWindow.motionActive
+        NumberAnimation {
+            duration: greetingWindow.layoutMotionMs
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    Behavior on contentAccent {
+        enabled: greetingWindow.motionActive
+        ColorAnimation {
+            duration: greetingWindow.layoutMotionMs
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    Behavior on contentFg {
+        enabled: greetingWindow.motionActive
+        ColorAnimation {
+            duration: greetingWindow.layoutMotionMs
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    Services.WallpaperLayout {
+        id: placementService
+        screenName: greetingWindow.screen ? greetingWindow.screen.name : ""
+        viewportWidth: greetingWindow.screen ? greetingWindow.screen.width : 0
+        viewportHeight: greetingWindow.screen ? greetingWindow.screen.height : 0
+        candidates: greetingWindow.layoutCandidates
+        foreground: greetingWindow.themeFg
+        accent: greetingWindow.themeAccent
+        enabled: greetingWindow.enabled && greetingWindow.themeReady
+    }
+
+    onRestedChanged: if (greetingWindow.rested)
+        placementService.refresh()
 
     readonly property bool sysAvailable: systemService.available
     readonly property string cpuValue: greetingWindow.sysAvailable ? systemService.cpuPercent + "%" : "-"
@@ -40,7 +107,7 @@ PanelWindow {
     readonly property string trackLine: {
         if (mediaService.available && mediaService.title !== "") {
             if (mediaService.artist !== "")
-                return mediaService.title + " — " + mediaService.artist;
+                return mediaService.title + " / " + mediaService.artist;
             return mediaService.title;
         }
         return "nothing playing";
@@ -70,6 +137,7 @@ PanelWindow {
     onWorkspaceEmptyChanged: {
         if (greetingWindow.workspaceEmpty) {
             greetingWindow.dismissed = false;
+            placementService.refresh();
             restTimer.restart();
         } else {
             restTimer.stop();
@@ -78,9 +146,28 @@ PanelWindow {
         }
     }
 
+    onVisibleChanged: {
+        if (greetingWindow.visible) {
+            poseEnableTimer.restart();
+        } else {
+            poseEnableTimer.stop();
+            greetingWindow.poseSettled = false;
+        }
+    }
+
     Component.onCompleted: {
         if (greetingWindow.workspaceEmpty)
             restTimer.restart();
+    }
+
+    Timer {
+        id: poseEnableTimer
+        interval: 16
+        repeat: false
+        onTriggered: {
+            if (greetingWindow.visible)
+                greetingWindow.poseSettled = true;
+        }
     }
 
     Timer {
@@ -103,7 +190,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-    visible: greetingWindow.themeReady && greetingWindow.enabled && greetingWindow.rested
+    visible: greetingWindow.themeReady && greetingWindow.enabled && greetingWindow.rested && placementService.result !== null
     anchors {
         top: true
         bottom: true
@@ -132,7 +219,7 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             width: 48
             text: rowRoot.label
-            color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.55)
+            color: Qt.rgba(greetingWindow.contentFg.r, greetingWindow.contentFg.g, greetingWindow.contentFg.b, 0.78)
             font {
                 family: greetingWindow.barFont
                 pixelSize: 13
@@ -149,7 +236,7 @@ PanelWindow {
             anchors.rightMargin: 12
             height: 5
             radius: 2
-            color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.16)
+            color: Qt.rgba(greetingWindow.contentFg.r, greetingWindow.contentFg.g, greetingWindow.contentFg.b, 0.16)
 
             Rectangle {
                 anchors.left: parent.left
@@ -157,7 +244,7 @@ PanelWindow {
                 width: parent.width * Math.max(0, Math.min(100, rowRoot.amount)) / 100
                 height: parent.height
                 radius: parent.radius
-                color: Qt.rgba(greetingWindow.themeAccent.r, greetingWindow.themeAccent.g, greetingWindow.themeAccent.b, 0.85)
+                color: greetingWindow.contentAccent
                 Behavior on width {
                     NumberAnimation {
                         duration: 300
@@ -172,7 +259,7 @@ PanelWindow {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: rowRoot.value
-            color: greetingWindow.themeFg
+            color: greetingWindow.contentFg
             font {
                 family: greetingWindow.barFont
                 pixelSize: 13
@@ -182,8 +269,9 @@ PanelWindow {
     }
 
     Item {
+        id: fadeRoot
         anchors.fill: parent
-        opacity: greetingWindow.rested && !greetingWindow.dismissed ? 1 : 0
+        opacity: greetingWindow.visible && !greetingWindow.dismissed ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
                 duration: 1200
@@ -193,10 +281,37 @@ PanelWindow {
 
         Item {
             id: contentContainer
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -140
-            width: contentRow.width + 32
-            height: contentRow.height + 24
+            readonly property real u: greetingWindow.compactProgress
+            x: placementService.result ? placementService.result.x : 24
+            y: placementService.result ? placementService.result.y : 24
+            width: 1048 + (greetingWindow.compactWidth + 48 - 1048) * u
+            height: greetingWindow.wideInnerHeight + (greetingWindow.compactInnerHeight - greetingWindow.wideInnerHeight) * u + 48
+            scale: placementService.result ? placementService.result.scale : 1
+            transformOrigin: Item.TopLeft
+
+            Behavior on x {
+                enabled: greetingWindow.motionActive
+                NumberAnimation {
+                    duration: greetingWindow.layoutMotionMs
+                    easing.type: Easing.InOutCubic
+                }
+            }
+
+            Behavior on y {
+                enabled: greetingWindow.motionActive
+                NumberAnimation {
+                    duration: greetingWindow.layoutMotionMs
+                    easing.type: Easing.InOutCubic
+                }
+            }
+
+            Behavior on scale {
+                enabled: greetingWindow.motionActive
+                NumberAnimation {
+                    duration: greetingWindow.layoutMotionMs
+                    easing.type: Easing.InOutCubic
+                }
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -205,25 +320,32 @@ PanelWindow {
                 onClicked: greetingWindow.dismissed = !greetingWindow.dismissed
             }
 
-            Row {
-                id: contentRow
-                anchors.centerIn: parent
-                spacing: 150
+            Item {
+                id: contentLayout
+                anchors.fill: parent
+                anchors.margins: 24
 
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 2
+                Item {
+                    id: clockGroup
+                    readonly property real u: greetingWindow.compactProgress
+                    readonly property real wideY: (greetingWindow.wideInnerHeight - greetingWindow.wideClockHeight) / 2
+
+                    width: 520 + (greetingWindow.compactWidth - 520) * u
+                    height: greetingWindow.wideClockHeight + (greetingWindow.compactClockHeight - greetingWindow.wideClockHeight) * u
+                    y: (1 - u) * (1 - u) * wideY
 
                     Row {
+                        id: timeRow
+                        x: -9 * scale
                         spacing: 18
-                        transform: Translate {
-                            x: -9
-                        }
+                        scale: 1 + (84 / 132 - 1) * clockGroup.u
+                        transformOrigin: Item.TopLeft
 
                         Text {
                             id: clockTime
                             text: greetingWindow.clockParts(greetingWindow.now).time
-                            color: greetingWindow.themeFg
+                            color: greetingWindow.contentFg
+                            renderType: Text.CurveRendering
                             font {
                                 family: greetingWindow.barFont
                                 pixelSize: 132
@@ -237,8 +359,12 @@ PanelWindow {
                             anchors.bottom: parent.bottom
                             anchors.bottomMargin: 30
                             text: greetingWindow.clockParts(greetingWindow.now).ap
-                            color: greetingWindow.themeSecond
-                            opacity: 0.65
+                            color: greetingWindow.contentFg
+                            opacity: 0.78
+                            renderType: Text.CurveRendering
+                            scale: 1 + ((15 / 19) / (84 / 132) - 1) * clockGroup.u
+                            transformOrigin: Item.BottomLeft
+
                             font {
                                 family: greetingWindow.barFont
                                 pixelSize: 19
@@ -250,12 +376,14 @@ PanelWindow {
 
                     Text {
                         id: clockDate
-                        transform: Translate {
-                            y: -20
-                        }
+                        y: timeRow.height * timeRow.scale - (18 - 6 * clockGroup.u)
+                        scale: 1 + (14 / 16 - 1) * clockGroup.u
+                        transformOrigin: Item.TopLeft
                         text: greetingWindow.clockParts(greetingWindow.now).date
-                        color: greetingWindow.themeSecond
-                        opacity: 0.65
+                        color: greetingWindow.contentFg
+                        opacity: 0.78
+                        renderType: Text.CurveRendering
+
                         font {
                             family: greetingWindow.barFont
                             pixelSize: 16
@@ -264,18 +392,18 @@ PanelWindow {
                         }
                     }
 
-                    Item {
-                        width: 1
-                        height: 16
-                    }
-
                     Row {
+                        id: greetingRow
+                        y: timeRow.height * timeRow.scale + clockDate.height * clockDate.scale + (22 - 8 * clockGroup.u)
                         spacing: 10
+                        scale: 1 + (22 / 28 - 1) * clockGroup.u
+                        transformOrigin: Item.TopLeft
 
                         Text {
                             id: greetingHello
                             text: greetingWindow.clockParts(greetingWindow.now).hello
-                            color: greetingWindow.themeFg
+                            color: greetingWindow.contentFg
+                            renderType: Text.CurveRendering
                             font {
                                 family: greetingWindow.barFont
                                 pixelSize: 28
@@ -286,7 +414,8 @@ PanelWindow {
 
                         Text {
                             text: "Rupan"
-                            color: greetingWindow.themeAccent
+                            color: greetingWindow.contentAccent
+                            renderType: Text.CurveRendering
                             font {
                                 family: greetingWindow.barFont
                                 pixelSize: 28
@@ -298,8 +427,15 @@ PanelWindow {
                 }
 
                 Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 400
+                    id: statsGroup
+                    readonly property real u: greetingWindow.compactProgress
+                    readonly property real wideY: (greetingWindow.wideInnerHeight - greetingWindow.statsHeight) / 2
+                    readonly property real compactY: greetingWindow.compactClockHeight + 24
+
+                    x: (1 - u) * (600 + 580 * u)
+                    y: (1 - u) * wideY + u * compactY + 208 * u * (1 - u)
+                    width: greetingWindow.compactWidth
+                    height: greetingWindow.statsHeight
                     spacing: 8
 
                     StatRow {
@@ -323,7 +459,7 @@ PanelWindow {
                     Rectangle {
                         width: parent.width
                         height: 1
-                        color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.18)
+                        color: Qt.rgba(greetingWindow.contentFg.r, greetingWindow.contentFg.g, greetingWindow.contentFg.b, 0.18)
                     }
 
                     Item {
@@ -344,7 +480,7 @@ PanelWindow {
                                     radius: 3
                                     anchors.bottom: parent.bottom
                                     height: Math.max(4, Math.min(76, (barValue / 100) * 76))
-                                    color: greetingWindow.themeAccent
+                                    color: greetingWindow.contentAccent
                                     Behavior on height {
                                         NumberAnimation {
                                             duration: 90
@@ -360,13 +496,24 @@ PanelWindow {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                         text: greetingWindow.trackLine
-                        color: Qt.rgba(greetingWindow.themeFg.r, greetingWindow.themeFg.g, greetingWindow.themeFg.b, 0.6)
+                        color: Qt.rgba(greetingWindow.contentFg.r, greetingWindow.contentFg.g, greetingWindow.contentFg.b, 0.78)
                         elide: Text.ElideRight
                         font {
                             family: greetingWindow.barFont
                             pixelSize: 13
                             italic: true
                         }
+                    }
+
+                    BluetoothDevices {
+                        width: parent.width
+                        topPadding: 8
+                        bluetoothService: greetingWindow.bluetoothService
+                        themeFg: greetingWindow.contentFg
+                        themeAccent: greetingWindow.contentAccent
+                        labelOpacity: 0.78
+                        mutedOpacity: 0.72
+                        barFont: greetingWindow.barFont
                     }
                 }
             }
