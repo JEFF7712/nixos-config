@@ -90,6 +90,85 @@ TestCase {
         compare(BluetoothParser.openManagerCommand(), ["blueman-manager"]);
     }
 
+    function test_batteryReadings_data() {
+        return [
+            {
+                tag: "empty",
+                battery: 0,
+                expected: 0
+            },
+            {
+                tag: "full",
+                battery: 100,
+                expected: 100
+            },
+            {
+                tag: "rounded",
+                battery: 42.6,
+                expected: 43
+            },
+            {
+                tag: "out-of-range",
+                battery: 110,
+                expected: 100
+            },
+            {
+                tag: "unavailable",
+                battery: -1,
+                expected: -1
+            },
+            {
+                tag: "missing",
+                battery: undefined,
+                expected: -1
+            },
+            {
+                tag: "invalid",
+                battery: NaN,
+                expected: -1
+            }
+        ];
+    }
+
+    function test_batteryReadings(data) {
+        var state = BluetoothReducer.reduceObservation(null, {
+            present: true,
+            enabled: true,
+            devices: [
+                {
+                    id: "AA:BB",
+                    name: "Headphones",
+                    connected: true,
+                    icon: "audio-headset",
+                    batteryPercent: data.battery
+                }
+            ]
+        });
+        compare(state.devices[0].batteryPercent, data.expected);
+        compare(state.devices[0].icon, "audio-headset");
+
+        var churn = BluetoothReducer.reduceObservation(state, {
+            present: false
+        });
+        compare(churn.devices[0].batteryPercent, data.expected);
+        compare(churn.devices[0].icon, "audio-headset");
+
+        var updated = BluetoothReducer.reduceObservation(churn, {
+            present: true,
+            enabled: true,
+            devices: [
+                {
+                    id: "AA:BB",
+                    name: "Headphones",
+                    connected: true,
+                    icon: "audio-headset",
+                    batteryPercent: 21
+                }
+            ]
+        });
+        compare(updated.devices[0].batteryPercent, 21);
+    }
+
     function test_reduceObservationUsesNativeBusyAndRetainsOnChurn() {
         var previous = BluetoothReducer.reduceObservation(null, {
             present: true,

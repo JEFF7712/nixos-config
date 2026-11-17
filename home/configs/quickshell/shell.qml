@@ -470,6 +470,7 @@ ShellRoot {
             systemService: root.sharedSystemService
             mediaService: root.sharedMediaService
             cavaService: root.sharedCavaService
+            bluetoothService: root.sharedBluetoothService
             themeReady: root.themeLoaded
             enabled: root.showIdleGreeting
             themeFg: root.themeFg

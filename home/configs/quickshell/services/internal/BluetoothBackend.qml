@@ -27,6 +27,8 @@ QtObject {
                 name: device.name || device.deviceName || address,
                 connected: device.connected === true,
                 busy: busy,
+                icon: device.icon || "",
+                batteryPercent: device.batteryAvailable ? Math.round(device.battery * 100) : -1,
                 native: device
             });
         }

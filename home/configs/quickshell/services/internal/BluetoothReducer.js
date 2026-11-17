@@ -5,7 +5,10 @@ function copyDevice(device) {
         id: device.id,
         name: device.name,
         connected: !!device.connected,
-        busy: !!device.busy
+        busy: !!device.busy,
+        icon: device.icon || "",
+        batteryPercent: typeof device.batteryPercent === "number" && isFinite(device.batteryPercent) && device.batteryPercent >= 0
+            ? Math.max(0, Math.min(100, Math.round(device.batteryPercent))) : -1
     };
 }
 

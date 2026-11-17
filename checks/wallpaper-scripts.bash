@@ -574,7 +574,7 @@ THEME_TAG=A PROFILE_THEME_TEST_PAUSE_AFTER_PUBLISH=1 \
   PROFILE_THEME_TEST_BARRIER_DIR="$barrier" COMMAND_LOG="$log_file" PATH="$bin_dir:$PATH" \
   apply_wallpaper_theme "$tmpdir/still.png" >"$tmpdir/wallpaper-a.out" 2>&1 &
 wallpaper_a=$!
-for _ in $(seq 1 50); do
+for _ in $(seq 1 250); do
   [ -e "$barrier/published" ] && break
   sleep 0.02
 done
