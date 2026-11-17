@@ -183,12 +183,44 @@ in
           run mkdir -p "$SPICETIFY_CONFIG/Themes" "$SPICETIFY_CONFIG/Extensions" "$HOME/.config/spotify"
           ${lib.concatMapStringsSep "\n" (t: ''
             td="$SPICETIFY_CONFIG/Themes/${t.name}"
+            prev_color_ini=""
+            if [ "${t.name}" = "Comfy" ] && [ -f "$td/color.ini" ] && [ -z "''${DRY_RUN_CMD:-}" ]; then
+              prev_color_ini=$(mktemp)
+              cp "$td/color.ini" "$prev_color_ini"
+            fi
             # Vendored store copies can be read-only; chmod so rm -rf can replace them.
             # Must honor DRY_RUN_CMD: mutating during dry-activate is a bug.
             $DRY_RUN_CMD chmod -R u+w "$td" 2>/dev/null || true
             run rm -rf "$td"
             run cp -r "${t.src}" "$td"
             run chmod -R u+w "$td"
+            if [ -n "$prev_color_ini" ] && [ -f "$td/color.ini" ]; then
+              ${pkgs.python3}/bin/python3 - "$prev_color_ini" "$td/color.ini" "${config.repoPath}/home/scripts/merge-ini-section" <<'PY'
+            import subprocess, sys, tempfile
+            prev_path, dst_path, merger = sys.argv[1], sys.argv[2], sys.argv[3]
+            sections = {}
+            cur = None
+            with open(prev_path) as fh:
+                for line in fh:
+                    s = line.strip()
+                    if s.startswith("[") and s.endswith("]"):
+                        cur = s[1:-1]
+                        sections.setdefault(cur, [])
+                    elif cur is not None:
+                        sections[cur].append(line)
+            for name in ("sharp", "tinted"):
+                if name in sections and any(l.strip() for l in sections[name]):
+                    with tempfile.NamedTemporaryFile("w", delete=False) as tf:
+                        tf.write("".join(sections[name]))
+                        body_path = tf.name
+                    try:
+                        subprocess.run([sys.executable, merger, dst_path, name, body_path], check=True)
+                    finally:
+                        import os
+                        os.unlink(body_path)
+            PY
+              rm -f "$prev_color_ini"
+            fi
             # Remote @import user.css is CSP-blocked; swap in bundled app.css.
             if [ -f "$td/app.css" ] && grep -qE 'import +url\(.*https?:' "$td/user.css" 2>/dev/null; then
               run cp "$td/app.css" "$td/user.css"

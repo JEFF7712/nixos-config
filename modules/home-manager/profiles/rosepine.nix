@@ -75,9 +75,9 @@ let
     qt6 = r: {
       highlightedText = r.highlightMed;
       alternateBase = r.bg2;
-      tooltipText = r.bg2;
+      tooltipBase = r.bg2;
       secondaryText = r.fg2;
-      inactiveSecondaryText = r.fg4;
+      inactivePlaceholderText = r.fg4;
       disabledHighlightedText = r.highlightMed;
     };
     kitty = r: {
@@ -129,8 +129,8 @@ in
     quickshell = r: {
       fg = r.bg0;
       bg = alpha "dd" r.accent;
-      popupBg = alpha "cc" r.bg0;
-      rawBg = r.bg0;
+      popupBg = alpha "ee" r.accent;
+      rawBg = r.accent;
       accent = r.bg0;
       second = r.bg1;
       warm = r.yellow;
@@ -163,7 +163,7 @@ in
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
       iconTheme = "Papirus-Dark";
-      iconThemeLight = "Papirus-Dark";
+      iconThemeLight = "Papirus-Light";
       kittyCursorTrail = trails.soft;
       motion = motionPresets.soft;
     };

@@ -26,6 +26,7 @@ PanelWindow {
     property bool popupAttachToBar: false
     property bool edgeSlide: false
     property string popupAnimationStyle: "softPop"
+    property string barFont: "JetBrainsMono Nerd Font"
     property real anchorCenterX: -1
     property int frozenLeft: -1
     property bool warming: false
@@ -53,7 +54,9 @@ PanelWindow {
     readonly property bool mapped: shown || opening || warming || closing
     readonly property int cardRadius: flatMode ? 0 : 15
     readonly property int sideMargin: popupAttachToBar ? barMargin : 10
-    readonly property int contentHeight: outerColumn.implicitHeight + 28
+    readonly property int maxPopupHeight: screen ? Math.max(240, screen.height - root.topMargin - 16) : 800
+    readonly property int rawContentHeight: headerColumn.implicitHeight + contentColumn.implicitHeight + 34
+    readonly property int contentHeight: Math.min(root.maxPopupHeight, root.rawContentHeight)
     // Prefer frozen height while mapping so hiddenY is not -1 from collapsed implicitHeight.
     readonly property int slideHideHeight: Math.max(1, frozenHeight > 0 ? frozenHeight : contentHeight)
     readonly property int hiddenX: sideSlide ? (popupPosition === "left" ? -card.width : card.width) : 0
@@ -319,34 +322,53 @@ PanelWindow {
                 color: root.innerHighlight
             }
 
-            Column {
+            Item {
                 id: outerColumn
                 anchors.fill: parent
                 anchors.margins: 14
-                spacing: 6
 
-                Text {
-                    text: root.title
-                    color: root.themeAccent
-                    opacity: 0.7
-                    font {
-                        family: "JetBrainsMono Nerd Font"
-                        pixelSize: 9
-                        letterSpacing: 1.6
-                        weight: Font.Medium
+                Column {
+                    id: headerColumn
+                    width: outerColumn.width
+                    spacing: 6
+
+                    Text {
+                        text: root.title
+                        color: root.themeAccent
+                        opacity: 0.7
+                        font {
+                            family: root.barFont
+                            pixelSize: 9
+                            letterSpacing: 1.6
+                            weight: Font.Medium
+                        }
+                    }
+
+                    Rectangle {
+                        width: headerColumn.width
+                        height: 1
+                        color: root.dividerColor
                     }
                 }
 
-                Rectangle {
-                    width: outerColumn.width
-                    height: 1
-                    color: root.dividerColor
-                }
+                Flickable {
+                    id: contentFlick
+                    anchors.top: headerColumn.bottom
+                    anchors.topMargin: 6
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    contentWidth: width
+                    contentHeight: contentColumn.implicitHeight
+                    clip: contentHeight > height
+                    boundsBehavior: Flickable.StopAtBounds
+                    interactive: contentHeight > height
 
-                Column {
-                    id: contentColumn
-                    width: outerColumn.width
-                    spacing: 4
+                    Column {
+                        id: contentColumn
+                        width: contentFlick.width
+                        spacing: 4
+                    }
                 }
             }
         }

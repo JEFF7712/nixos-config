@@ -61,6 +61,18 @@ QtObject {
         return snapshot;
     }
 
+    readonly property bool vpnConnected: {
+        const values = (Networking.devices && Networking.devices.values) || [];
+        return values.some(device => {
+            if (!device)
+                return false;
+            const name = (device.name || "").toLowerCase();
+            if (name === "wt0" || name.startsWith("netbird") || name.startsWith("tailscale") || name.startsWith("wg") || name.startsWith("gpd") || name.startsWith("tun"))
+                return device.connected === true || (device.address !== undefined && device.address !== "");
+            return false;
+        });
+    }
+
     // One object-literal so NetworkModel reconciles from a single signal.
     readonly property var observation: {
         return {
@@ -68,6 +80,7 @@ QtObject {
             wifiAvailable: root.wifiDevicePresent,
             wifiEnabled: Networking.wifiEnabled,
             connected: root.connected,
+            vpnConnected: root.vpnConnected,
             wired: root.wiredSnapshot,
             networks: root.networkSnapshot
         };

@@ -7,14 +7,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$SCRIPT_DIR/profile-common"
 
-clipboard_pick() {
-  local theme selected
-  theme="$HOME/.config/rofi/profile-switcher.rasi"
-  selected=$(cliphist list | rofi -dmenu -i -normal-window -theme "$theme") || true
-  [ -n "$selected" ] || return 0
-  printf '%s\n' "$selected" | cliphist decode | wl-copy
-}
-
 declare -A ACTIONS=(
   [launcher]="vicinae toggle"
   [wallpaper]="waypaper"
@@ -23,7 +15,7 @@ declare -A ACTIONS=(
   [volume-mute]="volume-adjust mute"
   [brightness-up]="swayosd-client --brightness raise --device intel_backlight"
   [brightness-down]="swayosd-client --brightness lower --device intel_backlight"
-  [clipboard]="clipboard_pick"
+  [clipboard]="vicinae vicinae://extensions/vicinae/clipboard/history"
 )
 
 ACTION="${1:-}"

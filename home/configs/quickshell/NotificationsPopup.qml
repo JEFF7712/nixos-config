@@ -73,7 +73,7 @@ InfoPopup {
             text: root.countLabel()
             color: root.countColor()
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 11
                 weight: Font.Medium
             }
@@ -135,7 +135,7 @@ InfoPopup {
                     text: groupItem.modelData.app.toUpperCase()
                     color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.75)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 9
                         letterSpacing: 1.2
                         weight: Font.Medium
@@ -160,7 +160,7 @@ InfoPopup {
                         text: groupItem.modelData.items.length
                         color: root.themeAccent
                         font {
-                            family: "JetBrainsMono Nerd Font"
+                            family: root.barFont
                             pixelSize: 8
                             weight: Font.Medium
                         }
@@ -223,7 +223,7 @@ InfoPopup {
                             text: notifItem.modelData.summary || notifItem.modelData.body || "Notification"
                             color: root.themeFg
                             font {
-                                family: "JetBrainsMono Nerd Font"
+                                family: root.barFont
                                 pixelSize: 10
                                 weight: Font.Medium
                             }
@@ -238,7 +238,7 @@ InfoPopup {
                             visible: text !== "" && text !== notifItem.modelData.summary
                             color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.56)
                             font {
-                                family: "JetBrainsMono Nerd Font"
+                                family: root.barFont
                                 pixelSize: 9
                             }
                             wrapMode: Text.WordWrap
@@ -260,7 +260,7 @@ InfoPopup {
                             text: "×"
                             color: closeMouse.containsMouse ? root.themeFg : Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.45)
                             font {
-                                family: "JetBrainsMono Nerd Font"
+                                family: root.barFont
                                 pixelSize: 14
                                 weight: Font.Medium
                             }
@@ -298,7 +298,7 @@ InfoPopup {
         visible: root.unreadCount === 0
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.36)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 9
             italic: true
         }
@@ -323,7 +323,7 @@ InfoPopup {
             text: buttonRoot.label
             color: buttonMouse.containsMouse ? buttonRoot.themeAccent : Qt.rgba(buttonRoot.themeFg.r, buttonRoot.themeFg.g, buttonRoot.themeFg.b, 0.55)
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 9
                 weight: Font.Medium
             }

@@ -65,7 +65,7 @@ let
       link = r.accent2;
       linkVisited = r.accent;
       alternateBase = r.bg3;
-      tooltipText = r.bg3;
+      tooltipBase = r.bg3;
       secondaryText = r.fg1;
       inherit (r) accent;
       disabledHighlight = nord10;
@@ -185,11 +185,6 @@ in
 
         layer-rule {
             match namespace="^quickshell-popup$"
-            geometry-corner-radius 0
-        }
-
-        layer-rule {
-            match namespace="^quickshell-notifications$"
             geometry-corner-radius 0
         }
       '';

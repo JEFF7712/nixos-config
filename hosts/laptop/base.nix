@@ -40,7 +40,7 @@
   niri-greeter.enable = true;
   asus-numpad.enable = true;
   howdy.enable = true;
-  battery-threshold.enable = false;
+  battery-threshold.enable = true;
   # workstation (audio, bluetooth, file manager, git, launcher cache) defaults on.
   local-containers.enable = true;
   homelab.enable = true;

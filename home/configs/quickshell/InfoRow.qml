@@ -4,6 +4,7 @@ Item {
     id: root
     property string label: ""
     property string value: ""
+    property string barFont: "JetBrainsMono Nerd Font"
     property color themeFg: "#ffffff"
     property bool active: true
 
@@ -17,7 +18,7 @@ Item {
         text: root.label
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
         font {
-            family: "JetBrainsMono Nerd Font"
+            family: root.barFont
             pixelSize: 10
         }
     }
@@ -46,7 +47,7 @@ Item {
             text: root.value
             color: root.themeFg
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 11
                 weight: Font.Medium
             }

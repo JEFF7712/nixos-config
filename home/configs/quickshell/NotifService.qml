@@ -60,13 +60,13 @@ Singleton {
 
         keepOnReload: true
         actionsSupported: true
-        actionIconsSupported: true
+        actionIconsSupported: false
         bodySupported: true
-        bodyMarkupSupported: true
-        bodyImagesSupported: true
+        bodyMarkupSupported: false
+        bodyImagesSupported: false
         imageSupported: true
         persistenceSupported: true
-        inlineReplySupported: true
+        inlineReplySupported: false
 
         onNotification: notification => {
             notification.tracked = true;

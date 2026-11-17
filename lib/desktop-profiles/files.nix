@@ -176,16 +176,28 @@ let
   vicinaeTheme =
     name: variant: theme:
     let
-      rawBg = colorFrom theme "rawBg" (colorFrom theme "bg" "#101010");
-      popupBg = colorFrom theme "popupBg" rawBg;
       fg = colorFrom theme "fg" "#ffffff";
+      candidateRawBg = colorFrom theme "rawBg" (colorFrom theme "bg" "#101010");
+      barBg = colorFrom theme "bg" "#101010";
+      # Inverted accent bars set fg == bg0; never pair identical background/foreground.
+      rawBg =
+        if lib.toLower candidateRawBg != lib.toLower fg then
+          candidateRawBg
+        else if lib.toLower barBg != lib.toLower fg then
+          barBg
+        else if variant == "light" then
+          "#ffffff"
+        else
+          "#101010";
+      candidatePopupBg = colorFrom theme "popupBg" rawBg;
+      popupBg = if lib.toLower candidatePopupBg != lib.toLower fg then candidatePopupBg else rawBg;
       secondary = colorFrom theme "second" fg;
       accent = colorFrom theme "accent" fg;
       warm = colorFrom theme "warm" accent;
       fresh = colorFrom theme "fresh" accent;
       red = colorFrom theme "red" "#ff6b6b";
       # Text on accent chips: rawBg is dark on dark themes / light on light.
-      accentFg = rawBg;
+      accentFg = if lib.toLower accent != lib.toLower rawBg then rawBg else fg;
       hoverBg = accentWash accent;
     in
     ''

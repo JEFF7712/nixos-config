@@ -40,7 +40,7 @@ InfoPopup {
                 text: root.statusLabel()
                 color: root.themeFg
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                     weight: Font.Medium
                 }
@@ -53,7 +53,7 @@ InfoPopup {
                 visible: text !== ""
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.44)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                 }
                 elide: Text.ElideRight
@@ -102,7 +102,7 @@ InfoPopup {
                     text: model.label
                     color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.55)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 10
                     }
                     elide: Text.ElideRight
@@ -178,7 +178,7 @@ InfoPopup {
                     text: rowRoot.shownPercent() + "%"
                     color: root.themeFg
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 10
                         weight: Font.Medium
                     }
@@ -259,7 +259,7 @@ InfoPopup {
                 text: buttonRoot.icon
                 color: Qt.rgba(buttonRoot.themeFg.r, buttonRoot.themeFg.g, buttonRoot.themeFg.b, 0.7)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 12
                 }
             }
@@ -269,7 +269,7 @@ InfoPopup {
                 text: buttonRoot.label
                 color: Qt.rgba(buttonRoot.themeFg.r, buttonRoot.themeFg.g, buttonRoot.themeFg.b, 0.78)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 10
                 }
             }

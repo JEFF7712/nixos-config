@@ -186,7 +186,7 @@ InfoPopup {
                 text: root.monthNames[root.viewMonth]
                 color: root.themeFg
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 17
                     weight: Font.Light
                 }
@@ -196,7 +196,7 @@ InfoPopup {
                 text: root.viewYear + "  •  " + Qt.formatDate(root.today, "dddd, MMM d").toUpperCase()
                 color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.48)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 9
                     weight: Font.Medium
                 }
@@ -262,7 +262,7 @@ InfoPopup {
                 text: "#"
                 color: Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.38)
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 8
                     weight: Font.Bold
                 }
@@ -279,7 +279,7 @@ InfoPopup {
                     text: modelData
                     color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.45)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 9
                         weight: Font.Medium
                     }
@@ -302,7 +302,7 @@ InfoPopup {
                     text: modelData.kind === "week" ? modelData.week : ""
                     color: Qt.rgba(root.themeAccent.r, root.themeAccent.g, root.themeAccent.b, 0.42)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 8
                         weight: Font.Medium
                     }
@@ -348,7 +348,7 @@ InfoPopup {
                     text: modelData.day || ""
                     color: root.dayTextColor(modelData, parent.isToday, dayMouse.containsMouse)
                     font {
-                        family: "JetBrainsMono Nerd Font"
+                        family: root.barFont
                         pixelSize: 10
                         weight: parent.isToday || parent.isSelected ? Font.Bold : Font.Medium
                     }
@@ -390,7 +390,7 @@ InfoPopup {
             text: Qt.formatDate(root.selectedDate(), "ddd d MMM yyyy").toUpperCase()
             color: root.themeFg
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: 10
                 weight: Font.Medium
             }
@@ -412,7 +412,7 @@ InfoPopup {
                 text: root.selectedLabel()
                 color: root.themeAccent
                 font {
-                    family: "JetBrainsMono Nerd Font"
+                    family: root.barFont
                     pixelSize: 8
                     weight: Font.Bold
                 }
@@ -473,7 +473,7 @@ InfoPopup {
             text: buttonRoot.label
             color: buttonRoot.active || (buttonRoot.flatMode && buttonMouse.containsMouse) ? buttonRoot.themeAccent : buttonRoot.themeFg
             font {
-                family: "JetBrainsMono Nerd Font"
+                family: root.barFont
                 pixelSize: buttonRoot.wide ? 9 : 15
                 weight: Font.Bold
             }

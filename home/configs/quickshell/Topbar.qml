@@ -187,6 +187,9 @@ PanelWindow {
         const activeSsid = topbarWindow.networkService.activeSsid;
         const wiredConnected = topbarWindow.networkService.wiredConnected;
 
+        if (topbarWindow.networkService.vpnConnected)
+            return true;
+
         if (activeSsid === "JSR")
             return true;
 
@@ -844,7 +847,7 @@ PanelWindow {
             anchors.fill: parent
             radius: wsRoot.flat ? 0 : (wsRoot.noNumbers ? 4 : 9)
 
-            color: (wsRoot.flat && topbarWindow.showWorkspaceNumbers) ? "transparent" : wsRoot.noNumbers ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, wsRoot.isActive ? 1.0 : wsMouse.containsMouse ? 0.7 : wsRoot.isOccupied ? 0.55 : 0.25) : (wsMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : wsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025))
+            color: (wsRoot.flat && topbarWindow.showWorkspaceNumbers) ? "transparent" : wsRoot.noNumbers ? (wsRoot.urgent && !wsRoot.isActive ? topbarWindow.themeWarm : Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, wsRoot.isActive ? 1.0 : wsMouse.containsMouse ? 0.7 : wsRoot.isOccupied ? 0.55 : 0.25)) : (wsMouse.pressed ? Qt.rgba(1, 1, 1, 0.12) : wsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : wsRoot.urgent && !wsRoot.isActive ? Qt.rgba(topbarWindow.themeWarm.r, topbarWindow.themeWarm.g, topbarWindow.themeWarm.b, 0.18) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.05 : 0.025))
             Behavior on color {
                 ColorAnimation {
                     duration: topbarWindow.hoverMs
@@ -853,7 +856,7 @@ PanelWindow {
             }
 
             border.width: (wsRoot.noNumbers || wsRoot.flat) ? 0 : 1
-            border.color: wsRoot.isActive ? "transparent" : wsMouse.containsMouse ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, 0.55) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.16 : 0.06)
+            border.color: wsRoot.isActive ? "transparent" : wsRoot.urgent ? Qt.rgba(topbarWindow.themeWarm.r, topbarWindow.themeWarm.g, topbarWindow.themeWarm.b, 0.75) : wsMouse.containsMouse ? Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, 0.55) : Qt.rgba(1, 1, 1, wsRoot.isOccupied ? 0.16 : 0.06)
             Behavior on border.color {
                 ColorAnimation {
                     duration: topbarWindow.dryMotion ? 150 : 320
@@ -888,7 +891,7 @@ PanelWindow {
                 anchors.centerIn: parent
                 text: wsRoot.wsId
                 visible: topbarWindow.showWorkspaceNumbers
-                color: wsRoot.isActive ? topbarWindow.themeRawBg : wsRoot.isOccupied ? topbarWindow.themeFg : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.32)
+                color: wsRoot.isActive ? topbarWindow.themeRawBg : wsRoot.urgent ? topbarWindow.themeWarm : wsRoot.isOccupied ? topbarWindow.themeFg : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.32)
                 font {
                     family: topbarWindow.barFont
                     pixelSize: wsRoot.isActive ? 12 : 11

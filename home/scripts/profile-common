@@ -238,11 +238,13 @@ set_wallpaper() {
   # multi-megapixel image (magick) then reloads every colour consumer, so keep
   # it off the critical path: the wallpaper is already up, the palette settles a
   # beat later (same async philosophy as the per-app theme tail).
-  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    apply_wallpaper_theme "$wallpaper"
-  else
-    (run_wallpaper_theme_detached "$wallpaper") 9>&- &
-    disown 2>/dev/null || true
+  if [ -z "${PROFILE_SKIP_WALLPAPER_THEME:-}" ]; then
+    if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
+      apply_wallpaper_theme "$wallpaper"
+    else
+      (run_wallpaper_theme_detached "$wallpaper") 9>&- &
+      disown 2>/dev/null || true
+    fi
   fi
 }
 
@@ -533,6 +535,11 @@ apply_wallpaper_theme() {
     # below then selects Comfy/sharp.
   fi
 
+  # Tag the runtime quickshell override in the same complete staging set as the
+  # renderer output before staging adapters read runtime-theme-profile/variant.
+  write_profile_value_atomic "$theme_stage/profiles/runtime-theme-profile" "$profile"
+  write_profile_value_atomic "$theme_stage/profiles/runtime-theme-variant" "$variant"
+
   # Render every adapter-owned file against the private generation tree. Once
   # publication accepts the generation, only reloads and application signals
   # remain; no stale worker can write a visible theme file afterwards.
@@ -544,6 +551,7 @@ apply_wallpaper_theme() {
     PROFILES_DIR="$theme_stage/profiles"
     ln -s "$local_profiles_dir/$profile" "$PROFILES_DIR/$profile"
     export XDG_CONFIG_HOME="$CONFIG_HOME"
+    export XDG_DATA_HOME="$theme_stage/home/.local/share"
     export XDG_STATE_HOME="$theme_stage/home/.local/state"
     export PROFILE_STAGE_ONLY=1
     if [ -n "$local_firefox_chrome" ] && [[ "$local_firefox_chrome" == "$HOME"/* ]]; then
@@ -600,11 +608,6 @@ apply_wallpaper_theme() {
     fi
   fi
 
-  # Tag the runtime quickshell override in the same complete staging set as the
-  # renderer output. The publisher checks this generation while holding the
-  # transition lock, so a late renderer cannot repaint one consumer of B with A.
-  write_profile_value_atomic "$theme_stage/profiles/runtime-theme-profile" "$profile"
-  write_profile_value_atomic "$theme_stage/profiles/runtime-theme-variant" "$variant"
   theme_job_is_current "$job_profile" "$job_variant" "$job_gen" || {
     rm -rf "$theme_stage"
     return 0
@@ -630,6 +633,8 @@ apply_wallpaper_theme() {
   reload_kitty
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
   reload_zathura_theme
+  pkill -USR2 -x cava 2>/dev/null || true
+  systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
   nudge_gtk_reload
   restart_swayosd
   # spicetify re-patches xpui and may relaunch Spotify; keep it off the critical
@@ -691,6 +696,7 @@ set_zed_theme() {
 
   sed -i \
     -e "s|^\([[:space:]]*\"theme\":[[:space:]]*\)\"[^\"]*\",|\1\"$theme_name\",|" \
+    -e "/\"theme\"[[:space:]]*:/,/}/ s|\"mode\": \"[^\"]*\"|\"mode\": \"$mode_name\"|" \
     -e "/\"theme\"[[:space:]]*:/,/}/ s|\"$mode_name\": \"[^\"]*\"|\"$mode_name\": \"$theme_name\"|" \
     "$settings_file"
 }
@@ -922,7 +928,7 @@ apply_profile_appearance_files() {
 }
 
 apply_profile_cursor_files() {
-  local config_root="$1" profile="$2" cursor cursor_size cursor_json
+  local config_root="$1" profile="$2" cursor cursor_size cursor_json icons_default
   cursor_json=$(profile_manifest_transition_json "$profile" cursor)
   IFS=$'\t' read -r cursor cursor_size < <(
     jq -r '[.theme, .size] | @tsv' <<< "$cursor_json"
@@ -931,6 +937,11 @@ apply_profile_cursor_files() {
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-cursor-theme-size "$cursor_size"
   set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-cursor-theme-name "$cursor"
   set_gtk_setting "$config_root/gtk-4.0/settings.ini" gtk-cursor-theme-size "$cursor_size"
+  if [ -n "$cursor" ] && [ -d "$HOME/.icons/default" ]; then
+    icons_default="$(dirname "$config_root")/.icons/default/index.theme"
+    mkdir -p "$(dirname "$icons_default")"
+    printf '[Icon Theme]\nName=Default\nInherits=%s\n' "$cursor" > "$icons_default"
+  fi
 }
 
 stage_profile_core_files() {
@@ -947,6 +958,7 @@ stage_profile_core_files() {
     .config/hypr/profile-motion.conf
     .config/swayosd-motion.css
     .config/rofi/profile-switcher.rasi
+    .icons/default/index.theme
   )
 
   for relative in "${mutable[@]}"; do
@@ -1271,15 +1283,23 @@ apply_vicinae_runtime_theme() {
 
   [ -s "$theme_json" ] || return 0
 
-  raw_bg=$(json_color "$theme_json" rawBg "$(json_color "$theme_json" bg "#101010")")
-  popup_bg=$(json_color "$theme_json" popupBg "$raw_bg")
   fg=$(json_color "$theme_json" fg "#ffffff")
+  raw_bg=$(json_color "$theme_json" rawBg "$(json_color "$theme_json" bg "#101010")")
+  if [ "${raw_bg,,}" = "${fg,,}" ]; then
+    raw_bg=$(json_color "$theme_json" bg "#101010")
+    if [ "${raw_bg,,}" = "${fg,,}" ]; then
+      if [ "$variant" = "light" ]; then raw_bg="#ffffff"; else raw_bg="#101010"; fi
+    fi
+  fi
+  popup_bg=$(json_color "$theme_json" popupBg "$raw_bg")
+  [ "${popup_bg,,}" = "${fg,,}" ] && popup_bg="$raw_bg"
   secondary=$(json_color "$theme_json" second "$fg")
   accent=$(json_color "$theme_json" accent "$fg")
   warm=$(json_color "$theme_json" warm "$accent")
   fresh=$(json_color "$theme_json" fresh "$accent")
   red=$(json_color "$theme_json" red "#ff6b6b")
   accent_fg="$raw_bg"
+  [ "${accent,,}" = "${raw_bg,,}" ] && accent_fg="$fg"
   accent_hex="${accent#\#}"
   hover_bg="#40${accent_hex}"
 
@@ -1356,7 +1376,9 @@ EOF
 
   family=$(vicinae_font_family "$profile" "$theme_json")
   write_vicinae_settings "$family" "$theme_json"
-  systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+  if [ -z "${PROFILE_STAGE_ONLY:-}" ]; then
+    systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+  fi
 }
 
 # apply_btop_theme <profile-dir> <variant>
@@ -1520,6 +1542,17 @@ firefox_globals_payload() {
   local profile="$1" variant="$2"
   local firefox main sec accent text accent_hsl rt bg fg acc
 
+  rt="$PROFILES_DIR/runtime-quickshell-theme.json"
+  if profile_wallpaper_theming "$profile" \
+    && [ -s "$rt" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null || true)" = "$profile" ] \
+    && [ "$(cat "$PROFILES_DIR/runtime-theme-variant" 2>/dev/null || true)" = "$variant" ]; then
+    IFS=$'\t' read -r bg fg acc < <(
+      jq -r '[(.rawBg // ""), (.fg // ""), (.accent // "")] | @tsv' "$rt" 2>/dev/null
+    ) || true
+    firefox_globals_from_palette "$bg" "$fg" "$acc" && return 0
+  fi
+
   firefox=$(profile_manifest_adapter "$profile" "$variant" firefox 2>/dev/null || true)
   if [ -n "$firefox" ]; then
     # One jq for all five firefox colors; keeps the per-key variant→dark fallback
@@ -1536,7 +1569,6 @@ firefox_globals_payload() {
     fi
   fi
 
-  rt="$PROFILES_DIR/runtime-quickshell-theme.json"
   if [ -s "$rt" ] \
     && [ "$(cat "$PROFILES_DIR/runtime-theme-profile" 2>/dev/null || true)" = "$profile" ] \
     && [ "$(cat "$PROFILES_DIR/runtime-theme-variant" 2>/dev/null || true)" = "$variant" ]; then
@@ -1760,6 +1792,7 @@ apply_obsidian_scheme() {
     tmp=$(mktemp)
     if jq --indent 2 --arg accent "$accent" \
       '(.enabledCssSnippets // []) |= (map(select(. != "tinted" and . != "sharp")) + ["code-blocks"] | unique)
+       | .theme = "obsidian"
        | .textFontFamily = "CMU Serif"
        | .interfaceFontFamily = "IBM Plex Sans"
        | .monospaceFontFamily = "IBM Plex Mono"

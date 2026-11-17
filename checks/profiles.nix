@@ -95,8 +95,14 @@ let
       missingVicinaeThemes = builtins.filter (f: !(pf ? ${f})) vicinaeThemeFiles;
       vicinaeThemeBad =
         f:
-        !(
-          builtins.match ".*meta.*name = \"${name}.*variant = \".*colors.core.*accent = \".*" pf.${f} != null
+        let
+          text = pf.${f};
+          pair = builtins.match ".*background = \"([^\"]+)\"[[:space:]]*foreground = \"([^\"]+)\".*" text;
+          sameBgFg = pair != null && (builtins.elemAt pair 0) == (builtins.elemAt pair 1);
+        in
+        sameBgFg
+        || !(
+          builtins.match ".*meta.*name = \"${name}.*variant = \".*colors.core.*accent = \".*" text != null
         );
       badVicinaeThemes = builtins.filter (f: (pf ? ${f}) && vicinaeThemeBad f) vicinaeThemeFiles;
       niriOverrides = pf."niri-overrides.kdl" or "";

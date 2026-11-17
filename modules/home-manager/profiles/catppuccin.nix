@@ -94,7 +94,7 @@ let
       midlight = r.overlay1;
       highlightedText = r.bg3;
       alternateBase = r.bg2;
-      tooltipText = r.bg2;
+      tooltipBase = r.bg2;
       secondaryText = r.fg2;
       inactiveWindowText = r.fg1;
       inactiveButtonText = r.fg1;
@@ -181,7 +181,7 @@ let
       gtkTheme = "adw-gtk3-dark";
       gtkThemeLight = "adw-gtk3";
       iconTheme = "Papirus-Dark";
-      iconThemeLight = "Papirus-Dark";
+      iconThemeLight = "Papirus-Light";
       kittyCursorTrail = trails.glide;
       motion = motionPresets.glide;
     };
