@@ -92,9 +92,8 @@ fi
 
 # Suspending before the locker owns the session shows the desktop on resume,
 # so confirm the lock instead of sleeping and hoping. hyprlock does not set
-# logind's LockedHint, so detect it by process; the noctalia branch is an ipc
-# call that exits 0 once the shell has locked. If neither lands, blank instead
-# of suspending, then power off if the lid remains closed.
+# logind's LockedHint, so detect it by process. If it fails to start, blank
+# instead of suspending, then power off if the lid remains closed.
 /home/rupan/.local/bin/lock-screen &
 lock_pid=$!
 

@@ -40,20 +40,6 @@ has_light_variant() {
 stop_bar() {
   local bar="$1"
   case "$bar" in
-    noctalia)
-      if ! systemctl --user stop noctalia-shell >/dev/null 2>&1; then
-        echo "Error: failed to stop noctalia-shell." >&2
-        return 1
-      fi
-      for _ in $(seq 1 20); do
-        systemctl --user is-active --quiet noctalia-shell >/dev/null 2>&1 || break
-        sleep 0.1
-      done
-      if systemctl --user is-active --quiet noctalia-shell >/dev/null 2>&1; then
-        echo "Error: noctalia-shell did not stop." >&2
-        return 1
-      fi
-      ;;
     quickshell)
       systemctl --user stop quickshell-bar.service >/dev/null 2>&1 || true
       for _ in $(seq 1 20); do
@@ -69,17 +55,12 @@ stop_bar() {
 }
 
 stop_all_bars() {
-  stop_bar noctalia
   stop_bar quickshell
 }
 
 start_bar() {
   local bar="$1"
   case "$bar" in
-    noctalia)
-      systemctl --user stop awww >/dev/null 2>&1 || true
-      systemctl --user start noctalia-shell >/dev/null 2>&1
-      ;;
     quickshell)
       systemctl --user start awww >/dev/null 2>&1 || true
       systemctl --user start quickshell-bar.service >/dev/null 2>&1
@@ -101,10 +82,6 @@ verify_bar() {
   attempts="${PROFILE_TRANSITION_VERIFY_ATTEMPTS:-50}"
   for _ in $(seq 1 "$attempts"); do
     case "$bar" in
-      noctalia)
-        systemctl --user is-active --quiet noctalia-shell >/dev/null 2>&1 \
-          && notification_owner_is noctalia && return 0
-        ;;
       quickshell)
         systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1 \
           && notification_owner_is quickshell && return 0
@@ -124,7 +101,7 @@ notification_owner_is() {
 expected_niri_override() {
   local override
   override=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.default)
-  if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ] && [ "$TARGET" != "noctalia" ]; then
+  if [ "$(read_state "$FOCUS_FILE" "off")" = "on" ]; then
     override=$(profile_manifest_artifact "$TARGET" "$TARGET_VARIANT" niri.focus)
   fi
   if profile_wallpaper_theming "$TARGET" \
@@ -173,47 +150,8 @@ apply_static_wallpaper() {
   fi
 }
 
-apply_noctalia_wallpaper() {
-  local screens
-  command -v noctalia >/dev/null 2>&1 || return 0
-  stop_video_wallpaper
-  screens=$(niri msg outputs 2>/dev/null | grep '^Output ' \
-    | sed 's/^Output ".*" (\(.*\))/\1/')
-
-  run_noctalia_wallpaper_job() {
-    local first=1 screen
-    while IFS= read -r screen; do
-      [ -n "$screen" ] || continue
-      if [ "$first" -eq 1 ]; then
-        for _ in $(seq 1 40); do
-          noctalia msg wallpaper-random "$screen" 2>/dev/null && break
-          sleep 0.25
-        done
-        first=0
-      else
-        noctalia msg wallpaper-random "$screen" 2>/dev/null || true
-      fi
-    done <<< "$screens"
-    noctalia msg templates-apply 2>/dev/null || true
-  }
-
-  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    run_theme_side_effect_if_current "$THEME_GENERATION" run_noctalia_wallpaper_job
-  else
-    (
-      unset PROFILE_PUBLISH_LOCK_FD
-      run_theme_side_effect_if_current "$THEME_GENERATION" run_noctalia_wallpaper_job
-    ) 9>&- &
-    disown 2>/dev/null || true
-  fi
-}
-
 apply_wallpaper_adapter() {
-  if [ "$TARGET_SELF_THEMED" = true ]; then
-    apply_noctalia_wallpaper
-  else
-    apply_static_wallpaper
-  fi
+  apply_static_wallpaper
 }
 
 start_profile_switcher() {
@@ -288,27 +226,20 @@ dispatch_post_commit_adapters() {
     "$THEME_GENERATION" start_profile_switcher
 
   if [ "$MODE" != startup ]; then
-    if [ "$TARGET_SELF_THEMED" = true ]; then
-      run_post_commit_adapter cava run_theme_side_effect_if_current \
-        "$THEME_GENERATION" restore_cava_noctalia_theme
-    else
-      run_post_commit_adapter tmux run_theme_side_effect_if_current \
-        "$THEME_GENERATION" tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf"
-      run_post_commit_adapter zathura run_theme_side_effect_if_current \
-        "$THEME_GENERATION" reload_zathura_theme
-      run_post_commit_adapter cava run_theme_side_effect_if_current \
-        "$THEME_GENERATION" pkill -USR2 -x cava
-      run_post_commit_adapter vicinae run_theme_side_effect_if_current \
-        "$THEME_GENERATION" systemctl --user try-reload-or-restart vicinae.service
-      run_post_commit_adapter swayosd run_theme_side_effect_if_current \
-        "$THEME_GENERATION" restart_swayosd
-    fi
+    run_post_commit_adapter tmux run_theme_side_effect_if_current \
+      "$THEME_GENERATION" tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf"
+    run_post_commit_adapter zathura run_theme_side_effect_if_current \
+      "$THEME_GENERATION" reload_zathura_theme
+    run_post_commit_adapter cava run_theme_side_effect_if_current \
+      "$THEME_GENERATION" pkill -USR2 -x cava
+    run_post_commit_adapter vicinae run_theme_side_effect_if_current \
+      "$THEME_GENERATION" systemctl --user try-reload-or-restart vicinae.service
+    run_post_commit_adapter swayosd run_theme_side_effect_if_current \
+      "$THEME_GENERATION" restart_swayosd
     run_post_commit_adapter kitty run_theme_side_effect_if_current \
       "$THEME_GENERATION" reload_kitty
     run_post_commit_adapter gtk run_theme_side_effect_if_current \
       "$THEME_GENERATION" nudge_gtk_reload
-    # Not in the branch above: self-themed profiles have no baked firefox colors
-    # but do have a live palette (noctalia colors.json) to fall back on.
     if ! profile_wallpaper_theming "$TARGET"; then
       run_post_commit_adapter spicetify run_theme_side_effect_if_current "$THEME_GENERATION" \
         apply_spicetify_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
@@ -411,7 +342,7 @@ case "$MODE" in
     WRITE_PREFERENCE=1
     ;;
   startup)
-    TARGET="${REQUESTED_TARGET:-${CURRENT:-noctalia}}"
+    TARGET="${REQUESTED_TARGET:-${CURRENT:-sharp}}"
     if [ -n "$REQUESTED_TARGET" ] && [ "$TARGET" != "$CURRENT" ]; then
       TARGET_VARIANT=$(read_state "$PROFILES_DIR/variant-$TARGET" "dark")
     else
@@ -419,7 +350,7 @@ case "$MODE" in
     fi
     WRITE_PREFERENCE=0
     if [ ! -d "$PROFILES_DIR/$TARGET" ]; then
-      TARGET="noctalia"
+      TARGET="sharp"
       TARGET_VARIANT="dark"
       WRITE_PREFERENCE=1
     fi
@@ -435,12 +366,11 @@ fi
 
 TARGET_DIR="$PROFILES_DIR/$TARGET"
 TARGET_RUNTIME="$TARGET_DIR/manifest.json"
-TARGET_SELF_THEMED=$(profile_manifest_capability "$TARGET" selfThemed)
 TARGET_WALLPAPER_DIR=$(profile_manifest_wallpaper_dir "$TARGET" "$TARGET_VARIANT")
 
 OLD_ACTIVE=$(read_state "$ACTIVE_FILE" "")
 OLD_VARIANT=$(read_state "$VARIANT_FILE" "dark")
-CURRENT_BAR="noctalia"
+CURRENT_BAR="quickshell"
 if [ -n "$OLD_ACTIVE" ] && [ -f "$PROFILES_DIR/$OLD_ACTIVE/manifest.json" ]; then
   CURRENT_BAR=$(profile_bar "$OLD_ACTIVE")
 fi
@@ -449,7 +379,7 @@ TARGET_BAR=$(profile_bar "$TARGET")
 # Steady startup: persisted profile, variant, and Niri override already match
 # the target, so relinking the override and reloading Niri would only flicker
 # the screen. The bar is still ensured below (quickshell has no autostart
-# unit, and systemd may not have started noctalia yet).
+# unit).
 STARTUP_STEADY=0
 if [ "$MODE" = startup ] && [ "$WRITE_PREFERENCE" -eq 0 ] \
   && [ "$TARGET" = "$CURRENT" ] && [ "$TARGET_VARIANT" = "$CURRENT_VARIANT" ] \
@@ -713,14 +643,12 @@ stage_post_commit_files() {
         install -m 644 "${OBSIDIAN_MINIMAL_SETTINGS%/plugins/*}/appearance.json" "$stage_obsidian_vault/appearance.json"
       OBSIDIAN_MINIMAL_SETTINGS="$stage_obsidian_vault/.obsidian/plugins/obsidian-minimal-settings/data.json"
     fi
-    if [ "$TARGET_SELF_THEMED" != true ]; then
-      apply_btop_theme "$TARGET_DIR" "$TARGET_VARIANT"
-      apply_tmux_colors "$TARGET_DIR" "$TARGET_VARIANT"
-      apply_zathura_theme "$TARGET_DIR" "$TARGET_VARIANT"
-      apply_hyprlock_colors "$TARGET_DIR" "$TARGET_VARIANT"
-      apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
-      apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"
-    fi
+    apply_btop_theme "$TARGET_DIR" "$TARGET_VARIANT"
+    apply_tmux_colors "$TARGET_DIR" "$TARGET_VARIANT"
+    apply_zathura_theme "$TARGET_DIR" "$TARGET_VARIANT"
+    apply_hyprlock_colors "$TARGET_DIR" "$TARGET_VARIANT"
+    apply_cava_colors "$TARGET_DIR" "$TARGET_VARIANT"
+    apply_vicinae_theme "$TARGET_DIR" "$TARGET_VARIANT"
     write_firefox_globals "$TARGET_RUNTIME" "$TARGET_VARIANT"
     apply_zed_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"
     apply_vesktop_theme "$TARGET_RUNTIME" "$TARGET_VARIANT"

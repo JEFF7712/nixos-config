@@ -32,7 +32,7 @@ mark() {
 }
 
 profile_status() {
-  local active variant bar self link_target expected_target runtime_target wallpaper_dir
+  local active variant bar link_target expected_target runtime_target wallpaper_dir
 
   active=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
   variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo "dark")
@@ -43,28 +43,16 @@ profile_status() {
 
   profile_manifest_validate "$active" "$variant"
   bar=$(profile_bar "$active")
-  self=$(profile_manifest_capability "$active" selfThemed)
 
-  echo "Profile: $active (variant: $variant, bar: $bar, self-themed: $self)"
+  echo "Profile: $active (variant: $variant, bar: $bar)"
 
-  case "$bar" in
-    noctalia)
-      if [ "$(systemctl --user is-active noctalia-shell 2>/dev/null)" = "active" ]; then
-        mark ok "noctalia-shell service"
-      else
-        mark fail "noctalia-shell service"
-      fi
-      ;;
-    quickshell)
-      pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 \
-        && mark ok "quickshell topbar" || mark fail "quickshell topbar"
-      if busctl --user status org.freedesktop.Notifications 2>/dev/null | grep -qi quickshell; then
-        mark ok "notification server"
-      else
-        mark fail "notification server (bus not owned by quickshell)"
-      fi
-      ;;
-  esac
+  pgrep -f "quickshell.*quickshell/shell.qml" >/dev/null 2>&1 \
+    && mark ok "quickshell topbar" || mark fail "quickshell topbar"
+  if busctl --user status org.freedesktop.Notifications 2>/dev/null | grep -qi quickshell; then
+    mark ok "notification server"
+  else
+    mark fail "notification server (bus not owned by quickshell)"
+  fi
 
   pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1 \
     && mark ok "profile switcher popup" || mark fail "profile switcher popup"
@@ -72,7 +60,7 @@ profile_status() {
     && mark ok "vicinae launcher" || mark fail "vicinae launcher"
 
   link_target=$(readlink "$ACTIVE_LINK" 2>/dev/null || echo "")
-  if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ] && [ "$active" != "noctalia" ]; then
+  if [ "$(cat "$FOCUS_FILE" 2>/dev/null)" = "on" ]; then
     expected_target=$(profile_manifest_artifact "$active" "$variant" niri.focus)
   else
     expected_target=$(profile_manifest_artifact "$active" "$variant" niri.default)
@@ -88,7 +76,7 @@ profile_status() {
   fi
 
   wallpaper_dir=$(profile_manifest_wallpaper_dir "$active" "$variant")
-  if [ "$self" = "true" ] || [ -d "$wallpaper_dir" ]; then
+  if [ -d "$wallpaper_dir" ]; then
     mark ok "wallpaper dir"
   else
     mark fail "wallpaper dir ($wallpaper_dir)"

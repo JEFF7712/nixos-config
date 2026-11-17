@@ -12,7 +12,7 @@ TOGGLE_VARIANT="$SCRIPT_DIR/toggle-variant"
 
 usage() {
   echo "Usage: generate-previews [-y] [profile...]"
-  echo "Regenerates rofi profile-picker preview images by switching through"
+  echo "Regenerates profile-switcher preview images by switching through"
   echo "profiles and screenshotting each. Disruptive: the desktop will flash"
   echo "through every theme. Restores the current profile/variant afterwards."
 }
@@ -134,13 +134,7 @@ capture() {
 }
 
 settle_delay() {
-  local name="$1"
-  if [ "$name" = "noctalia" ] ||
-    [ "$(profile_manifest_capability "$name" selfThemed)" = "true" ]; then
-    echo 10
-  else
-    echo 5
-  fi
+  echo 5
 }
 
 mkdir -p "$PREVIEW_DIR"

@@ -335,7 +335,6 @@
   networking.wireless.iwd.enable = false;
 
   cominDeploy.enable = true;
-  focusMode.enable = true;
 
   programs.nh = {
     enable = true;
@@ -349,17 +348,14 @@
 
   nix.optimise.automatic = true;
 
-  # Homelab caches on nas-01: niks3 first (priority 30), Attic as fallback
-  # until it is retired. Signatures are enforced (no
-  # extra-trusted-substituters bypass); the keys below must match the live
-  # server keys configured in the homelab repo.
+  # Homelab binary cache on nas-01 (niks3). Signatures are enforced (no
+  # extra-trusted-substituters bypass); the key below must match the live
+  # server key configured in the homelab repo.
   nix.settings.extra-substituters = [
     "http://10.0.30.20:8090"
-    "http://10.0.30.20:8080/homelab"
   ];
   nix.settings.extra-trusted-public-keys = [
     "homelab-niks3-1:LXFpoJ6mA2PYYca5dMeXCu+I2Qqt6i8WeOlh5qTUhec="
-    "homelab:J+OVQOCG2sNT2KoVbWGPikoWcIbBanHnY2NOcMF3vwk="
   ];
   # direnv has no stdin to answer the interactive y/N prompt, so it hangs.
   nix.settings.accept-flake-config = true;

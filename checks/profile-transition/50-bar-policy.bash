@@ -1,83 +1,53 @@
 # shellcheck shell=bash
 # Sourced by checks/profile-transition.bash; shares its globals.
-# Every previous/target bar pairing follows one bar policy. Target readiness is
-# checked before preferences commit, and notification/wallpaper ownership tracks
-# the target rather than the previous bar.
+# Same-bar Quickshell transition leaves the live bar running while a stopped bar
+# starts Quickshell + awww and verifies notification ownership before commit.
 printf 'on\n' > "$profiles/focus"
 qs_wallpaper_backups=()
-for previous in qs noc; do
-  case "$previous" in
-    qs) previous_state=quickshell-started ;;
-    noc) previous_state=noctalia-started ;;
-  esac
-  for target in qs noc; do
-    printf '%s\n' "$previous" > "$profiles/active"
-    printf 'dark\n' > "$profiles/active-variant"
-    printf 'dark\n' > "$profiles/variant-$target"
-    ln -sfn "$profiles/$previous/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-    printf '%s\n' "$previous_state" > "$bar_state"
-    case "$previous" in
-      qs) printf 'quickshell\n' > "$notification_state" ;;
-      noc) printf 'noctalia\n' > "$notification_state" ;;
-    esac
-    if [ "$previous" = qs ] && [ "$target" = qs ]; then
-      for wp_dir in "$profiles/qs/wallpapers" "$profiles/old/wallpapers"; do
-        if [ -d "$wp_dir" ]; then
-          wp_bak="$tmpdir/$(echo "$wp_dir" | tr '/' '-').bak"
-          mv "$wp_dir" "$wp_bak"
-          qs_wallpaper_backups+=("$wp_dir:$wp_bak")
-        fi
-      done
-    fi
-    : > "$log"
-    HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-      PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-      BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-      "$REPO_ROOT/home/scripts/profile-transition" switch "$target"
-    if [ "$previous" = qs ] && [ "$target" = qs ]; then
-      for entry in "${qs_wallpaper_backups[@]}"; do
-        wp_dir=${entry%%:*}
-        wp_bak=${entry#*:}
-        mv "$wp_bak" "$wp_dir"
-      done
-      qs_wallpaper_backups=()
-    fi
+for initial_state in stopped quickshell-started; do
+  printf 'qs\n' > "$profiles/active"
+  printf 'dark\n' > "$profiles/active-variant"
+  printf 'dark\n' > "$profiles/variant-sharp"
+  ln -sfn "$profiles/qs/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+  printf '%s\n' "$initial_state" > "$bar_state"
+  if [ "$initial_state" = quickshell-started ]; then
+    printf 'quickshell\n' > "$notification_state"
+    for wp_dir in "$profiles/qs/wallpapers" "$profiles/sharp/wallpapers" "$profiles/old/wallpapers"; do
+      if [ -d "$wp_dir" ]; then
+        wp_bak="$tmpdir/$(echo "$wp_dir" | tr '/' '-').bak"
+        mv "$wp_dir" "$wp_bak"
+        qs_wallpaper_backups+=("$wp_dir:$wp_bak")
+      fi
+    done
+  else
+    printf 'none\n' > "$notification_state"
+  fi
+  : > "$log"
+  HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+    PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
+    BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
+    "$REPO_ROOT/home/scripts/profile-transition" switch sharp
+  if [ "$initial_state" = quickshell-started ]; then
+    for entry in "${qs_wallpaper_backups[@]}"; do
+      wp_dir=${entry%%:*}
+      wp_bak=${entry#*:}
+      mv "$wp_bak" "$wp_dir"
+    done
+    qs_wallpaper_backups=()
+  fi
 
-    case "$previous" in
-      qs)
-        if [ "$target" = qs ]; then
-          assert_log_not_contains "systemctl --user stop quickshell-bar.service" \
-            "same-bar Quickshell switch leaves the topbar process running"
-        else
-          assert_log_contains "systemctl --user stop quickshell-bar.service" \
-            "Quickshell exact topbar is stopped from $previous to $target"
-        fi
-        ;;
-      noc) assert_log_contains 'systemctl --user stop noctalia-shell' \
-        "Noctalia is stopped from $previous to $target" ;;
-    esac
-    case "$target" in
-      qs)
-        assert_log_contains "systemctl --user is-active --quiet quickshell-bar.service" \
-          "Quickshell readiness uses the exact topbar from $previous"
-        if [ "$previous" = qs ]; then
-          assert_log_not_contains 'systemctl --user start awww' \
-            "same-bar Quickshell does not re-run start_bar awww from $previous"
-        else
-          assert_log_contains 'systemctl --user start awww' "Quickshell starts awww from $previous"
-          assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
-            "Quickshell verifies notification ownership from $previous"
-        fi
-        ;;
-      noc)
-        assert_log_contains 'systemctl --user is-active --quiet noctalia-shell' \
-          "Noctalia readiness uses systemctl from $previous"
-        assert_log_contains 'systemctl --user stop awww' "Noctalia stops awww from $previous"
-        assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
-          "Noctalia verifies notification ownership from $previous"
-        ;;
-    esac
-  done
+  assert_log_contains "systemctl --user is-active --quiet quickshell-bar.service" \
+    "Quickshell readiness uses quickshell-bar.service ($initial_state)"
+  if [ "$initial_state" = quickshell-started ]; then
+    assert_log_not_contains "systemctl --user stop quickshell-bar.service" \
+      "Quickshell switch leaves a healthy bar running"
+    assert_log_not_contains 'systemctl --user start awww' \
+      "same-bar Quickshell does not re-run start_bar awww"
+  else
+    assert_log_contains 'systemctl --user start awww' "stopped Quickshell starts awww"
+    assert_log_contains 'busctl --user status org.freedesktop.Notifications' \
+      "Quickshell verifies notification ownership"
+  fi
 done
 
 cp -a "$profiles/qs" "$profiles/qs2"
@@ -215,11 +185,11 @@ assert_log_contains \
 assert_pending_cleared "Quickshell variant rollback"
 
 # A ready bar process is insufficient when its notification owner is absent.
-printf 'noc\n' > "$profiles/active"
+printf 'sharp\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
-ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf 'noctalia-started\n' > "$bar_state"
-printf 'noctalia\n' > "$notification_state"
+ln -sfn "$profiles/sharp/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'stopped\n' > "$bar_state"
+printf 'none\n' > "$notification_state"
 : > "$log"
 if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
@@ -229,5 +199,5 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   printf 'FAIL: transition committed Quickshell without its notification owner\n' >&2
   exit 1
 fi
-assert_eq noc "$(cat "$profiles/active")" \
+assert_eq sharp "$(cat "$profiles/active")" \
   "notification ownership failure rolls back active profile"

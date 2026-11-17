@@ -32,4 +32,5 @@ secrets/decrypted.*
 
 # local agent session notes (one-shot capture, never tracked)
 session-ses_*.md
+codex-session-*.md
 /home/configs/hass-upstream/

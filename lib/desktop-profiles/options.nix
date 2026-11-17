@@ -154,33 +154,20 @@ in
     options = {
       bar = lib.mkOption {
         type = lib.types.enum [
-          "clean"
-          "noctalia"
           "quickshell"
         ];
+        default = "quickshell";
         description = "Which bar to run for this profile.";
-      };
-
-      selfThemed = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = ''
-          The profile's shell manages its own colors and wallpaper at runtime
-          (noctalia). Switching scripts skip color-file copies, wallpaper
-          setting, and kitty reload for self-themed profiles.
-        '';
       };
 
       wallpaperTheming = lib.mkOption {
         type = lib.types.bool;
         default = false;
         description = ''
-          Re-theme from each wallpaper at runtime via matugen: on every
-          wallpaper change (and variant toggle) apply_wallpaper_theme extracts
-          a dominant color and regenerates the quickshell theme, GTK/Qt/kitty/
-          cava/etc. The profile's baked colors act as the pre-first-run
-          fallback. Unlike selfThemed (noctalia owns everything), the profile
-          still uses the project's own bar and color-file plumbing.
+          Re-theme from each wallpaper at runtime: on every wallpaper change
+          (and variant toggle) apply_wallpaper_theme extracts a dominant color
+          and regenerates the quickshell theme, GTK/Qt/kitty/cava/etc. The
+          profile's baked colors act as the pre-first-run fallback.
         '';
       };
 

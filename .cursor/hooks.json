@@ -20,20 +20,6 @@
         "timeout": 30
       }
     ],
-    "postToolUseFailure": [
-      {
-        "command": "hooks/friction-log",
-        "matcher": "Shell",
-        "timeout": 5
-      }
-    ],
-    "stop": [
-      {
-        "command": "hooks/friction-stop",
-        "timeout": 10,
-        "loop_limit": 1
-      }
-    ],
     "beforeMCPExecution": [
       {
         "command": "hooks/before-mcp",

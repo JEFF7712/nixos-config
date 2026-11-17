@@ -1,5 +1,6 @@
 {
   pkgs,
+  config,
   ...
 }:
 
@@ -12,7 +13,7 @@
     ../../modules/home-manager/repo-path.nix
     ../../modules/home-manager/terminal.nix
     ../../modules/home-manager/niri.nix
-    ../../modules/home-manager/noctalia.nix
+    ../../modules/home-manager/quickshell.nix
     ../../modules/home-manager/desktop-profiles.nix
   ];
 
@@ -44,14 +45,14 @@
   programs.firefox.enable = true;
 
   niri.enable = true;
-  noctalia.enable = true;
+  quickshell.enable = true;
+  systemd.user.services.quickshell-bar.Install.WantedBy = [ config.wayland.systemd.target ];
   terminal.enable = true;
 
   # Runtime theme switching costs ~1G here, most of it six cursor themes that
-  # each profile pins plus matugen/imagemagick. noctalia's ExecCondition falls
-  # back to "noctalia" when the active-profile file is missing, so the shell
-  # still comes up; it just comes up unthemed. nixvim.nix is not imported, so
-  # the LSP toolchain never evaluates on this host.
+  # each profile pins plus matugen/imagemagick. Quickshell comes up with its
+  # built-in fallback colors when desktop-profiles is off. nixvim.nix is not
+  # imported, so the LSP toolchain never evaluates on this host.
   desktopProfiles.enable = false;
 
   # Scripts — symlink home/scripts/ into ~/.local/bin

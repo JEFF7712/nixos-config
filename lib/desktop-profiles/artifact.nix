@@ -51,7 +51,6 @@ in
         inherit name;
         capabilities = {
           inherit (profile)
-            selfThemed
             wallpaperTheming
             colorEngine
             matugenScheme

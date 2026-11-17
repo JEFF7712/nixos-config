@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Wrapper that locks with noctalia when active, hyprlock otherwise.
+# Render a profile-themed hyprlock config and lock the session.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,22 +31,16 @@ ACTIVE_FILE="$PROFILES_DIR/active"
 PROFILE=""
 [ -f "$ACTIVE_FILE" ] && PROFILE=$(cat "$ACTIVE_FILE")
 
-if [ "$PROFILE" = "noctalia" ]; then
-  # noctalia 5.0.0 renamed the binary (noctalia-shell -> noctalia) and replaced
-  # `ipc ... call` with `msg`. The old form exited 127, so this branch never
-  # locked. `noctalia-shell` survives only as the systemd unit name.
-  exec noctalia msg session lock
-else
-  # Idle timer, lid-close-action, and Stasis prepare_sleep_command all fire
-  # this script, often for the same suspend. A second hyprlock can never own
-  # the session lock (niri logs "refusing lock as already locked"), and the
-  # loser lingers: later it grabs a dead lock ("replacing existing dead
-  # lock") or stalls post-resume with no input accepted, forcing a hard
-  # power-off. One instance only.
-  if pgrep -x hyprlock >/dev/null 2>&1; then
-    exit 0
-  fi
-  PROFILE_DIR="$PROFILES_DIR/$PROFILE"
+# Idle timer, lid-close-action, and Stasis prepare_sleep_command all fire
+# this script, often for the same suspend. A second hyprlock can never own
+# the session lock (niri logs "refusing lock as already locked"), and the
+# loser lingers: later it grabs a dead lock ("replacing existing dead
+# lock") or stalls post-resume with no input accepted, forcing a hard
+# power-off. One instance only.
+if pgrep -x hyprlock >/dev/null 2>&1; then
+  exit 0
+fi
+PROFILE_DIR="$PROFILES_DIR/$PROFILE"
   THEME_FILE="$PROFILE_DIR/quickshell-theme.json"
   WAYPAPER_CFG="$HOME/.config/waypaper/config.ini"
   FONT_FILE="$HOME/.config/hypr/profile-font.conf"
@@ -231,5 +225,4 @@ input-field {
 
 EOF
 
-  exec hyprlock --config "$RUNTIME_CONFIG" --grace 0
-fi
+exec hyprlock --config "$RUNTIME_CONFIG" --grace 0

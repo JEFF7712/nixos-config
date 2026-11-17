@@ -2,11 +2,11 @@
 # Sourced by checks/profile-transition.bash; shares its globals.
 # The service manager owns the long-lived bar, so the transition releases its
 # lock without leaving a child process that inherited the descriptor.
-printf 'noc\n' > "$profiles/active"
+printf 'sharp\n' > "$profiles/active"
 printf 'dark\n' > "$profiles/active-variant"
-ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf 'noctalia-started\n' > "$bar_state"
-printf 'noctalia\n' > "$notification_state"
+ln -sfn "$profiles/sharp/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
+printf 'stopped\n' > "$bar_state"
+printf 'none\n' > "$notification_state"
 : > "$log"
 HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \

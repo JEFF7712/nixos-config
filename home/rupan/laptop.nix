@@ -16,9 +16,8 @@
   services.stasis = {
     enable = true;
     # Stasis PATH is only this list; missing `stasis` made lid-close inhibit a
-    # silent no-op, missing `noctalia-shell` made lock fail-open on that profile.
+    # silent no-op.
     extraPathPackages = [
-      config.programs.noctalia.package
       config.services.stasis.package
     ]
     ++ (with pkgs; [
@@ -136,61 +135,9 @@
   ];
 
   niri.enable = true;
-  atticPush.enable = true;
   quickshell.enable = true;
   bluetooth.enable = true;
   hass.enable = true;
-  noctalia.enable = true;
-  programs.noctalia.settings = {
-    location = {
-      address = "Madison, WI";
-    };
-    shell = {
-      time_format = "{:%-I:%M %p}";
-    };
-    weather = {
-      enabled = true;
-      refresh_minutes = 30;
-      unit = "fahrenheit";
-      effects = true;
-    };
-    control_center.calendar = {
-      show_events_card = true;
-      show_week_numbers = false;
-    };
-    desktop_widgets.widget = {
-      dp6_clock = {
-        type = "clock";
-        output = "DP-6";
-        cx = 740.0;
-        cy = 100.0;
-        settings = {
-          clock_style = "digital";
-          format = "{:%-I:%M %p}\n{:%-d %B %Y}";
-          color = "on_surface";
-        };
-      };
-      dp6_media = {
-        type = "media_player";
-        output = "DP-6";
-        cx = 440.0;
-        cy = 420.0;
-        settings = {
-          color = "on_surface";
-          hide_when_no_media = false;
-        };
-      };
-      dp6_weather = {
-        type = "weather";
-        output = "DP-6";
-        cx = 580.0;
-        cy = 780.0;
-        settings = {
-          color = "on_surface";
-        };
-      };
-    };
-  };
   terminal.enable = true;
   nixvim.enable = true;
   common-apps.enable = true;

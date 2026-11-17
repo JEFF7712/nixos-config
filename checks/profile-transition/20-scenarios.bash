@@ -101,26 +101,6 @@ check_startup_steady_state() {
     "steady bar start does not reload Niri"
   assert_eq quickshell-started "$(cat "$bar_state")" \
     "steady startup leaves the bar running"
-
-  printf 'off\n' > "$profiles/focus"
-  printf 'noc\n' > "$profiles/active"
-  printf 'dark\n' > "$profiles/active-variant"
-  printf 'dark\n' > "$profiles/variant-noc"
-  ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'noctalia-started\n' > "$bar_state"
-  printf 'noctalia\n' > "$notification_state"
-  : > "$log"
-  run_fixture_transition startup >"$output" 2>&1 || {
-    printf 'FAIL: steady noctalia startup exited nonzero\n' >&2
-    cat "$output" >&2
-    exit 1
-  }
-  assert_log_not_contains 'systemctl --user stop noctalia-shell' \
-    "steady noctalia startup does not stop the running shell"
-  assert_log_not_contains 'systemctl --user start noctalia-shell' \
-    "steady noctalia startup does not restart the running shell"
-  assert_log_not_contains 'niri msg action load-config-file' \
-    "steady noctalia startup does not reload Niri"
 }
 
 check_variant_resolves_after_lock() {
@@ -405,20 +385,20 @@ check_legacy_runtime_regressions() {
 
   printf 'missing\n' > "$profiles/active"
   printf 'light\n' > "$profiles/active-variant"
-  printf 'light\n' > "$profiles/variant-noctalia"
+  printf 'light\n' > "$profiles/variant-sharp"
   ln -sfn "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-  printf 'noctalia-started\n' > "$bar_state"
-  printf 'noctalia\n' > "$notification_state"
+  printf 'quickshell-started\n' > "$bar_state"
+  printf 'quickshell\n' > "$notification_state"
   run_legacy_transition invalid-startup startup
-  assert_eq noctalia "$(cat "$profiles/active")" \
+  assert_eq sharp "$(cat "$profiles/active")" \
     "invalid startup fallback repairs the active preference"
   assert_eq dark "$(cat "$profiles/active-variant")" \
     "invalid startup fallback repairs the global variant preference"
-  assert_eq dark "$(cat "$profiles/variant-noctalia")" \
-    "invalid startup fallback repairs the Noctalia variant preference"
-  assert_eq "$profiles/noctalia/niri-overrides.kdl" \
+  assert_eq dark "$(cat "$profiles/variant-sharp")" \
+    "invalid startup fallback repairs the default profile variant preference"
+  assert_eq "$profiles/sharp/niri-overrides.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
-    "invalid startup falls back to Noctalia runtime"
+    "invalid startup falls back to default sharp runtime"
 
   printf 'old\n' > "$profiles/active"
   printf 'light\n' > "$profiles/active-variant"
@@ -452,8 +432,6 @@ check_legacy_runtime_regressions() {
   printf 'quickshell-started\n' > "$bar_state"
   printf 'quickshell\n' > "$notification_state"
   run_legacy_transition reapply-override reapply
-  assert_log_contains 'systemctl --user stop noctalia-shell' \
-    "reapply stops Noctalia even when the target bar is Quickshell"
   assert_log_contains "systemctl --user stop quickshell-bar.service" \
     "reapply stops Quickshell so it can restart cleanly"
 
@@ -469,24 +447,12 @@ check_legacy_runtime_regressions() {
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
     "focus mode selects the target focus override"
 
-  printf 'dark\n' > "$profiles/variant-noctalia"
-  run_legacy_transition focus-noctalia switch noctalia
-  assert_eq "$profiles/noctalia/niri-overrides.kdl" \
-    "$(readlink "$profiles/active-niri-overrides.kdl")" \
-    "focus mode keeps Noctalia on its normal override"
-  assert_log_contains_eventually \
-    "noctalia msg wallpaper-random eDP-1 active=noctalia" \
-    "self-themed Noctalia dispatches wallpaper selection through noctalia msg"
-  assert_log_contains_eventually \
-    "noctalia msg templates-apply active=noctalia" \
-    "self-themed Noctalia reapplies templates after wallpaper selection"
-
   printf 'off\n' > "$profiles/focus"
   printf 'dark\n' > "$profiles/variant-old"
   run_legacy_transition focus-off-static switch old
   assert_eq "$profiles/old/niri-overrides.kdl" \
     "$(readlink "$profiles/active-niri-overrides.kdl")" \
-    "non-Noctalia target uses its normal override outside focus mode"
+    "target uses its normal override outside focus mode"
   assert_log_contains_eventually \
     "awww img $profiles/old/wallpapers/wallpaper.png --transition-type fade --transition-duration 1 active=old" \
     "static profile selects a wallpaper after commit"

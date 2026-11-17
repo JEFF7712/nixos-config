@@ -38,8 +38,6 @@ require_file docs/agent-self-improvement.md
 require_file hooks/after-edit
 require_file hooks/before-mcp
 require_file hooks/before-shell
-require_file hooks/friction-log
-require_file hooks/friction-stop
 require_file hooks/session-start
 require_file .cursor/hooks.json
 require_file .claude/settings.json
@@ -60,7 +58,6 @@ require_match 'hooks/' AGENT_MAP.md
 # Self-improvement protocol must keep its triggers and the closeout command.
 require_match 'agent-self-improve --check' docs/agent-self-improvement.md
 require_match 'hurdle' docs/agent-self-improvement.md
-require_match 'hooks/friction-stop' docs/agent-self-improvement.md
 
 # Shared agent hooks must stay wired from Cursor, Claude, and Codex configs.
 require_match 'hooks/' CLAUDE.md
@@ -68,8 +65,6 @@ for hook_config in .cursor/hooks.json .claude/settings.json .codex/hooks.json; d
   require_match 'hooks/after-edit' "$hook_config"
   require_match 'hooks/before-mcp' "$hook_config"
   require_match 'hooks/before-shell' "$hook_config"
-  require_match 'hooks/friction-log' "$hook_config"
-  require_match 'hooks/friction-stop' "$hook_config"
   require_match 'hooks/session-start' "$hook_config"
 done
 
