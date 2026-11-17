@@ -17,7 +17,7 @@ cat > "$profile_dir/manifest.json" <<'EOF'
 {
   "schemaVersion": 1,
   "name": "sharp",
-  "capabilities": { "selfThemed": false, "wallpaperTheming": true },
+  "capabilities": { "wallpaperTheming": true },
   "transition": { "defaultBar": "quickshell", "cursor": {}, "fonts": {}, "appearance": {} },
   "variants": {
     "dark": {
@@ -60,7 +60,7 @@ expect_invalid() {
 profile_manifest_validate sharp dark
 profile_manifest_has_variant sharp light
 assert_eq quickshell "$(profile_manifest_bar sharp)" "default bar"
-assert_eq false "$(profile_manifest_capability sharp selfThemed)" "boolean capability"
+assert_eq true "$(profile_manifest_capability sharp wallpaperTheming)" "boolean capability"
 assert_eq /wallpapers/light "$(profile_manifest_wallpaper_dir sharp light)" "variant wallpaper"
 assert_eq "$profile_dir/niri.kdl" "$(profile_manifest_artifact sharp dark niri.default)" "shared artifact"
 assert_eq "$profile_dir/light.css" "$(profile_manifest_artifact sharp light gtk3)" "variant artifact"

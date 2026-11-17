@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 # profile-dispatch <action>
-# Routes profile-aware desktop actions to the right backend so niri keybinds
-# stay one-liners. The noctalia bar handles these itself via `noctalia msg`;
-# everything else uses the generic tools (swayosd, waypaper). Clipboard is
-# identical on every profile, so both tables call the same helper rather than
-# a bar-specific command (a shared case before the $BAR branch would hide it
-# from the one-row-per-table convention).
+# Routes desktop actions from niri keybinds to their runtime helpers.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$SCRIPT_DIR/profile-common"
-
-ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
-BAR="noctalia"
-[ -n "$ACTIVE" ] && BAR=$(profile_bar "$ACTIVE")
 
 clipboard_pick() {
   local theme selected
@@ -24,21 +15,7 @@ clipboard_pick() {
   printf '%s\n' "$selected" | cliphist decode | wl-copy
 }
 
-# Per action: the noctalia 5.0.0 `msg` command (or a helper) and the generic
-# command for every other bar. To add an action, add one row to each table; to
-# add a bar backend, branch on $BAR below.
-declare -A NOCTALIA=(
-  [launcher]="vicinae toggle"
-  # panel id unverified; needs a live test on the noctalia profile
-  [wallpaper]="noctalia msg panel-toggle wallpaper"
-  [volume-up]="noctalia msg volume-up"
-  [volume-down]="noctalia msg volume-down"
-  [volume-mute]="noctalia msg volume-mute"
-  [brightness-up]="noctalia msg brightness-up"
-  [brightness-down]="noctalia msg brightness-down"
-  [clipboard]="clipboard_pick"
-)
-declare -A GENERIC=(
+declare -A ACTIONS=(
   [launcher]="vicinae toggle"
   [wallpaper]="waypaper"
   [volume-up]="volume-adjust up"
@@ -50,23 +27,18 @@ declare -A GENERIC=(
 )
 
 ACTION="${1:-}"
-if [ -z "$ACTION" ] || [ -z "${NOCTALIA[$ACTION]:-}" ]; then
+if [ -z "$ACTION" ] || [ -z "${ACTIONS[$ACTION]:-}" ]; then
   echo "Usage: profile-dispatch <$(
     IFS='|'
-    echo "${!NOCTALIA[*]}"
+    echo "${!ACTIONS[*]}"
   )>" >&2
   exit 1
 fi
 
+if [ "$ACTION" = "wallpaper" ]; then
+  ensure_waypaper_post_command
+fi
 # Word-splitting on the table value is intentional (the commands are trusted
 # constants; $REPO_HOME holds no spaces).
-if [ "$BAR" = "noctalia" ]; then
-  # shellcheck disable=SC2086
-  ${NOCTALIA[$ACTION]}
-else
-  if [ "$ACTION" = "wallpaper" ]; then
-    ensure_waypaper_post_command
-  fi
-  # shellcheck disable=SC2086
-  ${GENERIC[$ACTION]}
-fi
+# shellcheck disable=SC2086
+${ACTIONS[$ACTION]}

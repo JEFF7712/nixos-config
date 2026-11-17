@@ -28,8 +28,6 @@ require_executable home/scripts/new-home-module
 require_executable home/scripts/agent-self-improve
 require_executable hooks/after-edit
 require_executable hooks/before-shell
-require_executable hooks/friction-log
-require_executable hooks/friction-stop
 require_executable hooks/session-start
 require_match 'nixpkgs#nixfmt' .github/workflows/check.yml
 require_match 'nixpkgs#jq' .github/workflows/check.yml
@@ -64,47 +62,6 @@ rm -f "$invariant_fixture"
 if ! grep -Fq "$invariant_fixture" <<<"$fixture_output"; then
   echo "agent invariants failed for an unexpected reason:" >&2
   printf '%s\n' "$fixture_output" >&2
-  exit 1
-fi
-
-assert_auto_update_wiring_rejected() {
-  local service=$1
-  local replacement=$2
-  local fixture expected output
-  fixture=$(mktemp)
-  expected="$service must use mkUpdateService"
-  cp modules/nixos/auto-update.nix "$fixture"
-  perl -0pi -e \
-    "s/systemd\\.services\\.$service = mkUpdateService \\{/$replacement/" \
-    "$fixture"
-
-  if output=$(AUTO_UPDATE_MODULE="$fixture" bash checks/agent-invariants.bash 2>&1); then
-    rm -f "$fixture"
-    echo "agent invariants accepted missing or substituted $service wiring" >&2
-    exit 1
-  fi
-  rm -f "$fixture"
-  if ! grep -Fq "$expected" <<<"$output"; then
-    echo "agent invariants rejected $service wiring for an unexpected reason:" >&2
-    printf '%s\n' "$output" >&2
-    exit 1
-  fi
-}
-
-assert_auto_update_wiring_rejected nixos-auto-update '# deleted weekly service wiring'
-
-pipeline_count_fixture=$(mktemp)
-cp modules/nixos/auto-update.nix "$pipeline_count_fixture"
-printf '\n# nixos-flake-update\n' >>"$pipeline_count_fixture"
-if count_output=$(AUTO_UPDATE_MODULE="$pipeline_count_fixture" bash checks/agent-invariants.bash 2>&1); then
-  rm -f "$pipeline_count_fixture"
-  echo "agent invariants accepted more than two nixos-flake-update references" >&2
-  exit 1
-fi
-rm -f "$pipeline_count_fixture"
-if ! grep -Fq 'reference nixos-flake-update exactly twice' <<<"$count_output"; then
-  echo "agent invariants rejected pipeline reference count for an unexpected reason:" >&2
-  printf '%s\n' "$count_output" >&2
   exit 1
 fi
 

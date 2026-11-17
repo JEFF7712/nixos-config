@@ -5,18 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$SCRIPT_DIR/profile-common"
 
-PROFILE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "noctalia")
+PROFILE=$(cat "$PROFILES_DIR/active" 2>/dev/null || echo "sharp")
 VARIANT=$(cat "$PROFILES_DIR/active-variant" 2>/dev/null || echo "dark")
 
-if [ "$PROFILE" = "noctalia" ]; then
-  stop_video_wallpaper
-  while IFS= read -r screen; do
-    noctalia msg wallpaper-random "$screen" 2>/dev/null || true
-  done < <(niri msg outputs 2>/dev/null | grep '^Output ' | sed 's/^Output ".*" (\(.*\))/\1/')
-  exit 0
-fi
-
-TARGET_DIR="$PROFILES_DIR/$PROFILE"
 profile_manifest_validate "$PROFILE" "$VARIANT"
 WALLPAPER_DIR=$(profile_manifest_wallpaper_dir "$PROFILE" "$VARIANT")
 

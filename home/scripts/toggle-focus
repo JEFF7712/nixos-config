@@ -2,24 +2,15 @@
 # Toggle the global focus/performance mode for the active profile.
 # Focus mode swaps niri's active overrides to a variant that disables
 # animations, window shadows and background blur for best performance.
-# Unavailable on noctalia (it owns its own niri visuals).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/profile-common"
 
-notify() { notify-send "Focus Mode" "$1" 2>/dev/null || true; }
-
 ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "")
 if [ -z "$ACTIVE" ]; then
   echo "No active profile." >&2
   exit 1
-fi
-
-if [ "$ACTIVE" = "noctalia" ]; then
-  notify "Not available on the noctalia profile."
-  echo "Focus mode is unavailable on noctalia." >&2
-  exit 0
 fi
 
 case "${1:-toggle}" in
@@ -66,14 +57,19 @@ else
 fi
 
 if [ "$STATE" = "on" ]; then
-  # Pause auto-update timers (polkit-allowed; see modules/nixos/focus-mode.nix)
-  # so a background rebuild can't tank the session mid-focus. Quickshell's
+  # Pause comin (polkit-allowed; see modules/nixos/comin-deploy.nix) so a
+  # background deployment can't switch the system mid-focus. Quickshell's
   # NotifService watches this focus file and suppresses toasts while on.
-  systemctl stop nixos-auto-update.timer 2>/dev/null || true
+  if systemctl cat comin.service >/dev/null 2>&1; then
+    systemctl stop comin.service 2>/dev/null || true
+  fi
   notify-send "Focus Mode On" "Notifications muted; animations, shadows & blur disabled" 2>/dev/null || true
   echo "Focus mode ON for '$ACTIVE'."
 else
-  systemctl start nixos-auto-update.timer 2>/dev/null || true
+  # Resume comin only if it wasn't explicitly paused via `nixos-deploy pause`.
+  if [ ! -e /var/lib/nixos-deploy/paused ] && systemctl cat comin.service >/dev/null 2>&1; then
+    systemctl start comin.service 2>/dev/null || true
+  fi
   notify-send "Focus Mode Off" "Effects restored" 2>/dev/null || true
   echo "Focus mode OFF for '$ACTIVE'."
 fi

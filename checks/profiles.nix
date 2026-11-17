@@ -75,7 +75,6 @@ let
       manifestText =
         pf."manifest.json" or (builtins.throw "profile '${name}': no manifest.json rendered");
       manifest = builtins.fromJSON manifestText;
-      self = manifest.capabilities.selfThemed or false;
       variants = manifest.variants or { };
       artifactRefs =
         stringsOf (manifest.artifacts or { })
@@ -157,7 +156,7 @@ let
       builtins.throw "profile '${name}': appearance.kittyCursorTrail is missing delayMs/decayMin/decayMax/startThreshold/blinkInterval/visualBellDuration"
     else if !motionOk then
       builtins.throw "profile '${name}': appearance.motion is missing wallpaper/hyprlock/osd/launcher fields"
-    else if (!self) && empties != [ ] then
+    else if empties != [ ] then
       builtins.throw "profile '${name}': empty color files: ${builtins.concatStringsSep ", " empties}"
     else if missingVicinaeThemes != [ ] then
       builtins.throw "profile '${name}': missing Vicinae theme files: ${builtins.concatStringsSep ", " missingVicinaeThemes}"

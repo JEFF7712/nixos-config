@@ -33,7 +33,7 @@ cat > "$profile_dir/manifest.json" <<'EOF'
 {
   "schemaVersion": 1,
   "name": "nord",
-  "capabilities": { "selfThemed": false, "wallpaperTheming": false },
+  "capabilities": { "wallpaperTheming": false },
   "transition": {
     "defaultBar": "quickshell",
     "cursor": {},
@@ -73,11 +73,6 @@ if [ -n "$config" ]; then
 fi
 exit 0
 EOF
-cat > "$bin_dir/noctalia" <<'EOF'
-#!/usr/bin/env bash
-printf '%s\n' "$*" > "$NOCTALIA_ARGV"
-exit 0
-EOF
 cat > "$bin_dir/jq" <<'EOF'
 #!/usr/bin/env bash
 exec "$REAL_JQ" "$@"
@@ -89,11 +84,10 @@ if [ "${MOCK_HYPRLOCK_RUNNING:-0}" = "1" ] && [ "$1 $2" = "-x hyprlock" ]; then
 fi
 exit 1
 EOF
-chmod +x "$bin_dir/hyprlock" "$bin_dir/noctalia" "$bin_dir/jq" "$bin_dir/pgrep"
+chmod +x "$bin_dir/hyprlock" "$bin_dir/jq" "$bin_dir/pgrep"
 
 real_jq=$(command -v jq)
 config_copy="$tmpdir/hyprlock.conf"
-noctalia_argv="$tmpdir/noctalia.argv"
 
 HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
   HYPRLOCK_CONFIG_COPY="$config_copy" REAL_JQ="$real_jq" PATH="$bin_dir:$PATH" \
@@ -131,16 +125,5 @@ HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
   "$REPO_ROOT/home/scripts/lock-screen"
 
 assert_eq "" "$(cat "$config_copy.spawned" 2>/dev/null || true)" "second hyprlock is not spawned while one runs"
-
-printf 'noctalia\n' > "$profiles/active"
-mkdir -p "$profiles/noctalia"
-printf '%s\n' '{"schemaVersion":1,"name":"noctalia","capabilities":{"selfThemed":true},"transition":{"defaultBar":"noctalia","cursor":{},"fonts":{},"appearance":{}},"variants":{"dark":{"wallpaperDirectory":"/x","adapters":{},"artifacts":{}}},"artifacts":{}}' \
-  > "$profiles/noctalia/manifest.json"
-
-HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
-  NOCTALIA_ARGV="$noctalia_argv" REAL_JQ="$real_jq" PATH="$bin_dir:$PATH" \
-  "$REPO_ROOT/home/scripts/lock-screen"
-
-assert_eq "msg session lock" "$(cat "$noctalia_argv")" "noctalia profile still uses noctalia lock"
 
 printf 'lock-screen checks passed\n'

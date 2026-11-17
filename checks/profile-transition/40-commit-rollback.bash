@@ -292,27 +292,9 @@ if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
   PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
   BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
   PKILL_COUNT_FILE="$tmpdir/pkill-count" IGNORE_FIRST_BAR_STOP=1 \
-  "$REPO_ROOT/home/scripts/profile-transition" switch noc >/dev/null 2>&1; then
-  printf 'FAIL: transition continued while Quickshell remained running\n' >&2
+  "$REPO_ROOT/home/scripts/profile-transition" reapply >/dev/null 2>&1; then
+  printf 'FAIL: reapply continued while Quickshell remained running\n' >&2
   exit 1
 fi
 assert_eq "qs" "$(cat "$profiles/active")" "Quickshell shutdown failure aborts before commit"
 assert_log_contains "verify-quickshell active=qs" "rollback verifies restarted Quickshell"
-
-printf 'noc\n' > "$profiles/active"
-printf 'dark\n' > "$profiles/active-variant"
-printf 'dark\n' > "$profiles/variant-noc"
-ln -sfn "$profiles/noc/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
-printf 'noctalia-started\n' > "$bar_state"
-printf '0\n' > "$tmpdir/systemctl-count"
-: > "$log"
-if HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-  PROFILE_TRANSITION_LOCK="$tmpdir/profile.lock" COMMAND_LOG="$log" \
-  BAR_STATE="$bar_state" REAL_JQ="$real_jq" PATH="$bin_dir" \
-  SYSTEMCTL_COUNT_FILE="$tmpdir/systemctl-count" IGNORE_FIRST_NOCTALIA_STOP=1 \
-  "$REPO_ROOT/home/scripts/profile-transition" switch old >/dev/null 2>&1; then
-  printf 'FAIL: transition continued while Noctalia remained running\n' >&2
-  exit 1
-fi
-assert_eq "noc" "$(cat "$profiles/active")" "Noctalia shutdown failure aborts before commit"
-assert_log_contains "verify-noctalia active=noc" "rollback verifies restarted Noctalia"

@@ -30,7 +30,6 @@ check-local-bin:
   bash checks/local-bin-rot.bash
 
 check-flake-update:
-  bash checks/flake-update.bash
   bash checks/nix-pin-nixpkgs.bash
   bash checks/flake-update-gated.bash
 
@@ -190,7 +189,7 @@ build target="laptop":
 build-iso:
   nix build .#nixosConfigurations.iso.config.system.build.isoImage
 
-# Build the live ISO, push to homelab Attic cache, and publish to https://nix.rupan.dev
+# Build the live ISO and publish to https://nix.rupan.dev
 publish-iso:
   ./home/scripts/publish-iso
 
@@ -213,7 +212,7 @@ dry:
   sudo "$(readlink -f "$(command -v nixos-rebuild)")" dry-activate --flake "{{ justfile_directory() }}#laptop"
 
 # Caps must match hosts/laptop/base.nix sudoers pin. Root ignores user nix.conf.
-# flock vs auto-update: two full builds OOM the ~31G box.
+# flock serializes switches: two full builds OOM the ~31G box.
 switch host="laptop":
   #!/usr/bin/env bash
   set -euo pipefail
@@ -222,13 +221,10 @@ switch host="laptop":
     vm) max_jobs=1; build_cores=2 ;;
     *) echo "unsupported switch target: {{host}}" >&2; exit 1 ;;
   esac
-  lock=/run/nixos-auto-update.lock
-  [ -w "$lock" ] || lock="${TMPDIR:-/tmp}/nixos-switch.lock"
+  lock="${TMPDIR:-/tmp}/nixos-switch.lock"
   exec {fd}>>"$lock"
   if ! flock -n "$fd"; then
-    echo "auto-update is rebuilding (holds /run/nixos-auto-update.lock)." >&2
-    echo "stop it:  sudo systemctl stop nixos-auto-update.service" >&2
-    echo "then rerun 'just switch', or wait for it to finish." >&2
+    echo "another switch or flake update holds $lock; wait for it to finish." >&2
     exit 1
   fi
   # A local switch is an experiment: keep comin from replacing it.

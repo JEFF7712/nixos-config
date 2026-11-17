@@ -4,8 +4,7 @@ This repo is maintained mostly by coding agents. Treat repeated friction as a bu
 
 ## Triggers
 
-- Run `agent-self-improve --check` when a session hits a meaningful hurdle: failed assumptions, unclear ownership, missing validation, surprising formatter behavior, brittle commands, or time spent searching for repo conventions. This is friction-triggered, not a per-session ritual.
-- A shared `Stop` hook (`hooks/friction-stop`, fed by `hooks/friction-log`) surfaces failed `just`/`nix` validation automatically for Cursor, Claude, and Codex; treat that nudge as a trigger.
+- Run `agent-self-improve --check` manually when a session hits a meaningful hurdle: failed assumptions, unclear ownership, missing validation, surprising formatter behavior, brittle commands, or time spent searching for repo conventions. This is friction-triggered, not a per-session ritual (no Stop hook forces or nudges it).
 - Use `home/scripts/agent-self-improve --check` when the shell lacks `~/.local/bin`.
 - If the hurdle is caused by missing or weak repo guidance, make the smallest useful improvement before the final response.
 
@@ -18,7 +17,7 @@ Prefer durable changes that make the next agent faster or less error-prone:
 - `checks/agent-*.bash` for machine-checkable repo conventions.
 - `home/scripts/new-*` or other helper scripts for repeated edit patterns.
 - `justfile` for stable command entrypoints.
-- `hooks/` for agent lifecycle behavior that should stay identical across Cursor, Claude, and Codex (`session-start`, `before-shell`, `after-edit`, `friction-log`, `friction-stop`).
+- `hooks/` for agent lifecycle behavior that should stay identical across Cursor, Claude, and Codex (`session-start`, `before-shell`, `before-mcp`, `after-edit`).
 
 ## Rules
 

@@ -27,7 +27,6 @@ assert builtins.elem "/etc/subuid" preservedFiles;
 assert builtins.elem "/etc/subgid" preservedFiles;
 assert builtins.elem "/var/lib/asus-numberpad-driver" preservedDirectories;
 assert numberpadService.serviceConfig.StateDirectory == "asus-numberpad-driver";
-assert !config.auto-update.enable;
 assert builtins.elem "/var/lib/comin" preservedDirectories;
 assert builtins.any (
   entry: entry.directory == "/var/lib/nixos-deploy" && entry.user == config.cominDeploy.user

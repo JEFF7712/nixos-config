@@ -30,7 +30,7 @@ in
 
     defaultProfile = lib.mkOption {
       type = lib.types.str;
-      default = "noctalia";
+      default = "sharp";
       description = "Profile to activate on first home-manager switch if none is set.";
     };
 
@@ -74,23 +74,10 @@ in
           message = "desktopProfiles.profiles.${name}: has a light variant but no quickshellThemeLight — the bar would stay dark when toggling.";
         }
         {
-          # Null core colors render empty GTK/Qt/kitty files. Self-themed
-          # profiles (noctalia) own colors at runtime.
+          # Null core colors render empty GTK/Qt/kitty files.
           assertion =
-            p.selfThemed
-            || (
-              p.colors.gtk3 != null && p.colors.gtk4 != null && p.colors.kitty != null && p.colors.qt6 != null
-            );
-          message = "desktopProfiles.profiles.${name}: not self-themed but missing core colors (gtk3/gtk4/kitty/qt6) — check the palette.";
-        }
-        {
-          # Self-themed profiles must leave core colors null (written but never applied).
-          assertion =
-            !p.selfThemed
-            || (
-              p.colors.gtk3 == null && p.colors.gtk4 == null && p.colors.kitty == null && p.colors.qt6 == null
-            );
-          message = "desktopProfiles.profiles.${name}: self-themed but defines static colors (gtk3/gtk4/kitty/qt6) — leave them null.";
+            p.colors.gtk3 != null && p.colors.gtk4 != null && p.colors.kitty != null && p.colors.qt6 != null;
+          message = "desktopProfiles.profiles.${name}: missing core colors (gtk3/gtk4/kitty/qt6) — check the palette.";
         }
       ]) config.desktopProfiles.profiles
     );

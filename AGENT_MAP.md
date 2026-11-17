@@ -64,7 +64,7 @@ Run the smallest command that proves the touched surface; the "Validate" column 
 
 ## Session Closeout
 
-Friction-triggered, not a ritual: when validation fails unexpectedly, ownership is unclear, or conventions took time to find (the shared Stop hook nudges on failed `just`/`nix` runs), run `agent-self-improve --check` (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH) and fix the smallest relevant doc, check, script, or `just` recipe. A clean session needs no note. Protocol: `docs/agent-self-improvement.md`.
+Friction-triggered, not a ritual: when validation fails unexpectedly, ownership is unclear, or conventions took time to find, you may run `agent-self-improve --check` (`home/scripts/agent-self-improve --check` if `~/.local/bin` is off PATH) and fix the smallest relevant doc, check, script, or `just` recipe. A clean session needs no note. Protocol: `docs/agent-self-improvement.md`.
 
 ## Search Shortcuts
 

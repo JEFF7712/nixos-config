@@ -27,7 +27,7 @@
           pause_file="/var/lib/nixos-deploy/paused"
           mkdir -p "$state_dir"
 
-          units=(nixos-auto-update.service comin.service)
+          units=(comin.service)
           for unit in "''${units[@]}"; do
             properties="$(systemctl show "$unit" --property=ExecMainStatus,InvocationID,Result)"
             exec_main_status="$(printf '%s\n' "$properties" | sed -n 's/^ExecMainStatus=//p')"

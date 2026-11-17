@@ -19,21 +19,10 @@
         text = ''
           set -eu
 
-          profile_file="$HOME/.config/desktop-profiles/active"
           cache_dir="''${XDG_CACHE_HOME:-$HOME/.cache}"
           state_file="$cache_dir/battery-low-notify-level"
 
           mkdir -p "$cache_dir"
-
-          active_profile=""
-          if [ -r "$profile_file" ]; then
-            active_profile="$(cat "$profile_file")"
-          fi
-
-          if [ "$active_profile" = "noctalia" ]; then
-            rm -f "$state_file"
-            exit 0
-          fi
 
           set -- /sys/class/power_supply/BAT*
           if [ ! -e "$1" ]; then
@@ -187,6 +176,9 @@
         quickshell
         bc
         pulseaudio
+        cliphist
+        ddcutil
+        python3
       ];
 
       systemd.user.services = {

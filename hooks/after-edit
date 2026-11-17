@@ -36,13 +36,6 @@ stage_if_new() {
   git -C "$REPO_ROOT" add -- "$file" >/dev/null 2>&1 || true
 }
 
-log_parse_friction() {
-  local reason=$1
-  local log
-  log=$(agent_hooks_friction_log "$HOOK_SESSION_ID")
-  printf '%s\n' "$reason" >>"$log"
-}
-
 parse_errors=""
 while IFS= read -r file; do
   [ -f "$file" ] || continue
@@ -65,6 +58,5 @@ if [ -n "$parse_errors" ]; then
     printf '%s\n' "$blocked"
     exit 0
   fi
-  log_parse_friction "$(printf '%s' "$parse_errors" | tr '\n' ' ' | head -c 200)"
 fi
 agent_hooks_ok_exit

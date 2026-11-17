@@ -19,8 +19,6 @@ VARIANT_FILE="$PROFILES_DIR/active-variant"
 ACTIVE_LINK="$PROFILES_DIR/active-niri-overrides.kdl"
 FOCUS_FILE="$PROFILES_DIR/focus"
 CONFIG_HOME="$HOME/.config"
-NOCTALIA_COLORS="$CONFIG_HOME/noctalia/colors.json"
-NOCTALIA_FIREFOX_PALETTE="$PROFILES_DIR/runtime-firefox-palette"
 OBSIDIAN_MINIMAL_SETTINGS="$HOME/obsidian/vaults/main/.obsidian/plugins/obsidian-minimal-settings/data.json"
 WAYPAPER_POST_COMMAND='$HOME/.local/bin/waypaper-backend-sync'
 
@@ -939,7 +937,7 @@ stage_profile_core_files() {
   local profile_dir="$1" variant="$2" stage_dir="$3"
   local stage_home="$stage_dir/home" stage_config
   stage_config="$stage_home/.config"
-  local relative source destination self_themed profile
+  local relative source destination profile
   local -a mutable=(
     .config/gtk-3.0/settings.ini
     .config/gtk-4.0/settings.ini
@@ -961,21 +959,19 @@ stage_profile_core_files() {
   done
 
   profile=$(basename "$profile_dir")
-  self_themed=$(profile_manifest_capability "$profile" selfThemed)
-  if [ "$self_themed" != true ]; then
-    local gtk3 gtk4 qt6 kitty rofi fish starship
-    gtk3=$(profile_manifest_artifact "$profile" "$variant" gtk3)
-    gtk4=$(profile_manifest_artifact "$profile" "$variant" gtk4)
-    qt6=$(profile_manifest_artifact "$profile" "$variant" qt6)
-    kitty=$(profile_manifest_artifact "$profile" "$variant" kitty)
-    rofi=$(profile_manifest_artifact "$profile" "$variant" rofi)
-    fish=$(profile_manifest_artifact "$profile" "$variant" fish)
-    starship=$(profile_manifest_artifact "$profile" "$variant" starship)
-    while IFS=$'\t' read -r source destination; do
-      [ -s "$source" ] || continue
-      mkdir -p "$(dirname "$destination")"
-      install -m 644 "$source" "$destination"
-    done <<EOF
+  local gtk3 gtk4 qt6 kitty rofi fish starship
+  gtk3=$(profile_manifest_artifact "$profile" "$variant" gtk3)
+  gtk4=$(profile_manifest_artifact "$profile" "$variant" gtk4)
+  qt6=$(profile_manifest_artifact "$profile" "$variant" qt6)
+  kitty=$(profile_manifest_artifact "$profile" "$variant" kitty)
+  rofi=$(profile_manifest_artifact "$profile" "$variant" rofi)
+  fish=$(profile_manifest_artifact "$profile" "$variant" fish)
+  starship=$(profile_manifest_artifact "$profile" "$variant" starship)
+  while IFS=$'\t' read -r source destination; do
+    [ -s "$source" ] || continue
+    mkdir -p "$(dirname "$destination")"
+    install -m 644 "$source" "$destination"
+  done <<EOF
 $gtk3	$stage_config/gtk-3.0/noctalia.css
 $gtk4	$stage_config/gtk-4.0/noctalia.css
 $qt6	$stage_config/qt6ct/colors/noctalia.conf
@@ -985,7 +981,6 @@ $rofi	$stage_config/rofi/profile-switcher.rasi
 $fish	$stage_config/fish/conf.d/matugen_theme.fish
 $starship	$stage_config/starship_matugen.toml
 EOF
-  fi
 
   apply_profile_cursor_files "$stage_config" "$profile"
   apply_profile_font_files "$stage_config" "$profile"
@@ -1481,21 +1476,6 @@ apply_cava_colors() {
   replace_cava_color_section "$src"
 }
 
-# restore_cava_noctalia_theme
-# Self-themed profiles use noctalia's generated cava theme; point the [color]
-# section back at it after a static profile's gradient replaced it.
-restore_cava_noctalia_theme() {
-  local tmp
-
-  [ -f "$CONFIG_HOME/cava/config" ] || return 0
-  [ -f "$CONFIG_HOME/cava/themes/noctalia" ] || return 0
-
-  tmp=$(mktemp)
-  printf "[color]\ntheme = 'noctalia'\n" > "$tmp"
-  replace_cava_color_section "$tmp"
-  rm -f "$tmp"
-}
-
 # hex_to_rgb_triplet <#rrggbb>
 # Prints "r, g, b" — the form the DownToneUI vars are consumed as
 # (rgb(var(--dtui-theme-main-color))), so alpha overlays keep working.
@@ -1535,7 +1515,7 @@ firefox_globals_from_palette() {
 }
 
 # firefox_globals_payload <profile> <variant>
-# Static profiles carry firefox colors in the manifest; tinted/sharp/noctalia do not.
+# Static profiles carry firefox colors in the manifest; wallpaper-themed profiles fall back to runtime-quickshell-theme.json.
 firefox_globals_payload() {
   local profile="$1" variant="$2"
   local firefox main sec accent text accent_hsl rt bg fg acc
@@ -1564,25 +1544,6 @@ firefox_globals_payload() {
       jq -r '[(.rawBg // ""), (.fg // ""), (.accent // "")] | @tsv' "$rt" 2>/dev/null
     ) || true
     firefox_globals_from_palette "$bg" "$fg" "$acc" && return 0
-  fi
-
-  if [ "$(profile_manifest_capability "$profile" selfThemed)" = "true" ]; then
-    # Preferred: the palette noctalia's own template staged, which is rendered in
-    # lockstep with the post_hook that calls back here. colors.json is the
-    # fallback for the first switch, before that template has ever run.
-    if [ -s "$NOCTALIA_FIREFOX_PALETTE" ]; then
-      bg=$(sed -n 's/^surface=//p' "$NOCTALIA_FIREFOX_PALETTE" | head -1)
-      fg=$(sed -n 's/^on_surface=//p' "$NOCTALIA_FIREFOX_PALETTE" | head -1)
-      acc=$(sed -n 's/^primary=//p' "$NOCTALIA_FIREFOX_PALETTE" | head -1)
-      firefox_globals_from_palette "$bg" "$fg" "$acc" && return 0
-    fi
-    if [ -s "$NOCTALIA_COLORS" ]; then
-      IFS=$'\t' read -r bg fg acc < <(
-        jq -r '[(.mSurface // ""), (.mOnSurface // ""), (.mPrimary // "")] | @tsv' \
-          "$NOCTALIA_COLORS" 2>/dev/null
-      ) || true
-      firefox_globals_from_palette "$bg" "$fg" "$acc" && return 0
-    fi
   fi
 
   return 1

@@ -51,16 +51,6 @@ in
     spicetify.dark = spice "Comfy" "Nord" 0;
   };
 
-  noctalia = {
-    zed.dark = {
-      theme = "Ayu Dark";
-      icon = "Material Icon Theme";
-    };
-    vesktop.dark = "noctalia.theme.css";
-    obsidian.dark = "minimal-flexoki-dark";
-    spicetify.dark = spice "Comfy" "Comfy" 0;
-  };
-
   gruvbox = {
     firefox.dark = {
       main = "40, 40, 40";

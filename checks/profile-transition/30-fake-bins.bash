@@ -12,7 +12,7 @@ for profile in old new; do
   profile_dir="$profiles/$profile"
   wallpaper_dir="$profile_dir/wallpapers"
   mkdir -p "$wallpaper_dir"
-  printf '{"bar":"quickshell","selfThemed":false,"hasLightVariant":true,"cursor":"default","cursorSize":24}\n' \
+  printf '{"bar":"quickshell","hasLightVariant":true,"cursor":"default","cursorSize":24}\n' \
     > "$profile_dir/meta.json"
   printf '{}\n' > "$profile_dir/runtime.json"
   printf 'old-or-new-dark\n' > "$profile_dir/kitty-colors.conf"
@@ -49,7 +49,7 @@ for profile in old new; do
       schemaVersion: 1,
       name: $name,
       capabilities: {
-        selfThemed: false, wallpaperTheming: false, colorEngine: "matugen",
+        wallpaperTheming: false, colorEngine: "matugen",
         matugenScheme: "scheme-tonal-spot", wallpaperAccentVivid: false,
         obsidianWallpaperTheme: false
       },
@@ -79,17 +79,11 @@ cp -a "$profiles/old" "$profiles/qs"
 mv "$profiles/qs/manifest.json.tmp" "$profiles/qs/manifest.json"
 printf '{"payload":"qs-dark"}\n' > "$profiles/qs/quickshell-theme.json"
 printf '{"payload":"qs-light"}\n' > "$profiles/qs/quickshell-theme-light.json"
-cp -a "$profiles/old" "$profiles/noc"
-"$real_jq" '.name = "noc" | .transition.defaultBar = "noctalia"
-  | .capabilities.selfThemed = true | del(.variants.light)' \
-  "$profiles/noc/manifest.json" > "$profiles/noc/manifest.json.tmp"
-mv "$profiles/noc/manifest.json.tmp" "$profiles/noc/manifest.json"
-cp -a "$profiles/noc" "$profiles/noctalia"
-"$real_jq" '.name = "noctalia"' "$profiles/noctalia/manifest.json" \
-  > "$profiles/noctalia/manifest.json.tmp"
-mv "$profiles/noctalia/manifest.json.tmp" "$profiles/noctalia/manifest.json"
-printf 'layout { gaps 4; }\n' > "$profiles/noctalia/niri-overrides-focus.kdl"
-for profile in old new qs noc; do
+cp -a "$profiles/old" "$profiles/sharp"
+"$real_jq" '.name = "sharp" | .transition.defaultBar = "quickshell"' \
+  "$profiles/sharp/manifest.json" > "$profiles/sharp/manifest.json.tmp"
+mv "$profiles/sharp/manifest.json.tmp" "$profiles/sharp/manifest.json"
+for profile in old new qs sharp; do
   printf 'layout { gaps 4; }\n' > "$profiles/$profile/niri-overrides-focus.kdl"
 done
 
@@ -111,7 +105,7 @@ printf 'light\n' > "$profiles/variant-new"
 ln -s "$profiles/old/niri-overrides.kdl" "$profiles/active-niri-overrides.kdl"
 printf 'quickshell\n' > "$notification_state"
 
-for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper tmux kitty magick matugen noctalia-shell noctalia; do
+for command in systemctl niri quickshell gsettings notify-send busctl awww mpvpaper tmux kitty magick matugen; do
   cat > "$bin_dir/$command" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$COMMAND_LOG"
@@ -148,29 +142,6 @@ cat > "$bin_dir/systemctl" <<'EOF'
 #!/usr/bin/env bash
 printf 'systemctl %s\n' "$*" >> "$COMMAND_LOG"
 case " $* " in
-  *" stop noctalia-shell "*)
-    if [ -n "${SYSTEMCTL_COUNT_FILE:-}" ]; then
-      count=$(cat "$SYSTEMCTL_COUNT_FILE" 2>/dev/null || echo 0)
-      count=$((count + 1))
-      printf '%s\n' "$count" > "$SYSTEMCTL_COUNT_FILE"
-    fi
-    if ! { [ -n "${IGNORE_FIRST_NOCTALIA_STOP:-}" ] && [ "${count:-0}" -eq 1 ]; }; then
-      printf 'stopped\n' > "$BAR_STATE"
-      [ "$(cat "$NOTIFICATION_STATE")" != noctalia ] || printf 'none\n' > "$NOTIFICATION_STATE"
-    fi
-    ;;
-  *" start noctalia-shell "*)
-    printf 'noctalia-started\n' > "$BAR_STATE"
-    [ -n "${FAIL_NOTIFICATION_OWNER:-}" ] || printf 'noctalia\n' > "$NOTIFICATION_STATE"
-    ;;
-  *" is-active --quiet noctalia-shell "*)
-    if [ "$(cat "$BAR_STATE")" = "noctalia-started" ]; then
-      active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
-      printf 'verify-noctalia active=%s\n' "$active" >> "$COMMAND_LOG"
-      exit 0
-    fi
-    exit 3
-    ;;
   *" stop quickshell-bar.service "*)
     if [ -n "${PKILL_COUNT_FILE:-}" ]; then
       count=$(cat "$PKILL_COUNT_FILE" 2>/dev/null || echo 0)
@@ -278,13 +249,11 @@ active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf 'awww %s active=%s\n' "$*" "$active" >> "$COMMAND_LOG"
 EOF
 
-for command in matugen noctalia-shell noctalia; do
-  cat > "$bin_dir/$command" <<'EOF'
+cat > "$bin_dir/matugen" <<'EOF'
 #!/usr/bin/env bash
 active=$(cat "$XDG_CONFIG_HOME/desktop-profiles/active")
 printf '%s %s active=%s\n' "$(basename "$0")" "$*" "$active" >> "$COMMAND_LOG"
 EOF
-done
 
 cat > "$bin_dir/pgrep" <<'EOF'
 #!/usr/bin/env bash
@@ -313,7 +282,6 @@ printf 'busctl %s\n' "$*" >> "$COMMAND_LOG"
 [ "$*" = '--user status org.freedesktop.Notifications' ] || exit 1
 case "$(cat "$NOTIFICATION_STATE")" in
   quickshell) printf 'quickshell notification server\n' ;;
-  noctalia) printf 'noctalia-shell notification server\n' ;;
   *) exit 1 ;;
 esac
 EOF
