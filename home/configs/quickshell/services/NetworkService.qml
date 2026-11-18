@@ -13,6 +13,8 @@ Scope {
     readonly property bool wiredConnected: model.wiredConnected
     readonly property bool connected: model.connected
     readonly property bool vpnConnected: model.vpnConnected
+    readonly property string vpnName: model.vpnName
+    readonly property string vpnAddress: model.vpnAddress
     readonly property string activeSsid: model.activeSsid
     readonly property int activeSignal: model.activeSignal
     readonly property string activeSecurity: model.activeSecurity

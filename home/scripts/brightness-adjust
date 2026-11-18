@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Adjust internal backlight via brightnessctl and notify the native Quickshell OSD.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+SHELL_QML="$(cd "$SCRIPT_DIR/.." && pwd)/configs/quickshell/shell.qml"
+DEV="${BRIGHTNESS_DEVICE:-intel_backlight}"
+
+dev_args=()
+if brightnessctl -d "$DEV" info >/dev/null 2>&1; then
+  dev_args=(-d "$DEV")
+fi
+
+case "${1:-}" in
+  up)
+    brightnessctl "${dev_args[@]}" set +5% -q
+    ;;
+  down)
+    brightnessctl "${dev_args[@]}" set 5%- -q
+    ;;
+  *)
+    echo "Usage: brightness-adjust <up|down>" >&2
+    exit 1
+    ;;
+esac
+
+cur=$(brightnessctl "${dev_args[@]}" get 2>/dev/null || echo 0)
+max=$(brightnessctl "${dev_args[@]}" max 2>/dev/null || echo 100)
+pct=0
+if [ "$max" -gt 0 ]; then
+  pct=$(( (cur * 100 + max / 2) / max ))
+fi
+
+quickshell ipc --any-display -p "$SHELL_QML" call osd showBrightness "Laptop panel" "$pct" >/dev/null 2>&1 || true

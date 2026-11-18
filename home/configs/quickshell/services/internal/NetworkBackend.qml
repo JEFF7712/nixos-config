@@ -61,17 +61,36 @@ QtObject {
         return snapshot;
     }
 
-    readonly property bool vpnConnected: {
+    readonly property var vpnDevice: {
         const values = (Networking.devices && Networking.devices.values) || [];
-        return values.some(device => {
+        for (const device of values) {
             if (!device)
-                return false;
+                continue;
             const name = (device.name || "").toLowerCase();
-            if (name === "wt0" || name.startsWith("netbird") || name.startsWith("tailscale") || name.startsWith("wg") || name.startsWith("gpd") || name.startsWith("tun"))
-                return device.connected === true || (device.address !== undefined && device.address !== "");
-            return false;
-        });
+            if (name === "wt0" || name.startsWith("netbird") || name.startsWith("tailscale") || name.startsWith("wg") || name.startsWith("gpd") || name.startsWith("tun")) {
+                if (device.connected === true || (device.address !== undefined && device.address !== ""))
+                    return device;
+            }
+        }
+        return null;
     }
+
+    readonly property bool vpnConnected: root.vpnDevice !== null
+    readonly property string vpnName: {
+        const dev = root.vpnDevice;
+        if (!dev)
+            return "";
+        const raw = String(dev.name || "");
+        const lower = raw.toLowerCase();
+        if (lower === "wt0" || lower.startsWith("netbird"))
+            return "NetBird (" + raw + ")";
+        if (lower.startsWith("tailscale"))
+            return "Tailscale (" + raw + ")";
+        if (lower.startsWith("gpd"))
+            return "GlobalProtect (" + raw + ")";
+        return raw;
+    }
+    readonly property string vpnAddress: root.vpnDevice && root.vpnDevice.address ? String(root.vpnDevice.address) : ""
 
     // One object-literal so NetworkModel reconciles from a single signal.
     readonly property var observation: {
@@ -81,6 +100,8 @@ QtObject {
             wifiEnabled: Networking.wifiEnabled,
             connected: root.connected,
             vpnConnected: root.vpnConnected,
+            vpnName: root.vpnName,
+            vpnAddress: root.vpnAddress,
             wired: root.wiredSnapshot,
             networks: root.networkSnapshot
         };

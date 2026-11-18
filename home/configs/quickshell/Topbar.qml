@@ -72,6 +72,7 @@ PanelWindow {
     property bool themeReady: false
 
     property int notificationCount: 0
+    property bool focusActive: false
     readonly property bool cavaRequested: mediaPill.visible
     readonly property string activeTitle: topbarWindow.niriService.focusedTitle || topbarWindow.niriService.focusedAppId || "no active window"
     readonly property int activeWorkspaceIndex: {
@@ -97,6 +98,7 @@ PanelWindow {
     signal systemClicked(real anchorCenterX)
     signal mediaClicked(real anchorCenterX)
     signal hassClicked(real anchorCenterX)
+    signal focusToggleRequested
     // Predictive layershell prewarm before click (InfoPopup.prewarm).
     signal wifiHovered
     signal volumeHovered
@@ -355,6 +357,16 @@ PanelWindow {
             spacing: topbarWindow.flatMode ? 0 : 6
 
             StatPill {
+                id: privacyPill
+                visible: topbarWindow.audioService.micCaptureActive || topbarWindow.audioService.cameraCaptureActive || topbarWindow.audioService.screenCaptureActive
+                icon: topbarWindow.audioService.screenCaptureActive ? "󰹑" : topbarWindow.audioService.cameraCaptureActive ? "󰄀" : (topbarWindow.audioService.sourceMuted ? "󰍭" : "󰍬")
+                value: topbarWindow.audioService.privacySummary.indexOf("·") !== -1 ? topbarWindow.audioService.privacySummary : ""
+                tint: topbarWindow.themeWarm
+                onActivated: topbarWindow.volumeClicked(topbarWindow.pillCenterX(privacyPill))
+                onHovered: topbarWindow.volumeHovered()
+                onMiddleClicked: topbarWindow.audioService.toggleSourceMute()
+            }
+            StatPill {
                 id: volumePill
                 visible: topbarWindow.showVolume
                 icon: topbarWindow.volumeIcon()
@@ -377,6 +389,16 @@ PanelWindow {
                 onScrolled: delta => topbarWindow.brightnessService.adjustAll(delta > 0 ? 1 : -1)
             }
             StatPill {
+                id: vpnPill
+                visible: topbarWindow.showNetwork && topbarWindow.networkService.vpnConnected
+                icon: "󰦝"
+                value: ""
+                tint: topbarWindow.themeFresh
+                onActivated: topbarWindow.wifiClicked(topbarWindow.pillCenterX(vpnPill))
+                onHovered: topbarWindow.wifiHovered()
+                onRightClicked: topbarWindow.networkService.openSettings()
+            }
+            StatPill {
                 id: networkPill
                 visible: topbarWindow.showNetwork
                 icon: topbarWindow.networkIcon()
@@ -397,6 +419,15 @@ PanelWindow {
                 onRightClicked: topbarWindow.bluetoothService.openManager()
             }
             StatPill {
+                id: caffeinePill
+                visible: topbarWindow.showBattery && topbarWindow.powerService.idleInhibited
+                icon: "󰅶"
+                value: ""
+                tint: topbarWindow.themeAccent
+                onActivated: topbarWindow.powerService.toggleIdleInhibit()
+                onRightClicked: topbarWindow.batteryClicked(topbarWindow.pillCenterX(caffeinePill))
+            }
+            StatPill {
                 id: batteryPill
                 visible: topbarWindow.showBattery
                 icon: topbarWindow.batteryIcon()
@@ -409,12 +440,14 @@ PanelWindow {
             }
             StatPill {
                 id: notifPill
-                visible: topbarWindow.showNotifications && topbarWindow.notificationCount > 0
-                icon: "󰂚"
+                visible: topbarWindow.showNotifications && (topbarWindow.focusActive || topbarWindow.notificationCount > 0)
+                icon: topbarWindow.focusActive ? "󰂛" : "󰂚"
                 value: topbarWindow.notificationCount > 9 ? "9+" : (topbarWindow.notificationCount > 0 ? topbarWindow.notificationCount.toString() : "")
-                tint: topbarWindow.notificationCount > 0 ? topbarWindow.themeAccent : topbarWindow.themeSecond
+                tint: topbarWindow.focusActive ? topbarWindow.themeWarm : (topbarWindow.notificationCount > 0 ? topbarWindow.themeAccent : topbarWindow.themeSecond)
                 onActivated: topbarWindow.notificationsClicked(topbarWindow.pillCenterX(notifPill))
                 onHovered: topbarWindow.notificationsHovered()
+                onMiddleClicked: topbarWindow.focusToggleRequested()
+                onRightClicked: topbarWindow.focusToggleRequested()
             }
             StatPill {
                 id: hassPill

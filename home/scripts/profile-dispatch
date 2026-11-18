@@ -13,8 +13,9 @@ declare -A ACTIONS=(
   [volume-up]="volume-adjust up"
   [volume-down]="volume-adjust down"
   [volume-mute]="volume-adjust mute"
-  [brightness-up]="swayosd-client --brightness raise --device intel_backlight"
-  [brightness-down]="swayosd-client --brightness lower --device intel_backlight"
+  [mic-mute]="volume-adjust mic-mute"
+  [brightness-up]="brightness-adjust up"
+  [brightness-down]="brightness-adjust down"
   [clipboard]="vicinae vicinae://extensions/vicinae/clipboard/history"
 )
 

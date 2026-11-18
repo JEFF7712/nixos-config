@@ -130,6 +130,91 @@ InfoPopup {
 
     Text {
         width: parent.width
+        text: "TUNNEL"
+        visible: root.networkService.vpnConnected
+        color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)
+        font {
+            family: root.barFont
+            pixelSize: 8
+            weight: Font.Medium
+        }
+    }
+
+    Item {
+        width: parent.width
+        height: 34
+        visible: root.networkService.vpnConnected
+
+        Text {
+            id: vpnIcon
+            anchors.left: parent.left
+            anchors.leftMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            text: "󰦝"
+            color: root.themeAccent
+            font {
+                family: root.barFont
+                pixelSize: 12
+            }
+        }
+
+        Column {
+            anchors.left: vpnIcon.right
+            anchors.right: vpnState.left
+            anchors.leftMargin: 10
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 1
+
+            Text {
+                width: parent.width
+                text: root.networkService.vpnName !== "" ? root.networkService.vpnName : "VPN tunnel"
+                color: root.themeFg
+                font {
+                    family: root.barFont
+                    pixelSize: 10
+                    weight: Font.Medium
+                }
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                visible: root.networkService.vpnAddress !== ""
+                text: root.networkService.vpnAddress
+                color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.44)
+                font {
+                    family: root.barFont
+                    pixelSize: 8
+                }
+                elide: Text.ElideRight
+            }
+        }
+
+        Text {
+            id: vpnState
+            anchors.right: parent.right
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            text: "up"
+            color: root.themeAccent
+            font {
+                family: root.barFont
+                pixelSize: 9
+                weight: Font.Medium
+            }
+        }
+    }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: root.dividerColor
+        visible: root.networkService.vpnConnected && (root.networkService.wiredConnections.count > 0 || root.networkService.wifiAvailable)
+    }
+
+    Text {
+        width: parent.width
         text: "WIRED"
         visible: root.networkService.wiredConnections.count > 0
         color: Qt.rgba(root.themeFg.r, root.themeFg.g, root.themeFg.b, 0.42)

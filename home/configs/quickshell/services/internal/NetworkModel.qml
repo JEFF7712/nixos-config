@@ -15,6 +15,8 @@ Scope {
     property bool _wiredConnected: false
     property bool _connected: false
     property bool _vpnConnected: false
+    property string _vpnName: ""
+    property string _vpnAddress: ""
     property string _activeSsid: ""
     property int _activeSignal: 0
     property string _activeSecurity: ""
@@ -30,6 +32,8 @@ Scope {
     readonly property bool wiredConnected: _wiredConnected
     readonly property bool connected: _connected
     readonly property bool vpnConnected: _vpnConnected
+    readonly property string vpnName: _vpnName
+    readonly property string vpnAddress: _vpnAddress
     readonly property string activeSsid: _activeSsid
     readonly property int activeSignal: _activeSignal
     readonly property string activeSecurity: _activeSecurity
@@ -71,6 +75,8 @@ Scope {
         root._wifiEnabled = observation.wifiEnabled;
         root._connected = observation.connected;
         root._vpnConnected = observation.vpnConnected === true;
+        root._vpnName = observation.vpnName ? String(observation.vpnName) : "";
+        root._vpnAddress = observation.vpnAddress ? String(observation.vpnAddress) : "";
 
         const wiredEntries = observation.wired || [];
         root._wiredConnected = NetworkReducer.hasActiveWired(wiredEntries);

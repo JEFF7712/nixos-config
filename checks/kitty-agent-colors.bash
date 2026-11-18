@@ -127,8 +127,6 @@ assert_eq "$(sed -n 's/^background_opacity //p' "$HOME/.config/kitty/kitty.conf"
   "appearance apply still writes kittyOpacity"
 grep -q 'animation = fadeIn, 1, 2, smooth' "$HOME/.config/hypr/profile-motion.conf" \
   || { echo "FAIL: hyprlock snappy fade not written" >&2; exit 1; }
-grep -q -- '--osd-motion-ms: 70ms' "$HOME/.config/swayosd-motion.css" \
-  || { echo "FAIL: osd snappy motion not written" >&2; exit 1; }
 
 activation_module="$REPO_ROOT/modules/home-manager/desktop-profiles.nix"
 if ! rg -U -q 'if \[ -z .*DRY_RUN_CMD.*\]; then\n[[:space:]]+.*sync-kitty-agent-colors' \

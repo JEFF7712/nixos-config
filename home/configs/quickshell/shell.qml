@@ -114,6 +114,7 @@ ShellRoot {
     property bool showIdleGreeting: false
     property bool popupAttachToBar: false
     property string popupAnimationStyle: "softPop"
+    property int osdMs: 120
     property color dividerColor: "#1affffff"
     property color barBorderColor: "#3dffffff"
     property color barInnerHighlight: "#0fffffff"
@@ -160,6 +161,7 @@ ShellRoot {
         root.motionStyle = "default";
         root.showWorkspaceIndicator = true;
         root.showIdleGreeting = false;
+        root.osdMs = 120;
         // Don't reset popupAttachToBar here: false→true on every sharp retheme prewarm-flashes InfoPopup.
         root.dividerColor = "#1affffff";
         root.barBorderColor = "#3dffffff";
@@ -253,6 +255,8 @@ ShellRoot {
                 root.showWorkspaceIndicator = theme.showWorkspaceIndicator === "true";
             if (theme.showIdleGreeting)
                 root.showIdleGreeting = theme.showIdleGreeting === "true";
+            if (theme.osdMs !== undefined && theme.osdMs !== "")
+                root.osdMs = parseInt(theme.osdMs);
             if (theme.dividerColor)
                 root.dividerColor = theme.dividerColor;
             if (theme.barBorder)
@@ -428,6 +432,8 @@ ShellRoot {
             pillBg: root.pillBg
             pillBorder: root.pillBorder
             notificationCount: NotifService.count
+            focusActive: NotifService.dnd
+            onFocusToggleRequested: NotifService.toggleFocus()
             onVolumeClicked: centerX => root.showOnly(volumePopup, centerX, modelData)
             onBrightnessClicked: centerX => root.showOnly(brightnessPopup, centerX, modelData)
             onWifiClicked: centerX => root.showOnly(wifiPopup, centerX, modelData)
@@ -488,6 +494,8 @@ ShellRoot {
         themeBg: root.popupBg
         themeAccent: root.themeAccent
         themeRawBg: root.themeRawBg
+        themeWarm: root.themeWarm
+        themeFresh: root.themeFresh
         themeBorder: root.barBorderColor
         innerHighlight: root.barInnerHighlight
         dividerColor: root.dividerColor
@@ -691,6 +699,108 @@ ShellRoot {
         barFont: root.barFont
         topMargin: root.popupTopMargin
         barMargin: root.barMargin
+    }
+
+    property bool osdSettled: false
+
+    Timer {
+        id: osdSettleTimer
+        interval: 1200
+        running: true
+        repeat: false
+        onTriggered: root.osdSettled = true
+    }
+
+    OsdOverlay {
+        id: osdOverlay
+        screen: root.popupScreen ? root.popupScreen : (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
+        themeFg: root.themeFg
+        themeBg: root.popupBg
+        themeAccent: root.themeAccent
+        themeWarm: root.themeWarm
+        themeBorder: root.barBorderColor
+        innerHighlight: root.barInnerHighlight
+        pillBg: root.pillBg
+        flatMode: root.flatMode
+        barRadius: root.barRadius
+        barFont: root.barFont
+        osdMs: root.osdMs
+    }
+
+    IpcHandler {
+        target: "osd"
+
+        function showVolume(label: string, percent: int, muted: bool): string {
+            osdOverlay.showVolume(label, percent, muted, true);
+            return "ok";
+        }
+
+        function showMic(label: string, percent: int, muted: bool): string {
+            osdOverlay.showMic(label, percent, muted, true);
+            return "ok";
+        }
+
+        function showBrightness(label: string, percent: int): string {
+            osdOverlay.showBrightness(label, percent, true);
+            return "ok";
+        }
+
+        function showStatus(glyph: string, label: string, badge: string): string {
+            osdOverlay.showStatus(glyph, label, badge);
+            return "ok";
+        }
+    }
+
+    Connections {
+        target: audioService
+
+        function onVolumePercentChanged() {
+            if (!root.osdSettled || volumePopup.active || mediaPopup.active || osdOverlay.ipcHandledRecently())
+                return;
+            osdOverlay.showVolume(audioService.activeOutputLabel || "Output", audioService.volumePercent, audioService.muted, false);
+        }
+
+        function onMutedChanged() {
+            if (!root.osdSettled || volumePopup.active || mediaPopup.active || osdOverlay.ipcHandledRecently())
+                return;
+            osdOverlay.showVolume(audioService.activeOutputLabel || "Output", audioService.volumePercent, audioService.muted, false);
+        }
+
+        function onSourceMutedChanged() {
+            if (!root.osdSettled || volumePopup.active || osdOverlay.ipcHandledRecently())
+                return;
+            osdOverlay.showMic(audioService.activeInputLabel || "Microphone", audioService.sourceVolumePercent, audioService.sourceMuted, false);
+        }
+    }
+
+    Connections {
+        target: brightnessService
+
+        function onAveragePercentChanged() {
+            if (!root.osdSettled || brightnessPopup.active || osdOverlay.ipcHandledRecently())
+                return;
+            osdOverlay.showBrightness("Display", brightnessService.averagePercent, false);
+        }
+    }
+
+    Connections {
+        target: NotifService
+
+        function onDndChanged() {
+            if (!root.osdSettled || notificationsPopup.active)
+                return;
+            osdOverlay.showStatus(NotifService.dnd ? "󰂛" : "󰂚", "Focus mode", NotifService.dnd ? "on" : "off");
+        }
+    }
+
+    Connections {
+        target: powerService
+
+        function onIdleInhibitedChanged() {
+            if (!root.osdSettled || batteryPopup.active)
+                return;
+            osdOverlay.showStatus("󰅶", "Stay awake", powerService.idleInhibited ? "on" : "off");
+        }
     }
 
     NotificationToasts {

@@ -247,10 +247,6 @@ in
         $DRY_RUN_CMD install -Dm644 /dev/null \
           "$HOME/.config/hypr/profile-colors.conf"
       fi
-      if [ ! -e "$HOME/.config/swayosd-motion.css" ]; then
-        $DRY_RUN_CMD install -Dm644 "$CFG/swayosd-motion.css" \
-          "$HOME/.config/swayosd-motion.css"
-      fi
       if [ ! -e "$HOME/.icons/default/index.theme" ]; then
         $DRY_RUN_CMD mkdir -p "$HOME/.icons/default"
         if [ -z "''${DRY_RUN_CMD:-}" ]; then

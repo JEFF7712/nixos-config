@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Apply sink volume immediately via PipeWire, then ask SwayOSD to display
-# the new level without changing it again. SwayOSD's GTK thread can stall
-# for seconds after idle; the volume change must not wait on that.
+# Apply sink/source volume immediately via PipeWire, then notify the native
+# Quickshell OSD via IPC.
 #
 # Target the actively-playing Bluetooth sink when one exists. The PipeWire
-# default stays on the speakers while streams are routed to the AirPods, so
-# the default sink alone leaves the volume keys dead on Bluetooth.
-#
-# Uses pactl throughout: this wpctl only accepts numeric node IDs, while
-# pactl takes stable sink names.
+# default stays on the speakers while streams are routed to Bluetooth, so
+# the default sink alone leaves the volume keys dead on headphones.
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+SHELL_QML="$(cd "$SCRIPT_DIR/.." && pwd)/configs/quickshell/shell.qml"
+
+clean_label() {
+  printf '%s' "$1" \
+    | sed -E 's/^Raptor Lake[-A-Za-z0-9/ ]*cAVS +//I; s/^Alder Lake[-A-Za-z0-9/ ]*cAVS +//I'
+}
 
 pick_sink() {
   local bluez
@@ -24,6 +28,66 @@ pick_sink() {
 sink_pct() {
   pactl get-sink-volume "$1" 2>/dev/null | grep -oE '[0-9]+%' | head -n 1 | tr -d '%'
 }
+
+sink_muted() {
+  if pactl get-sink-mute "$1" 2>/dev/null | grep -qi 'yes'; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+sink_desc() {
+  local desc
+  desc=$(pactl list sinks 2>/dev/null | awk -v target="$1" '
+    $1 == "Name:" { match_sink = ($2 == target) }
+    match_sink && /^[[:space:]]*Description:/ {
+      sub(/^[[:space:]]*Description:[[:space:]]*/, "")
+      print
+      exit
+    }
+  ')
+  clean_label "${desc:-Output}"
+}
+
+source_pct() {
+  pactl get-source-volume "$1" 2>/dev/null | grep -oE '[0-9]+%' | head -n 1 | tr -d '%'
+}
+
+source_muted() {
+  if pactl get-source-mute "$1" 2>/dev/null | grep -qi 'yes'; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+source_desc() {
+  local desc
+  desc=$(pactl list sources 2>/dev/null | awk -v target="$1" '
+    $1 == "Name:" { match_src = ($2 == target) }
+    match_src && /^[[:space:]]*Description:/ {
+      sub(/^[[:space:]]*Description:[[:space:]]*/, "")
+      print
+      exit
+    }
+  ')
+  clean_label "${desc:-Microphone}"
+}
+
+if [ "${1:-}" = "mic-mute" ]; then
+  SRC=$(pactl get-default-source 2>/dev/null || true)
+  if [ -z "$SRC" ]; then
+    echo "volume-adjust: no audio source found" >&2
+    exit 1
+  fi
+  pactl set-source-mute "$SRC" toggle
+  PCT=$(source_pct "$SRC")
+  MUTED=$(source_muted "$SRC")
+  DESC=$(source_desc "$SRC")
+  quickshell ipc --any-display -p "$SHELL_QML" call osd showMic "$DESC" "${PCT:-0}" "$MUTED" >/dev/null 2>&1 || true
+  exit 0
+fi
 
 SINK=$(pick_sink)
 if [ -z "${SINK:-}" ]; then
@@ -45,9 +109,12 @@ case "${1:-}" in
     pactl set-sink-mute "$SINK" toggle
     ;;
   *)
-    echo "Usage: volume-adjust <up|down|mute>" >&2
+    echo "Usage: volume-adjust <up|down|mute|mic-mute>" >&2
     exit 1
     ;;
 esac
 
-swayosd-client --output-volume +0 --device "$SINK" >/dev/null 2>&1 || true
+PCT=$(sink_pct "$SINK")
+MUTED=$(sink_muted "$SINK")
+DESC=$(sink_desc "$SINK")
+quickshell ipc --any-display -p "$SHELL_QML" call osd showVolume "$DESC" "${PCT:-0}" "$MUTED" >/dev/null 2>&1 || true

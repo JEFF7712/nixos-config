@@ -636,7 +636,6 @@ apply_wallpaper_theme() {
   pkill -USR2 -x cava 2>/dev/null || true
   systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
   nudge_gtk_reload
-  restart_swayosd
   # spicetify re-patches xpui and may relaunch Spotify; keep it off the critical
   # path. On a profile switch this is the only spicetify apply (the switch tail
   # skips it for wallpaper-theming profiles); on a standalone wallpaper change
@@ -756,24 +755,6 @@ animations {
 EOF
 }
 
-write_osd_motion() {
-  local dest="$1" ms="$2"
-  mkdir -p "$(dirname "$dest")"
-  printf '* { --osd-motion-ms: %sms; }\n' "$ms" > "$dest"
-}
-
-# SwayOSD loads style.css once (CssProvider::load_from_path) and inlines the
-# @import'd noctalia.css. Wallpaper/profile color writes never reach the
-# running server, so restart it after the palette files are in place.
-restart_swayosd() {
-  if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
-    systemctl --user restart swayosd 2>/dev/null || true
-  else
-    (systemctl --user restart swayosd 2>/dev/null || true) 9>&- &
-    disown 2>/dev/null || true
-  fi
-}
-
 profile_launcher_fade_ms() {
   local profile="$1" appearance
   appearance=$(profile_manifest_transition_json "$profile" appearance 2>/dev/null || true)
@@ -877,11 +858,11 @@ apply_profile_appearance_files() {
   local gtk_theme icon_theme kitty_opacity
   local trail_delay trail_decay_min trail_decay_max trail_threshold
   local blink_interval visual_bell
-  local hypr_fade hypr_dots osd_ms
+  local hypr_fade hypr_dots
   appearance=$(profile_manifest_transition_json "$profile" appearance)
   IFS=$'\t' read -r gtk_theme icon_theme kitty_opacity \
     trail_delay trail_decay_min trail_decay_max trail_threshold \
-    blink_interval visual_bell hypr_fade hypr_dots osd_ms < <(
+    blink_interval visual_bell hypr_fade hypr_dots < <(
     jq -r --arg variant "$variant" '
       [ (if $variant == "light" then (.gtkThemeLight // .gtkTheme) else .gtkTheme end),
         (if $variant == "light" then (.iconThemeLight // .iconTheme) else .iconTheme end),
@@ -893,8 +874,7 @@ apply_profile_appearance_files() {
         (.kittyCursorTrail.blinkInterval // "-1"),
         (.kittyCursorTrail.visualBellDuration // 0),
         (.motion.hyprlockFade // 4),
-        (.motion.hyprlockDots // 2),
-        (.motion.osdMs // 120) ] | @tsv' <<< "$appearance"
+        (.motion.hyprlockDots // 2) ] | @tsv' <<< "$appearance"
   )
 
   set_gtk_setting "$config_root/gtk-3.0/settings.ini" gtk-theme-name "$gtk_theme"
@@ -924,7 +904,6 @@ apply_profile_appearance_files() {
   fi
 
   write_hyprlock_motion "$config_root/hypr/profile-motion.conf" "$hypr_fade" "$hypr_dots"
-  write_osd_motion "$config_root/swayosd-motion.css" "$osd_ms"
 }
 
 apply_profile_cursor_files() {
@@ -956,7 +935,6 @@ stage_profile_core_files() {
     .config/qt6ct/qt6ct.conf
     .config/kitty/kitty.conf
     .config/hypr/profile-motion.conf
-    .config/swayosd-motion.css
     .config/rofi/profile-switcher.rasi
     .icons/default/index.theme
   )
