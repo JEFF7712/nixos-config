@@ -201,7 +201,7 @@ vm-iso: build-iso
   qemu-system-x86_64 -enable-kvm -m 8192 -smp 4 -boot d -cdrom result/iso/*.iso
 
 # Boot the laptop's real disko layout (GPT + LUKS2 + btrfs subvolumes) inside
-# QEMU and boot from it. docs/luks-reinstall.md.
+# QEMU and boot from it.
 vm-disko:
   nix run --no-write-lock-file -L ".#nixosConfigurations.laptop.config.system.build.vmWithDisko"
 

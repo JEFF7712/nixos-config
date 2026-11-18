@@ -21,7 +21,7 @@ classify() {
       full=1
       return
       ;;
-    AGENT_MAP.md | AGENTS.md | CLAUDE.md | MODEL-ROUTING.md | RTK.md | \
+    AGENT_MAP.md | AGENTS.md | CLAUDE.md | \
       docs/agent-self-improvement.md)
       add check-agent-docs
       ;;

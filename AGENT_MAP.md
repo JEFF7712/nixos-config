@@ -22,7 +22,7 @@ Fast routing for AI agents working in this repo. Use this before broad code sear
 | Update flake inputs | `flake.nix`, `flake.lock` | `flake.lock` via `just update` | `just check` |
 | Change ISO behavior | `hosts/iso/configuration.nix`, `home/rupan/iso.nix` | ISO host or ISO home config | `just eval iso && just build-iso` |
 | Change VM boot testing (`just vm`) | `justfile`, `virtualisation.vmVariant` in `hosts/laptop/base.nix` | vmVariant block, `vm`/`vm-iso` recipes | `just eval-vm` (vmVariant is not covered by `just eval`) |
-| Change LUKS disk layout | `docs/luks-reinstall.md`, `hosts/laptop/disko.nix` | disko layout, runbook | `just eval laptop` + `just vm-disko` for layout changes |
+| Change LUKS disk layout | `hosts/laptop/disko.nix` | disko layout | `just eval laptop` + `just vm-disko` for layout changes |
 | Change Obsidian vault fonts/CSS | `modules/home-manager/obsidian.nix`, `home/configs/obsidian/` | snippet CSS, custom-font-loader JSON, activation merge in module + `profile-common` / `iris-render.py` | `just fmt-check && just eval laptop` |
 | Change agent tooling | `modules/home-manager/ai-tools.nix`, agent docs | agent module, `CLAUDE.md`, `AGENT_MAP.md` | `just check-agent-docs && just eval laptop` |
 | Change Rupan's headless VM | `docs/vm.md`, `hosts/vm/configuration.nix`, `home/rupan/vm.nix` | VM host and home config; shared CLI module when needed | `just eval vm && just check-agent-docs && just fmt-check`; build and boot the qcow2 image for installation changes |

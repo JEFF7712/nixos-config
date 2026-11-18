@@ -71,7 +71,7 @@ assert_selection 'check-agent-docs
 diff-check' \
   AGENT_MAP.md
 
-assert_selection 'diff-check' docs/luks-reinstall.md
+assert_selection 'diff-check' docs/vm.md
 
 assert_selection 'fmt-check
 plymouth-theme-check
