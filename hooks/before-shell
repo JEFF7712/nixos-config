@@ -46,8 +46,12 @@ agent_hooks_nix_redirect_segment() {
       printf '%s' "Use the nix-agent MCP tool instead of shell: check(\"dry-activate\") previews, build() builds without activating. Raw nixos-rebuild output bypasses the structured envelope."
       return 0
       ;;
-    "home-manager switch" | "home-manager build")
-      printf '%s' "Use the nix-agent MCP tool instead of shell: switch(mode=\"home-manager\") activates, build(mode=\"home-manager\") builds without activating."
+    "home-manager switch")
+      agent_hooks_switch_message
+      return 0
+      ;;
+    "home-manager build")
+      printf '%s' "Home Manager is integrated into the NixOS configuration in this repo; use the nix-agent MCP build() tool (default mode=\"nixos\") or \`just build\` instead of standalone home-manager."
       return 0
       ;;
     "nix build")

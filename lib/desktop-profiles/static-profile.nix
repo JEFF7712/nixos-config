@@ -162,23 +162,6 @@ let
         // ov "starship"
       );
 
-      rofi = theme.mkProfilePickerRofi (
-        {
-          background = r.bg0;
-          text = r.fg1;
-          border = r.bg2;
-          selectedBackground = r.bg1;
-          selectedForeground = r.accent;
-          inputBackground = r.bg1;
-          prompt = r.accent;
-          placeholder = r.bg3;
-          elementBackground = r.bg1;
-          elementSelectedBackground = r.bg2;
-          elementSelectedBorder = r.accent;
-        }
-        // ov "rofi"
-      );
-
       btop = theme.mkBtopTheme (
         {
           mainBg = r.bg0;

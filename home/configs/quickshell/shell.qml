@@ -822,6 +822,131 @@ ShellRoot {
         barMargin: root.barMargin
     }
 
+    QtObject {
+        id: batteryAlerts
+        property string level: ""
+
+        function evaluate(): void {
+            if (!powerService.available || powerService.state !== "discharging") {
+                level = "";
+                return;
+            }
+            const pct = powerService.chargePercent;
+            if (pct <= 10 && level !== "critical") {
+                level = "critical";
+                Quickshell.execDetached(["notify-send", "-u", "critical", "Battery critical", pct + "% remaining"]);
+            } else if (pct <= 20 && level !== "warning" && level !== "critical") {
+                level = "warning";
+                Quickshell.execDetached(["notify-send", "-u", "normal", "Battery low", pct + "% remaining"]);
+            } else if (pct > 20) {
+                level = "";
+            }
+        }
+    }
+
+    Connections {
+        target: powerService
+        function onAvailableChanged(): void {
+            batteryAlerts.evaluate();
+        }
+        function onStateChanged(): void {
+            batteryAlerts.evaluate();
+        }
+        function onChargePercentChanged(): void {
+            batteryAlerts.evaluate();
+        }
+    }
+
+    property bool switcherShown: false
+    property var switcherProfiles: []
+    property string switcherActiveProfile: ""
+    property int switcherFocusedIndex: -1
+
+    function openProfileSwitcher(): void {
+        root.closeAll();
+        switcherListProc.running = true;
+        switcherActiveProc.running = true;
+        root.switcherShown = true;
+    }
+
+    function closeProfileSwitcher(): void {
+        root.switcherShown = false;
+        root.switcherFocusedIndex = -1;
+    }
+
+    function toggleProfileSwitcher(): void {
+        if (root.switcherShown)
+            root.closeProfileSwitcher();
+        else
+            root.openProfileSwitcher();
+    }
+
+    function activateProfile(name: string): void {
+        // Detach with setsid -f and redirect all stdio so the child survives
+        // if quickshell-bar restarts and can't be killed by SIGPIPE.
+        switcherExecProc.command = ["bash", "-c", "setsid -f switch-profile \"$1\" </dev/null >/dev/null 2>&1", "--", name];
+        switcherExecProc.running = true;
+        root.closeProfileSwitcher();
+    }
+
+    IpcHandler {
+        target: "profile"
+        function toggle(): void {
+            root.toggleProfileSwitcher();
+        }
+        function show(): void {
+            root.openProfileSwitcher();
+        }
+        function hide(): void {
+            root.closeProfileSwitcher();
+        }
+    }
+
+    Process {
+        id: switcherListProc
+        command: ["sh", "-c", "for d in \"$HOME\"/.config/desktop-profiles/*/; do [ -d \"$d\" ] && basename \"$d\"; done"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.switcherProfiles = text.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+            }
+        }
+    }
+
+    Process {
+        id: switcherActiveProc
+        command: ["sh", "-c", "cat \"$HOME\"/.config/desktop-profiles/active 2>/dev/null || true"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.switcherActiveProfile = text.trim();
+            }
+        }
+    }
+
+    Process {
+        id: switcherExecProc
+        command: ["true"]
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        ProfileSwitcher {
+            property var modelData
+            screen: modelData
+            shown: root.switcherShown
+            profiles: root.switcherProfiles
+            activeProfile: root.switcherActiveProfile
+            focusedIndex: root.switcherFocusedIndex
+            onCloseRequested: root.closeProfileSwitcher()
+            onFocusRequested: index => {
+                root.switcherFocusedIndex = index;
+            }
+            onActivateRequested: name => {
+                root.activateProfile(name);
+            }
+        }
+    }
+
     PanelWindow {
         id: catcher
         screen: root.popupScreen

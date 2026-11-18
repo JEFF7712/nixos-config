@@ -81,7 +81,7 @@
                         {
                             "id": "com_core447_OSPlugin::RunCommand",
                             "settings": {
-                                "command": "profile-dispatch volume-down",
+                                "command": "volume-adjust down",
                                 "detached": true,
                                 "display_output": false,
                                 "auto_run": 0,
@@ -121,7 +121,7 @@
                         {
                             "id": "com_core447_OSPlugin::RunCommand",
                             "settings": {
-                                "command": "profile-dispatch volume-up",
+                                "command": "volume-adjust up",
                                 "detached": true,
                                 "display_output": false,
                                 "auto_run": 0,

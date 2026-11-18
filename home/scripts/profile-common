@@ -423,7 +423,7 @@ apply_wallpaper_theme() {
   # The engines overwrite whole files; make sure the destinations exist.
   mkdir -p "$CONFIG_HOME/gtk-3.0" "$CONFIG_HOME/gtk-4.0" "$CONFIG_HOME/qt5ct/colors" \
     "$CONFIG_HOME/qt6ct/colors" "$CONFIG_HOME/kitty" "$CONFIG_HOME/fish/conf.d" \
-    "$CONFIG_HOME/rofi" "$CONFIG_HOME/btop/themes" "$CONFIG_HOME/hypr" "$CONFIG_HOME/tmux" \
+    "$CONFIG_HOME/btop/themes" "$CONFIG_HOME/hypr" "$CONFIG_HOME/tmux" \
     "$CONFIG_HOME/zathura"
 
   if [ "$engine" = "iris" ]; then
@@ -493,9 +493,7 @@ apply_wallpaper_theme() {
       return 1
     fi
     local cfg color scheme contrast
-    # Per-profile matugen config wins (e.g. config-sharp.toml); else the default.
     cfg="$CONFIG_HOME/matugen/config-$profile.toml"
-    [ -f "$cfg" ] || cfg="$CONFIG_HOME/matugen/config.toml"
     if [ ! -f "$cfg" ]; then
       printf 'apply_wallpaper_theme: missing matugen config for %s\n' "$profile" >&2
       return 1
@@ -823,11 +821,6 @@ apply_profile_font_files() {
       -e "s|^font_size .*|font_size $mono_size|" \
       "$config_root/kitty/kitty.conf"
   fi
-
-  if [ -f "$config_root/rofi/profile-switcher.rasi" ]; then
-    sed -i -E "s|font:[[:space:]]*\"[^\"]+ [0-9]+\";|font:                        \"$ui_font $ui_size\";|g" \
-      "$config_root/rofi/profile-switcher.rasi"
-  fi
 }
 
 apply_profile_appearance() {
@@ -935,7 +928,6 @@ stage_profile_core_files() {
     .config/qt6ct/qt6ct.conf
     .config/kitty/kitty.conf
     .config/hypr/profile-motion.conf
-    .config/rofi/profile-switcher.rasi
     .icons/default/index.theme
   )
 
@@ -949,12 +941,11 @@ stage_profile_core_files() {
   done
 
   profile=$(basename "$profile_dir")
-  local gtk3 gtk4 qt6 kitty rofi fish starship
+  local gtk3 gtk4 qt6 kitty fish starship
   gtk3=$(profile_manifest_artifact "$profile" "$variant" gtk3)
   gtk4=$(profile_manifest_artifact "$profile" "$variant" gtk4)
   qt6=$(profile_manifest_artifact "$profile" "$variant" qt6)
   kitty=$(profile_manifest_artifact "$profile" "$variant" kitty)
-  rofi=$(profile_manifest_artifact "$profile" "$variant" rofi)
   fish=$(profile_manifest_artifact "$profile" "$variant" fish)
   starship=$(profile_manifest_artifact "$profile" "$variant" starship)
   while IFS=$'\t' read -r source destination; do
@@ -967,7 +958,6 @@ $gtk4	$stage_config/gtk-4.0/noctalia.css
 $qt6	$stage_config/qt6ct/colors/noctalia.conf
 $qt6	$stage_config/qt5ct/colors/noctalia.conf
 $kitty	$stage_config/kitty/colors.conf
-$rofi	$stage_config/rofi/profile-switcher.rasi
 $fish	$stage_config/fish/conf.d/matugen_theme.fish
 $starship	$stage_config/starship_matugen.toml
 EOF
@@ -1068,13 +1058,12 @@ profile_meta_value() {
 # Copies the variant-resolved color files into the live config locations.
 copy_profile_colors() {
   local profile_dir="$1" variant="$2"
-  local gtk3 gtk4 qt6 kitty rofi fish starship
+  local gtk3 gtk4 qt6 kitty fish starship
 
   gtk3=$(pick_variant_file "$variant" "$profile_dir/gtk-3.0.css" "$profile_dir/gtk-3.0-light.css")
   gtk4=$(pick_variant_file "$variant" "$profile_dir/gtk-4.0.css" "$profile_dir/gtk-4.0-light.css")
   qt6=$(pick_variant_file "$variant" "$profile_dir/qt6ct.conf" "$profile_dir/qt6ct-light.conf")
   kitty=$(pick_variant_file "$variant" "$profile_dir/kitty-colors.conf" "$profile_dir/kitty-colors-light.conf")
-  rofi=$(pick_variant_file "$variant" "$profile_dir/rofi-theme.rasi" "$profile_dir/rofi-theme-light.rasi")
   fish=$(pick_variant_file "$variant" "$profile_dir/fish-theme.fish" "$profile_dir/fish-theme-light.fish")
   starship=$(pick_variant_file "$variant" "$profile_dir/starship.toml" "$profile_dir/starship-light.toml")
 
@@ -1087,7 +1076,6 @@ copy_profile_colors() {
   [ -s "$qt6" ] && install -m 644 "$qt6" "$CONFIG_HOME/qt5ct/colors/noctalia.conf"
   [ -s "$kitty" ] && install -m 644 "$kitty" "$CONFIG_HOME/kitty/colors.conf"
   [ -s "$kitty" ] && sync_kitty_agent_transparent_colors "$CONFIG_HOME/kitty"
-  [ -s "$rofi" ] && install -m 644 "$rofi" "$CONFIG_HOME/rofi/profile-switcher.rasi"
   [ -s "$fish" ] && install -m 644 "$fish" "$CONFIG_HOME/fish/conf.d/matugen_theme.fish"
   [ -s "$starship" ] && install -m 644 "$starship" "$HOME/.config/starship_matugen.toml"
 

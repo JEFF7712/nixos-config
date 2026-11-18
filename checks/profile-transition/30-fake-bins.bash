@@ -23,8 +23,6 @@ for profile in old new; do
   printf 'gtk4-%s-light\n' "$profile" > "$profile_dir/gtk-4.0-light.css"
   printf 'qt-%s-dark\n' "$profile" > "$profile_dir/qt6ct.conf"
   printf 'qt-%s-light\n' "$profile" > "$profile_dir/qt6ct-light.conf"
-  printf 'rofi-%s-dark\n' "$profile" > "$profile_dir/rofi-theme.rasi"
-  printf 'rofi-%s-light\n' "$profile" > "$profile_dir/rofi-theme-light.rasi"
   printf 'fish-%s-dark\n' "$profile" > "$profile_dir/fish-theme.fish"
   printf 'fish-%s-light\n' "$profile" > "$profile_dir/fish-theme-light.fish"
   printf 'starship-%s-dark\n' "$profile" > "$profile_dir/starship.toml"
@@ -60,8 +58,8 @@ for profile in old new; do
         appearance: {gtkTheme: "fixture-dark", gtkThemeLight: "fixture-light", iconTheme: "fixture-icons-dark", iconThemeLight: "fixture-icons-light", kittyOpacity: 0.8}
       },
       variants: {
-        dark: {wallpaperDirectory: $wallpaper, adapters: {}, artifacts: {kitty: "kitty-colors.conf", gtk3: "gtk-3.0.css", gtk4: "gtk-4.0.css", qt6: "qt6ct.conf", rofi: "rofi-theme.rasi", fish: "fish-theme.fish", starship: "starship.toml"}},
-        light: {wallpaperDirectory: $wallpaper, adapters: {}, artifacts: {kitty: "kitty-colors-light.conf", gtk3: "gtk-3.0-light.css", gtk4: "gtk-4.0-light.css", qt6: "qt6ct-light.conf", rofi: "rofi-theme-light.rasi", fish: "fish-theme-light.fish", starship: "starship-light.toml"}}
+        dark: {wallpaperDirectory: $wallpaper, adapters: {}, artifacts: {kitty: "kitty-colors.conf", gtk3: "gtk-3.0.css", gtk4: "gtk-4.0.css", qt6: "qt6ct.conf", fish: "fish-theme.fish", starship: "starship.toml"}},
+        light: {wallpaperDirectory: $wallpaper, adapters: {}, artifacts: {kitty: "kitty-colors-light.conf", gtk3: "gtk-3.0-light.css", gtk4: "gtk-4.0-light.css", qt6: "qt6ct-light.conf", fish: "fish-theme-light.fish", starship: "starship-light.toml"}}
       },
       artifacts: {
         niri: {default: "niri-overrides.kdl", focus: "niri-overrides-focus.kdl"},
@@ -227,9 +225,6 @@ if [ -n "${PROFILE_TRANSITION_TEST_POST_COMMIT:-}" ] \
   trap 'rm -f "$child_file"' EXIT
   sleep 0.1
 fi
-case "$*" in
-  *quickshell-switcher/shell.qml*) exit 0 ;;
-esac
 if [ -z "${FAIL_NOTIFICATION_OWNER:-}" ]; then
   printf 'quickshell-started\n' > "$BAR_STATE"
   printf 'quickshell\n' > "$NOTIFICATION_STATE"

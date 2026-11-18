@@ -9,6 +9,7 @@
 {
   imports = [
     (inputs.import-tree ../../modules/nixos)
+    inputs.vicinae.nixosModules.default
   ];
 
   nix = {
@@ -41,12 +42,12 @@
   asus-numpad.enable = true;
   howdy.enable = true;
   battery-threshold.enable = true;
-  # workstation (audio, bluetooth, file manager, git, launcher cache) defaults on.
+  # workstation (audio, bluetooth, file manager, git) defaults on.
   local-containers.enable = true;
   homelab.enable = true;
   homelab.syncthing.enable = true;
-  waydroid.enable = false;
   game.enable = true;
+  programs.vicinae.input-server.package = pkgs.vicinae-top;
   # Daemon-owned Nix builds stay out of the desktop's way.
   systemd.services.nix-daemon.serviceConfig = {
     CPUWeight = 25;
@@ -353,9 +354,11 @@
   # server key configured in the homelab repo.
   nix.settings.extra-substituters = [
     "http://10.0.30.20:8090"
+    "https://vicinae.cachix.org"
   ];
   nix.settings.extra-trusted-public-keys = [
     "homelab-niks3-1:LXFpoJ6mA2PYYca5dMeXCu+I2Qqt6i8WeOlh5qTUhec="
+    "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
   ];
   # direnv has no stdin to answer the interactive y/N prompt, so it hangs.
   nix.settings.accept-flake-config = true;

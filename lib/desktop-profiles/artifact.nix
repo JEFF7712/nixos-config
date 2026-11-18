@@ -20,7 +20,6 @@ let
     kitty = if light then "kitty-colors-light.conf" else "kitty-colors.conf";
     fish = if light then "fish-theme-light.fish" else "fish-theme.fish";
     starship = if light then "starship-light.toml" else "starship.toml";
-    rofi = if light then "rofi-theme-light.rasi" else "rofi-theme.rasi";
     btop = if light then "btop-light.theme" else "btop.theme";
     tmux = if light then "tmux-colors-light.conf" else "tmux-colors.conf";
     hyprlock = if light then "hyprlock-colors-light.conf" else "hyprlock-colors.conf";

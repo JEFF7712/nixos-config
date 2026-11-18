@@ -8,10 +8,8 @@
 # `just switch` keeps working.
 #
 # Usage: flake-update-gated [--repo DIR] [--] [inputs...]
-#   no inputs: update the main flake and ./shells, then eval laptop, iso,
-#     and the default shells devShell.
-#   inputs: update only the main flake with those inputs, then eval laptop
-#     and iso. Pass inputs through to `nix flake update` verbatim.
+#   no inputs: update flake.lock, then eval laptop, iso, vm, and default devShell.
+#   inputs: update only the named inputs, then eval laptop and iso.
 #
 # Env: UPDATE_LOCK (default ${TMPDIR:-/tmp}/nixos-switch.lock)
 set -euo pipefail
@@ -58,17 +56,10 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
 main_lock="$repo/flake.lock"
-shells_lock="$repo/shells/flake.lock"
 cp -p -- "$main_lock" "$tmpdir/flake.lock.snapshot"
-if [ "$partial" -eq 0 ]; then
-  cp -p -- "$shells_lock" "$tmpdir/shells-flake.lock.snapshot"
-fi
 
 restore() {
   cp -f -- "$tmpdir/flake.lock.snapshot" "$main_lock"
-  if [ "$partial" -eq 0 ]; then
-    cp -f -- "$tmpdir/shells-flake.lock.snapshot" "$shells_lock"
-  fi
 }
 
 if ! nix flake update --flake "$repo" "${inputs[@]}"; then
@@ -76,17 +67,8 @@ if ! nix flake update --flake "$repo" "${inputs[@]}"; then
   echo "flake-update-gated: update failed; flake.lock reverted" >&2
   exit 1
 fi
-if [ "$partial" -eq 0 ]; then
-  if ! nix flake update --flake "$repo/shells"; then
-    restore
-    echo "flake-update-gated: shells update failed; flake.lock reverted" >&2
-    exit 1
-  fi
-fi
 
-if cmp -s -- "$main_lock" "$tmpdir/flake.lock.snapshot" && {
-  [ "$partial" -eq 1 ] || cmp -s -- "$shells_lock" "$tmpdir/shells-flake.lock.snapshot"
-}; then
+if cmp -s -- "$main_lock" "$tmpdir/flake.lock.snapshot"; then
   echo "flake-update-gated: flake.lock unchanged; skipping eval"
   exit 0
 fi
@@ -102,9 +84,14 @@ if ! nix eval --no-write-lock-file "$repo#nixosConfigurations.iso.config.system.
   exit 1
 fi
 if [ "$partial" -eq 0 ]; then
-  if ! nix eval --no-write-lock-file "$repo/shells#devShells.x86_64-linux.default.drvPath" >/dev/null; then
+  if ! nix eval --no-write-lock-file "$repo#nixosConfigurations.vm.config.system.build.toplevel.drvPath" >/dev/null; then
     restore
-    echo "flake-update-gated: shells eval failed; flake.lock reverted" >&2
+    echo "flake-update-gated: vm eval failed; flake.lock reverted" >&2
+    exit 1
+  fi
+  if ! nix eval --no-write-lock-file "$repo#devShells.x86_64-linux.default.drvPath" >/dev/null; then
+    restore
+    echo "flake-update-gated: devShells eval failed; flake.lock reverted" >&2
     exit 1
   fi
 fi

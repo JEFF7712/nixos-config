@@ -91,7 +91,7 @@ let
       };
       launcherFadeMs = lib.mkOption {
         type = lib.types.ints.positive;
-        description = "Stored launcher fade hint. Rofi uses niri window-open via -normal-window; Vicinae is layer-shell so this is written as launcher_window.fade_ms.";
+        description = "Launcher fade hint in milliseconds (written to Vicinae as launcher_window.fade_ms).";
       };
     };
   };
@@ -118,10 +118,6 @@ let
       default = null;
     };
     starship = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-    };
-    rofi = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
     };

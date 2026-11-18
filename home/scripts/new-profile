@@ -106,5 +106,5 @@ echo
 echo "Next steps:"
 echo "  1. Edit the palette (and add a light palette via paletteLight if wanted)"
 echo "  2. Drop wallpapers into $WALLPAPERS"
-echo "  3. Add a preview image at $ASSETS_HOME/previews/$NAME.png (rofi picker)"
+echo "  3. Add a preview image at $ASSETS_HOME/previews/$NAME.png (profile switcher)"
 echo "  4. Rebuild, then: switch-profile $NAME"

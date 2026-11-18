@@ -100,10 +100,6 @@ let
       directory = r.aqua;
       cmdDuration = r.fg2;
     };
-    rofi = r: {
-      border = r.highlightMed;
-      selectedBackground = r.bg2;
-    };
     btop = r: {
       selectedBg = r.highlightMed;
       procMisc = r.aqua;

@@ -122,7 +122,7 @@ in
       Service = {
         ExecStartPre = "${prepare}";
         ExecStart = "${pkgs.streamcontroller}/bin/streamcontroller -b";
-        # Keys run deck-ha, matrix-sync, profile-dispatch and codex.
+        # Keys run deck-ha, matrix-sync, volume-adjust and codex.
         Environment = "PATH=${home}/.local/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin";
         Restart = "on-failure";
         RestartSec = 5;

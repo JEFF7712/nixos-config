@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-26.05";
     # The chatgpt-linux branch was deleted when NixOS/nixpkgs#551713 merged;
     # a branch ref makes every `nix flake update` fail.
     chatgpt-nixpkgs.url = "github:Moraxyc/nixpkgs/38964bbbe2d2b277eb2d1659d2be52a082cfa487";
@@ -55,6 +54,7 @@
     comin = {
       url = "github:nlewo/comin/v0.14.0";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
     nixvim = {
       url = "github:nix-community/nixvim";
@@ -116,21 +116,148 @@
     {
       self,
       nixpkgs,
-      nixpkgs-stable,
       home-manager,
       nix-vscode-extensions,
       ...
     }@inputs:
+    let
+      system = "x86_64-linux";
+      overlays = import ./overlays {
+        inherit nix-vscode-extensions;
+        inherit (inputs) vicinae;
+      };
+
+      pkgs = import nixpkgs {
+        inherit system overlays;
+        config.allowUnfree = true;
+      };
+
+      chatgpt-pkgs = import inputs.chatgpt-nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
+    in
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [ "x86_64-linux" ];
+      systems = [ system ];
       imports = [ inputs.treefmt-nix.flakeModule ];
 
       perSystem =
-        { pkgs, ... }:
+        { self', ... }:
+        let
+          pythonPackages =
+            ps: with ps; [
+              numpy
+              pandas
+              requests
+              matplotlib
+              openpyxl
+              scipy
+              plotly
+            ];
+          pythonEnv = pkgs.python3.withPackages pythonPackages;
+          cbeEnv = pkgs.python3.withPackages (
+            ps:
+            pythonPackages ps
+            ++ [
+              ps.openmm
+              ps.mdtraj
+            ]
+          );
+          mlEnv = pkgs.python3.withPackages (
+            ps:
+            pythonPackages ps
+            ++ (with ps; [
+              scikit-learn
+              torch
+              torch-geometric
+              openmm
+              mdtraj
+              jupyterlab
+              virtualenv
+            ])
+          );
+        in
         {
-          packages.iris-python = pkgs.callPackage ./pkgs/iris-python { };
-          # Forces checks/laptop-safety.nix asserts at eval; owned by
-          # `nix flake check` so just/CI need no separate impure eval.
+          _module.args.pkgs = pkgs;
+
+          packages.iris-python = pkgs.iris-python;
+
+          devShells = {
+            c = pkgs.mkShell {
+              packages = with pkgs; [
+                bear
+                clang
+                clang-tools
+                cmake
+                cppcheck
+                gdb
+                gcc
+                gnumake
+                lldb
+                ninja
+                pkg-config
+                valgrind
+              ];
+              shellHook = ''
+                export CC=gcc
+                export CXX=g++
+                echo "C development shell ready."
+              '';
+            };
+
+            python = pkgs.mkShell {
+              packages = [ pythonEnv ];
+              shellHook = ''echo "Python Shell ready." '';
+            };
+
+            cbe = pkgs.mkShell {
+              packages = [
+                cbeEnv
+                pkgs.openblas
+              ];
+              shellHook = ''echo "CBE Shell ready." '';
+            };
+
+            ml = pkgs.mkShell {
+              packages = [
+                mlEnv
+                pkgs.uv
+              ];
+              shellHook = ''
+                if [ ! -d ".venv" ]; then
+                  echo "Creating new virtual environment..."
+                  uv venv --system-site-packages --python ${mlEnv}/bin/python3 .venv
+                fi
+                source .venv/bin/activate
+                export PYTHONPATH="${mlEnv}/${pkgs.python3.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}"
+                export LD_LIBRARY_PATH="/run/opengl-driver/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.libGL}/lib:$LD_LIBRARY_PATH"
+                unset SOURCE_DATE_EPOCH
+                echo "Virtual environment (.venv) activated."
+                echo "Machine Learning Python Shell ready."
+              '';
+            };
+
+            homelab = pkgs.mkShell {
+              packages = with pkgs; [
+                kubectl
+                terraform
+                terragrunt
+                ansible
+                talosctl
+                cilium-cli
+                kubernetes-helm
+                argocd
+                k9s
+                kubeseal
+              ];
+              shellHook = ''echo "Welcome to the homelab Development Shell."'';
+            };
+
+            default = self'.devShells.ml;
+          };
+
+          # Forces checks/laptop-safety.nix and checks/profiles.nix asserts at
+          # eval; owned by `nix flake check` so just/CI share one laptop eval.
           checks.laptop-safety = pkgs.runCommand "laptop-safety" { } ''
             echo ${
               builtins.seq (import ./checks/laptop-safety.nix {
@@ -138,13 +265,21 @@
               }) "ok"
             } > $out
           '';
+          checks.profiles =
+            let
+              res = import ./checks/profiles.nix self.nixosConfigurations.laptop.config.home-manager.users.rupan.home.file;
+            in
+            assert res.ok && res.count > 0;
+            pkgs.runCommand "desktop-profiles-check" { } ''
+              echo "${toString res.count} profiles ok: ${builtins.concatStringsSep " " res.names}" > $out
+            '';
           treefmt = {
             projectRootFile = "flake.nix";
             programs.nixfmt.enable = true;
             programs.statix.enable = true;
             programs.deadnix.enable = true;
             programs.qmlformat.enable = true;
-            # ruff-check off: its default rules move with nixpkgs; hourly auto-update
+            # ruff-check off: its default rules move with nixpkgs; lock updates
             # would fail `nix fmt` / CI with no local change. Run `ruff check` by hand.
             programs.ruff-format.enable = true;
             # vendor/ holds frozen upstream snapshots (e.g. the intentd
@@ -165,31 +300,6 @@
 
       flake =
         let
-          system = "x86_64-linux";
-          overlays = import ./overlays {
-            inherit nix-vscode-extensions;
-          };
-
-          pkgs = import nixpkgs {
-            inherit system;
-            config.allowUnfree = true;
-            config.permittedInsecurePackages = [
-              # pulled by vesktop's build; revisit when nixpkgs bumps vesktop's electron
-              "electron-39.8.10"
-            ];
-            inherit overlays;
-          };
-
-          pkgs-stable = import nixpkgs-stable {
-            inherit system;
-            config.allowUnfree = true;
-          };
-
-          chatgpt-pkgs = import inputs.chatgpt-nixpkgs {
-            inherit system;
-            config.allowUnfree = true;
-          };
-
           mkSystem =
             host: user: userModule:
             nixpkgs.lib.nixosSystem {
@@ -198,7 +308,6 @@
                 inherit
                   inputs
                   chatgpt-pkgs
-                  pkgs-stable
                   self
                   ;
                 diskoModule = "${inputs.disko}/module.nix";
@@ -206,7 +315,6 @@
               modules = [
                 ./hosts/${host}/configuration.nix
                 inputs.nix-agent.nixosModules.default
-                inputs.vicinae.nixosModules.default
                 home-manager.nixosModules.home-manager
                 {
                   home-manager.useGlobalPkgs = true;
@@ -215,7 +323,6 @@
                     inherit
                       inputs
                       chatgpt-pkgs
-                      pkgs-stable
                       self
                       ;
                   };
@@ -224,29 +331,12 @@
                 }
               ];
             };
-
         in
         {
           nixosConfigurations = {
             laptop = mkSystem "laptop" "rupan" ./home/rupan/laptop.nix;
             iso = mkSystem "iso" "rupan" ./home/rupan/iso.nix;
             vm = mkSystem "vm" "developer" ./home/rupan/vm.nix;
-          };
-          homeConfigurations = {
-            workspace = home-manager.lib.homeManagerConfiguration {
-              inherit pkgs;
-              extraSpecialArgs = {
-                inherit
-                  inputs
-                  chatgpt-pkgs
-                  pkgs-stable
-                  self
-                  ;
-              };
-              modules = [
-                ./home/rupan/workspace.nix
-              ];
-            };
           };
         };
     };

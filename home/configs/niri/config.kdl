@@ -115,8 +115,7 @@ include "./noctalia.kdl"
 
 include "/home/rupan/.config/desktop-profiles/active-niri-overrides.kdl"
 
-// Profile switcher popup (rendered by quickshell-switcher) — global so it
-// looks consistent across all profiles.
+// Profile switcher popup — global so it looks consistent across all profiles.
 layer-rule {
     match namespace="^quickshell-profile-switcher$"
     geometry-corner-radius 18
@@ -140,10 +139,6 @@ window-rule {
 }
 window-rule {
     match title="Waypaper"
-    open-floating true
-}
-window-rule {
-    match app-id="rofi"
     open-floating true
 }
 window-rule {
@@ -173,17 +168,17 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "bash" "-c" "qs -p \"$HOME/nixos/home/configs/quickshell-switcher/shell.qml\" ipc call profile toggle"; }
-    Mod+Space hotkey-overlay-title="App Launcher" { spawn "profile-dispatch" "launcher"; }
+    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "bash" "-c" "qs -p \"$HOME/nixos/home/configs/quickshell/shell.qml\" ipc call profile toggle"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "vicinae" "toggle"; }
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "lock-screen"; }
     Mod+F { spawn "firefox"; }
-    Mod+W { spawn "profile-dispatch" "wallpaper"; }
+    Mod+W { spawn "waypaper"; }
     Mod+S { spawn "spotify"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "toggle-bar"; }
     Mod+G hotkey-overlay-title="Toggle Focus/Performance Mode" { spawn "toggle-focus"; }
-    Mod+Alt+V { spawn "profile-dispatch" "clipboard"; }
+    Mod+Alt+V { spawn "vicinae" "vicinae://extensions/vicinae/clipboard/history"; }
     Mod+R { spawn "random-wallpaper"; }
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }
@@ -300,18 +295,18 @@ binds {
     Mod+Alt+W { spawn "wl-copy" "https://rupan.dev/"; }
     Mod+Alt+G { spawn "wl-copy" "https://github.com/JEFF7712"; }
 
-    XF86AudioRaiseVolume allow-when-locked=true { spawn "profile-dispatch" "volume-up"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn "profile-dispatch" "volume-down"; }
-    XF86AudioMute allow-when-locked=true { spawn "profile-dispatch" "volume-mute"; }
-    XF86AudioMicMute allow-when-locked=true { spawn "profile-dispatch" "mic-mute"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "volume-adjust" "up"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "volume-adjust" "down"; }
+    XF86AudioMute allow-when-locked=true { spawn "volume-adjust" "mute"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "volume-adjust" "mic-mute"; }
     XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
     XF86AudioPause allow-when-locked=true { spawn "playerctl" "play-pause"; }
     XF86AudioStop allow-when-locked=true { spawn "playerctl" "stop"; }
     XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }
     XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }
 
-    XF86MonBrightnessUp allow-when-locked=true { spawn "profile-dispatch" "brightness-up"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "profile-dispatch" "brightness-down"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "brightness-adjust" "up"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightness-adjust" "down"; }
 
 
     // Screenshots

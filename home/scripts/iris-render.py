@@ -366,33 +366,6 @@ style = "bold {p["dim"]}"
     )
 
 
-def rofi(p, out):
-    w(
-        out,
-        f"""* {{
-    font:                        "Maple Mono NF 11";
-    background-color:            {p["bg"]};
-    text-color:                  {p["fg"]};
-    border-color:                {p["surface"]};
-    selected-normal-background:  {p["surface"]};
-    selected-normal-foreground:  {p["accent"]};
-    normal-background:           {p["bg"]};
-    normal-foreground:           {p["fg"]};
-}}
-window {{ width: 900px; border: 0px solid; border-radius: 16px; padding: 12px; background-color: {p["bg"]}; }}
-mainbox {{ spacing: 0; children: [ inputbar, listview ]; }}
-inputbar {{ padding: 8px 12px; margin: 0 0 10px 0; background-color: {p["surface"]}; border-radius: 12px; children: [ prompt, entry ]; }}
-prompt {{ text-color: {p["dim"]}; padding: 0 8px 0 0; }}
-entry {{ text-color: {p["fg"]}; placeholder: "Switch profile…"; placeholder-color: {p["dim"]}; }}
-listview {{ columns: 3; lines: 2; spacing: 10px; fixed-height: false; scrollbar: false; }}
-element {{ orientation: vertical; padding: 10px; spacing: 8px; border-radius: 12px; background-color: {p["surface"]}; cursor: pointer; }}
-element selected {{ background-color: {p["surface"]}; border: 2px solid; border-color: {p["accent"]}; }}
-element-icon {{ size: 160px; border-radius: 10px; horizontal-align: 0.5; }}
-element-text {{ horizontal-align: 0.5; vertical-align: 0.5; text-color: inherit; font: "Maple Mono NF 12"; }}
-""",
-    )
-
-
 def zed(p, out):
     # Zed hot-reloads ~/.config/zed/themes/. Name must match apply_zed_theme.
     fg, bg, sf, dim, ac = p["fg"], p["bg"], p["surface"], p["dim"], p["accent"]
@@ -845,7 +818,6 @@ def main():
     zathura(p, os.path.join(c, "zathura/colors"))
     fish(p, os.path.join(c, "fish/conf.d/matugen_theme.fish"))
     starship(p, os.path.join(c, "starship_matugen.toml"))
-    rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))
     zed(p, os.path.join(c, "zed/themes/iris.json"))
     spicetify_comfy(p, os.path.join(c, "spicetify/Themes/Comfy/color.ini"))
     obsidian(p, args.obsidian_vault)

@@ -310,7 +310,6 @@ let
           scan_timeout = 100
           ${orEmpty profile.colors.starship}
         '';
-        ".config/desktop-profiles/${name}/rofi-theme.rasi".text = orEmpty profile.colors.rofi;
         ".config/desktop-profiles/${name}/btop.theme".text = orEmpty profile.colors.btop;
         ".config/desktop-profiles/${name}/tmux-colors.conf".text = orEmpty profile.colors.tmux;
         ".config/desktop-profiles/${name}/hyprlock-colors.conf".text = orEmpty profile.colors.hyprlock;
@@ -333,7 +332,6 @@ let
           scan_timeout = 100
           ${orEmpty profile.colorsLight.starship}
         '';
-        ".config/desktop-profiles/${name}/rofi-theme-light.rasi".text = orEmpty profile.colorsLight.rofi;
         ".config/desktop-profiles/${name}/btop-light.theme".text = orEmpty profile.colorsLight.btop;
         ".config/desktop-profiles/${name}/tmux-colors-light.conf".text = orEmpty profile.colorsLight.tmux;
         ".config/desktop-profiles/${name}/hyprlock-colors-light.conf".text =

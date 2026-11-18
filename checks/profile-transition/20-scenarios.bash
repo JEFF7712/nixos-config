@@ -456,9 +456,6 @@ check_legacy_runtime_regressions() {
   assert_log_contains_eventually \
     "awww img $profiles/old/wallpapers/wallpaper.png --transition-type fade --transition-duration 1 active=old" \
     "static profile selects a wallpaper after commit"
-  assert_log_contains_eventually \
-    "quickshell -p $REPO_ROOT/home/configs/quickshell-switcher/shell.qml active=old" \
-    "transition starts the profile switcher popup"
 
   "$real_jq" '.capabilities.wallpaperTheming = true' "$profiles/new/manifest.json" \
     > "$profiles/new/manifest.json.tmp"

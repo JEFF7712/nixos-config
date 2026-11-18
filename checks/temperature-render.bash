@@ -119,8 +119,7 @@ for f in \
   "$config_home/tmux/profile-colors.conf" \
   "$config_home/zathura/colors" \
   "$config_home/fish/conf.d/matugen_theme.fish" \
-  "$config_home/starship_matugen.toml" \
-  "$config_home/rofi/profile-switcher.rasi"; do
+  "$config_home/starship_matugen.toml"; do
   [ -s "$f" ] || {
     printf 'FAIL: expected destination missing or empty: %s\n' "$f" >&2
     exit 1

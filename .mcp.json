@@ -9,8 +9,8 @@
       }
     },
     "mcp-nixos": {
-      "command": "uvx",
-      "args": ["mcp-nixos"]
+      "command": "mcp-nixos",
+      "args": []
     }
   }
 }

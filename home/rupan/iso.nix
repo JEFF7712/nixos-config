@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   config,
   ...
 }:
@@ -55,12 +56,28 @@
   # imported, so the LSP toolchain never evaluates on this host.
   desktopProfiles.enable = false;
 
-  # Scripts — symlink home/scripts/ into ~/.local/bin
-  home.file.".local/bin" = {
-    source = ../scripts;
-    recursive = true;
-    executable = true;
-  };
+  # Scripts — store copies into ~/.local/bin (excluding root-only system helpers)
+  home.file =
+    let
+      systemOnlyScripts = [
+        "homelab-network-event"
+        "preserve-management-profile"
+        "prune-old-roots"
+      ];
+    in
+    lib.mapAttrs'
+      (
+        name: _:
+        lib.nameValuePair ".local/bin/${name}" {
+          source = ../scripts + "/${name}";
+          executable = true;
+        }
+      )
+      (
+        lib.filterAttrs (name: type: type == "regular" && !builtins.elem name systemOnlyScripts) (
+          builtins.readDir ../scripts
+        )
+      );
 
   home.sessionPath = [ "$HOME/.local/bin" ];
 

@@ -159,6 +159,18 @@ check_laptop_build_caps() {
   fi
 }
 
+check_sops_encrypted() {
+  local secret_file
+  while IFS= read -r secret_file; do
+    if ! rg -q '^sops:\s*$' "$secret_file"; then
+      fail "secrets file missing sops metadata block (unencrypted?): $secret_file"
+    fi
+    if rg -n --pcre2 '^[A-Za-z0-9_-]+:\s+(?!ENC\[)' "$secret_file" | rg -qv '^\d+:sops:'; then
+      fail "secrets file has unencrypted top-level scalar value: $secret_file"
+    fi
+  done < <(fd -t f '\.ya?ml$' secrets || true)
+}
+
 check_hardcoded_repo_paths
 check_auto_discovered_imports
 check_module_options
@@ -167,6 +179,7 @@ check_script_refs
 check_disabled_nix_services
 check_profile_artifact_contract
 check_laptop_build_caps
+check_sops_encrypted
 
 if [ "$failures" -gt 0 ]; then
   exit 1

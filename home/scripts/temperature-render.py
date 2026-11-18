@@ -408,98 +408,6 @@ style = "bold {p["fg2"]}"
     )
 
 
-def rofi(p, out):
-    glass0 = rgba(p["bg0"], "0.42")
-    glass1 = rgba(p["accent"], "0.08")
-    glass2 = rgba(p["accent"], "0.14")
-    glass_border = rgba(p["accent"], "0.34")
-    w(
-        out,
-        f"""* {{
-    font:                        "JetBrainsMono Nerd Font 11";
-    background-color:            {glass0};
-    text-color:                  {p["fg1"]};
-    border-color:                {glass_border};
-    selected-normal-background:  {glass2};
-    selected-normal-foreground:  {p["fg0"]};
-    normal-background:           transparent;
-    normal-foreground:           {p["fg1"]};
-}}
-
-window {{
-    width:              900px;
-    border:             1px solid;
-    border-color:       {glass_border};
-    border-radius:      15px;
-    padding:            12px;
-    background-color:   {glass0};
-}}
-
-mainbox {{
-    spacing:            0;
-    children:           [ inputbar, listview ];
-}}
-
-inputbar {{
-    padding:            8px 12px;
-    margin:             0 0 10px 0;
-    background-color:   {glass1};
-    border:             1px solid; border-color: {glass_border};
-    border-radius:      10px;
-    children:           [ prompt, entry ];
-}}
-
-prompt {{
-    text-color:         {p["fg1"]};
-    padding:            0 8px 0 0;
-}}
-
-entry {{
-    text-color:         {p["fg1"]};
-    placeholder:        "Switch profile...";
-    placeholder-color:  {p["fg2"]};
-}}
-
-listview {{
-    columns:            3;
-    lines:              2;
-    spacing:            10px;
-    fixed-height:       false;
-    scrollbar:          false;
-}}
-
-element {{
-    orientation:        vertical;
-    padding:            10px;
-    spacing:            8px;
-    border-radius:      10px;
-    background-color:   {glass1};
-    border:             1px solid; border-color: {rgba(p["accent"], "0.16")};
-    cursor:             pointer;
-}}
-
-element selected {{
-    background-color:   {glass2};
-    border:             1px solid;
-    border-color:       {p["accent"]};
-}}
-
-element-icon {{
-    size:               160px;
-    border-radius:      4px;
-    horizontal-align:   0.5;
-}}
-
-element-text {{
-    horizontal-align:   0.5;
-    vertical-align:     0.5;
-    text-color:         inherit;
-    font:               "JetBrainsMono Nerd Font 12";
-}}
-""",
-    )
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", required=True)
@@ -544,7 +452,6 @@ def main():
     zathura(p, os.path.join(c, "zathura/colors"))
     fish(p, os.path.join(c, "fish/conf.d/matugen_theme.fish"))
     starship(p, os.path.join(c, "starship_matugen.toml"))
-    rofi(p, os.path.join(c, "rofi/profile-switcher.rasi"))
 
     print(p["accent"])
 

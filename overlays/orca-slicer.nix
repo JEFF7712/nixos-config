@@ -17,22 +17,9 @@ let
   # runtime while the dlopen'd Bambu network plugin uses the shared one.
   # Freeing across that boundary SIGABRTs on Print. Use only its lib
   # output until the nixpkgs pin contains cb3ee9815692e6f5bb663be24582b022695a490a.
-  orca-fixed =
-    (prev.orca-slicer.override {
-      gcc-unwrapped = prev.lib.getLib prev.gcc-unwrapped;
-    }).overrideAttrs
-      (_old: {
-        version = "2.4.2";
-        src = prev.fetchFromGitHub {
-          owner = "OrcaSlicer";
-          repo = "OrcaSlicer";
-          tag = "v2.4.2";
-          sha256 = "1w4b7p4l5s7cglacjixff5chq3xc9v3lj15xfi28hyp48l5hnk41";
-        };
-        # GStreamer 1.26 removed gtksink; use the gtkwaylandsink
-        # successor for native Wayland liveview.
-        patches = (_old.patches or [ ]) ++ [ ./orca-gtkwaylandsink.patch ];
-      });
+  orca-fixed = prev.orca-slicer.override {
+    gcc-unwrapped = prev.lib.getLib prev.gcc-unwrapped;
+  };
 in
 {
   orca-slicer = prev.symlinkJoin {

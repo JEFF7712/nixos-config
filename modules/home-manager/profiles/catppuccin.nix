@@ -40,7 +40,6 @@ let
     fishAutosuggestion = "#6c7086";
     starshipSuccess = "#f2cdcd";
     starshipDirectory = "#b4befe";
-    rofiPlaceholder = "#45475a";
   };
 
   light = {
@@ -73,7 +72,6 @@ let
     fishAutosuggestion = "#8c8fa1";
     starshipSuccess = "#8839ef";
     starshipDirectory = "#1e66f5";
-    rofiPlaceholder = "#acb0be";
   };
 
   overrides = {
@@ -124,13 +122,6 @@ let
       success = r.starshipSuccess;
       directory = r.starshipDirectory;
       cmdDuration = r.fg2;
-    };
-    rofi = r: {
-      border = r.bg3;
-      selectedBackground = r.bg2;
-      placeholder = r.rofiPlaceholder;
-      elementBackground = r.bg2;
-      elementSelectedBackground = r.bg3;
     };
     btop = r: {
       selectedBg = r.bg3;

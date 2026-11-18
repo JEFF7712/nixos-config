@@ -15,10 +15,6 @@ let
   fg2 = "#c8c8c8";
   accent = "#ffffff";
   err = "#f0dada";
-  glass0 = "rgba(20, 20, 20, 0.42)";
-  glass1 = "rgba(255, 255, 255, 0.08)";
-  glass2 = "rgba(255, 255, 255, 0.14)";
-  glassBorder = "rgba(255, 255, 255, 0.34)";
 
   gtk = theme.mkGtkColors {
     inherit accent;
@@ -34,30 +30,6 @@ let
     cardBg = "rgba(255, 255, 255, 0.08)";
     sidebarBg = "rgba(255, 255, 255, 0.06)";
     sidebarBorder = "rgba(255, 255, 255, 0.18)";
-  };
-
-  rofi = theme.mkProfilePickerRofi {
-    background = glass0;
-    text = fg1;
-    border = glassBorder;
-    selectedBackground = glass2;
-    selectedForeground = fg0;
-    normalBackground = "transparent";
-    windowBackground = glass0;
-    inputBackground = glass1;
-    prompt = fg1;
-    placeholder = fg2;
-    elementBackground = glass1;
-    elementSelectedBackground = glass2;
-    elementSelectedBorder = accent;
-    borderWidth = 1;
-    selectedBorderWidth = 1;
-    windowRadius = 15;
-    inputRadius = 10;
-    elementRadius = 10;
-    inputBorder = "1px solid; border-color: ${glassBorder}";
-    elementBorder = "1px solid; border-color: rgba(255, 255, 255, 0.16)";
-    placeholderText = "Switch profile...";
   };
 in
 {
@@ -167,18 +139,6 @@ in
             }
         }
 
-        layer-rule {
-            match namespace="^rofi$"
-            geometry-corner-radius 15
-            opacity 0.88
-            background-effect {
-                blur true
-                xray true
-                noise 0.015
-                saturation 1.25
-            }
-        }
-
         // Compositor blur over wallpaper, independent of the spicetify theme.
         window-rule {
             match app-id="Spotify"
@@ -274,8 +234,6 @@ in
         gitBranch = fg2;
         cmdDuration = fg2;
       };
-
-      inherit rofi;
 
       btop = theme.mkBtopTheme {
         mainBg = bg0;

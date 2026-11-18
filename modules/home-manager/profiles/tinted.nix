@@ -8,8 +8,8 @@ let
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
   motionPresets = import ../../../lib/desktop-profiles/motion.nix;
 
-  # Soft fallback palettes until matugen runs (dark = charcoal, light = cream).
-  dark = rec {
+  # Soft fallback palettes until iris runs (dark = charcoal, light = cream).
+  dark = {
     title = "Tinted dark";
     bg0 = "#16181c";
     bg1 = "#1d2024";
@@ -20,10 +20,9 @@ let
     fg2 = "#8b9098";
     accent = "#9fc6e8";
     err = "#ffb4ab";
-    rofiText = fg1;
   };
 
-  light = rec {
+  light = {
     title = "Tinted light";
     bg0 = "#f3efe9";
     bg1 = "#eae5dd";
@@ -34,7 +33,6 @@ let
     fg2 = "#6d6555";
     accent = "#7d8a5a";
     err = "#ba1a1a";
-    rofiText = fg0;
   };
 
   mkColors =
@@ -137,24 +135,6 @@ let
         directory = p.fg1;
         gitBranch = p.fg2;
         cmdDuration = p.fg2;
-      };
-
-      rofi = theme.mkProfilePickerRofi {
-        background = p.bg0;
-        text = p.rofiText;
-        border = p.bg3;
-        selectedBackground = p.bg2;
-        selectedForeground = p.accent;
-        inputBackground = p.bg1;
-        prompt = p.rofiText;
-        placeholder = p.fg2;
-        elementBackground = p.bg1;
-        elementSelectedBackground = p.bg2;
-        elementSelectedBorder = p.accent;
-        windowRadius = 0;
-        inputRadius = 0;
-        elementRadius = 0;
-        iconRadius = 0;
       };
 
       btop = theme.mkBtopTheme {

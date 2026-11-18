@@ -28,12 +28,6 @@ if [ -f "$CONFIG_HOME/kitty/kitty.conf" ]; then
   pkill -USR1 kitty 2>/dev/null || true
 fi
 
-# rofi profile switcher
-if [ -f "$CONFIG_HOME/rofi/profile-switcher.rasi" ]; then
-  sed -i -E "s|font:[[:space:]]*\"[^\"]+ [0-9]+\";|font:                        \"$UI $UI_SIZE\";|g" \
-    "$CONFIG_HOME/rofi/profile-switcher.rasi"
-fi
-
 # quickshell bar: write barFont into the live runtime override (seeded from the
 # current theme — existing override if matugen has run, else the baked theme so
 # colors are preserved), then restart the bar to repaint.
