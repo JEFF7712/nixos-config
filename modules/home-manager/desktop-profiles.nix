@@ -38,22 +38,6 @@ in
       type = lib.types.attrsOf profileOptions.profileType;
       default = { };
     };
-
-    autoVariant = {
-      enable = lib.mkEnableOption "scheduled dark/light variant switching";
-
-      lightTime = lib.mkOption {
-        type = lib.types.str;
-        default = "08:00";
-        description = "Time of day (HH:MM) to switch to the light variant.";
-      };
-
-      darkTime = lib.mkOption {
-        type = lib.types.str;
-        default = "20:00";
-        description = "Time of day (HH:MM) to switch back to dark. Must be later than lightTime.";
-      };
-    };
   };
 
   config = lib.mkIf config.desktopProfiles.enable {
@@ -81,27 +65,6 @@ in
         }
       ]) config.desktopProfiles.profiles
     );
-
-    systemd.user.services.auto-variant = lib.mkIf config.desktopProfiles.autoVariant.enable {
-      Unit.Description = "Apply scheduled desktop profile variant";
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${config.home.homeDirectory}/.local/bin/auto-variant ${config.desktopProfiles.autoVariant.lightTime} ${config.desktopProfiles.autoVariant.darkTime}";
-        Environment = "PATH=${config.home.homeDirectory}/.local/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin";
-      };
-    };
-
-    systemd.user.timers.auto-variant = lib.mkIf config.desktopProfiles.autoVariant.enable {
-      Unit.Description = "Scheduled desktop profile variant switching";
-      Timer = {
-        OnCalendar = [
-          config.desktopProfiles.autoVariant.lightTime
-          config.desktopProfiles.autoVariant.darkTime
-        ];
-        Persistent = true;
-      };
-      Install.WantedBy = [ "timers.target" ];
-    };
 
     # imagemagick for source color: matugen 4.0's own image extractor is broken.
     home.packages =
@@ -227,7 +190,6 @@ in
       sync_live_config "$CFG/gtk-4.0" "$HOME/.config/gtk-4.0" "noctalia.css settings.ini"
       sync_live_config "$CFG/qt5ct"   "$HOME/.config/qt5ct"   "colors/noctalia.conf"
       sync_live_config "$CFG/qt6ct"   "$HOME/.config/qt6ct"   "colors/noctalia.conf qt6ct.conf"
-      sync_live_config "$CFG/rofi"    "$HOME/.config/rofi"    "profile-switcher.rasi"
       sync_live_config "$CFG/tmux"    "$HOME/.config/tmux"    ""
 
       # Profile dir name varies; glob the default-release profile.

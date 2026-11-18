@@ -87,9 +87,6 @@ let
     starship = _: {
       gitBranch = nord10;
     };
-    rofi = r: {
-      border = r.bg3;
-    };
     btop = r: {
       procMisc = r.aqua;
     };

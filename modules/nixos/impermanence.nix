@@ -147,8 +147,6 @@ in
           "/var/lib/bluetooth"
           # Rootful podman only; rootless docker/podman live under /home.
           "/var/lib/containers"
-          # Rootless docker state is under /home; no rootful dockerd here.
-          "/var/lib/waydroid"
           "/var/lib/netbird"
           # DynamicUser state; systemd requires 0700.
           {

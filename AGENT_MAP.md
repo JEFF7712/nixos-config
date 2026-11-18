@@ -71,6 +71,6 @@ Friction-triggered, not a ritual: when validation fails unexpectedly, ownership 
 | Need | Command |
 | --- | --- |
 | Find an option owner | `rg -n "options\\..*<name>|<name>\\.enable" modules hosts home` |
-| Find package placement | `rg -n "<package>|pkgs-stable|home.packages|environment.systemPackages" modules hosts home overlays pkgs` |
+| Find package placement | `rg -n "<package>|home.packages|environment.systemPackages" modules hosts home overlays pkgs` |
 | Find profile fields | `rg -n "desktopProfiles\\.profiles|wallpaperDir|quickshellTheme" modules/home-manager/profiles lib/desktop-profiles` |
 | Find runtime script callers | `rg -n "<script-name>|\\.local/bin|home/scripts" home modules` |

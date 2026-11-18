@@ -5,7 +5,7 @@ Home Assistant control for the Quickshell bar, ported from
 Upstream is an Omarchy 4 plugin; the transport (`bin/hass-bridge`, packaged
 as `pkgs/hass-bridge`) and the pure state modules (`Service.qml`,
 `Model.js`, `EntityStore.js`, `ConfigStore.js`, `RowModel.js`,
-`Connection.js`, `PanelState.js`, `BridgeController.qml`,
+`Connection.js`, `BridgeController.qml`,
 `CredentialManager.qml`) are used as-is. The Omarchy shell UI
 (`Panel.qml`, `Settings.qml`, `SettingsEntityRow.qml`,
 `EntityRow.qml`, `RoomReadingsCard.qml`, `controls/`) is NOT used; the bar

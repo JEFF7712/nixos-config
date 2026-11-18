@@ -54,8 +54,6 @@ profile_status() {
     mark fail "notification server (bus not owned by quickshell)"
   fi
 
-  pgrep -f "quickshell.*quickshell-switcher/shell.qml" >/dev/null 2>&1 \
-    && mark ok "profile switcher popup" || mark fail "profile switcher popup"
   systemctl --user is-active --quiet vicinae.service \
     && mark ok "vicinae launcher" || mark fail "vicinae launcher"
 

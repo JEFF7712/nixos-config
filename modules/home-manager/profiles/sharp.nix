@@ -6,8 +6,7 @@ let
   trails = import ../../../lib/desktop-profiles/kitty-cursor-trail.nix;
   motionPresets = import ../../../lib/desktop-profiles/motion.nix;
 
-  # Neutral greys; `rofiText` is the only slot that differs beyond the palette.
-  dark = rec {
+  dark = {
     title = "Sharp dark";
     bg0 = "#0a0a0a";
     bg1 = "#121212";
@@ -18,10 +17,9 @@ let
     fg2 = "#8a8a8a";
     accent = "#e0e0e0";
     err = "#5c5c5c";
-    rofiText = fg1;
   };
 
-  light = rec {
+  light = {
     title = "Sharp light";
     bg0 = "#fafafa";
     bg1 = "#f0f0f0";
@@ -32,7 +30,6 @@ let
     fg2 = "#5a5a5a";
     accent = "#1a1a1a";
     err = "#a3a3a3";
-    rofiText = fg0;
   };
 
   alpha = a: c: "#${a}${builtins.substring 1 6 c}";
@@ -139,26 +136,6 @@ let
         directory = p.fg0;
         gitBranch = p.fg2;
         cmdDuration = p.fg2;
-      };
-
-      rofi = theme.mkProfilePickerRofi {
-        background = p.bg0;
-        text = p.rofiText;
-        border = p.bg3;
-        selectedBackground = p.bg1;
-        selectedForeground = p.accent;
-        inputBackground = p.bg1;
-        prompt = p.rofiText;
-        placeholder = p.fg2;
-        elementBackground = p.bg1;
-        elementSelectedBackground = p.bg2;
-        elementSelectedBorder = p.accent;
-        borderWidth = 1;
-        selectedBorderWidth = 1;
-        windowRadius = 0;
-        inputRadius = 0;
-        elementRadius = 0;
-        iconRadius = 0;
       };
 
       btop = theme.mkBtopTheme {
@@ -326,12 +303,6 @@ in
         layer-rule {
             match namespace="^quickshell-popup$"
             geometry-corner-radius 0
-        }
-
-        layer-rule {
-            match namespace="^rofi$"
-            geometry-corner-radius 0
-            opacity 1.0
         }
       '';
     };

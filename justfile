@@ -85,11 +85,10 @@ eval-vm target="laptop":
 flake-check:
   nix flake check
 
-flake-check-shells:
-  nix flake check --no-write-lock-file ./shells
-
+# Targeted standalone profile eval; `nix flake check` owns the same check via
+# flake.checks.profiles so full `just check` / CI share one laptop evaluation.
 check-profiles host="laptop" user="rupan":
-  nix eval --no-write-lock-file --impure --json \
+  nix eval --no-write-lock-file --json \
     ".#nixosConfigurations.{{host}}.config.home-manager.users.{{user}}.home.file" \
     --apply 'import ./checks/profiles.nix'
 
@@ -118,8 +117,6 @@ check:
   just qml-lint
   just quickshell-test
   just flake-check
-  just flake-check-shells
-  just check-profiles
   just diff-check
 
 # Laptop eval (~50s, never eval-cached) only when changes can affect eval;

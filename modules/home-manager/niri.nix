@@ -10,57 +10,6 @@
 
   config = lib.mkIf config.niri.enable (
     let
-      batteryLowNotify = pkgs.writeShellApplication {
-        name = "battery-low-notify";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.libnotify
-        ];
-        text = ''
-          set -eu
-
-          cache_dir="''${XDG_CACHE_HOME:-$HOME/.cache}"
-          state_file="$cache_dir/battery-low-notify-level"
-
-          mkdir -p "$cache_dir"
-
-          set -- /sys/class/power_supply/BAT*
-          if [ ! -e "$1" ]; then
-            rm -f "$state_file"
-            exit 0
-          fi
-
-          battery_dir="$1"
-          if [ ! -r "$battery_dir/capacity" ] || [ ! -r "$battery_dir/status" ]; then
-            rm -f "$state_file"
-            exit 0
-          fi
-
-          capacity="$(cat "$battery_dir/capacity")"
-          status="$(cat "$battery_dir/status")"
-          last_level=""
-
-          if [ -f "$state_file" ]; then
-            last_level="$(cat "$state_file")"
-          fi
-
-          if [ "$status" != "Discharging" ]; then
-            rm -f "$state_file"
-            exit 0
-          fi
-
-          if [ "$capacity" -le 10 ] && [ "$last_level" != "critical" ]; then
-            notify-send -u critical "Battery critical" "''${capacity}% remaining"
-            printf '%s\n' critical > "$state_file"
-          elif [ "$capacity" -le 20 ] && [ "$last_level" != "warning" ] && [ "$last_level" != "critical" ]; then
-            notify-send -u normal "Battery low" "''${capacity}% remaining"
-            printf '%s\n' warning > "$state_file"
-          elif [ "$capacity" -gt 20 ]; then
-            rm -f "$state_file"
-          fi
-        '';
-      };
-
       niriDisplayRecovery = pkgs.writeShellApplication {
         name = "niri-display-recovery";
         runtimeInputs = [
@@ -148,12 +97,10 @@
         kdePackages.qt6ct
         adw-gtk3
         waypaper
-        rofi
         ia-writer-quattro
         quickshell
         bc
         pulseaudio
-        cliphist
         ddcutil
         python3
       ];
@@ -175,18 +122,6 @@
           };
         };
 
-        battery-low-notify = {
-          Unit = {
-            Description = "Low battery notifier";
-            PartOf = [ "graphical-session.target" ];
-            After = [ "graphical-session.target" ];
-          };
-          Service = {
-            Type = "oneshot";
-            ExecStart = lib.getExe batteryLowNotify;
-          };
-        };
-
         niri-display-recovery = {
           Unit = {
             Description = "Recover Niri after a stale external-display hotplug state";
@@ -201,22 +136,6 @@
           Install = {
             WantedBy = [ "graphical-session.target" ];
           };
-        };
-      };
-
-      systemd.user.timers.battery-low-notify = {
-        Unit = {
-          Description = "Poll battery level for notifications";
-          PartOf = [ "graphical-session.target" ];
-          After = [ "graphical-session.target" ];
-        };
-        Timer = {
-          OnActiveSec = "1m";
-          OnUnitActiveSec = "1m";
-          Unit = "battery-low-notify.service";
-        };
-        Install = {
-          WantedBy = [ "graphical-session.target" ];
         };
       };
 

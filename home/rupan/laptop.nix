@@ -131,7 +131,7 @@
     hyprlock
     tela-icon-theme
     whitesur-icon-theme
-    maple-mono-nf
+    maple-mono.NF
   ];
 
   niri.enable = true;
@@ -156,21 +156,34 @@
   vicinae.enable = true;
   dev.enable = true;
   systemHealthNotify.enable = true;
-  pulseAgent.enable = false;
   desktopProfiles.enable = lib.mkDefault true;
 
   # Scripts — out-of-store symlinks into ~/.local/bin so edits apply without
   # rebuild and `readlink -f` resolves back into the repo (profile-common
-  # derives REPO_HOME from it).
-  home.file = lib.mapAttrs' (
-    name: _:
-    lib.nameValuePair ".local/bin/${name}" {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/scripts/${name}";
-      # New scripts get hand-made symlinks before the first rebuild that
-      # manages them; overwrite instead of aborting activation.
-      force = true;
-    }
-  ) (lib.filterAttrs (_: type: type == "regular") (builtins.readDir ../scripts));
+  # derives REPO_HOME from it). Root-only system unit helpers stay off user PATH.
+  home.file =
+    let
+      systemOnlyScripts = [
+        "homelab-network-event"
+        "preserve-management-profile"
+        "prune-old-roots"
+      ];
+    in
+    lib.mapAttrs'
+      (
+        name: _:
+        lib.nameValuePair ".local/bin/${name}" {
+          source = config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/scripts/${name}";
+          # New scripts get hand-made symlinks before the first rebuild that
+          # manages them; overwrite instead of aborting activation.
+          force = true;
+        }
+      )
+      (
+        lib.filterAttrs (name: type: type == "regular" && !builtins.elem name systemOnlyScripts) (
+          builtins.readDir ../scripts
+        )
+      );
 
   xdg.configFile."hypr/hyprlock.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/hypr/hyprlock.conf";

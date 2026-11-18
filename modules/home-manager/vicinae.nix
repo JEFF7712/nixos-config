@@ -14,20 +14,7 @@
   config = lib.mkIf config.vicinae.enable {
     programs.vicinae = {
       enable = true;
-      # Upstream hardcodes AnchorNone; settings.json / niri layer-rules cannot move it.
-      package =
-        let
-          base = inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.default;
-        in
-        base.overrideAttrs (old: {
-          pname = "${old.pname or "vicinae"}-top";
-          postPatch = (old.postPatch or "") + ''
-            substituteInPlace src/server/src/ui/qml/launcher/LauncherWindowLayerShell.qml \
-              --replace-fail \
-                'LayerShell.Window.anchors: LayerShell.Window.AnchorNone' \
-                'LayerShell.Window.anchors: LayerShell.Window.AnchorTop'
-          '';
-        });
+      package = pkgs.vicinae-top;
       # Belt-and-suspenders: VICINAE_OVERRIDES wins over the profile-written
       # settings.json so compact mode stays on even if a GUI edit clears it.
       settings = {

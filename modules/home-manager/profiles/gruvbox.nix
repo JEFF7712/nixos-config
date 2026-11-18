@@ -124,12 +124,6 @@ in
             match namespace="^quickshell-popup$"
             geometry-corner-radius 0
         }
-
-        layer-rule {
-            match namespace="^rofi$"
-            geometry-corner-radius 0
-            opacity 1.0
-        }
       '';
     };
 
@@ -153,20 +147,6 @@ in
       popupAttachToBar = "true";
       popupAnimationStyle = "attachedSlide";
       dividerColor = p.bg3;
-    };
-
-    overrides = {
-      rofi = p: {
-        border = p.accent;
-        selectedBackground = p.bg2;
-        elementSelectedBorder = p.accent2;
-        borderWidth = 2;
-        selectedBorderWidth = 2;
-        windowRadius = 0;
-        inputRadius = 0;
-        elementRadius = 0;
-        iconRadius = 0;
-      };
     };
   };
 }

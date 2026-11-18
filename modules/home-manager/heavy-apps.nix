@@ -3,7 +3,6 @@
   lib,
   config,
   chatgpt-pkgs,
-  pkgs-stable,
   ...
 }:
 
@@ -61,7 +60,7 @@ in
           ovito
           freecad
           orca-slicer
-          pkgs-stable.avogadro2
+          avogadro2
         ]
       );
   };

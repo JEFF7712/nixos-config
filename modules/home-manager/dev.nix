@@ -36,7 +36,6 @@
         gh
         bun
         pnpm
-        ags
         uv
         ruff
         awscli

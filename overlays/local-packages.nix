@@ -1,11 +1,19 @@
+{ vicinae }:
 final: prev: {
   plymouth-nixos-logo = final.callPackage ../pkgs/plymouth-nixos-logo { };
-  claude-code-proxy = final.callPackage ../pkgs/claude-code-proxy { };
   muse-code = final.callPackage ../pkgs/muse-code { };
-  maple-mono-nf = final.callPackage ../pkgs/maple-mono { };
   iris-python = final.callPackage ../pkgs/iris-python { };
   hass-bridge = final.callPackage ../pkgs/hass-bridge { };
-  swayosd = prev.swayosd.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ../pkgs/swayosd/osd-fade.patch ];
+  # Upstream hardcodes AnchorNone; settings.json / niri layer-rules cannot move it.
+  # Shared between security.wrappers.vicinae-input-server and home-manager so
+  # laptop builds Vicinae once instead of twice.
+  vicinae-top = vicinae.packages.${prev.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
+    pname = "${old.pname or "vicinae"}-top";
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace src/server/src/ui/qml/launcher/LauncherWindowLayerShell.qml \
+        --replace-fail \
+          'LayerShell.Window.anchors: LayerShell.Window.AnchorNone' \
+          'LayerShell.Window.anchors: LayerShell.Window.AnchorTop'
+    '';
   });
 }

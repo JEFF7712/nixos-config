@@ -208,7 +208,7 @@ expect_switch_deny() {
   ' >/dev/null || fail "$what was not sent to just switch: $out"
 }
 
-for cmd in "sudo nixos-rebuild switch --flake .#laptop" "nh os switch ." "FOO=1 nixos-rebuild boot"; do
+for cmd in "sudo nixos-rebuild switch --flake .#laptop" "nh os switch ." "FOO=1 nixos-rebuild boot" "home-manager switch --flake ."; do
   expect_switch_deny "$(
     run_before_shell "$(jq -n --arg cwd "$PWD" --arg c "$cmd" '{hook_event_name:"PreToolUse",cwd:$cwd,tool_input:{command:$c}}')"
   )" "$cmd"
