@@ -55,6 +55,10 @@ Singleton {
             n.dismiss();
     }
 
+    function toggleFocus() {
+        Quickshell.execDetached(["toggle-focus"]);
+    }
+
     NotificationServer {
         id: notifServer
 

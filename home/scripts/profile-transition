@@ -239,8 +239,6 @@ dispatch_post_commit_adapters() {
       "$THEME_GENERATION" pkill -USR2 -x cava
     run_post_commit_adapter vicinae run_theme_side_effect_if_current \
       "$THEME_GENERATION" systemctl --user try-reload-or-restart vicinae.service
-    run_post_commit_adapter swayosd run_theme_side_effect_if_current \
-      "$THEME_GENERATION" restart_swayosd
     run_post_commit_adapter kitty run_theme_side_effect_if_current \
       "$THEME_GENERATION" reload_kitty
     run_post_commit_adapter gtk run_theme_side_effect_if_current \

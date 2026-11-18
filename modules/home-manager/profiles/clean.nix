@@ -179,17 +179,6 @@ in
             }
         }
 
-        layer-rule {
-            match namespace="^swayosd$"
-            geometry-corner-radius 10
-            background-effect {
-                blur true
-                xray true
-                noise 0.015
-                saturation 1.2
-            }
-        }
-
         // Compositor blur over wallpaper, independent of the spicetify theme.
         window-rule {
             match app-id="Spotify"

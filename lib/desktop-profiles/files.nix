@@ -342,14 +342,23 @@ let
         ".config/desktop-profiles/${name}/zathura-colors-light".text = orEmpty profile.colorsLight.zathura;
       };
 
+      withMotion =
+        theme:
+        {
+          osdMs = toString profile.appearance.motion.osdMs;
+        }
+        // theme;
+
       quickshellFiles =
         lib.optionalAttrs (profile.quickshellTheme != null) {
-          ".config/desktop-profiles/${name}/quickshell-theme.json".text =
-            builtins.toJSON profile.quickshellTheme;
+          ".config/desktop-profiles/${name}/quickshell-theme.json".text = builtins.toJSON (
+            withMotion profile.quickshellTheme
+          );
         }
         // lib.optionalAttrs (profile.quickshellThemeLight != null) {
-          ".config/desktop-profiles/${name}/quickshell-theme-light.json".text =
-            builtins.toJSON profile.quickshellThemeLight;
+          ".config/desktop-profiles/${name}/quickshell-theme-light.json".text = builtins.toJSON (
+            withMotion profile.quickshellThemeLight
+          );
         };
     in
     base // lightFiles // quickshellFiles;

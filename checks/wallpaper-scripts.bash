@@ -141,11 +141,6 @@ if ! grep -Fq 'renderer-lock-free' "$log_file"; then
   cat "$log_file" >&2
   exit 1
 fi
-if ! grep -Fq 'systemctl --user restart swayosd' "$log_file"; then
-  printf 'FAIL: wallpaper tint did not restart swayosd to reload OSD colors\n' >&2
-  cat "$log_file" >&2
-  exit 1
-fi
 if ! grep -Fq 'active-color "#d8915f"' "$profiles_dir/runtime-niri-active.kdl"; then
   printf 'FAIL: iris wallpaper tint did not rewrite the niri focus-ring to #d8915f\n' >&2
   cat "$profiles_dir/runtime-niri-active.kdl" >&2

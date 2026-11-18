@@ -303,6 +303,7 @@ binds {
     XF86AudioRaiseVolume allow-when-locked=true { spawn "profile-dispatch" "volume-up"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn "profile-dispatch" "volume-down"; }
     XF86AudioMute allow-when-locked=true { spawn "profile-dispatch" "volume-mute"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "profile-dispatch" "mic-mute"; }
     XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
     XF86AudioPause allow-when-locked=true { spawn "playerctl" "play-pause"; }
     XF86AudioStop allow-when-locked=true { spawn "playerctl" "stop"; }

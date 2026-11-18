@@ -63,6 +63,24 @@ InfoPopup {
         return root.themeFg;
     }
 
+    InfoToggle {
+        label: NotifService.dnd ? "focus / do not disturb on" : "focus / do not disturb off"
+        barFont: root.barFont
+        checked: NotifService.dnd
+        flatMode: root.flatMode
+        themeFg: root.themeFg
+        themeAccent: root.themeAccent
+        themeRawBg: root.themeRawBg
+        dividerColor: root.dividerColor
+        onToggled: NotifService.toggleFocus()
+    }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: root.dividerColor
+    }
+
     Item {
         width: parent.width
         height: 26

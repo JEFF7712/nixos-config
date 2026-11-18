@@ -106,4 +106,152 @@ TestCase {
         compare(recovered.volumePercent, 81);
         verify(!recovered.muted);
     }
+
+    function test_formatNodeLabelStripsHardwarePrefixes() {
+        compare(AudioReducer.formatNodeLabel("alsa_output.speaker", "Raptor Lake-P/U/H cAVS Speaker", ""), "Speaker");
+        compare(AudioReducer.formatNodeLabel("v4l2_input.cam", "Logitech Webcam C925e (V4L2)", ""), "Logitech Webcam C925e");
+        compare(AudioReducer.formatNodeLabel("bluez_output.1", "WH-1000XM4", ""), "WH-1000XM4");
+    }
+
+    function test_buildDeviceListFiltersInternalRtpAndSortsActiveFirst() {
+        const list = AudioReducer.buildDeviceList([
+            {
+                id: 1,
+                name: "bedroom-rtp-out",
+                description: "RTP",
+                nickname: "",
+                iconName: ""
+            },
+            {
+                id: 2,
+                name: "alsa_output.hdmi",
+                description: "HDMI 1",
+                nickname: "",
+                iconName: "video-display"
+            },
+            {
+                id: 3,
+                name: "bluez_output.bose",
+                description: "Bose QC",
+                nickname: "",
+                iconName: ""
+            },
+            {
+                id: 4,
+                name: "alsa_output.speaker",
+                description: "Speaker",
+                nickname: "",
+                iconName: ""
+            }
+        ], "alsa_output.speaker");
+        compare(list.length, 3);
+        compare(list[0].name, "alsa_output.speaker");
+        verify(list[0].active);
+        compare(list[1].name, "bluez_output.bose");
+        verify(list[1].bluetooth);
+        compare(list[2].kind, "hdmi");
+    }
+
+    function test_detectPrivacyIgnoresCavaMonitorAndDetectsMicCamScreenAndRtp() {
+        const nodes = [
+            {
+                name: "bluez_output.bose",
+                mediaClass: "Audio/Sink",
+                mediaRole: "",
+                isStream: false,
+                captureSink: false,
+                bluezLoopback: false
+            },
+            {
+                name: "cava",
+                mediaClass: "Stream/Input/Audio",
+                mediaRole: "",
+                isStream: true,
+                captureSink: true,
+                bluezLoopback: false
+            },
+            {
+                name: "alsa_input.mic",
+                mediaClass: "Audio/Source",
+                mediaRole: "",
+                isStream: false,
+                captureSink: false,
+                bluezLoopback: false
+            },
+            {
+                name: "discord_capture",
+                mediaClass: "Stream/Input/Audio",
+                mediaRole: "",
+                isStream: true,
+                captureSink: false,
+                bluezLoopback: false
+            },
+            {
+                name: "v4l2_input.cam0",
+                mediaClass: "Video/Source",
+                mediaRole: "Camera",
+                isStream: false,
+                captureSink: false,
+                bluezLoopback: false
+            },
+            {
+                name: "niri-screencast",
+                mediaClass: "Video/Source",
+                mediaRole: "Screen",
+                isStream: false,
+                captureSink: false,
+                bluezLoopback: false
+            },
+            {
+                name: "browser_video",
+                mediaClass: "Stream/Input/Video",
+                mediaRole: "",
+                isStream: true,
+                captureSink: false,
+                bluezLoopback: false
+            },
+            {
+                name: "input.laptop-rtp-mirror",
+                mediaClass: "Stream/Input/Audio",
+                mediaRole: "",
+                isStream: true,
+                captureSink: true,
+                bluezLoopback: false
+            }
+        ];
+        const idle = AudioReducer.detectPrivacyAndRtp(nodes, [
+            {
+                source: "bluez_output.bose",
+                target: "cava"
+            }
+        ]);
+        verify(!idle.micCaptureActive);
+        verify(!idle.cameraCaptureActive);
+        verify(!idle.screenCaptureActive);
+        verify(!idle.rtpMirrorActive);
+
+        const live = AudioReducer.detectPrivacyAndRtp(nodes, [
+            {
+                source: "alsa_input.mic",
+                target: "discord_capture"
+            },
+            {
+                source: "v4l2_input.cam0",
+                target: "browser_video"
+            },
+            {
+                source: "niri-screencast",
+                target: "browser_video"
+            },
+            {
+                source: "bluez_output.bose",
+                target: "input.laptop-rtp-mirror"
+            }
+        ]);
+        verify(live.micCaptureActive);
+        verify(live.cameraCaptureActive);
+        verify(live.screenCaptureActive);
+        verify(live.rtpMirrorActive);
+        compare(live.privacySummary, "screen · cam · mic");
+    }
 }

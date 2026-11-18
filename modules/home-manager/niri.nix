@@ -134,28 +134,6 @@
           done
         '';
       };
-
-      swayosdWatchdog = pkgs.writeShellApplication {
-        name = "swayosd-watchdog";
-        runtimeInputs = [
-          pkgs.systemd
-          pkgs.gnugrep
-        ];
-        text = ''
-          # SwayOSD's server can lose its internal GUI channel while the
-          # process stays alive ("Channel Send error: sending into a closed
-          # channel", a known GTK4-port defect). The client still exits 0,
-          # so brightness/volume keys silently stop working until the
-          # service restarts. Recycle it when the signature shows up in
-          # recent logs; a restart is invisible (the server holds no state).
-          if journalctl --user --unit=swayosd.service --since="10 minutes ago" \
-            --grep="Channel Send error" --output=cat --no-pager 2>/dev/null \
-            | grep -q "Channel Send error"; then
-            echo "swayosd-watchdog: wedged channel detected, restarting swayosd"
-            systemctl --user restart swayosd.service
-          fi
-        '';
-      };
     in
     {
 
@@ -172,7 +150,6 @@
         waypaper
         rofi
         ia-writer-quattro
-        swayosd
         quickshell
         bc
         pulseaudio
@@ -225,38 +202,6 @@
             WantedBy = [ "graphical-session.target" ];
           };
         };
-
-        swayosd = {
-          Unit = {
-            Description = "SwayOSD on-screen display server";
-            PartOf = [ "graphical-session.target" ];
-            After = [ "graphical-session.target" ];
-          };
-          Service = {
-            # GTK4 defaults to Vulkan. After idle, the first OSD frame on this
-            # Intel iGPU + NVIDIA Prime laptop waits on pipeline compile
-            # (SwayOSD#198), and volume is applied on that same GTK thread.
-            Environment = [ "GSK_RENDERER=gl" ];
-            ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
-            Restart = "on-failure";
-            RestartSec = 3;
-          };
-          Install = {
-            WantedBy = [ "graphical-session.target" ];
-          };
-        };
-
-        swayosd-watchdog = {
-          Unit = {
-            Description = "Restart SwayOSD when its GUI channel wedges";
-            PartOf = [ "graphical-session.target" ];
-            After = [ "graphical-session.target" ];
-          };
-          Service = {
-            Type = "oneshot";
-            ExecStart = lib.getExe swayosdWatchdog;
-          };
-        };
       };
 
       systemd.user.timers.battery-low-notify = {
@@ -275,28 +220,10 @@
         };
       };
 
-      systemd.user.timers.swayosd-watchdog = {
-        Unit = {
-          Description = "Poll SwayOSD health for watchdog restarts";
-          PartOf = [ "graphical-session.target" ];
-          After = [ "graphical-session.target" ];
-        };
-        Timer = {
-          OnActiveSec = "2m";
-          OnUnitActiveSec = "5m";
-          Unit = "swayosd-watchdog.service";
-        };
-        Install = {
-          WantedBy = [ "graphical-session.target" ];
-        };
-      };
-
       xdg.configFile."niri".source =
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/niri";
       xdg.configFile."gtk-2.0".source =
         config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/gtk-2.0";
-      xdg.configFile."swayosd".source =
-        config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/swayosd";
     }
   );
 }
