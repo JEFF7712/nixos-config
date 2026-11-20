@@ -18,7 +18,6 @@ PanelWindow {
     property int osdMs: 120
 
     property bool shown: false
-    property bool closing: false
     property string icon: "󰕾"
     property string label: ""
     property string badge: ""
@@ -29,6 +28,9 @@ PanelWindow {
     readonly property bool hasMeter: root.percent >= 0
     readonly property int cardRadius: root.flatMode ? 0 : Math.max(12, Math.min(20, root.barRadius))
     readonly property int animMs: Math.max(60, root.osdMs)
+    readonly property int exitMs: Math.max(180, root.animMs * 2)
+    readonly property int slidePx: 8
+    readonly property int cardHeight: root.hasMeter ? 52 : 40
 
     function _present(nextIcon, nextLabel, nextBadge, nextPercent, nextMuted, fromIpc) {
         if (fromIpc)
@@ -38,8 +40,6 @@ PanelWindow {
         root.badge = nextBadge;
         root.percent = nextPercent;
         root.muted = nextMuted;
-        closeTimer.stop();
-        root.closing = false;
         root.shown = true;
         hideTimer.restart();
     }
@@ -84,15 +84,15 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-    visible: root.shown || root.closing
+    visible: root.shown || card.opacity > 0
     anchors {
         bottom: true
     }
     margins {
-        bottom: 44
+        bottom: 44 - root.slidePx
     }
     implicitWidth: 252
-    implicitHeight: (root.shown || root.closing) ? (root.hasMeter ? 52 : 40) : 1
+    implicitHeight: root.cardHeight + root.slidePx
     exclusiveZone: -1
     color: "transparent"
 
@@ -100,18 +100,7 @@ PanelWindow {
         id: hideTimer
         interval: 1400
         repeat: false
-        onTriggered: {
-            root.shown = false;
-            root.closing = true;
-            closeTimer.restart();
-        }
-    }
-
-    Timer {
-        id: closeTimer
-        interval: root.animMs
-        repeat: false
-        onTriggered: root.closing = false
+        onTriggered: root.shown = false
     }
 
     Item {
@@ -120,32 +109,32 @@ PanelWindow {
         Rectangle {
             id: card
             width: parent.width
-            height: parent.height
+            height: root.cardHeight
             radius: root.cardRadius
             color: root.themeBg
             border.width: 1
             border.color: root.themeBorder
             opacity: root.shown ? 1.0 : 0.0
-            y: root.shown ? 0 : 8
+            y: root.shown ? 0 : root.slidePx
             scale: root.flatMode ? 1.0 : (root.shown ? 1.0 : 0.97)
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: root.animMs
-                    easing.type: Easing.OutCubic
+                    duration: root.shown ? root.animMs : root.exitMs
+                    easing.type: root.shown ? Easing.OutCubic : Easing.InOutQuad
                 }
             }
             Behavior on y {
                 NumberAnimation {
-                    duration: root.animMs
-                    easing.type: Easing.OutCubic
+                    duration: root.shown ? root.animMs : root.exitMs
+                    easing.type: root.shown ? Easing.OutCubic : Easing.InOutQuad
                 }
             }
             Behavior on scale {
                 enabled: !root.flatMode
                 NumberAnimation {
-                    duration: root.animMs
-                    easing.type: Easing.OutCubic
+                    duration: root.shown ? root.animMs : root.exitMs
+                    easing.type: root.shown ? Easing.OutCubic : Easing.InOutQuad
                 }
             }
 
