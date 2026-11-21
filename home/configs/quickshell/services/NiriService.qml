@@ -18,6 +18,9 @@ Scope {
     function focusAdjacent(output: string, direction: int): void {
         model.focusAdjacent(output, direction);
     }
+    function focusWindow(id: int): void {
+        model.focusWindow(id);
+    }
     function quitSession(): void {
         model.quitSession();
     }

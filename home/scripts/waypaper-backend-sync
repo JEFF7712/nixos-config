@@ -34,4 +34,10 @@ if [ -z "$wallpaper" ]; then
   wallpaper="${1:-}"
 fi
 
+profile=$(cat "$ACTIVE_FILE" 2>/dev/null || true)
+themed=false
+if [ -n "$profile" ] && profile_wallpaper_theming "$profile"; then
+  themed=true
+fi
+signal_wallpaper_transition "$wallpaper" 1 "$themed"
 apply_wallpaper_theme "$wallpaper"

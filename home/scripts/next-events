@@ -1,0 +1,92 @@
+#!/usr/bin/env calendar-python
+# next-events: upcoming events from the ICS feeds in ~/.config/next-events/calendars
+# (one URL per line, `#` comments allowed). Prints JSON for the idle greeting.
+import hashlib
+import json
+import os
+import sys
+import time
+import urllib.request
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+import icalendar
+import recurring_ical_events
+
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "next-events" / "calendars"
+CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "next-events"
+CACHE_TTL = 15 * 60
+HORIZON = timedelta(days=7)
+LIMIT = 3
+
+
+def feed_urls() -> list[str]:
+    try:
+        lines = CONFIG.read_text().splitlines()
+    except FileNotFoundError:
+        return []
+    return [line.strip() for line in lines if line.strip() and not line.lstrip().startswith("#")]
+
+
+def fetch(url: str) -> bytes:
+    path = CACHE / (hashlib.sha256(url.encode()).hexdigest()[:16] + ".ics")
+    if path.exists() and time.time() - path.stat().st_mtime < CACHE_TTL:
+        return path.read_bytes()
+    try:
+        req = urllib.request.Request(url.replace("webcal://", "https://", 1), headers={"User-Agent": "next-events"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = resp.read()
+    except OSError:
+        if path.exists():
+            return path.read_bytes()
+        raise
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return data
+
+
+def as_aware(value: date | datetime) -> tuple[datetime, bool]:
+    if isinstance(value, datetime):
+        return (value if value.tzinfo else value.astimezone()), False
+    return datetime(value.year, value.month, value.day).astimezone(), True
+
+
+def main() -> int:
+    urls = feed_urls()
+    if not urls:
+        print(json.dumps({"configured": False, "events": [], "error": ""}))
+        return 0
+
+    now = datetime.now(timezone.utc).astimezone()
+    events = []
+    errors = []
+    for url in urls:
+        try:
+            cal = icalendar.Calendar.from_ical(fetch(url))
+            occurrences = recurring_ical_events.of(cal).between(now - timedelta(days=1), now + HORIZON)
+        except Exception as exc:  # noqa: BLE001 - one bad feed must not hide the others
+            errors.append(f"{type(exc).__name__}: {exc}")
+            continue
+        for ev in occurrences:
+            start, all_day = as_aware(ev.decoded("DTSTART"))
+            end_raw = ev.get("DTEND")
+            end = as_aware(ev.decoded("DTEND"))[0] if end_raw is not None else start + (timedelta(days=1) if all_day else timedelta(0))
+            if end <= now:
+                continue
+            events.append(
+                {
+                    "title": str(ev.get("SUMMARY", "Untitled")).strip(),
+                    "location": str(ev.get("LOCATION", "")).strip(),
+                    "start": int(start.timestamp() * 1000),
+                    "end": int(end.timestamp() * 1000),
+                    "allDay": all_day,
+                }
+            )
+
+    events.sort(key=lambda e: (e["allDay"], e["start"]))
+    print(json.dumps({"configured": True, "events": events[:LIMIT], "error": "; ".join(errors)}))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

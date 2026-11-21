@@ -9,6 +9,12 @@
   options.quickshell.enable = lib.mkEnableOption "systemd-supervised Quickshell desktop bar";
 
   config = lib.mkIf config.quickshell.enable {
+    # Idle greeting feeds: next-events (calendar-python), homelab-health (kubectl).
+    home.packages = with pkgs; [
+      calendar-python
+      kubectl
+    ];
+
     systemd.user.services.quickshell-bar = {
       Unit = {
         Description = "Quickshell desktop bar";

@@ -1,0 +1,85 @@
+#!/usr/bin/env iris-python
+# wallpaper-prewarm: pre-scale wallpapers to each output's physical size so
+# `awww img` (and the idle-greeting layout helper) never decode and resize a 4K
+# source on the critical path. Usage: wallpaper-prewarm FILE_OR_DIR...
+# Cache: ~/.cache/wallpaper-renders/<W>x<H>/<key>.jpg, key shared with
+# prescaled_wallpaper in profile-common.
+import hashlib
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+from PIL import Image, ImageOps
+
+CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "wallpaper-renders"
+CACHE_LIMIT_BYTES = 600 * 1024 * 1024
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+
+
+def output_sizes() -> set[tuple[int, int]]:
+    try:
+        query = subprocess.run(["awww", "query"], capture_output=True, text=True, timeout=3, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    sizes = set()
+    for match in re.finditer(r": (\d+)x(\d+), scale: ([0-9.]+)", query):
+        scale = float(match.group(3))
+        sizes.add((round(int(match.group(1)) * scale), round(int(match.group(2)) * scale)))
+    return sizes
+
+
+def cache_key(path: Path) -> str:
+    stat = path.stat()
+    return hashlib.sha256(f"{path}\0{int(stat.st_mtime)}\0{stat.st_size}".encode()).hexdigest()[:24]
+
+
+def render(path: Path, size: tuple[int, int]) -> None:
+    target = CACHE / f"{size[0]}x{size[1]}" / f"{cache_key(path)}.jpg"
+    if target.exists():
+        return
+    with Image.open(path) as source:
+        image = ImageOps.exif_transpose(source).convert("RGB")
+    factor = min(image.width // size[0], image.height // size[1])
+    if factor >= 2:
+        image = image.reduce(factor)
+    # Centred crop, matching awww's default `--resize crop`.
+    image = ImageOps.fit(image, size, method=Image.Resampling.LANCZOS)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=target.parent, suffix=".jpg", delete=False) as out:
+        image.save(out, format="JPEG", quality=95, subsampling=0)
+    os.replace(out.name, target)
+
+
+def prune() -> None:
+    files = sorted(CACHE.glob("*/*.jpg"), key=lambda f: f.stat().st_mtime, reverse=True)
+    total = 0
+    for f in files:
+        total += f.stat().st_size
+        if total > CACHE_LIMIT_BYTES:
+            f.unlink(missing_ok=True)
+
+
+def main() -> int:
+    sources: list[Path] = []
+    for arg in sys.argv[1:]:
+        p = Path(arg).expanduser().resolve()
+        if p.is_dir():
+            sources += sorted(f.resolve() for f in p.iterdir() if f.suffix.lower() in IMAGE_SUFFIXES)
+        elif p.suffix.lower() in IMAGE_SUFFIXES and p.is_file():
+            sources.append(p)
+    sizes = output_sizes()
+    for source in sources:
+        for size in sizes:
+            try:
+                render(source, size)
+            except (OSError, ValueError, Image.DecompressionBombError) as error:
+                print(f"wallpaper-prewarm: {source}: {error}", file=sys.stderr)
+    prune()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

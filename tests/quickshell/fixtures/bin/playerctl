@@ -5,6 +5,10 @@ state_dir=${QS_TEST_STATE_DIR:?QS_TEST_STATE_DIR is required}
 state_file="$state_dir/player.json"
 actions="$state_dir/actions.log"
 lifecycles="$state_dir/playerctl-lifecycle.log"
+# The media snapshot pins its player with -p; the fixture has one player.
+if [ "${1-}" = -p ]; then
+  shift 2
+fi
 printf '%q ' "$@" >>"$state_dir/playerctl-calls.log"
 printf '\n' >>"$state_dir/playerctl-calls.log"
 if [ "${1-}" = status ] && [ "$#" -eq 1 ]; then
@@ -76,6 +80,10 @@ fi
 require_player || exit 1
 
 case "${1-}" in
+  -a)
+    [ "$#" -eq 4 ] && [ "$2" = metadata ] && [ "$3" = --format ] || exit 64
+    printf 'fixture\t%s\n' "$(read_value '.status')"
+    ;;
   status)
     [ "$#" -eq 1 ] || exit 64
     if [ -f "$state_dir/slow-snapshot.once" ]; then

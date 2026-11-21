@@ -3,6 +3,7 @@ final: prev: {
   plymouth-nixos-logo = final.callPackage ../pkgs/plymouth-nixos-logo { };
   muse-code = final.callPackage ../pkgs/muse-code { };
   iris-python = final.callPackage ../pkgs/iris-python { };
+  calendar-python = final.callPackage ../pkgs/calendar-python { };
   hass-bridge = final.callPackage ../pkgs/hass-bridge { };
   matrix-playback = final.callPackage ../pkgs/matrix-playback { };
   # Upstream hardcodes AnchorNone; settings.json / niri layer-rules cannot move it.

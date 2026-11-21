@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# agent-status: JSON list of coding-agent CLIs running in kitty windows, for the
+# idle greeting. The agent comes from the kitty process tree; working/idle comes
+# from the title glyph the CLI sets (braille spinner or ◐◑◒◓ = working).
+set -uo pipefail
+
+agents='claude|codex|agy|opencode|pi|agent|cursor-agent|muse|gemini'
+
+windows=$(niri msg -j windows 2>/dev/null) || {
+  printf '{"ok":false,"agents":[]}\n'
+  exit 0
+}
+
+# "<kitty pid> <agent pid> <agent name>" for the first agent found under each kitty.
+pairs=$(ps -eo pid=,ppid=,args= | awk -v re="^(${agents})$" -v roots="$(jq -r '[.[] | select(.app_id == "kitty") | .pid] | join(" ")' <<<"$windows")" '
+  {
+    parent[$1] = $2
+    n = split($3, parts, "/")
+    name[$1] = parts[n]
+  }
+  END {
+    split(roots, r, " ")
+    for (i in r) root[r[i]] = 1
+    for (pid in name) {
+      if (name[pid] !~ re) continue
+      for (p = parent[pid]; p != "" && p > 1; p = parent[p]) {
+        if (p in root) {
+          if (!(p in found) || pid + 0 < found[p] + 0) { found[p] = pid; label[p] = name[pid] }
+          break
+        }
+      }
+    }
+    for (p in found) print p, found[p], label[p]
+  }')
+
+while read -r kpid apid name; do
+  [[ -n ${kpid:-} ]] || continue
+  printf '%s\t%s\t%s\n' "$kpid" "$name" "$(readlink "/proc/$apid/cwd" 2>/dev/null)"
+done <<<"$pairs" | jq -cRs --argjson windows "$windows" --arg agents "^(${agents})( |$)" '
+  (split("\n") | map(select(length > 0) | split("\t") | {key: .[0], value: {agent: .[1], cwd: .[2]}}) | from_entries) as $procs
+  | [ $windows[]
+      | select(.app_id == "kitty" and ($procs[.pid | tostring] != null))
+      | $procs[.pid | tostring] as $p
+      | .title as $t
+      | {
+          id,
+          agent: $p.agent,
+          project: ($p.cwd | split("/") | last // ""),
+          state: (if ($t | test("^[⠁-⣿◐-◓]")) then "working"
+                  elif ($t | test($agents)) then "running"
+                  else "idle" end),
+          task: ($t
+            | sub("^[⠁-⣿◐-◓✳]\\s*"; "")
+            | sub("\\s+\\|\\s+[^|]+$"; "")
+            | if test($agents) then "" else . end)
+        } ]
+  | sort_by(.state != "working", .project)
+  | {ok: true, agents: .}'

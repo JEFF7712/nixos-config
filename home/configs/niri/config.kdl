@@ -313,6 +313,7 @@ binds {
     Print { screenshot; }
     Ctrl+Print { screenshot-screen; }
     Alt+Print { screenshot-window; }
+    Mod+Shift+S { spawn-sh "grim -g \"$(slurp -d)\" - | satty --filename - --output-filename ~/media/images/screenshots/satty-%Y-%m-%d-%H-%M-%S.png --copy-command wl-copy --early-exit --initial-tool arrow"; }
 
     // Escape hatch: buggy apps can otherwise hold shortcut-inhibit hostage.
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }

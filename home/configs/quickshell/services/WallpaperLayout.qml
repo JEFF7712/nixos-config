@@ -12,14 +12,21 @@ Scope {
     property color foreground: "#ffffff"
     property color accent: "#ffffff"
     property bool enabled: false
+    // Incoming wallpaper from the transition stamp; empty means ask awww.
+    property string wallpaper: ""
     property var result: null
+    property int resultRevision: -1
+    // The current request has an answer (stale results are never applied).
+    readonly property bool ready: root.resultRevision === root.revision
     property int revision: 0
     property int activeRevision: -1
     property bool resultReceived: false
-    property var helperCommand: ["iris-python", Qt.resolvedUrl("internal/wallpaper_layout.py").toString().replace(/^file:\/\//, "")]
+    // Idle priority: runs while awww is rendering its wallpaper fade.
+    property var helperCommand: ["nice", "-n", "19", "iris-python", Qt.resolvedUrl("internal/wallpaper_layout.py").toString().replace(/^file:\/\//, "")]
     readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config"
     readonly property string request: JSON.stringify({
         screen: root.screenName,
+        wallpaper: root.wallpaper,
         width: root.viewportWidth,
         height: root.viewportHeight,
         candidates: root.candidates,
@@ -29,6 +36,7 @@ Scope {
 
     function refresh(): void {
         root.revision++;
+        debounce.interval = 180;
         if (root.enabled)
             debounce.restart();
     }
@@ -54,6 +62,10 @@ Scope {
         if (!pose)
             return false;
         const candidate = root.candidates.find(c => c.name === pose.name);
+        if (candidate !== undefined && candidate.width2 !== undefined) {
+            if (!(Number.isFinite(pose.x2) && Number.isFinite(pose.y2) && pose.x2 >= 0 && pose.y2 >= 0 && pose.x2 + candidate.width2 * pose.scale <= root.viewportWidth + 0.1 && pose.y2 + candidate.height2 * pose.scale <= root.viewportHeight + 0.1))
+                return false;
+        }
         return candidate !== undefined && Number.isFinite(pose.x) && Number.isFinite(pose.y) && Number.isFinite(pose.scale) && pose.scale > 0 && pose.scale <= 1 && pose.x >= 0 && pose.y >= 0 && pose.x + candidate.width * pose.scale <= root.viewportWidth + 0.1 && pose.y + candidate.height * pose.scale <= root.viewportHeight + 0.1 && Number.isFinite(pose.backdropOpacity) && pose.backdropOpacity >= 0 && pose.backdropOpacity <= 1 && /^#[0-9a-f]{6}$/i.test(pose.backdropColor) && /^#[0-9a-f]{6}$/i.test(pose.accent);
     }
 
@@ -61,20 +73,6 @@ Scope {
     onEnabledChanged: if (root.enabled)
         root.refresh()
     Component.onCompleted: root.refresh()
-
-    FileView {
-        path: root.configHome + "/waypaper/config.ini"
-        watchChanges: true
-        printErrors: false
-        onFileChanged: root.refresh()
-    }
-
-    FileView {
-        path: root.configHome + "/desktop-profiles/quickshell-theme-reload"
-        watchChanges: true
-        printErrors: false
-        onFileChanged: root.refresh()
-    }
 
     FileView {
         path: root.configHome + "/desktop-profiles/idle-layout.json"
@@ -85,7 +83,6 @@ Scope {
 
     Timer {
         id: debounce
-        interval: 180
         onTriggered: {
             if (!root.enabled || probe.running || root.viewportWidth <= 0 || root.viewportHeight <= 0)
                 return;
@@ -113,6 +110,7 @@ Scope {
                     if (!root.validPose(pose))
                         throw new Error("Invalid layout result");
                     root.result = pose;
+                    root.resultRevision = root.activeRevision;
                     root.resultReceived = true;
                 } catch (error) {
                     console.warn("Wallpaper layout analysis failed:", error);
@@ -122,8 +120,10 @@ Scope {
         onExited: {
             if (root.activeRevision !== root.revision && root.enabled)
                 debounce.restart();
-            else if (!root.resultReceived)
+            else if (!root.resultReceived) {
                 root.result = root.fallbackPose();
+                root.resultRevision = root.activeRevision;
+            }
         }
     }
 
