@@ -281,9 +281,31 @@ set_wallpaper() {
       if [ -n "${PROFILE_SKIP_WALLPAPER_THEME:-}" ] || { [ -n "$profile" ] && profile_wallpaper_theming "$profile"; }; then
         themed=true
       fi
+      # Wallpaper-tinted profiles: stage the palette in parallel and hold the fade
+      # until it is staged (capped), then publish it only once awww succeeded, so
+      # wallpaper, bar and focus ring change in the same beat.
+      local hold="" waited=0 wallpaper_status=0
+      if [ -z "${PROFILE_SKIP_WALLPAPER_THEME:-}" ] && [ -z "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ] \
+        && [ "$themed" = true ]; then
+        hold=$(mktemp -u "${XDG_RUNTIME_DIR:-/tmp}/wallpaper-theme-hold.XXXXXX")
+        (WALLPAPER_THEME_HOLD="$hold" run_wallpaper_theme_detached "$wallpaper") 9>&- &
+        disown 2>/dev/null || true
+        while [ ! -e "$hold.staged" ] && [ "$waited" -lt 60 ]; do
+          sleep 0.02
+          waited=$((waited + 1))
+        done
+      fi
       signal_wallpaper_transition "$wallpaper" "$transition_duration" "$themed"
-      if ! awww_img_prescaled "$wallpaper" --transition-type "$transition_type" \
-        --transition-duration "$transition_duration"; then
+      awww_img_prescaled "$wallpaper" --transition-type "$transition_type" \
+        --transition-duration "$transition_duration" || wallpaper_status=1
+      if [ -n "$hold" ]; then
+        if [ "$wallpaper_status" -eq 0 ]; then
+          printf 'go\n' > "$hold.decision"
+        else
+          printf 'abort\n' > "$hold.decision"
+        fi
+      fi
+      if [ "$wallpaper_status" -ne 0 ]; then
         printf 'set_wallpaper: awww img failed\n' >&2
         return 1
       fi
@@ -307,7 +329,7 @@ set_wallpaper() {
   # multi-megapixel image (magick) then reloads every colour consumer, so keep
   # it off the critical path: the wallpaper is already up, the palette settles a
   # beat later (same async philosophy as the per-app theme tail).
-  if [ -z "${PROFILE_SKIP_WALLPAPER_THEME:-}" ]; then
+  if [ -z "${PROFILE_SKIP_WALLPAPER_THEME:-}" ] && [ -z "${hold:-}" ]; then
     if [ -n "${PROFILE_TRANSITION_TEST_SYNC_ASYNC:-}" ]; then
       apply_wallpaper_theme "$wallpaper"
     else
@@ -320,6 +342,28 @@ set_wallpaper() {
 run_wallpaper_theme_detached() {
   unset PROFILE_PUBLISH_LOCK_FD
   apply_wallpaper_theme "$1"
+  # Early return (stale, failure, untinted profile): stop set_wallpaper waiting.
+  if [ -n "${WALLPAPER_THEME_HOLD:-}" ]; then
+    : > "$WALLPAPER_THEME_HOLD.staged"
+    rm -f "$WALLPAPER_THEME_HOLD.decision"
+  fi
+}
+
+# wallpaper_theme_await_decision
+# Inside a theme job started by set_wallpaper (WALLPAPER_THEME_HOLD set): report
+# that staging is done, then wait for set_wallpaper's go/abort after `awww img`.
+# Returns 0 to publish. Without a hold it always publishes.
+wallpaper_theme_await_decision() {
+  local hold="${WALLPAPER_THEME_HOLD:-}" decision="" waited=0
+  [ -n "$hold" ] || return 0
+  : > "$hold.staged"
+  while [ ! -s "$hold.decision" ] && [ "$waited" -lt 250 ]; do
+    sleep 0.02
+    waited=$((waited + 1))
+  done
+  decision=$(cat "$hold.decision" 2>/dev/null || true)
+  rm -f "$hold.staged" "$hold.decision"
+  [ "$decision" = go ]
 }
 
 # profile_wallpaper_theming <profile>
@@ -679,6 +723,12 @@ apply_wallpaper_theme() {
     rm -rf "$theme_stage"
     return 0
   }
+  # set_wallpaper stages this palette while it starts awww; publish only once the
+  # wallpaper is actually up, and drop the stage if awww failed.
+  if ! wallpaper_theme_await_decision; then
+    rm -rf "$theme_stage"
+    return 0
+  fi
   "$PROFILE_PUBLISH" declare "$theme_stage"
   publish_result=$(XDG_CONFIG_HOME="$CONFIG_HOME" PROFILE_PUBLISH_PROFILES_DIR="$PROFILES_DIR" \
     "$PROFILE_PUBLISH" publish "$job_gen" "$theme_stage")
@@ -696,6 +746,14 @@ apply_wallpaper_theme() {
       sleep 0.01
     done
   fi
+
+  # The bar and niri's focus ring sit next to the wallpaper; reload them first
+  # so they change with it instead of after every app adapter.
+  bar=$(profile_bar "$profile" 2>/dev/null || true)
+  if [ "$bar" = "quickshell" ]; then
+    nudge_quickshell_theme_reload
+  fi
+  niri msg action load-config-file >/dev/null 2>&1 || true
 
   reload_kitty
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
@@ -715,14 +773,6 @@ apply_wallpaper_theme() {
       apply_spicetify_theme "$PROFILES_DIR/$profile/manifest.json" "$variant") 9>&- &
     disown 2>/dev/null || true
   fi
-
-  # Quickshell watches quickshell-theme-reload and hot-applies select-quickshell-theme.
-  bar=$(profile_bar "$profile" 2>/dev/null || true)
-  if [ "$bar" = "quickshell" ]; then
-    nudge_quickshell_theme_reload
-  fi
-
-  niri msg action load-config-file >/dev/null 2>&1 || true
 }
 
 ensure_waypaper_post_command() {

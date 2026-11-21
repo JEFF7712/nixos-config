@@ -80,7 +80,7 @@ declare_stage() {
 
 publish() {
   local generation="$1" stage="$2" manifest root relative source destination temporary current
-  local index backup_dir backup kind failed=0
+  local index backup_dir backup kind content failed=0
   local -a destinations=() backups=() kinds=()
   manifest="$stage/.profile-publish-artifacts"
   [ -f "$manifest" ] || { echo "profile-publish: missing artifact declaration" >&2; return 1; }
@@ -108,11 +108,11 @@ publish() {
     destinations+=("$destination")
   done < "$manifest"
   backup_dir=$(mktemp -d "$stage/.profile-publish-rollback.XXXXXX")
+  local -a existing=()
   for ((index=0; index<${#destinations[@]}; index++)); do
     destination="${destinations[$index]}"
-    backup="$backup_dir/$index"
     if [ -f "$destination" ]; then
-      cp -p -- "$destination" "$backup"
+      existing+=("$destination")
       kinds+=(file)
     elif [ ! -e "$destination" ]; then
       kinds+=(missing)
@@ -121,8 +121,14 @@ publish() {
       rm -rf "$backup_dir"
       return 1
     fi
-    backups+=("$backup")
+    # One cp --parents below mirrors each absolute path under backup_dir.
+    backups+=("$backup_dir$destination")
   done
+  if [ "${#existing[@]}" -gt 0 ] && ! cp -p --parents -t "$backup_dir" -- "${existing[@]}"; then
+    echo "profile-publish: could not back up destinations" >&2
+    rm -rf "$backup_dir"
+    return 1
+  fi
   index=0
   while IFS=$'\t' read -r root relative; do
     [ -n "$root" ] && [ -n "$relative" ] || continue
@@ -143,9 +149,16 @@ publish() {
       failed=1
       break
     fi
-    mkdir -p "$(dirname "$destination")"
-    temporary=$(mktemp "$(dirname "$destination")/.profile-publish.XXXXXX")
-    if ! install -m 644 "$source" "$temporary" || ! mv -f "$temporary" "$destination"; then
+    # Builtins only up to the rename: ~5 forks per file made publication the slow
+    # step of a wallpaper retheme. Content with a NUL byte falls back to cp.
+    [ -d "${destination%/*}" ] || mkdir -p "${destination%/*}"
+    temporary="${destination%/*}/.profile-publish.$$.$index"
+    if IFS= read -r -d '' content < "$source"; then
+      cp -- "$source" "$temporary" && chmod 644 "$temporary" || { rm -f "$temporary"; failed=1; break; }
+    else
+      printf '%s' "$content" > "$temporary" || { rm -f "$temporary"; failed=1; break; }
+    fi
+    if ! mv -f "$temporary" "$destination"; then
       rm -f "$temporary"
       failed=1
       break
@@ -169,6 +182,9 @@ publish() {
   [ "${PROFILE_PUBLISH_KEEP_STAGE:-}" = 1 ] || rm -rf "$stage"
   printf 'published\n'
 }
+
+# Published theme files are world-readable (was install -m 644).
+umask 022
 
 case "$1" in
   allocate)

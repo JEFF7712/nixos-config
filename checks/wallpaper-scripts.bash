@@ -275,11 +275,15 @@ awww() {
     *) return 1 ;;
   esac
 }
-apply_wallpaper_theme() { printf 'themed\n' > "$themed_flag"; }
+# Mirrors the real job: stage, then publish only on set_wallpaper's go.
+apply_wallpaper_theme() {
+  wallpaper_theme_await_decision && printf 'themed\n' > "$themed_flag"
+}
 set +e
 set_wallpaper "$tmpdir/seed.png"
 wallpaper_status=$?
 set -e
+wait
 unset -f awww apply_wallpaper_theme
 assert_eq 1 "$wallpaper_status" "awww img failure is not converted to success"
 if [ -e "$themed_flag" ]; then
