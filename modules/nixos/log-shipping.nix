@@ -134,6 +134,9 @@ in
           "@system-service"
           "~@privileged"
         ];
+        # Alloy probes bpf(2) at startup; deny it with EPERM instead of the
+        # default SIGSYS, which crash-looped the unit.
+        SystemCallErrorNumber = "EPERM";
         UMask = "0077";
       };
     };
