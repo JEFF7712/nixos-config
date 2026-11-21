@@ -32,6 +32,7 @@ function parseSnapshot(text, exitCode) {
 
     return {
         available: true,
+        player: typeof raw.player === "string" ? raw.player : "",
         playing: status === "Playing",
         status: status,
         title: String(raw.title),
