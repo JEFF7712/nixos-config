@@ -24,23 +24,21 @@ PanelWindow {
     property bool enabled: false
     property int themeRevision: 0
 
-    // Wallpaper change choreography: fade out with the old wallpaper, settle the new
-    // layout and palette while hidden, then fade back in once.
+    // Wallpaper change choreography: hold the current pose and palette while the
+    // new layout and theme settle, then move and recolour in one animation.
     property string wallpaperPath: ""
     property string lastTransitionStamp: ""
     readonly property real createdAtMs: Date.now()
     property bool transitioning: false
     property bool awaitingTheme: false
-    readonly property int transitionOutMs: 350
-    readonly property bool transitionReady: !greetingWindow.awaitingTheme && placementService.ready && !transitionMinTimer.running
+    readonly property bool transitionReady: !greetingWindow.awaitingTheme && placementService.ready
+    // The pose on screen; follows placementService.result except while a wallpaper change is settling.
+    property var pose: null
 
     function beginWallpaperTransition(info) {
         greetingWindow.transitioning = true;
         greetingWindow.awaitingTheme = info.themed === true;
         greetingWindow.wallpaperPath = info.wallpaper || "";
-        // Stay hidden at least until awww's fade completes, so the greeting returns onto the new wallpaper.
-        transitionMinTimer.interval = Math.max(greetingWindow.transitionOutMs, Number(info.duration || 0) * 1000);
-        transitionMinTimer.restart();
         transitionSafetyTimer.restart();
     }
 
@@ -48,16 +46,12 @@ PanelWindow {
         transitionSafetyTimer.stop();
         greetingWindow.awaitingTheme = false;
         greetingWindow.transitioning = false;
+        greetingWindow.pose = placementService.result;
     }
 
     onThemeRevisionChanged: greetingWindow.awaitingTheme = false
     onTransitionReadyChanged: if (greetingWindow.transitioning && greetingWindow.transitionReady)
         greetingWindow.finishWallpaperTransition()
-
-    Timer {
-        id: transitionMinTimer
-        interval: greetingWindow.transitionOutMs
-    }
 
     Timer {
         id: transitionSafetyTimer
@@ -102,9 +96,9 @@ PanelWindow {
     property bool rested: false
     property bool dismissed: false
     property bool poseSettled: false
-    readonly property bool motionActive: greetingWindow.visible && greetingWindow.poseSettled && !greetingWindow.transitioning && fadeRoot.opacity > 0.01
+    readonly property bool motionActive: greetingWindow.visible && greetingWindow.poseSettled && fadeRoot.opacity > 0.01
     property date now: new Date()
-    readonly property bool compact: !placementService.result || placementService.result.name === "compact"
+    readonly property bool compact: !greetingWindow.pose || greetingWindow.pose.name === "compact"
     property real compactProgress: greetingWindow.compact ? 1 : 0
     readonly property real compactWidth: 400
     readonly property real wideClockHeight: 260
@@ -172,7 +166,7 @@ PanelWindow {
             height: greetingWindow.bandHeight + 48
         }
     ]
-    readonly property bool band: placementService.result !== null && placementService.result.name === "band"
+    readonly property bool band: greetingWindow.pose !== null && greetingWindow.pose.name === "band"
     property real bandProgress: greetingWindow.band ? 1 : 0
 
     Behavior on bandProgress {
@@ -183,7 +177,7 @@ PanelWindow {
         }
     }
     readonly property real splitClockWidth: 520
-    readonly property bool split: placementService.result !== null && placementService.result.name === "split"
+    readonly property bool split: greetingWindow.pose !== null && greetingWindow.pose.name === "split"
     property real splitProgress: greetingWindow.split ? 1 : 0
     // Last split pose, kept so the panels can animate back together after the layout leaves split.
     property var splitPose: null
@@ -218,11 +212,13 @@ PanelWindow {
     Connections {
         target: placementService
         function onResultChanged() {
-            const r = placementService.result;
-            if (r && r.name === "split")
-                greetingWindow.splitPose = r;
+            if (!greetingWindow.transitioning)
+                greetingWindow.pose = placementService.result;
         }
     }
+
+    onPoseChanged: if (greetingWindow.pose && greetingWindow.pose.name === "split")
+        greetingWindow.splitPose = greetingWindow.pose
 
     Behavior on splitProgress {
         enabled: greetingWindow.motionActive
@@ -231,8 +227,8 @@ PanelWindow {
             easing.type: Easing.InOutCubic
         }
     }
-    property color contentAccent: placementService.result ? placementService.result.accent : greetingWindow.themeAccent
-    property color contentFg: placementService.result && placementService.result.foreground ? placementService.result.foreground : greetingWindow.themeFg
+    property color contentAccent: greetingWindow.pose ? greetingWindow.pose.accent : greetingWindow.themeAccent
+    property color contentFg: greetingWindow.pose && greetingWindow.pose.foreground ? greetingWindow.pose.foreground : greetingWindow.themeFg
 
     Behavior on compactProgress {
         enabled: greetingWindow.motionActive
@@ -455,7 +451,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-    visible: greetingWindow.themeReady && greetingWindow.enabled && greetingWindow.rested && placementService.result !== null
+    visible: greetingWindow.themeReady && greetingWindow.enabled && greetingWindow.rested && greetingWindow.pose !== null
     anchors {
         top: true
         bottom: true
@@ -656,11 +652,11 @@ PanelWindow {
     Item {
         id: fadeRoot
         anchors.fill: parent
-        opacity: greetingWindow.visible && !greetingWindow.dismissed && !greetingWindow.transitioning ? 1 : 0
+        opacity: greetingWindow.visible && !greetingWindow.dismissed ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
-                duration: greetingWindow.transitioning ? greetingWindow.transitionOutMs : 900
-                easing.type: greetingWindow.transitioning ? Easing.InCubic : Easing.OutCubic
+                duration: 900
+                easing.type: Easing.OutCubic
             }
         }
 
@@ -668,12 +664,12 @@ PanelWindow {
             id: contentContainer
             readonly property real u: greetingWindow.compactProgress
             readonly property real sp: greetingWindow.splitProgress
-            x: placementService.result ? (greetingWindow.split ? greetingWindow.splitGeom.left : placementService.result.x) : 24
-            y: placementService.result ? (greetingWindow.split ? greetingWindow.splitGeom.top : placementService.result.y) : 24
+            x: greetingWindow.pose ? (greetingWindow.split ? greetingWindow.splitGeom.left : greetingWindow.pose.x) : 24
+            y: greetingWindow.pose ? (greetingWindow.split ? greetingWindow.splitGeom.top : greetingWindow.pose.y) : 24
             readonly property real bp: greetingWindow.bandProgress
             width: (1 - sp - bp) * (1048 + (greetingWindow.compactWidth + 48 - 1048) * u) + sp * greetingWindow.splitGeom.width + bp * (greetingWindow.bandWidth + 48)
             height: (1 - sp - bp) * (greetingWindow.wideInnerHeight + (greetingWindow.compactInnerHeight - greetingWindow.wideInnerHeight) * u + 48) + sp * greetingWindow.splitGeom.height + bp * (greetingWindow.bandHeight + 48)
-            scale: placementService.result ? placementService.result.scale : 1
+            scale: greetingWindow.pose ? greetingWindow.pose.scale : 1
             transformOrigin: Item.TopLeft
 
             Behavior on x {
