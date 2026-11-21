@@ -89,6 +89,7 @@
       home.packages = with pkgs; [
         grim
         slurp
+        satty
         imv
         awww
         mpvpaper

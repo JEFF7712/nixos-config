@@ -10,6 +10,7 @@ let
     mkdir -p $out
     ${lib.getExe pkgs.starship} init fish --print-full-init > $out/starship.fish
     ${lib.getExe pkgs.zoxide} init fish > $out/zoxide.fish
+    HOME=$TMPDIR ${lib.getExe pkgs.atuin} init fish > $out/atuin.fish
   '';
 in
 {
@@ -90,6 +91,7 @@ in
         set -gx AGENT_CLI_DISABLE_HALF_BLOCK_PROMPT_BAR true
 
         source ${fishInit}/zoxide.fish
+        source ${fishInit}/atuin.fish
         if test "$TERM" != dumb
           source ${fishInit}/starship.fish
         end
@@ -104,6 +106,19 @@ in
     programs.zoxide = {
       enable = true;
       enableFishIntegration = false;
+    };
+
+    programs.atuin = {
+      enable = true;
+      enableFishIntegration = false;
+      settings = {
+        update_check = false;
+        style = "compact";
+        inline_height = 20;
+        enter_accept = true;
+        filter_mode_shell_up_key_binding = "session";
+        search_mode = "fuzzy";
+      };
     };
   };
 }
