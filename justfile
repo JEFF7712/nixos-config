@@ -87,10 +87,10 @@ flake-check:
 
 # Targeted standalone profile eval; `nix flake check` owns the same check via
 # flake.checks.profiles so full `just check` / CI share one laptop evaluation.
-check-profiles host="laptop" user="rupan":
-  nix eval --no-write-lock-file --json \
-    ".#nixosConfigurations.{{host}}.config.home-manager.users.{{user}}.home.file" \
-    --apply 'import ./checks/profiles.nix'
+# Builds the flake's profiles check (same asserts as `nix flake check`); an
+# --apply import of ./checks/profiles.nix is refused in pure evaluation.
+check-profiles:
+  cat "$(nix build --no-link --no-write-lock-file --print-out-paths .#checks.x86_64-linux.profiles)"
 
 check-changed base="":
   CHECK_CHANGED_BASE='{{base}}' bash checks/run-changed-checks.bash

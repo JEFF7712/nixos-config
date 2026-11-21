@@ -60,6 +60,14 @@ cat > "$bin_dir/niri" <<'EOF'
 printf 'niri %s\n' "$*" >> "$COMMAND_LOG"
 EOF
 chmod +x "$bin_dir/pkill" "$bin_dir/systemctl" "$bin_dir/tmux" "$bin_dir/niri"
+# Nothing below may reach the live session: theme reloads would otherwise
+# restart the real vicinae, signal kitty and prewarm into the real cache.
+for stub in vicinae busctl kitty spicetify wallpaper-prewarm awww mpvpaper; do
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$bin_dir/$stub"
+  chmod +x "$bin_dir/$stub"
+done
+export PATH="$bin_dir:$PATH"
+export COMMAND_LOG="$log_file"
 
 cat > "$config_dir/waypaper/config.ini" <<'EOF'
 [Settings]
