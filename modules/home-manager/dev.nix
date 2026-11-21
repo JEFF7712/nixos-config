@@ -17,6 +17,17 @@
       nix-direnv.enable = true;
     };
 
+    # Homelab pull-through cache (nas-01), reachable on the LAN or over
+    # NetBird; without either pass --registry=https://registry.npmjs.org/.
+    programs.npm = {
+      enable = true;
+      package = null;
+      settings = {
+        prefix = "${config.home.homeDirectory}/.local";
+        registry = "https://npm.rupan.dev/";
+      };
+    };
+
     programs.nix-index.enable = true;
     programs.nix-index-database.comma.enable = true;
 

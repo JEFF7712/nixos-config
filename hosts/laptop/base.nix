@@ -46,6 +46,8 @@
   local-containers.enable = true;
   homelab.enable = true;
   homelab.syncthing.enable = true;
+  homelab.logShipping.enable = true;
+  homelab.backup.enable = true;
   game.enable = true;
   programs.vicinae.input-server.package = pkgs.vicinae-top;
   # Daemon-owned Nix builds stay out of the desktop's way.
@@ -349,11 +351,11 @@
 
   nix.optimise.automatic = true;
 
-  # Homelab binary cache on nas-01 (niks3). Signatures are enforced (no
-  # extra-trusted-substituters bypass); the key below must match the live
-  # server key configured in the homelab repo.
+  # Homelab binary cache on nas-01 (niks3), through its read-only TLS front.
+  # Signatures are enforced (no extra-trusted-substituters bypass); the key
+  # below must match the live server key configured in the homelab repo.
   nix.settings.extra-substituters = [
-    "http://10.0.30.20:8090"
+    "https://nix.rupan.dev"
     "https://vicinae.cachix.org"
   ];
   nix.settings.extra-trusted-public-keys = [

@@ -157,10 +157,15 @@ in
       };
     };
 
+    # Pinned so the nas-01 fronts never fall back to public DNS, which
+    # answers *.rupan.dev with Cloudflare addresses that do not serve them.
     networking.hosts = {
       "10.0.30.20" = [
         "git.internal"
         "s3.internal"
+        "npm.rupan.dev"
+        "nix.rupan.dev"
+        "restic.rupan.dev"
       ];
       "10.0.30.14" = [
         "ci.internal"
