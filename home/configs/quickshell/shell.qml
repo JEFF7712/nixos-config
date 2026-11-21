@@ -58,6 +58,27 @@ ShellRoot {
         id: hassService
     }
 
+    Services.JsonPoller {
+        id: agentPoller
+        script: "agent-status"
+        intervalMs: 4000
+        active: root.anyIdleGreetingWaiting
+    }
+
+    Services.JsonPoller {
+        id: homelabPoller
+        script: "homelab-health"
+        intervalMs: 60000
+        active: root.anyIdleGreetingWaiting
+    }
+
+    Services.JsonPoller {
+        id: calendarPoller
+        script: "next-events"
+        intervalMs: 300000
+        active: root.anyIdleGreetingWaiting
+    }
+
     property color themeFg: "#ffffff"
     property color themeBg: "#662a2a2a"
     property color popupBg: "#cc2a2a2a"
@@ -125,49 +146,52 @@ ShellRoot {
 
     // Profile theme JSON is sparse — omitted keys must fall back to these defaults
     // (same values as the property initializers), not the previous profile's values.
-    function resetThemeDefaults() {
-        root.themeFg = "#ffffff";
-        root.themeBg = "#662a2a2a";
-        root.popupBg = "#cc2a2a2a";
-        root.themeRawBg = "#141414";
-        root.themeAccent = "#ffffff";
-        root.themeSecond = "#e8e8e8";
-        root.themeWarm = "#e6dcc6";
-        root.themeFresh = "#d6eadc";
-        root.barRadius = 15;
-        root.barHeight = 44;
-        root.barMargin = 10;
-        root.barMarginTop = 10;
-        root.exclusiveZoneOffset = 0;
-        root.showWorkspaces = true;
-        root.showClock = true;
-        root.showClockDate = true;
-        root.showWorkspaceNumbers = true;
-        root.showActiveWindow = false;
-        root.showMedia = true;
-        root.showVolume = true;
-        root.showBrightness = true;
-        root.showNetwork = true;
-        root.showBluetooth = true;
-        root.showBattery = true;
-        root.showNotifications = true;
-        root.showSystem = true;
-        root.showTray = true;
-        root.showHass = true;
-        root.barFont = "JetBrainsMono Nerd Font";
-        root.flatMode = false;
-        root.showBarDividers = true;
-        root.moduleAnimationStyle = "fade";
-        root.motionStyle = "default";
-        root.showWorkspaceIndicator = true;
-        root.showIdleGreeting = false;
-        root.osdMs = 120;
-        // Don't reset popupAttachToBar here: false→true on every sharp retheme prewarm-flashes InfoPopup.
-        root.dividerColor = "#1affffff";
-        root.barBorderColor = "#3dffffff";
-        root.barInnerHighlight = "#0fffffff";
-        root.pillBg = "#0affffff";
-        root.pillBorder = "#14ffffff";
+    // Staged so a reload assigns each property once: resetting live properties first
+    // flashed defaults (idle greeting off, white accent) for a frame on every retheme.
+    function themeDefaults(): var {
+        return {
+            themeFg: "#ffffff",
+            themeBg: "#662a2a2a",
+            popupBg: "#cc2a2a2a",
+            themeRawBg: "#141414",
+            themeAccent: "#ffffff",
+            themeSecond: "#e8e8e8",
+            themeWarm: "#e6dcc6",
+            themeFresh: "#d6eadc",
+            barRadius: 15,
+            barHeight: 44,
+            barMargin: 10,
+            barMarginTop: 10,
+            exclusiveZoneOffset: 0,
+            showWorkspaces: true,
+            showClock: true,
+            showClockDate: true,
+            showWorkspaceNumbers: true,
+            showActiveWindow: false,
+            showMedia: true,
+            showVolume: true,
+            showBrightness: true,
+            showNetwork: true,
+            showBluetooth: true,
+            showBattery: true,
+            showNotifications: true,
+            showSystem: true,
+            showTray: true,
+            showHass: true,
+            barFont: "JetBrainsMono Nerd Font",
+            flatMode: false,
+            showBarDividers: true,
+            moduleAnimationStyle: "fade",
+            motionStyle: "default",
+            showWorkspaceIndicator: true,
+            showIdleGreeting: false,
+            osdMs: 120,
+            dividerColor: "#1affffff",
+            barBorderColor: "#3dffffff",
+            barInnerHighlight: "#0fffffff",
+            pillBg: "#0affffff",
+            pillBorder: "#14ffffff"
+        };
     }
 
     function applyTheme(theme) {
@@ -178,95 +202,103 @@ ShellRoot {
         }
         let attachOrAnimChanged = false;
         try {
-            root.resetThemeDefaults();
+            const next = root.themeDefaults();
+            if (theme) {
+                if (theme.fg)
+                    next.themeFg = theme.fg;
+                if (theme.bg)
+                    next.themeBg = theme.bg;
+                if (theme.popupBg)
+                    next.popupBg = theme.popupBg;
+                if (theme.rawBg)
+                    next.themeRawBg = theme.rawBg;
+                if (theme.accent)
+                    next.themeAccent = theme.accent;
+                if (theme.second)
+                    next.themeSecond = theme.second;
+                if (theme.warm)
+                    next.themeWarm = theme.warm;
+                if (theme.fresh)
+                    next.themeFresh = theme.fresh;
+                if (theme.barRadius !== undefined && theme.barRadius !== "")
+                    next.barRadius = parseInt(theme.barRadius);
+                if (theme.barHeight !== undefined && theme.barHeight !== "")
+                    next.barHeight = parseInt(theme.barHeight);
+                if (theme.barMargin !== undefined && theme.barMargin !== "") {
+                    next.barMargin = parseInt(theme.barMargin);
+                    // Themes often set barMargin alone; keep top in sync unless overridden.
+                    if (theme.barMarginTop === undefined)
+                        next.barMarginTop = next.barMargin;
+                }
+                if (theme.barMarginTop !== undefined && theme.barMarginTop !== "")
+                    next.barMarginTop = parseInt(theme.barMarginTop);
+                if (theme.exclusiveZoneOffset !== undefined)
+                    next.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset);
+                if (theme.showWorkspaces)
+                    next.showWorkspaces = theme.showWorkspaces === "true";
+                if (theme.showClock)
+                    next.showClock = theme.showClock === "true";
+                if (theme.showClockDate)
+                    next.showClockDate = theme.showClockDate === "true";
+                if (theme.showWorkspaceNumbers)
+                    next.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true";
+                if (theme.showActiveWindow)
+                    next.showActiveWindow = theme.showActiveWindow === "true";
+                if (theme.showMedia)
+                    next.showMedia = theme.showMedia === "true";
+                if (theme.showVolume)
+                    next.showVolume = theme.showVolume === "true";
+                if (theme.showBrightness)
+                    next.showBrightness = theme.showBrightness === "true";
+                if (theme.showNetwork)
+                    next.showNetwork = theme.showNetwork === "true";
+                if (theme.showBluetooth)
+                    next.showBluetooth = theme.showBluetooth === "true";
+                if (theme.showBattery)
+                    next.showBattery = theme.showBattery === "true";
+                if (theme.showNotifications)
+                    next.showNotifications = theme.showNotifications === "true";
+                if (theme.showSystem)
+                    next.showSystem = theme.showSystem === "true";
+                if (theme.showTray)
+                    next.showTray = theme.showTray === "true";
+                if (theme.showHass)
+                    next.showHass = theme.showHass === "true";
+                if (theme.barFont)
+                    next.barFont = theme.barFont;
+                if (theme.flatMode)
+                    next.flatMode = theme.flatMode === "true";
+                if (theme.showBarDividers)
+                    next.showBarDividers = theme.showBarDividers === "true";
+                if (theme.moduleAnimationStyle)
+                    next.moduleAnimationStyle = theme.moduleAnimationStyle;
+                if (theme.motionStyle)
+                    next.motionStyle = theme.motionStyle;
+                if (theme.showWorkspaceIndicator)
+                    next.showWorkspaceIndicator = theme.showWorkspaceIndicator === "true";
+                if (theme.showIdleGreeting)
+                    next.showIdleGreeting = theme.showIdleGreeting === "true";
+                if (theme.osdMs !== undefined && theme.osdMs !== "")
+                    next.osdMs = parseInt(theme.osdMs);
+                if (theme.dividerColor)
+                    next.dividerColor = theme.dividerColor;
+                if (theme.barBorder)
+                    next.barBorderColor = theme.barBorder;
+                if (theme.barInnerHighlight)
+                    next.barInnerHighlight = theme.barInnerHighlight;
+                if (theme.pillBg)
+                    next.pillBg = theme.pillBg;
+                if (theme.pillBorder)
+                    next.pillBorder = theme.pillBorder;
+            }
+            for (const key in next) {
+                const value = next[key];
+                const isColor = typeof value === "string" && value.startsWith("#");
+                if (isColor ? !Qt.colorEqual(root[key], value) : root[key] !== value)
+                    root[key] = value;
+            }
             if (!theme)
                 return;
-            if (theme.fg)
-                root.themeFg = theme.fg;
-            if (theme.bg)
-                root.themeBg = theme.bg;
-            if (theme.popupBg)
-                root.popupBg = theme.popupBg;
-            if (theme.rawBg)
-                root.themeRawBg = theme.rawBg;
-            if (theme.accent)
-                root.themeAccent = theme.accent;
-            if (theme.second)
-                root.themeSecond = theme.second;
-            if (theme.warm)
-                root.themeWarm = theme.warm;
-            if (theme.fresh)
-                root.themeFresh = theme.fresh;
-            if (theme.barRadius !== undefined && theme.barRadius !== "")
-                root.barRadius = parseInt(theme.barRadius);
-            if (theme.barHeight !== undefined && theme.barHeight !== "")
-                root.barHeight = parseInt(theme.barHeight);
-            if (theme.barMargin !== undefined && theme.barMargin !== "") {
-                root.barMargin = parseInt(theme.barMargin);
-                // Themes often set barMargin alone; keep top in sync unless overridden.
-                if (theme.barMarginTop === undefined)
-                    root.barMarginTop = root.barMargin;
-            }
-            if (theme.barMarginTop !== undefined && theme.barMarginTop !== "")
-                root.barMarginTop = parseInt(theme.barMarginTop);
-            if (theme.exclusiveZoneOffset !== undefined)
-                root.exclusiveZoneOffset = parseInt(theme.exclusiveZoneOffset);
-            if (theme.showWorkspaces)
-                root.showWorkspaces = theme.showWorkspaces === "true";
-            if (theme.showClock)
-                root.showClock = theme.showClock === "true";
-            if (theme.showClockDate)
-                root.showClockDate = theme.showClockDate === "true";
-            if (theme.showWorkspaceNumbers)
-                root.showWorkspaceNumbers = theme.showWorkspaceNumbers === "true";
-            if (theme.showActiveWindow)
-                root.showActiveWindow = theme.showActiveWindow === "true";
-            if (theme.showMedia)
-                root.showMedia = theme.showMedia === "true";
-            if (theme.showVolume)
-                root.showVolume = theme.showVolume === "true";
-            if (theme.showBrightness)
-                root.showBrightness = theme.showBrightness === "true";
-            if (theme.showNetwork)
-                root.showNetwork = theme.showNetwork === "true";
-            if (theme.showBluetooth)
-                root.showBluetooth = theme.showBluetooth === "true";
-            if (theme.showBattery)
-                root.showBattery = theme.showBattery === "true";
-            if (theme.showNotifications)
-                root.showNotifications = theme.showNotifications === "true";
-            if (theme.showSystem)
-                root.showSystem = theme.showSystem === "true";
-            if (theme.showTray)
-                root.showTray = theme.showTray === "true";
-            if (theme.showHass)
-                root.showHass = theme.showHass === "true";
-            if (theme.barFont)
-                root.barFont = theme.barFont;
-            if (theme.flatMode)
-                root.flatMode = theme.flatMode === "true";
-            if (theme.showBarDividers)
-                root.showBarDividers = theme.showBarDividers === "true";
-            if (theme.moduleAnimationStyle)
-                root.moduleAnimationStyle = theme.moduleAnimationStyle;
-            if (theme.motionStyle)
-                root.motionStyle = theme.motionStyle;
-            if (theme.showWorkspaceIndicator)
-                root.showWorkspaceIndicator = theme.showWorkspaceIndicator === "true";
-            if (theme.showIdleGreeting)
-                root.showIdleGreeting = theme.showIdleGreeting === "true";
-            if (theme.osdMs !== undefined && theme.osdMs !== "")
-                root.osdMs = parseInt(theme.osdMs);
-            if (theme.dividerColor)
-                root.dividerColor = theme.dividerColor;
-            if (theme.barBorder)
-                root.barBorderColor = theme.barBorder;
-            if (theme.barInnerHighlight)
-                root.barInnerHighlight = theme.barInnerHighlight;
-            if (theme.pillBg)
-                root.pillBg = theme.pillBg;
-            if (theme.pillBorder)
-                root.pillBorder = theme.pillBorder;
 
             // Only assign when the value changes so wallpaper rethemes (same sharp
             // layout, new colors) do not trip InfoPopup's attach/style prewarm flash.
@@ -285,6 +317,7 @@ ShellRoot {
                 if (p)
                     p.suppressPrewarm = false;
             }
+            root.themeRevision++;
             // Change handlers ran while suppressed; retry now that poseLocked snaps
             // off-screen without animating (no bar flash on profile switch).
             if (attachOrAnimChanged) {
@@ -297,6 +330,8 @@ ShellRoot {
     }
 
     property bool themeLoaded: false
+    // Bumped after every applied theme; the idle greeting waits on it during wallpaper changes.
+    property int themeRevision: 0
 
     // Restart via Timer so running false→true is not coalesced in one frame.
     Timer {
@@ -457,6 +492,15 @@ ShellRoot {
         }
     }
 
+    // Workspace already empty: fetch before the greeting reveals so its height is settled.
+    readonly property bool anyIdleGreetingWaiting: {
+        for (const g of greetingVariants.instances) {
+            if (g.enabled && g.workspaceEmpty)
+                return true;
+        }
+        return false;
+    }
+
     readonly property bool anyIdleGreetingShown: {
         for (const g of greetingVariants.instances) {
             if (g.revealed)
@@ -477,7 +521,12 @@ ShellRoot {
             mediaService: root.sharedMediaService
             cavaService: root.sharedCavaService
             bluetoothService: root.sharedBluetoothService
+            powerService: root.sharedPowerService
+            agentFeed: agentPoller
+            homelabFeed: homelabPoller
+            calendarFeed: calendarPoller
             themeReady: root.themeLoaded
+            themeRevision: root.themeRevision
             enabled: root.showIdleGreeting
             themeFg: root.themeFg
             themeSecond: root.themeSecond

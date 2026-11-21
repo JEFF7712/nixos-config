@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# homelab-health: one-shot JSON summary of the k3s cluster for the idle greeting:
+# node readiness, Flux kustomization readiness, and firing Alertmanager alerts.
+set -uo pipefail
+
+alerts_path='/api/v1/namespaces/observability/services/kube-prometheus-stack-alertmanager:9093/proxy/api/v2/alerts?active=true&silenced=false&inhibited=false'
+
+k() { kubectl --request-timeout=5s "$@"; }
+
+if ! nodes=$(k get nodes -o json 2>/dev/null); then
+  printf '{"ok":false,"error":"cluster unreachable"}\n'
+  exit 0
+fi
+flux=$(k get kustomizations.kustomize.toolkit.fluxcd.io -A -o json 2>/dev/null) || flux=null
+alerts=$(k get --raw "$alerts_path" 2>/dev/null) || alerts=null
+
+printf '%s\n%s\n%s\n' "$nodes" "$flux" "$alerts" | jq -cs '
+  .[0] as $nodes | .[1] as $flux | .[2] as $alerts
+  | def ready: [.status.conditions[]? | select(.type == "Ready")][0].status // "Unknown";
+  {
+    ok: true,
+    error: "",
+    nodes: {
+      total: ($nodes.items | length),
+      ready: [$nodes.items[] | select(ready == "True")] | length,
+      down: [$nodes.items[] | select(ready != "True") | .metadata.name]
+    },
+    flux: (if $flux == null then null else {
+      total: ($flux.items | length),
+      ready: [$flux.items[] | select(ready == "True")] | length,
+      failing: [$flux.items[] | select(ready == "False") | .metadata.name]
+    } end),
+    alerts: (if $alerts == null then null else
+      [$alerts[] | select(.labels.alertname != "Watchdog" and .labels.alertname != "InfoInhibitor" and (.labels.severity // "none") != "none")]
+      | {
+          critical: [.[] | select(.labels.severity == "critical")] | length,
+          warning: [.[] | select(.labels.severity != "critical")] | length,
+          names: [.[].labels.alertname] | unique
+        }
+    end)
+  }'

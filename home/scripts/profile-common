@@ -156,16 +156,21 @@ firefox_chrome_dir() {
 FIREFOX_CHROME="$(firefox_chrome_dir || true)"
 
 pick_random_wallpaper() {
-  local wallpaper_dir="$1"
+  local wallpaper_dir="$1" current candidates others
 
   [ -d "$wallpaper_dir" ] || return 1
 
-  find "$wallpaper_dir" -maxdepth 1 \
+  candidates=$(find "$wallpaper_dir" -maxdepth 1 \
     -type f \( \
       -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \
       -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.mkv" -o -iname "*.mov" \
-    \) \
-    | shuf -n 1
+    \))
+  # Never re-pick the wallpaper already showing: it would look like nothing happened.
+  current=$(awk -F' = ' '$1 == "wallpaper" { print $2; exit }' "$HOME/.config/waypaper/config.ini" 2>/dev/null || true)
+  current=${current/#\~/$HOME}
+  others=$(grep -vxF -- "$current" <<<"$candidates" || true)
+  [ -n "$others" ] && candidates=$others
+  printf '%s\n' "$candidates" | shuf -n 1
 }
 
 wallpaper_backend() {
@@ -196,6 +201,65 @@ stop_video_wallpaper() {
   pkill -f '/[m]pvpaper( |$)' 2>/dev/null || true
 }
 
+# signal_wallpaper_transition <wallpaper> <seconds> <themed>
+# Tell Quickshell a wallpaper change is starting so the idle greeting can fade out
+# with the old wallpaper and return once the new layout (and palette) are ready.
+signal_wallpaper_transition() {
+  mkdir -p "$PROFILES_DIR"
+  write_profile_value_atomic "$PROFILES_DIR/wallpaper-transition" \
+    "$(jq -cn --arg wallpaper "$1" --arg duration "$2" --argjson themed "$3" \
+      --arg stamp "$(date +%s%N)" \
+      '{wallpaper: $wallpaper, duration: ($duration | tonumber? // 1), themed: $themed, stamp: $stamp}')" \
+    || true
+}
+
+# prescaled_wallpaper <wallpaper> <WxH>
+# Print the wallpaper-prewarm render for one physical output size, if cached.
+# The key must match cache_key() in wallpaper-prewarm.
+prescaled_wallpaper() {
+  local real key cached
+  real=$(realpath "$1" 2>/dev/null) || return 1
+  key=$(printf '%s\0%s\0%s' "$real" "$(stat -c %Y "$real")" "$(stat -c %s "$real")" | sha256sum | cut -c1-24)
+  cached="${XDG_CACHE_HOME:-$HOME/.cache}/wallpaper-renders/$2/$key.jpg"
+  [ -f "$cached" ] || return 1
+  printf '%s\n' "$cached"
+}
+
+# awww_img_prescaled <wallpaper> <awww img args...>
+# Hand awww an output-sized render per output so the transition starts at once;
+# outputs without one fall back to the source, and a background prewarm fills
+# the cache for next time.
+awww_img_prescaled() {
+  local wallpaper="$1" line name w h scale size cached missing="" status=0
+  shift
+  declare -A groups=()
+  while IFS= read -r line; do
+    [[ $line =~ ^:?\ *([^:]+):\ ([0-9]+)x([0-9]+),\ scale:\ ([0-9.]+) ]] || continue
+    name=${BASH_REMATCH[1]}
+    w=${BASH_REMATCH[2]} h=${BASH_REMATCH[3]} scale=${BASH_REMATCH[4]}
+    size=$(awk -v w="$w" -v h="$h" -v s="$scale" 'BEGIN { printf "%dx%d", w * s + 0.5, h * s + 0.5 }')
+    if cached=$(prescaled_wallpaper "$wallpaper" "$size"); then
+      groups[$cached]+="${groups[$cached]:+,}$name"
+    else
+      missing+="${missing:+,}$name"
+    fi
+  done < <(awww query 2>/dev/null)
+  for cached in "${!groups[@]}"; do
+    awww img --outputs "${groups[$cached]}" "$cached" "$@" || status=1
+  done
+  if [ -n "$missing" ] || [ "${#groups[@]}" -eq 0 ]; then
+    if [ -n "$missing" ]; then
+      awww img --outputs "$missing" "$wallpaper" "$@" || status=1
+    else
+      awww img "$wallpaper" "$@" || status=1
+    fi
+  fi
+  if command -v wallpaper-prewarm >/dev/null 2>&1; then
+    (nice -n 19 wallpaper-prewarm "$(dirname "$wallpaper")" >/dev/null 2>&1 &) 9>&- || true
+  fi
+  return "$status"
+}
+
 set_wallpaper() {
   local wallpaper="$1"
 
@@ -213,7 +277,12 @@ set_wallpaper() {
           transition_duration=$(jq -r '.motion.wallpaperDuration // 1' <<< "$appearance")
         fi
       fi
-      if ! awww img "$wallpaper" --transition-type "$transition_type" \
+      local themed=false
+      if [ -n "${PROFILE_SKIP_WALLPAPER_THEME:-}" ] || { [ -n "$profile" ] && profile_wallpaper_theming "$profile"; }; then
+        themed=true
+      fi
+      signal_wallpaper_transition "$wallpaper" "$transition_duration" "$themed"
+      if ! awww_img_prescaled "$wallpaper" --transition-type "$transition_type" \
         --transition-duration "$transition_duration"; then
         printf 'set_wallpaper: awww img failed\n' >&2
         return 1
@@ -632,7 +701,7 @@ apply_wallpaper_theme() {
   tmux source-file "$CONFIG_HOME/tmux/profile-colors.conf" 2>/dev/null || true
   reload_zathura_theme
   pkill -USR2 -x cava 2>/dev/null || true
-  systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+  reload_vicinae
   nudge_gtk_reload
   # spicetify re-patches xpui and may relaunch Spotify; keep it off the critical
   # path. On a profile switch this is the only spicetify apply (the switch tail
@@ -1221,7 +1290,7 @@ apply_vicinae_theme() {
   family=$(vicinae_font_family "$profile" "$qs_theme")
   write_vicinae_settings "$family" "$qs_theme"
   if [ -z "${PROFILE_STAGE_ONLY:-}" ]; then
-    systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+    reload_vicinae
   fi
 }
 
@@ -1343,8 +1412,28 @@ EOF
   family=$(vicinae_font_family "$profile" "$theme_json")
   write_vicinae_settings "$family" "$theme_json"
   if [ -z "${PROFILE_STAGE_ONLY:-}" ]; then
-    systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+    reload_vicinae
   fi
+}
+
+# reload_vicinae
+# Colour-only changes go through `vicinae theme set`, which re-reads the theme
+# file live. A restart kills the server mid wallpaper fade, strands its electron
+# children and re-runs the file indexer, so only restart when settings.json
+# (font, window style) actually changed since the last apply.
+reload_vicinae() {
+  local variant settings stamp hash
+  systemctl --user -q is-active vicinae.service 2>/dev/null || return 0
+  variant=$(cat "$VARIANT_FILE" 2>/dev/null || echo dark)
+  settings="$CONFIG_HOME/vicinae/settings.json"
+  stamp="$PROFILES_DIR/vicinae-settings.applied"
+  hash=$(sha256sum "$settings" 2>/dev/null | cut -d' ' -f1 || true)
+  if { [ -z "$hash" ] || [ "$hash" = "$(cat "$stamp" 2>/dev/null || true)" ]; } \
+    && timeout 3 vicinae theme set "desktop-profile-$variant" >/dev/null 2>&1; then
+    return 0
+  fi
+  systemctl --user try-reload-or-restart vicinae.service 2>/dev/null || true
+  [ -n "$hash" ] && write_profile_value_atomic "$stamp" "$hash"
 }
 
 # apply_btop_theme <profile-dir> <variant>

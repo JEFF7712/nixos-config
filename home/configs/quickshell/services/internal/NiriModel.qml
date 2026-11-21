@@ -126,6 +126,10 @@ Scope {
         root._enqueueAction(["niri", "msg", "action", direction < 0 ? "focus-workspace-up" : "focus-workspace-down"]);
     }
 
+    function focusWindow(id: int): void {
+        root._enqueueAction(["niri", "msg", "action", "focus-window", "--id", String(id)]);
+    }
+
     function quitSession(): void {
         Quickshell.execDetached(["niri", "msg", "action", "quit", "-s"]);
     }
