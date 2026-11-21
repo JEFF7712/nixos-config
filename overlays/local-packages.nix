@@ -4,6 +4,7 @@ final: prev: {
   muse-code = final.callPackage ../pkgs/muse-code { };
   iris-python = final.callPackage ../pkgs/iris-python { };
   hass-bridge = final.callPackage ../pkgs/hass-bridge { };
+  matrix-playback = final.callPackage ../pkgs/matrix-playback { };
   # Upstream hardcodes AnchorNone; settings.json / niri layer-rules cannot move it.
   # Shared between security.wrappers.vicinae-input-server and home-manager so
   # laptop builds Vicinae once instead of twice.

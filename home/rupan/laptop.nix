@@ -138,6 +138,7 @@
   quickshell.enable = true;
   bluetooth.enable = true;
   hass.enable = true;
+  matrix-playback.enable = true;
   terminal.enable = true;
   nixvim.enable = true;
   common-apps.enable = true;
