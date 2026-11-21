@@ -121,7 +121,8 @@ in
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         LockPersonality = true;
-        MemoryDenyWriteExecute = true;
+        # Alloy 1.17's go-re2 runs on wazero, which maps JIT code executable.
+        MemoryDenyWriteExecute = false;
         RemoveIPC = true;
         RestrictAddressFamilies = [
           "AF_UNIX"
