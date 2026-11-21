@@ -49,12 +49,29 @@ let
     ".local/share/uv"
     ".local/share/opencode"
     ".local/share/cursor-agent"
+    ".local/share/zed/external_agents"
+    ".local/share/zed/languages"
+    ".local/share/zed/copilot"
+    ".local/share/zed/extensions"
+    ".local/share/zed/node"
+    ".codex/.tmp"
     ".codex/packages"
     ".codex/sessions"
+    ".vscode/extensions"
+    ".cursor/extensions"
+    ".antigravity/extensions"
+    ".MathWorks/ServiceHost"
+    ".proton_test_compat"
+    # Pushed to GitHub; the working tree stays in the backup.
+    "nixos-assets/.git"
     ".mozilla/firefox/*/cache2"
+    ".mozilla/firefox/Crash Reports"
     ".config/*/Cache"
     ".config/*/Code Cache"
     ".config/*/GPUCache"
+    ".config/*/CachedData"
+    ".config/*/CachedExtensionVSIXs"
+    ".config/*/logs"
   ];
 in
 {
@@ -87,6 +104,9 @@ in
       exclude = [
         "/persist/var/log"
         "/persist/var/lib/containers"
+        "/persist/var/lib/systemd/coredump"
+        # Re-pulled models.
+        "/persist/var/lib/private/ollama"
       ]
       ++ map (path: "${home}/${path}") (syncedFolders ++ regenerable);
       extraBackupArgs = [
