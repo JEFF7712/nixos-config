@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -227,6 +228,32 @@ PanelWindow {
             easing.type: Easing.InOutCubic
         }
     }
+    // Busy wallpapers: a feathered scrim behind each panel, as strong as placement says
+    // the text needs (0 on clean wallpapers), animated with the move.
+    property real scrimOpacity: greetingWindow.pose && greetingWindow.pose.backdropOpacity ? Math.min(0.85, greetingWindow.pose.backdropOpacity) : 0
+    property color scrimColor: greetingWindow.pose && greetingWindow.pose.backdropColor ? greetingWindow.pose.backdropColor : "#000000"
+
+    Behavior on scrimOpacity {
+        enabled: greetingWindow.motionActive
+        NumberAnimation {
+            duration: greetingWindow.layoutMotionMs
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    component Scrim: RectangularShadow {
+        required property Item target
+        x: target.x - 12
+        y: target.y - 8
+        width: target.width + 24
+        height: target.height + 16
+        radius: 48
+        blur: 96
+        color: greetingWindow.scrimColor
+        opacity: greetingWindow.scrimOpacity
+        visible: opacity > 0.01 && target.visible
+    }
+
     property color contentAccent: greetingWindow.pose ? greetingWindow.pose.accent : greetingWindow.themeAccent
     property color contentFg: greetingWindow.pose && greetingWindow.pose.foreground ? greetingWindow.pose.foreground : greetingWindow.themeFg
 
@@ -707,6 +734,18 @@ PanelWindow {
                 id: contentLayout
                 anchors.fill: parent
                 anchors.margins: 24
+
+                Scrim {
+                    target: clockGroup
+                }
+
+                Scrim {
+                    target: sysGroup
+                }
+
+                Scrim {
+                    target: statsGroup
+                }
 
                 Item {
                     id: clockGroup

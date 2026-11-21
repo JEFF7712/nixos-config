@@ -24,6 +24,7 @@ Scope {
     property var _queue: []
     property var _currentJob: null
     property bool _snapshotPending: false
+    property string _player: ""
     property bool _followRequested: true
     property int _followFailures: 0
 
@@ -49,7 +50,7 @@ Scope {
     readonly property bool canSetPlayerVolume: _available && _volumeIsPlayer
 
     // Pin one player: bare `playerctl status` reads the first player even when another is playing.
-    readonly property var _snapshotCommand: ["sh", "-c", "player=$(playerctl -a metadata --format '{{playerInstance}}\t{{status}}' 2>/dev/null | awk -F '\\t' 'NR == 1 { first = $1 } $2 == \"Playing\" { print $1; found = 1; exit } END { if (!found) print first }'); pc() { if [ -n \"$player\" ]; then playerctl -p \"$player\" \"$@\"; else playerctl \"$@\"; fi; }; pc status >/dev/null 2>&1 || { jq -cn '{record:false}'; exit 0; }; nl=$(printf '\\nx'); nl=${nl%x}; status=$(pc status 2>/dev/null; printf x); status=${status%x}; status=${status%\"$nl\"}; title=$(pc metadata xesam:title 2>/dev/null || true; printf x); title=${title%x}; title=${title%\"$nl\"}; artist=$(pc metadata xesam:artist 2>/dev/null || true; printf x); artist=${artist%x}; artist=${artist%\"$nl\"}; album=$(pc metadata xesam:album 2>/dev/null || true; printf x); album=${album%x}; album=${album%\"$nl\"}; art=$(pc metadata mpris:artUrl 2>/dev/null || true; printf x); art=${art%x}; art=${art%\"$nl\"}; length=$(pc metadata mpris:length 2>/dev/null || true); position=$(pc position 2>/dev/null || true); shuffle=$(pc shuffle 2>/dev/null || true); loop=$(pc loop 2>/dev/null || true); if volume=$(pc volume 2>/dev/null); then volume_supported=true; else volume=0; volume_supported=false; fi; jq -cn --arg status \"$status\" --arg title \"$title\" --arg artist \"$artist\" --arg album \"$album\" --arg artUrl \"$art\" --arg position \"$position\" --arg length \"$length\" --arg shuffle \"$shuffle\" --arg loop \"$loop\" --arg volume \"$volume\" --argjson volumeSupported \"$volume_supported\" '{record:true,status:$status,title:$title,artist:$artist,album:$album,artUrl:$artUrl,position:$position,length:$length,shuffle:$shuffle,loop:$loop,volume:$volume,volumeSupported:$volumeSupported}'"]
+    readonly property var _snapshotCommand: ["sh", "-c", "player=$(playerctl -a metadata --format '{{playerInstance}}\t{{status}}' 2>/dev/null | awk -F '\\t' 'NR == 1 { first = $1 } $2 == \"Playing\" { print $1; found = 1; exit } END { if (!found) print first }'); pc() { if [ -n \"$player\" ]; then playerctl -p \"$player\" \"$@\"; else playerctl \"$@\"; fi; }; pc status >/dev/null 2>&1 || { jq -cn '{record:false}'; exit 0; }; nl=$(printf '\\nx'); nl=${nl%x}; status=$(pc status 2>/dev/null; printf x); status=${status%x}; status=${status%\"$nl\"}; title=$(pc metadata xesam:title 2>/dev/null || true; printf x); title=${title%x}; title=${title%\"$nl\"}; artist=$(pc metadata xesam:artist 2>/dev/null || true; printf x); artist=${artist%x}; artist=${artist%\"$nl\"}; album=$(pc metadata xesam:album 2>/dev/null || true; printf x); album=${album%x}; album=${album%\"$nl\"}; art=$(pc metadata mpris:artUrl 2>/dev/null || true; printf x); art=${art%x}; art=${art%\"$nl\"}; length=$(pc metadata mpris:length 2>/dev/null || true); position=$(pc position 2>/dev/null || true); shuffle=$(pc shuffle 2>/dev/null || true); loop=$(pc loop 2>/dev/null || true); if volume=$(pc volume 2>/dev/null); then volume_supported=true; else volume=0; volume_supported=false; fi; jq -cn --arg status \"$status\" --arg title \"$title\" --arg artist \"$artist\" --arg album \"$album\" --arg artUrl \"$art\" --arg position \"$position\" --arg length \"$length\" --arg shuffle \"$shuffle\" --arg loop \"$loop\" --arg volume \"$volume\" --argjson volumeSupported \"$volume_supported\" --arg player \"$player\" '{record:true,player:$player,status:$status,title:$title,artist:$artist,album:$album,artUrl:$artUrl,position:$position,length:$length,shuffle:$shuffle,loop:$loop,volume:$volume,volumeSupported:$volumeSupported}'"]
 
     function _enqueue(command, snapshot, reconcileAfter) {
         _queue = _queue.concat([
@@ -92,7 +93,8 @@ Scope {
     function _action(argv) {
         if (!_available)
             return;
-        _enqueue(["playerctl"].concat(argv), false, true);
+        // Act on the player the snapshot shows; bare playerctl picks the first player, even a stopped one.
+        _enqueue(["playerctl"].concat(_player !== "" ? ["-p", _player] : [], argv), false, true);
     }
 
     function _applySnapshot(text) {
@@ -106,6 +108,7 @@ Scope {
             return;
         }
         _available = true;
+        _player = parsed.player;
         _status = parsed.status;
         _title = parsed.title;
         _artist = parsed.artist;

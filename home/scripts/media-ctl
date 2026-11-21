@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# media-ctl: playerctl against the player the bar shows (first Playing, else the
+# first with metadata). Bare playerctl targets the first player, so an idle
+# Jellyfin would swallow the media keys while Spotify plays.
+set -uo pipefail
+player=$(playerctl -a metadata --format '{{playerInstance}}	{{status}}' 2>/dev/null \
+  | awk -F '\t' 'NR == 1 { first = $1 } $2 == "Playing" { print $1; found = 1; exit } END { if (!found) print first }')
+if [ -n "$player" ]; then
+  exec playerctl -p "$player" "$@"
+fi
+exec playerctl "$@"
