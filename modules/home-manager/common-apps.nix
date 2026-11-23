@@ -135,6 +135,12 @@ in
       // (userChrome.css is only parsed at startup).
       user_pref("devtools.chrome.enabled", true);
       user_pref("devtools.debugger.remote-enabled", true);
+      // Fission defaults to 4 processes per site; with many tabs that was ~34
+      // content processes and ~10G RSS.
+      user_pref("dom.ipc.processCount.webIsolated", 1);
+      // Unload background tabs once MemAvailable drops under 15% (default 5%).
+      user_pref("browser.tabs.unloadOnLowMemory", true);
+      user_pref("browser.low_commit_space_threshold_percent", 15);
     '';
 
     xdg.desktopEntries.spotify = {
