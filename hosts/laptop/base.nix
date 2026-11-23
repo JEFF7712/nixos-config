@@ -81,6 +81,8 @@
     hardware.nvidia-container-toolkit.enable = lib.mkForce false;
     # The VM's host key can't decrypt secrets.yaml; sops would fail activation.
     secrets.enable = lib.mkForce false;
+    # restic reads its repository and password from sops.
+    homelab.backup.enable = lib.mkForce false;
     services.btrfs.autoScrub.enable = lib.mkForce false;
     users.users.rupan.initialPassword = "rupan";
   };

@@ -35,6 +35,7 @@
     nvidia.enable = lib.mkForce false;
     hardware.nvidia-container-toolkit.enable = lib.mkForce false;
     secrets.enable = lib.mkForce false;
+    homelab.backup.enable = lib.mkForce false;
     users.users.rupan.initialPassword = "rupan";
   };
 }
