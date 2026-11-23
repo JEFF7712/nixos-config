@@ -17,7 +17,7 @@ import numpy as np
 from numpy.typing import NDArray
 from PIL import Image, ImageOps
 
-VERSION = 14
+VERSION = 15
 CLEAR_EDGE_DENSITY = 0.025
 CLEAR_COLOR_SPREAD = 0.04
 # The gap between split panels must be this much busier than the panels themselves.
@@ -360,11 +360,22 @@ def choose_layout(
         )
 
     def best_split(candidate: dict[str, Any]) -> dict[str, Any] | None:
+        fit = min(
+            1.0,
+            (width - 3 * margin) / (candidate["width"] + candidate["width2"]),
+            (height - 2 * margin) / max(candidate["height"], candidate["height2"]),
+        )
+        found = None
+        # Shrunk panels can tuck into corners beside a diagonal subject.
+        for scale in (fit, fit * 0.9, fit * 0.8):
+            pose = split_at(candidate, scale)
+            if pose is not None and (found is None or pose["_score"] < found["_score"]):
+                found = pose
+        return found
+
+    def split_at(candidate: dict[str, Any], scale: float) -> dict[str, Any] | None:
         aw, ah = float(candidate["width"]), float(candidate["height"])
         bw, bh = float(candidate["width2"]), float(candidate["height2"])
-        scale = min(
-            1.0, (width - 3 * margin) / (aw + bw), (height - 2 * margin) / max(ah, bh)
-        )
         aw, ah, bw, bh = aw * scale, ah * scale, bw * scale, bh * scale
 
         def panels(
