@@ -17,7 +17,7 @@ import numpy as np
 from numpy.typing import NDArray
 from PIL import Image, ImageOps
 
-VERSION = 15
+VERSION = 16
 CLEAR_EDGE_DENSITY = 0.025
 CLEAR_COLOR_SPREAD = 0.04
 # The gap between split panels must be this much busier than the panels themselves.
@@ -464,6 +464,9 @@ def choose_layout(
         result: dict[str, Any], regions: list[tuple[float, float, float, float]]
     ) -> dict[str, Any]:
         opacity = 0.0
+        # Placed poses sit on negative space already; only the centred fallback gets a scrim.
+        if result["placement"] != "centered":
+            regions = []
         for x, y, w, h in regions:
             region = image.crop(
                 (
