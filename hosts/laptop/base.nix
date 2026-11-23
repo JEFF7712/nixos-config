@@ -81,6 +81,8 @@
     hardware.nvidia-container-toolkit.enable = lib.mkForce false;
     # The VM's host key can't decrypt secrets.yaml; sops would fail activation.
     secrets.enable = lib.mkForce false;
+    # restic reads its repository and password from sops.
+    homelab.backup.enable = lib.mkForce false;
     services.btrfs.autoScrub.enable = lib.mkForce false;
     users.users.rupan.initialPassword = "rupan";
   };
@@ -125,10 +127,16 @@
     notifications.systembus-notify.enable = true;
   };
   services.asusd.enable = true;
+  # zstd holds ~3.7:1 here; at the 50% default zram filled and spilled to the
+  # disk swapfile. memoryPercent caps uncompressed size, not RAM used.
   zramSwap = {
     enable = true;
     priority = 100;
+    memoryPercent = 100;
   };
+  # MGLRU thrash guard: keep pages touched in the last second resident; OOM
+  # (and oomd) fires instead of stalling the desktop.
+  systemd.tmpfiles.rules = [ "w- /sys/kernel/mm/lru_gen/min_ttl_ms - - - - 1000" ];
   # logind cannot see idle inhibit; lid handling stays in Stasis (lid-close-action).
   services.logind.settings.Login = {
     HandleLidSwitch = "ignore";
@@ -151,11 +159,13 @@
     loader.systemd-boot.editor = false;
     # /tmp is on root and nothing prunes it (nix builds, chromium sockets, agent scratch).
     tmp.cleanOnBoot = true;
-    # Priority 100 on zramSwap uses fast RAM swap first; 100 swappiness avoids
-    # paging aggressively into the 16G disk swapfile once zram fills.
+    # zram swap is cheaper than dropping file cache, so favour it (>100 swappiness).
+    # No watermark boosting; wider watermarks let kswapd reclaim ahead of demand.
     kernel.sysctl = {
-      "vm.swappiness" = 100;
+      "vm.swappiness" = 180;
       "vm.page-cluster" = 0;
+      "vm.watermark_boost_factor" = 0;
+      "vm.watermark_scale_factor" = 125;
     };
     # ESP entries only shrink at the next switch; cap so /boot can't fill up.
     loader.systemd-boot.configurationLimit = 10;
@@ -178,6 +188,8 @@
       "udev.log_level=3"
       "systemd.show_status=auto"
       "rd.udev.log_level=3"
+      # Lockup detector keeps a perf counter ticking on every CPU.
+      "nmi_watchdog=0"
     ];
   };
   networking.hostName = "laptop-nixos";
@@ -201,6 +213,8 @@
   services.printing = {
     enable = true;
     drivers = [ pkgs.gutenprint ];
+    # Network printers still appear via avahi/IPP Everywhere.
+    browsed.enable = false;
   };
 
   # Journals had grown to 3.3G against the ~4G default cap.
