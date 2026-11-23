@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 {
   imports = [
     ../../modules/home-manager/ai-tools.nix
@@ -80,6 +80,22 @@
         init.defaultBranch = "main";
       };
     };
+  };
+  # Lets the Claude mobile app and claude.ai/code start sessions here, like
+  # the Codex app-server daemon. Each session gets its own homelab worktree;
+  # capacity stays low because all sessions share the guest's 8 GiB.
+  systemd.user.services.claude-remote-control = {
+    Unit.Description = "Claude Code Remote Control server";
+    Service = {
+      WorkingDirectory = "%h/workspace/homelab";
+      Environment = [
+        "PATH=${config.home.profileDirectory}/bin:/run/wrappers/bin:/run/current-system/sw/bin"
+      ];
+      ExecStart = "${config.home.profileDirectory}/bin/claude remote-control --spawn worktree --no-create-session-in-dir --capacity 4 --permission-mode bypassPermissions";
+      Restart = "on-failure";
+      RestartSec = 30;
+    };
+    Install.WantedBy = [ "default.target" ];
   };
   systemd.user.tmpfiles.rules = [
     "d %h/workspace 0750 - - -"

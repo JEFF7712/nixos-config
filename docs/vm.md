@@ -45,6 +45,16 @@ direnv, which has no terminal input. Signature verification remains enabled;
 the developer user is not added to `trusted-users`. The hypervisor must grant
 this guest TCP access to the NAS cache at `10.0.30.20:8090` (niks3).
 
+## Claude Remote Control
+
+The `claude-remote-control` user service runs `claude remote-control` in
+`~/workspace/homelab`, so the Claude mobile app and claude.ai/code can start
+sessions on this guest. Each session gets its own git worktree; at most four
+run at once because they share the 8 GiB of RAM. Sessions run with
+`bypassPermissions`, matching the Codex daemon. The server uses the developer's
+Claude login (runtime data); if it lapses, run `claude` once interactively and
+`systemctl --user restart claude-remote-control`.
+
 ## Browser and screenshots
 
 The VM enables `agent-browser` in `home/rupan/vm.nix`. The Nix lock pins
