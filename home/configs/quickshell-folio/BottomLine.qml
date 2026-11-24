@@ -11,13 +11,20 @@ PanelWindow {
     readonly property real u: Theme.unit(screen)
     readonly property var notes: Notices.live.values
     readonly property var note: notes.length > 0 ? notes[notes.length - 1] : null
-    property bool earlier: false
-    property bool calendar: false
+    // Through Machine so these and the machine words share one open panel
+    // (and its close-then-open swap).
+    readonly property bool earlier: Machine.open === "earlier" && Machine.openScreen === screen.name
+    readonly property bool calendar: Machine.open === "calendar" && Machine.openScreen === screen.name
+    function setPanel(name: string, wanted: bool): void {
+        const shown = Machine.open === name && Machine.openScreen === screen.name;
+        if (wanted !== shown)
+            Machine.toggle(name, screen.name);
+    }
     Connections {
         target: ShellState
         function onMissedWanted(onScreen) {
             if (onScreen === line.screen)
-                line.earlier = true;
+                line.setPanel("earlier", true);
         }
     }
     onNoteChanged: {
@@ -100,7 +107,7 @@ PanelWindow {
             text: Qt.formatDateTime(clock.date, "HH:mm:ss")
             onPressed: {
                 line.month = new Date();
-                line.calendar = !line.calendar;
+                line.setPanel("calendar", !line.calendar);
             }
         }
     }
@@ -199,7 +206,7 @@ PanelWindow {
             link: true
             lit: Notices.missed > 0
             text: Notices.missed > 0 ? Notices.missed + " missed" : "earlier"
-            onPressed: line.earlier = !line.earlier
+            onPressed: line.setPanel("earlier", !line.earlier)
         }
         Row {
             spacing: 12 * line.u
@@ -254,7 +261,7 @@ PanelWindow {
         pad: 22 * line.u
         onVisibleChanged: {
             if (!visible)
-                line.calendar = false;
+                line.setPanel("calendar", false);
         }
         Column {
             spacing: 12 * line.u
@@ -355,7 +362,7 @@ PanelWindow {
             if (visible)
                 Notices.missed = 0;
             else
-                line.earlier = false;
+                line.setPanel("earlier", false);
         }
         Column {
             width: 820 * line.u
@@ -396,7 +403,7 @@ PanelWindow {
                 text: "forget all"
                 onPressed: {
                     Notices.clear();
-                    line.earlier = false;
+                    line.setPanel("earlier", false);
                 }
             }
         }

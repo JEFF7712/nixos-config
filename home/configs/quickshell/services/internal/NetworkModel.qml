@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import "NetworkParser.js" as NetworkParser
 import "NetworkReducer.js" as NetworkReducer
+import "ListSync.js" as ListSync
 
 Scope {
     id: root
@@ -49,9 +50,7 @@ Scope {
     }
 
     function _applyNetworksModel(list): void {
-        networksModel.clear();
-        for (const network of list)
-            networksModel.append(network);
+        ListSync.sync(networksModel, list);
     }
 
     function _renderDiscovery(): void {
@@ -60,9 +59,7 @@ Scope {
     }
 
     function _applyWiredModel(list): void {
-        wiredConnectionsModel.clear();
-        for (const connection of list)
-            wiredConnectionsModel.append(connection);
+        ListSync.sync(wiredConnectionsModel, list);
     }
 
     function _reconcile(): void {

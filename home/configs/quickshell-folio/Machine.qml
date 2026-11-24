@@ -24,7 +24,14 @@ Singleton {
     property string pendingScreen: ""
     function toggle(name: string, screenName: string): void {
         const same = open === name && openScreen === screenName;
+        if (swap.running && pending === name && pendingScreen === screenName) {
+            swap.stop();
+            pending = "";
+            return;
+        }
         if (same || open === "") {
+            swap.stop();
+            pending = "";
             openScreen = screenName;
             open = same ? "" : name;
             return;
@@ -33,6 +40,23 @@ Singleton {
         pendingScreen = screenName;
         open = "";
         swap.restart();
+    }
+    // Nothing stays open over the lock screen or the launcher.
+    property Connections shell: Connections {
+        target: ShellState
+        function onLockedChanged(): void {
+            if (ShellState.locked)
+                machine.closeAll();
+        }
+        function onAskingChanged(): void {
+            if (ShellState.asking)
+                machine.closeAll();
+        }
+    }
+    function closeAll(): void {
+        swap.stop();
+        pending = "";
+        open = "";
     }
     property Timer swap: Timer {
         interval: 60
