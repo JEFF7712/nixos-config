@@ -474,11 +474,6 @@ in
           type = lib.types.bool;
           default = false;
         };
-        animationsOff = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
-          description = "Disable every niri animation, overriding `animations`.";
-        };
         layoutExtraConfig = lib.mkOption {
           type = lib.types.lines;
           default = "";
