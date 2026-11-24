@@ -15,6 +15,7 @@ run_network_native_construction_probe() {
   cp "$repo_root/home/configs/quickshell/services/internal/NetworkModel.qml" "$state_dir/config/services/internal/NetworkModel.qml"
   cp "$repo_root/home/configs/quickshell/services/internal/NetworkParser.js" "$state_dir/config/services/internal/NetworkParser.js"
   cp "$repo_root/home/configs/quickshell/services/internal/NetworkReducer.js" "$state_dir/config/services/internal/NetworkReducer.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/ListSync.js" "$state_dir/config/services/internal/ListSync.js"
   : >"$state_dir/kitty-calls.log"
 
   PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \
@@ -81,6 +82,7 @@ run_bluetooth_native_construction_probe() {
   cp "$repo_root/home/configs/quickshell/services/internal/BluetoothModel.qml" "$state_dir/config/services/internal/BluetoothModel.qml"
   cp "$repo_root/home/configs/quickshell/services/internal/BluetoothParser.js" "$state_dir/config/services/internal/BluetoothParser.js"
   cp "$repo_root/home/configs/quickshell/services/internal/BluetoothReducer.js" "$state_dir/config/services/internal/BluetoothReducer.js"
+  cp "$repo_root/home/configs/quickshell/services/internal/ListSync.js" "$state_dir/config/services/internal/ListSync.js"
   : >"$state_dir/blueman-calls.log"
 
   PATH="$state_dir/fixture-bin:$PATH" QS_TEST_STATE_DIR="$state_dir" QT_QPA_PLATFORM=offscreen \

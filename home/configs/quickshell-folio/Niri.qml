@@ -67,11 +67,13 @@ QtObject {
             if (ws.focused)
                 focused = ws.output;
         }
-        workspaces = next;
-        showing = seen;
+        if (JSON.stringify(next) !== JSON.stringify(workspaces))
+            workspaces = next;
+        if (JSON.stringify(seen) !== JSON.stringify(showing))
+            showing = seen;
         if (focused)
             focusedOutput = focused;
-        windows = rawWindows.filter(w => w.workspace_id !== null && names[w.workspace_id] !== undefined).map(w => ({
+        const nextWindows = rawWindows.filter(w => w.workspace_id !== null && names[w.workspace_id] !== undefined).map(w => ({
                     id: w.id,
                     app: String(w.app_id || ""),
                     title: String(w.title || ""),
@@ -79,6 +81,8 @@ QtObject {
                     focused: !!w.is_focused,
                     urgent: !!w.is_urgent
                 }));
+        if (JSON.stringify(nextWindows) !== JSON.stringify(windows))
+            windows = nextWindows;
     }
 
     function refresh(): void {
@@ -124,7 +128,8 @@ QtObject {
         running: true
         stdout: SplitParser {
             onRead: line => {
-                if (line.indexOf("Workspace") !== -1 || line.indexOf("Window") !== -1)
+                // WindowLayoutsChanged streams during resizes and carries nothing used here.
+                if (line.indexOf("Layouts") === -1 && (line.indexOf("Workspace") !== -1 || line.indexOf("Window") !== -1))
                     niri.refresh();
             }
         }

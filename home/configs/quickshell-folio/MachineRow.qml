@@ -10,7 +10,8 @@ Row {
     required property var window
     required property var screen
     readonly property real u: Theme.unit(screen)
-    property real sheetX: 0
+    // Per panel, so opening one never moves another that is still closing.
+    property var sheetX: ({})
     property var items: ["brightness", "network", "bluetooth", "home", "power", "system"]
     property bool above: false
     function has(name: string): bool {
@@ -19,7 +20,9 @@ Row {
     spacing: 26 * u
 
     function show(name: string, item: Item): void {
-        sheetX = item.mapToItem(null, item.width, 0).x;
+        const next = Object.assign({}, sheetX);
+        next[name] = item.mapToItem(null, item.width, 0).x;
+        sheetX = next;
         Machine.toggle(name, screen.name);
     }
     function shown(name: string): bool {
@@ -76,7 +79,7 @@ Row {
         id: panel
         required property string name
         anchor.window: row.window
-        anchor.rect.x: Math.round(Math.max(8, Math.min(row.window.width - implicitWidth - 8, row.sheetX - implicitWidth)))
+        anchor.rect.x: Math.round(Math.max(8, Math.min(row.window.width - implicitWidth - 8, (row.sheetX[name] ?? 0) - implicitWidth)))
         anchor.rect.y: Math.round(row.above ? -implicitHeight - 6 * row.u : row.window.height + 2 * row.u)
         pad: 22 * row.u
         visible: row.has(name) && row.shown(name)
@@ -371,31 +374,42 @@ Row {
                 text: Machine.home.lastError
             }
             Repeater {
-                model: {
-                    Machine.home.stateRevision;
-                    Machine.home.panelOrder;
-                    return Machine.home.favoriteSummaries();
-                }
+                // Ids only: a state change updates rows in place instead of
+                // rebuilding the list on every sensor tick.
+                model: Machine.home.panelOrder
                 Row {
                     id: thing
-                    required property var modelData
-                    readonly property bool on: !modelData.roomReading && Machine.home.displayIsOn(modelData.entityId)
+                    required property string modelData
+                    readonly property var info: {
+                        Machine.home.stateRevision;
+                        return Machine.home.favoriteSummaries().find(item => item.panelItemId === thing.modelData) ?? {
+                            entityId: thing.modelData,
+                            name: thing.modelData,
+                            state: "",
+                            available: false,
+                            roomReading: false
+                        };
+                    }
+                    readonly property bool on: {
+                        Machine.home.stateRevision;
+                        return !info.roomReading && Machine.home.displayIsOn(info.entityId);
+                    }
                     spacing: 18 * row.u
                     Pick {
                         width: 300 * row.u
                         elide: Text.ElideRight
                         chosen: thing.on
-                        opacity: thing.modelData.available ? 1 : 0.5
-                        text: thing.modelData.name
+                        opacity: thing.info.available ? 1 : 0.5
+                        text: thing.info.name
                         onPressed: {
-                            if (!thing.modelData.roomReading && thing.modelData.available)
-                                Machine.home.toggleEntity(thing.modelData.entityId);
+                            if (!thing.info.roomReading && thing.info.available)
+                                Machine.home.toggleEntity(thing.info.entityId);
                         }
                     }
                     Small {
                         screen: row.screen
                         lit: false
-                        text: String(thing.modelData.state || "").toLowerCase()
+                        text: String(thing.info.state || "").toLowerCase()
                     }
                 }
             }

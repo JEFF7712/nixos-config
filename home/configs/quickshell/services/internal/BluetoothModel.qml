@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import "BluetoothParser.js" as BluetoothParser
 import "BluetoothReducer.js" as BluetoothReducer
+import "ListSync.js" as ListSync
 
 Scope {
     id: root
@@ -40,9 +41,7 @@ Scope {
         root._busyId = state.busyId || "";
         if (!root._busyId)
             root._busyWantConnected = undefined;
-        devicesModel.clear();
-        for (const device of state.devices || [])
-            devicesModel.append(device);
+        ListSync.sync(devicesModel, state.devices || []);
     }
 
     function _reconcile(): void {
