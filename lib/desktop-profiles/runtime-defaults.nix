@@ -190,6 +190,25 @@ in
     spicetify.dark = spice "Comfy" "Mono" 0;
   };
 
+  folio = {
+    firefox.dark = {
+      main = "13, 13, 14";
+      secondary = "28, 27, 26";
+      accent = "230, 225, 213";
+      text = "230, 225, 213";
+      accentHsl = "hsl(43, 30%, 87%)";
+    };
+    # modules/home-manager/profiles/folio.nix writes ~/.config/zed/themes/folio.json.
+    zed.dark = {
+      theme = "Folio";
+      icon = "Zed (Default)";
+    };
+    vesktop.dark = "folio.theme.css";
+    obsidian.dark = "minimal-flexoki-dark";
+    obsidianAccent.dark = "#e6e1d5";
+    spicetify.dark = spice "Folio" "Folio" 0;
+  };
+
   tinted = {
     # iris-render rewrites ~/.config/zed/themes/iris.json ("Iris Tinted"); this pins Zed to that name.
     zed.dark = {

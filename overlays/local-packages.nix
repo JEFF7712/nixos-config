@@ -6,6 +6,7 @@ final: prev: {
   calendar-python = final.callPackage ../pkgs/calendar-python { };
   hass-bridge = final.callPackage ../pkgs/hass-bridge { };
   matrix-playback = final.callPackage ../pkgs/matrix-playback { };
+  folio-page = final.callPackage ../pkgs/folio-page { };
   # Upstream hardcodes AnchorNone; settings.json / niri layer-rules cannot move it.
   # Shared between security.wrappers.vicinae-input-server and home-manager so
   # laptop builds Vicinae once instead of twice.

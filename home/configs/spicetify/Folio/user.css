@@ -1,0 +1,20 @@
+/* Folio (seg6/dotfiles): two colors, hairlines, and type that does not shout. */
+:root {
+  --font-family: "Newsreader", serif;
+  --encore-body-font-stack: "Newsreader", serif;
+  --encore-title-font-stack: "Newsreader", serif;
+  --encore-corner-radius-base: 0px;
+  --encore-corner-radius-larger: 0px;
+  --encore-corner-radius-small: 0px;
+}
+body, button, input { font-family: "Newsreader", serif !important; }
+.Root__main-view, .Root__nav-bar, .Root__right-sidebar { border: 1px solid #343330; border-radius: 0 !important; }
+.main-nowPlayingBar-container { border-top: 1px solid #343330; background: #0d0d0e; }
+.main-trackList-trackListRow { border-radius: 0; }
+.main-trackList-trackListRow:hover, .main-trackList-trackListRow.main-trackList-selected { background: #343330 !important; }
+.main-playButton-PlayButton, [data-testid="play-button"] {
+  background: #e6e1d5 !important; color: #0d0d0e !important; border-radius: 999px !important;
+}
+.progress-bar__fg { background-color: #e6e1d5 !important; }
+.main-topBar-background { background-color: #0d0d0e !important; }
+::selection { background: #e6e1d5; color: #0d0d0e; }

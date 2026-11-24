@@ -37,35 +37,42 @@ has_light_variant() {
   profile_manifest_has_variant "$1" light
 }
 
-stop_bar() {
-  local bar="$1"
-  case "$bar" in
-    quickshell)
-      systemctl --user stop quickshell-bar.service >/dev/null 2>&1 || true
-      for _ in $(seq 1 20); do
-        systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1 || break
-        sleep 0.1
-      done
-      if systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1; then
-        echo "Error: quickshell did not stop." >&2
-        return 1
-      fi
-      ;;
+bar_unit() {
+  case "$1" in
+    quickshell) echo quickshell-bar.service ;;
+    folio) echo folio-shell.service ;;
+    *) return 1 ;;
   esac
+}
+
+stop_bar() {
+  local bar="$1" unit
+  unit=$(bar_unit "$bar") || return 0
+  systemctl --user stop "$unit" >/dev/null 2>&1 || true
+  for _ in $(seq 1 20); do
+    systemctl --user is-active --quiet "$unit" >/dev/null 2>&1 || break
+    sleep 0.1
+  done
+  if systemctl --user is-active --quiet "$unit" >/dev/null 2>&1; then
+    echo "Error: $bar did not stop." >&2
+    return 1
+  fi
 }
 
 stop_all_bars() {
   stop_bar quickshell
+  stop_bar folio
 }
 
 start_bar() {
-  local bar="$1"
-  case "$bar" in
-    quickshell)
-      systemctl --user start awww >/dev/null 2>&1 || true
-      systemctl --user start quickshell-bar.service >/dev/null 2>&1
-      ;;
-  esac
+  local bar="$1" unit
+  unit=$(bar_unit "$bar") || return 0
+  if [ "$bar" = folio ]; then
+    systemctl --user stop awww >/dev/null 2>&1 || true
+  else
+    systemctl --user start awww >/dev/null 2>&1 || true
+  fi
+  systemctl --user start "$unit" >/dev/null 2>&1
 }
 
 maybe_fail_stage() {
@@ -76,17 +83,14 @@ maybe_fail_stage() {
 }
 
 verify_bar() {
-  local bar="$1" attempts
+  local bar="$1" attempts unit
+  unit=$(bar_unit "$bar") || return 0
   # Cold Quickshell starts (and notification-bus claim) often need >2s; keep this
-  # overrideable so fixtures can stay fast.
+  # overrideable so fixtures can stay fast. Both bars are Quickshell processes.
   attempts="${PROFILE_TRANSITION_VERIFY_ATTEMPTS:-50}"
   for _ in $(seq 1 "$attempts"); do
-    case "$bar" in
-      quickshell)
-        systemctl --user is-active --quiet quickshell-bar.service >/dev/null 2>&1 \
-          && notification_owner_is quickshell && return 0
-        ;;
-    esac
+    systemctl --user is-active --quiet "$unit" >/dev/null 2>&1 \
+      && notification_owner_is quickshell && return 0
     sleep 0.1
   done
   echo "Error: $bar failed to become ready." >&2
@@ -717,7 +721,9 @@ elif [ "$STARTUP_BAR_READY" -eq 1 ]; then
   # Steady startup with a live bar: leave it running.
   :
 elif [ "$SAME_QUICKSHELL" -eq 0 ]; then
-  stop_bar "$CURRENT_BAR"
+  # All bars, not just CURRENT_BAR: a bar kind change in the profile's own
+  # manifest would otherwise strand the old one beside the new.
+  stop_all_bars
 fi
 "$SCRIPT_DIR/profile-publish" declare "$TRANSACTION_DIR"
 publish_result=$(PROFILE_PUBLISH_KEEP_STAGE=1 "$SCRIPT_DIR/profile-publish" \

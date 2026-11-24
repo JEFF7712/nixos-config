@@ -263,6 +263,15 @@ awww_img_prescaled() {
 set_wallpaper() {
   local wallpaper="$1"
 
+  # Folio's shell is the desktop: no wallpaper daemon, only the dithered page.
+  if active_profile_uses_folio; then
+    stop_video_wallpaper
+    systemctl --user stop awww 2>/dev/null || true
+    (folio_page "$wallpaper" >/dev/null 2>&1) 9>&- &
+    disown 2>/dev/null || true
+    return 0
+  fi
+
   case "$(wallpaper_backend "$wallpaper")" in
     image)
       stop_video_wallpaper
@@ -337,6 +346,22 @@ set_wallpaper() {
       disown 2>/dev/null || true
     fi
   fi
+
+}
+
+active_profile_uses_folio() {
+  local profile
+  profile=$(cat "$ACTIVE_FILE" 2>/dev/null || true)
+  [ -n "$profile" ] && [ "$(profile_bar "$profile" 2>/dev/null || true)" = folio ]
+}
+
+# Folio's desktop is a two-tone dither of the wallpaper, not the wallpaper itself.
+folio_page() {
+  local wallpaper="${1:-}" colors="$CONFIG_HOME/folio/colors.json"
+  [ -n "$wallpaper" ] || wallpaper=$(current_wallpaper) || return 1
+  [ -f "$wallpaper" ] && [ -r "$colors" ] || return 1
+  folio-page "$wallpaper" "${XDG_STATE_HOME:-$HOME/.local/state}/folio/page.png" \
+    "$(jq -r .bg "$colors")" "$(jq -r .fg "$colors")"
 }
 
 run_wallpaper_theme_detached() {
