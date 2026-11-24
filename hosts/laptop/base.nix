@@ -159,13 +159,11 @@
     loader.systemd-boot.editor = false;
     # /tmp is on root and nothing prunes it (nix builds, chromium sockets, agent scratch).
     tmp.cleanOnBoot = true;
-    # zram swap is cheaper than dropping file cache, so favour it (>100 swappiness).
-    # No watermark boosting; wider watermarks let kswapd reclaim ahead of demand.
+    # Watermark boosting triggers bursty reclaim after fragmentation events.
     kernel.sysctl = {
-      "vm.swappiness" = 180;
+      "vm.swappiness" = 100;
       "vm.page-cluster" = 0;
       "vm.watermark_boost_factor" = 0;
-      "vm.watermark_scale_factor" = 125;
     };
     # ESP entries only shrink at the next switch; cap so /boot can't fill up.
     loader.systemd-boot.configurationLimit = 10;
@@ -364,6 +362,11 @@
   };
 
   nix.optimise.automatic = true;
+  # Same pattern as restic: a full store walk on wake otherwise competes with the desktop.
+  systemd.services.nix-optimise.serviceConfig = {
+    IOReadBandwidthMax = "/dev/mapper/cryptroot 80M";
+    MemoryHigh = "512M";
+  };
 
   # Homelab binary cache on nas-01 (niks3), through its read-only TLS front.
   # Signatures are enforced (no extra-trusted-substituters bypass); the key
