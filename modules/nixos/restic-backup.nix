@@ -134,6 +134,10 @@ in
         Nice = 19;
         IOSchedulingClass = "idle";
         CPUWeight = 20;
+        # The NVMe has no IO scheduler, so idle class is a no-op: cap reads
+        # instead, and keep the scanned files from evicting app pages.
+        IOReadBandwidthMax = "/dev/mapper/cryptroot 80M";
+        MemoryHigh = "1G";
       };
     };
   };
