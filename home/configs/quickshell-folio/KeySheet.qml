@@ -38,10 +38,6 @@ PanelWindow {
             rows: [["pointer", "It comes apart, and forms again"]]
         },
         {
-            name: "plate",
-            rows: [["drag a point", "Move where the rings come from"], ["click", "Another plate"]]
-        },
-        {
             name: "words",
             rows: [["click a line", "Go to that line of the song"]]
         }

@@ -277,6 +277,35 @@ let
   line = "#99968f";
 
   overrides = {
+    # seg6/dotfiles generateGTK: views and sidebars sink to bg_alt, chrome and
+    # dialogs sit on surface, hairline borders in surface_alt.
+    gtk = r: {
+      viewBg = r.bgDim;
+      dialogBg = r.bg1;
+      sidebarBg = r.bgDim;
+      sidebarBackdrop = r.bgDim;
+      headerbarBackdrop = r.bg1;
+      destructiveFg = r.bg0;
+      errorFg = r.bg0;
+      extraCss = ''
+        @define-color headerbar_border_color rgba(52, 51, 48, 0.80);
+        @define-color headerbar_shade_color rgba(0, 0, 0, 0.20);
+        @define-color card_shade_color rgba(0, 0, 0, 0.20);
+        @define-color shade_color rgba(0, 0, 0, 0.20);
+        @define-color scrollbar_outline_color rgba(52, 51, 48, 0.50);
+        @define-color sidebar_shade_color rgba(0, 0, 0, 0.20);
+        @define-color destructive_color ${r.red};
+        @define-color error_color ${r.red};
+        @define-color success_color ${r.green};
+        @define-color success_bg_color ${r.green};
+        @define-color success_fg_color ${r.bg0};
+        @define-color warning_color ${r.yellow};
+        @define-color warning_bg_color ${r.yellow};
+        @define-color warning_fg_color ${r.bg0};
+        @define-color borders ${r.bg2};
+        @define-color unfocused_borders ${r.bg1};
+      '';
+    };
     kitty = r: {
       selectionForeground = r.fg1;
       selectionBackground = r.bg2;
@@ -439,7 +468,6 @@ in
 
     niri = {
       animations = animations.snappy;
-      animationsOff = true;
       gaps = 12;
       layoutExtraConfig = ''
         struts {
@@ -462,6 +490,8 @@ in
       shadowDrawBehindWindow = false;
       tabIndicatorOff = true;
       windowOpacity = 1.0;
+      # Opaque windows; only the swayfx-style dim below touches unfocused ones.
+      focusOpacity = false;
       windowHighlightOff = true;
       extraConfig = ''
         window-rule {

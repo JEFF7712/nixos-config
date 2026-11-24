@@ -350,15 +350,6 @@ PanelWindow {
                 live: page.bare
             }
         }
-        Loader {
-            anchors.fill: parent
-            active: views.visible && page.view === "plate"
-            sourceComponent: Plate {
-                screen: page.screen
-                here: page.here
-                live: page.bare
-            }
-        }
     }
     Rectangle {
         visible: turner.visible

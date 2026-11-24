@@ -221,7 +221,6 @@ var commands = [
     { id: "view-orbit", verb: "Show", name: "the orbit", words: "view orbit desks bodies" },
     { id: "view-dial", verb: "Show", name: "the dial", words: "view dial day hours" },
     { id: "view-numeral", verb: "Show", name: "the numeral", words: "view numeral number" },
-    { id: "view-plate", verb: "Show", name: "the plate", words: "view plate rings" },
     { id: "view-words", verb: "Show", name: "the words", words: "view words lyrics sentence" }
 ];
 

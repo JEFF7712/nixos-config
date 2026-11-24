@@ -35,6 +35,8 @@ rec {
       secondarySidebarBg ? null,
       secondarySidebarFg ? null,
       unfocused ? null,
+      # Raw CSS appended after the palette (extra named colors, libadwaita vars).
+      extraCss ? "",
     }:
     ''
       ${if title == null then "" else "/* ${title} */"}
@@ -94,6 +96,7 @@ rec {
             @define-color theme_unfocused_selected_fg_color ${unfocused.selectedFg};
           ''
       }
+      ${extraCss}
     '';
 
   mkQt6ColorScheme =
