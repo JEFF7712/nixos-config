@@ -1,0 +1,1 @@
+../../quickshell/hass/Service.qml

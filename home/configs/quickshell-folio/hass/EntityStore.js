@@ -1,0 +1,1 @@
+../../quickshell/hass/EntityStore.js

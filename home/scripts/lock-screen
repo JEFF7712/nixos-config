@@ -40,6 +40,37 @@ PROFILE=""
 if pgrep -x hyprlock >/dev/null 2>&1; then
   exit 0
 fi
+
+# The folio profile locks with its own shell (dithered page, PAM through the
+# hyprlock service). Block while locked, as `exec hyprlock` does, so Stasis
+# and lid-close see the same lifetime. If that shell dies or restarts while
+# locked, fall through: hyprlock takes over niri's dead lock, so the screen
+# can always be unlocked.
+FOLIO_QML="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")/configs/quickshell-folio/shell.qml"
+folio_ipc() {
+  timeout 2 quickshell ipc --any-display -p "$FOLIO_QML" call "$@" 2>/dev/null || true
+}
+folio_pid() {
+  systemctl --user show -p MainPID --value folio-shell.service 2>/dev/null || true
+}
+if systemctl --user is-active --quiet folio-shell.service 2>/dev/null; then
+  folio_started=$(folio_pid)
+  folio_state=$(folio_ipc lock state)
+  if [ "$folio_state" != locked ]; then
+    folio_ipc shell lock >/dev/null
+    for _ in $(seq 1 30); do
+      folio_state=$(folio_ipc lock state)
+      [ "$folio_state" = locked ] && break
+      sleep 0.1
+    done
+  fi
+  if [ "$folio_state" = locked ]; then
+    while [ "$(folio_pid)" = "$folio_started" ] && [ "$folio_started" != 0 ]; do
+      [ "$(folio_ipc lock state)" = unlocked ] && exit 0
+      sleep "${FOLIO_LOCK_POLL:-1}"
+    done
+  fi
+fi
 PROFILE_DIR="$PROFILES_DIR/$PROFILE"
 VARIANT=$(cat "$PROFILES_DIR/active-variant" 2>/dev/null || echo "dark")
   THEME_FILE="$PROFILE_DIR/quickshell-theme.json"

@@ -84,7 +84,38 @@ if [ "${MOCK_HYPRLOCK_RUNNING:-0}" = "1" ] && [ "$1 $2" = "-x hyprlock" ]; then
 fi
 exit 1
 EOF
-chmod +x "$bin_dir/hyprlock" "$bin_dir/jq" "$bin_dir/pgrep"
+# folio-shell is "active" only when MOCK_FOLIO is set. MainPID changes after
+# MOCK_FOLIO_RESTART_AFTER lock-state polls, simulating a crash and restart.
+cat > "$bin_dir/systemctl" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"is-active --quiet folio-shell.service"*) [ -n "${MOCK_FOLIO:-}" ] ;;
+  *"show -p MainPID --value folio-shell.service"*)
+    polls=$(cat "$MOCK_FOLIO_DIR/polls" 2>/dev/null || echo 0)
+    if [ -n "${MOCK_FOLIO_RESTART_AFTER:-}" ] && [ "$polls" -ge "$MOCK_FOLIO_RESTART_AFTER" ]; then
+      echo 200
+    else
+      echo 100
+    fi
+    ;;
+  *) exit 0 ;;
+esac
+EOF
+# Lock state walks MOCK_FOLIO_STATES (space separated), repeating the last.
+cat > "$bin_dir/quickshell" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"call shell lock"*) echo lock >> "$MOCK_FOLIO_DIR/calls" ;;
+  *"call lock state"*)
+    polls=$(cat "$MOCK_FOLIO_DIR/polls" 2>/dev/null || echo 0)
+    read -r -a states <<< "$MOCK_FOLIO_STATES"
+    index=$((polls < ${#states[@]} ? polls : ${#states[@]} - 1))
+    echo $((polls + 1)) > "$MOCK_FOLIO_DIR/polls"
+    echo "${states[$index]}"
+    ;;
+esac
+EOF
+chmod +x "$bin_dir/hyprlock" "$bin_dir/jq" "$bin_dir/pgrep" "$bin_dir/systemctl" "$bin_dir/quickshell"
 
 real_jq=$(command -v jq)
 config_copy="$tmpdir/hyprlock.conf"
@@ -153,5 +184,30 @@ HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
   "$REPO_ROOT/home/scripts/lock-screen"
 
 assert_eq "" "$(cat "$config_copy.spawned" 2>/dev/null || true)" "second hyprlock is not spawned while one runs"
+
+run_folio() {
+  local dir="$tmpdir/folio-$1"
+  rm -rf "$dir"
+  mkdir -p "$dir"
+  rm -f "$config_copy.spawned"
+  HOME="$home" XDG_CACHE_HOME="$cache_dir" PROFILES_DIR="$profiles" \
+    HYPRLOCK_CONFIG_COPY="$config_copy" REAL_JQ="$real_jq" PATH="$bin_dir:$PATH" \
+    MOCK_FOLIO=1 MOCK_FOLIO_DIR="$dir" MOCK_FOLIO_STATES="$2" \
+    MOCK_FOLIO_RESTART_AFTER="${3:-}" FOLIO_LOCK_POLL=0 \
+    "$REPO_ROOT/home/scripts/lock-screen"
+}
+
+run_folio unlocks "unlocked pending locked locked unlocked"
+assert_eq "lock" "$(cat "$tmpdir/folio-unlocks/calls")" "folio lock asks the shell to lock once"
+assert_eq "no" "$([ -e "$config_copy.spawned" ] && echo yes || echo no)" "folio lock does not spawn hyprlock"
+
+run_folio already "locked locked unlocked"
+assert_eq "no" "$([ -e "$tmpdir/folio-already/calls" ] && echo yes || echo no)" "an existing folio lock is not re-requested"
+
+run_folio never "unlocked"
+assert_eq "spawned" "$(cat "$config_copy.spawned")" "hyprlock takes over when folio never confirms the lock"
+
+run_folio crashed "unlocked locked locked locked" 3
+assert_eq "spawned" "$(cat "$config_copy.spawned")" "hyprlock takes over when folio restarts while locked"
 
 printf 'lock-screen checks passed\n'

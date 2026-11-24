@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "services" as Services
+import "hass" as Hass
 
 // The repo bar's system services (home/configs/quickshell/services, linked in),
 // so folio's words read the same state as the other profiles' bar.
@@ -15,6 +16,7 @@ Singleton {
     readonly property alias network: network
     readonly property alias bluetooth: bluetooth
     readonly property alias system: system
+    readonly property alias home: home
 
     function toggle(name: string, screenName: string): void {
         const same = open === name && openScreen === screenName;
@@ -49,6 +51,9 @@ Singleton {
     Services.BluetoothService {
         id: bluetooth
         detailedMonitoring: machine.open === "bluetooth"
+    }
+    Hass.Service {
+        id: home
     }
     Services.SystemService {
         id: system

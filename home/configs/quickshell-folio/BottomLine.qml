@@ -190,7 +190,7 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             window: line
             screen: line.screen
-            items: ["brightness", "network", "bluetooth", "system"]
+            items: ["brightness", "network", "bluetooth", "home", "system"]
             above: true
         }
         Small {

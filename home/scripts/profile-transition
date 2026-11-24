@@ -133,6 +133,19 @@ apply_system_preferences() {
   gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" || failed=1
   gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" || failed=1
   gsettings set org.gnome.desktop.interface color-scheme "$color_scheme" || failed=1
+  # GTK on Wayland reads fonts from gsettings, not the settings.ini copies.
+  local fonts ui_font ui_size mono_font mono_size
+  fonts=$(profile_manifest_transition_json "$TARGET" fonts)
+  IFS=$'\t' read -r ui_font ui_size mono_font mono_size < <(
+    jq -r '[.ui.family, .ui.size, .mono.family, .mono.size] | @tsv' <<< "$fonts"
+  )
+  if [ -n "$ui_font" ] && [ "$ui_font" != null ]; then
+    gsettings set org.gnome.desktop.interface font-name "$ui_font $ui_size" || failed=1
+    gsettings set org.gnome.desktop.interface document-font-name "$ui_font $ui_size" || failed=1
+  fi
+  if [ -n "$mono_font" ] && [ "$mono_font" != null ]; then
+    gsettings set org.gnome.desktop.interface monospace-font-name "$mono_font $mono_size" || failed=1
+  fi
   return "$failed"
 }
 

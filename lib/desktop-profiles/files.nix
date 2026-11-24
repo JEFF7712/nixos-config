@@ -307,7 +307,8 @@ let
         ".config/desktop-profiles/${name}/gtk-3.0.css".text = orEmpty profile.colors.gtk3;
         ".config/desktop-profiles/${name}/gtk-4.0.css".text = orEmpty profile.colors.gtk4;
         ".config/desktop-profiles/${name}/qt6ct.conf".text = orEmpty profile.colors.qt6;
-        ".config/desktop-profiles/${name}/kitty-colors.conf".text = orEmpty profile.colors.kitty;
+        ".config/desktop-profiles/${name}/kitty-colors.conf".text =
+          orEmpty profile.colors.kitty + profile.appearance.kittyExtraConfig;
         ".config/desktop-profiles/${name}/fish-theme.fish".text = orEmpty profile.colors.fish;
         ".config/desktop-profiles/${name}/starship.toml".text = ''
           scan_timeout = 100
@@ -329,7 +330,8 @@ let
         ".config/desktop-profiles/${name}/gtk-3.0-light.css".text = orEmpty profile.colorsLight.gtk3;
         ".config/desktop-profiles/${name}/gtk-4.0-light.css".text = orEmpty profile.colorsLight.gtk4;
         ".config/desktop-profiles/${name}/qt6ct-light.conf".text = orEmpty profile.colorsLight.qt6;
-        ".config/desktop-profiles/${name}/kitty-colors-light.conf".text = orEmpty profile.colorsLight.kitty;
+        ".config/desktop-profiles/${name}/kitty-colors-light.conf".text =
+          orEmpty profile.colorsLight.kitty + profile.appearance.kittyExtraConfig;
         ".config/desktop-profiles/${name}/fish-theme-light.fish".text = orEmpty profile.colorsLight.fish;
         ".config/desktop-profiles/${name}/starship-light.toml".text = ''
           scan_timeout = 100
