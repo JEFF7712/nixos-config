@@ -349,6 +349,9 @@ in
     place = "Madison";
     latitude = "43.07";
     longitude = "-89.40";
+    # Live place/coordinates from Home Assistant (the phone's GPS; the laptop has none).
+    tracker = "device_tracker.rupan_phone";
+    geocoded = "sensor.rupan_phone_geocoded_location";
   };
 
   desktopProfiles.profiles.folio = static.mkStaticProfile {
