@@ -179,6 +179,9 @@ case " $* " in
     fi
     exit 3
     ;;
+  *" is-active --quiet folio-shell.service "*)
+    exit 3
+    ;;
 esac
 EOF
 

@@ -32,6 +32,13 @@ let
         { theme = spicePkgs.themes.catppuccin; }
         { theme = spicePkgs.themes.sleek; }
         { theme = spicePkgs.themes.dribbblish; }
+        # Port of seg6/dotfiles' Folio theme (the folio desktop profile).
+        {
+          theme = {
+            name = "Folio";
+            src = ../../home/configs/spicetify/Folio;
+          };
+        }
         # CDN themes: set `assets` + `rewrite` (URL prefix to strip) + optional `patch`.
       ];
   spiceExtensions = with spicePkgs.extensions; [
@@ -128,6 +135,8 @@ in
 
     xdg.configFile."vesktop/themes/sharp.theme.css".source =
       config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vesktop/themes/sharp.theme.css";
+    xdg.configFile."vesktop/themes/folio.theme.css".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.repoPath}/home/configs/vesktop/themes/folio.theme.css";
 
     home.file.".mozilla/firefox/09longn9.default-release/user.js".text = ''
       user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);

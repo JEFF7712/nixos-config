@@ -168,17 +168,17 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "bash" "-c" "qs -p \"$HOME/nixos/home/configs/quickshell/shell.qml\" ipc call profile toggle"; }
-    Mod+Space hotkey-overlay-title="App Launcher" { spawn "vicinae" "toggle"; }
+    Mod+P hotkey-overlay-title="Profile Switcher" { spawn "folio-menu" "profiles"; }
+    Mod+Space hotkey-overlay-title="App Launcher" { spawn "folio-menu" "launcher"; }
     Mod+Shift+L hotkey-overlay-title="Lock the Screen" { spawn "lock-screen"; }
     Mod+F { spawn "firefox"; }
-    Mod+W { spawn "waypaper"; }
+    Mod+W { spawn-sh "systemctl --user is-active --quiet folio-shell.service || waypaper"; }
     Mod+S { spawn "spotify"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+C { spawn "code"; }
     Mod+B { spawn "toggle-bar"; }
     Mod+G hotkey-overlay-title="Toggle Focus/Performance Mode" { spawn "toggle-focus"; }
-    Mod+Alt+V { spawn "vicinae" "vicinae://extensions/vicinae/clipboard/history"; }
+    Mod+Alt+V { spawn "folio-menu" "clipboard"; }
     Mod+R { spawn "random-wallpaper"; }
     Mod+O {spawn "obsidian"; }
     Mod+D { spawn "vesktop"; }

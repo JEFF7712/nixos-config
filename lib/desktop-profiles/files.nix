@@ -29,11 +29,12 @@ let
     );
 
   renderNiriAnimations =
-    animations:
+    off: animations:
     lib.concatStringsSep "\n" (
       [
         "animations {"
       ]
+      ++ lib.optional off "    off"
       ++ map (name: renderNiriAnimation name animations.${name}) (builtins.attrNames animations)
       ++ [
         "}"
@@ -53,7 +54,7 @@ let
               off
           }''
       else
-        renderNiriAnimations profile.niri.animations
+        renderNiriAnimations profile.niri.animationsOff profile.niri.animations
     }
 
     layout {
@@ -100,6 +101,8 @@ let
             inactive-color "${profile.niri.tabIndicatorInactiveColor}"
             urgent-color "${profile.niri.urgentColor}"
         }
+
+        ${profile.niri.layoutExtraConfig}
     }
 
     window-rule {

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Drive the folio shell over IPC; falls back to vicinae when folio is not running.
+set -euo pipefail
+
+SHELL_QML="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")/configs/quickshell-folio/shell.qml"
+action="${1:-launcher}"
+
+if ! systemctl --user is-active --quiet folio-shell.service; then
+  case "$action" in
+    launcher) exec vicinae toggle ;;
+    clipboard) exec vicinae vicinae://extensions/vicinae/clipboard/history ;;
+    profiles)
+      exec quickshell ipc -p "$(dirname "$(dirname "$SHELL_QML")")/quickshell/shell.qml" call profile toggle
+      ;;
+    *) exit 0 ;;
+  esac
+fi
+
+case "$action" in
+  launcher | clipboard | profiles | close | keys | lock | unlock)
+    exec quickshell ipc -p "$SHELL_QML" call shell "$action"
+    ;;
+  view)
+    exec quickshell ipc -p "$SHELL_QML" call shell view "${2:-next}"
+    ;;
+  *)
+    echo "usage: folio-menu [launcher|clipboard|profiles|keys|close|view [next|prev|NAME]]" >&2
+    exit 2
+    ;;
+esac

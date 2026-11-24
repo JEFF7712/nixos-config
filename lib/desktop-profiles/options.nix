@@ -151,9 +151,10 @@ in
       bar = lib.mkOption {
         type = lib.types.enum [
           "quickshell"
+          "folio"
         ];
         default = "quickshell";
-        description = "Which bar to run for this profile.";
+        description = "Which bar to run for this profile: the repo's Quickshell bar, or the vendored folio shell.";
       };
 
       wallpaperTheming = lib.mkOption {
@@ -467,6 +468,16 @@ in
         windowHighlightOff = lib.mkOption {
           type = lib.types.bool;
           default = false;
+        };
+        animationsOff = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Disable every niri animation, overriding `animations`.";
+        };
+        layoutExtraConfig = lib.mkOption {
+          type = lib.types.lines;
+          default = "";
+          description = "KDL appended inside the generated `layout` block (niri rejects a second one in the same file).";
         };
         animations = lib.mkOption {
           type = lib.types.addCheck (lib.types.attrsOf animationType) (

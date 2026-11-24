@@ -73,10 +73,16 @@ for script in "$REPO_ROOT/home/scripts/profile-transition" "$REPO_ROOT/home/scri
     exit 1
   fi
 done
-rg -q 'systemctl --user start quickshell-bar\.service' "$REPO_ROOT/home/scripts/profile-transition" \
-  || { printf 'FAIL: profile transition does not start the Quickshell service\n' >&2; exit 1; }
-rg -q 'systemctl --user stop quickshell-bar\.service' "$REPO_ROOT/home/scripts/toggle-bar" \
-  || { printf 'FAIL: toggle-bar does not stop the Quickshell service\n' >&2; exit 1; }
+for unit in quickshell-bar folio-shell; do
+  rg -q "echo $unit\\.service" "$REPO_ROOT/home/scripts/profile-transition" \
+    || { printf 'FAIL: profile transition does not map a bar to %s.service\n' "$unit" >&2; exit 1; }
+  rg -q "$unit\\.service" "$REPO_ROOT/home/scripts/toggle-bar" \
+    || { printf 'FAIL: toggle-bar does not handle %s.service\n' "$unit" >&2; exit 1; }
+done
+rg -q 'systemctl --user start "\$unit"' "$REPO_ROOT/home/scripts/profile-transition" \
+  || { printf 'FAIL: profile transition does not start the bar service\n' >&2; exit 1; }
+rg -q 'systemctl --user stop "\$unit"' "$REPO_ROOT/home/scripts/toggle-bar" \
+  || { printf 'FAIL: toggle-bar does not stop the bar service\n' >&2; exit 1; }
 
 # The publisher accepts a transition's inherited lock descriptor, so synchronous
 # post-commit adapters can publish without reacquiring their parent's flock.
