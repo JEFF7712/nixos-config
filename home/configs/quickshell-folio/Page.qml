@@ -34,7 +34,8 @@ PanelWindow {
     }
     property int stamp: 0
     readonly property string view: wind.GraphicsInfo.api === GraphicsInfo.Software ? "words" : ShellState.view
-    readonly property bool worded: bare && view === "words"
+    // Views stay up behind windows; `bare` only decides whether they animate.
+    readonly property bool worded: view === "words"
     readonly property bool sung: Lyrics.lines.length > 0 && Media.player !== null
     anchors {
         left: true
@@ -314,7 +315,7 @@ PanelWindow {
     Item {
         id: views
         anchors.fill: picture
-        opacity: page.bare && page.view !== "words" ? 1 : 0
+        opacity: page.view !== "words" ? 1 : 0
         visible: opacity > 0
         Behavior on opacity {
             NumberAnimation {
