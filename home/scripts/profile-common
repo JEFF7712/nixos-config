@@ -914,23 +914,6 @@ write_hyprlock_font_file() {
 EOF
 }
 
-apply_profile_fonts() {
-  local config_root="$1"
-  local profile="$2" fonts
-
-  local ui_font ui_size mono_font mono_size
-  fonts=$(profile_manifest_transition_json "$profile" fonts)
-  IFS=$'\t' read -r ui_font ui_size mono_font mono_size < <(
-    jq -r '[.ui.family, .ui.size, .mono.family, .mono.size] | @tsv' <<< "$fonts"
-  )
-
-  gsettings set org.gnome.desktop.interface font-name "$ui_font $ui_size" 2>/dev/null || true
-  gsettings set org.gnome.desktop.interface document-font-name "$ui_font $ui_size" 2>/dev/null || true
-  gsettings set org.gnome.desktop.interface monospace-font-name "$mono_font $mono_size" 2>/dev/null || true
-
-  apply_profile_font_files "$config_root" "$profile"
-}
-
 apply_profile_font_files() {
   local config_root="$1"
   local profile="$2" fonts

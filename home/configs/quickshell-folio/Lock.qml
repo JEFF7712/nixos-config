@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
 import "Logic.js" as Logic
@@ -35,6 +36,13 @@ Scope {
         onError: {
             lock.typed = "";
             lock.verdict = "The password could not be checked.";
+        }
+    }
+    // lock-screen waits on this: "locked" only once niri confirms the lock.
+    IpcHandler {
+        target: "lock"
+        function state(): string {
+            return session.secure ? "locked" : (ShellState.locked ? "pending" : "unlocked");
         }
     }
     WlSessionLock {

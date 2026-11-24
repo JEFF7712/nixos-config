@@ -328,6 +328,11 @@ in
           type = lib.types.float;
           default = 1.0;
         };
+        kittyExtraConfig = lib.mkOption {
+          type = lib.types.lines;
+          default = "";
+          description = "kitty.conf lines (padding, tab bar, ...) shipped in the profile's colors.conf, so they follow profile switches.";
+        };
         kittyCursorTrail = lib.mkOption {
           type = kittyCursorTrailType;
           default = defaultKittyCursorTrail;

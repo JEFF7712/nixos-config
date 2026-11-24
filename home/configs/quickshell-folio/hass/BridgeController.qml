@@ -1,0 +1,1 @@
+../../quickshell/hass/BridgeController.qml

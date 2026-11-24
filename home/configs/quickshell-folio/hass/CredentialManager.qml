@@ -1,0 +1,1 @@
+../../quickshell/hass/CredentialManager.qml

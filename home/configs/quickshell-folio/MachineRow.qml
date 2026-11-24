@@ -11,7 +11,7 @@ Row {
     required property var screen
     readonly property real u: Theme.unit(screen)
     property real sheetX: 0
-    property var items: ["brightness", "network", "bluetooth", "power", "system"]
+    property var items: ["brightness", "network", "bluetooth", "home", "power", "system"]
     property bool above: false
     function has(name: string): bool {
         return items.indexOf(name) !== -1;
@@ -125,6 +125,20 @@ Row {
                 bt.setEnabled(!bt.enabled);
             else
                 row.show("bluetooth", btWord);
+        }
+    }
+    Word {
+        id: homeWord
+        readonly property var hass: Machine.home
+        visible: row.has("home") && hass.configured
+        link: true
+        lit: hass.connected || row.shown("home")
+        text: hass.connected ? "home" : "home " + (hass.phase === "idle" ? "off" : hass.phase)
+        onPressed: event => {
+            if (event.button === Qt.RightButton)
+                hass.refresh();
+            else
+                row.show("home", homeWord);
         }
     }
     Word {
@@ -323,6 +337,65 @@ Row {
                         screen: row.screen
                         lit: false
                         text: device.batteryPercent >= 0 ? device.batteryPercent + "%" : ""
+                    }
+                }
+            }
+        }
+    }
+
+    Panel {
+        name: "home"
+        Column {
+            spacing: 12 * row.u
+            Row {
+                spacing: 24 * row.u
+                Small {
+                    screen: row.screen
+                    lit: Machine.home.connected
+                    text: Machine.home.connected ? "home assistant" : "home assistant · " + Machine.home.phase
+                }
+                Small {
+                    screen: row.screen
+                    link: true
+                    lit: false
+                    text: Machine.home.connected ? "refresh" : "retry"
+                    onPressed: Machine.home.connected ? Machine.home.refresh() : Machine.home.retryConnection()
+                }
+            }
+            Small {
+                visible: Machine.home.lastError.length > 0 && !Machine.home.connected
+                screen: row.screen
+                color: Theme.signal
+                width: 420 * row.u
+                wrapMode: Text.Wrap
+                text: Machine.home.lastError
+            }
+            Repeater {
+                model: {
+                    Machine.home.stateRevision;
+                    Machine.home.panelOrder;
+                    return Machine.home.favoriteSummaries();
+                }
+                Row {
+                    id: thing
+                    required property var modelData
+                    readonly property bool on: !modelData.roomReading && Machine.home.displayIsOn(modelData.entityId)
+                    spacing: 18 * row.u
+                    Pick {
+                        width: 300 * row.u
+                        elide: Text.ElideRight
+                        chosen: thing.on
+                        opacity: thing.modelData.available ? 1 : 0.5
+                        text: thing.modelData.name
+                        onPressed: {
+                            if (!thing.modelData.roomReading && thing.modelData.available)
+                                Machine.home.toggleEntity(thing.modelData.entityId);
+                        }
+                    }
+                    Small {
+                        screen: row.screen
+                        lit: false
+                        text: String(thing.modelData.state || "").toLowerCase()
                     }
                 }
             }

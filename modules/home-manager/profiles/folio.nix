@@ -312,7 +312,35 @@ in
     pkgs.departure-mono
     pkgs.nerd-fonts.fantasque-sans-mono
     (pkgs.google-fonts.override { fonts = [ "Newsreader" ]; })
+    pkgs.seg6-ws
   ];
+
+  # The launcher's "Resume" rows are ws's recent projects (~/.local/state/ws).
+  xdg.configFile."ws/config.toml".source = (pkgs.formats.toml { }).generate "ws-config.toml" {
+    workspace = {
+      root = "~/projects";
+      max_depth = 3;
+      ignore = [
+        "node_modules"
+        "target"
+        "vendor"
+        ".venv"
+        "result"
+      ];
+    };
+    session.windows = [
+      {
+        index = 1;
+        name = "editor";
+        command = "nvim .";
+      }
+      {
+        index = 9;
+        name = "files";
+        command = "yazi";
+      }
+    ];
+  };
 
   xdg.configFile."folio/colors.json".text = builtins.toJSON shellColors;
   xdg.configFile."zed/themes/folio.json".text = builtins.toJSON zedTheme;
@@ -362,12 +390,12 @@ in
 
     fonts = {
       ui = {
-        family = "Inter";
-        size = 11;
+        family = "Newsreader";
+        size = 12;
       };
       mono = {
         family = "FantasqueSansM Nerd Font";
-        size = 15;
+        size = 16;
       };
     };
 
@@ -381,6 +409,29 @@ in
         blinkInterval = "0";
       };
       motion = motionPresets.snappy;
+      # seg6/dotfiles kitty: roomy padding, borderless text tab bar on top.
+      kittyExtraConfig = ''
+
+        window_padding_width 18 20 10 20
+        hide_window_decorations yes
+        cursor_shape block
+        cursor_shape_unfocused hollow
+        tab_bar_style separator
+        tab_separator "   "
+        tab_bar_min_tabs 2
+        tab_bar_edge top
+        tab_bar_align left
+        tab_bar_margin_width 20
+        tab_bar_margin_height 12 2
+        tab_bar_background none
+        tab_bar_margin_color none
+        active_tab_font_style normal
+        inactive_tab_font_style normal
+        active_tab_foreground #e6e1d5
+        active_tab_background #0d0d0e
+        inactive_tab_foreground #5f5c55
+        inactive_tab_background #0d0d0e
+      '';
     };
 
     niri = {
@@ -438,6 +489,7 @@ in
             Mod+Grave hotkey-overlay-title="Folio: next desktop view" { spawn "folio-menu" "view" "next"; }
             Mod+Shift+Grave { spawn "folio-menu" "view" "prev"; }
             Mod+Slash hotkey-overlay-title="Folio: key sheet" { spawn "folio-menu" "keys"; }
+            Mod+Shift+Return hotkey-overlay-title="Folio: project picker (ws)" { spawn "kitty" "ws"; }
         }
       '';
     };
