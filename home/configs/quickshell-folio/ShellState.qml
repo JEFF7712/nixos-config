@@ -19,7 +19,7 @@ QtObject {
         menuX = x;
         menuItem = item;
     }
-    readonly property var views: ["orbit", "dial", "numeral", "plate", "words"]
+    readonly property var views: ["orbit", "dial", "numeral", "words"]
     property string view: "orbit"
     function show(name: string): void {
         let at = views.indexOf(view);
