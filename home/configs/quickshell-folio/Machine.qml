@@ -18,10 +18,29 @@ Singleton {
     readonly property alias system: system
     readonly property alias home: home
 
+    // Switching panels closes the open one first: a grabbing popup can't map
+    // while its sibling still holds the grab, so a direct swap flickers.
+    property string pending: ""
+    property string pendingScreen: ""
     function toggle(name: string, screenName: string): void {
         const same = open === name && openScreen === screenName;
-        openScreen = screenName;
-        open = same ? "" : name;
+        if (same || open === "") {
+            openScreen = screenName;
+            open = same ? "" : name;
+            return;
+        }
+        pending = name;
+        pendingScreen = screenName;
+        open = "";
+        swap.restart();
+    }
+    property Timer swap: Timer {
+        interval: 60
+        onTriggered: {
+            machine.openScreen = machine.pendingScreen;
+            machine.open = machine.pending;
+            machine.pending = "";
+        }
     }
 
     // Survive the folio shell being stopped mid-command (profile switches).
