@@ -121,6 +121,8 @@
     after = [ "polkit.service" ];
     restartIfChanged = false;
   };
+  # Hourly timer: Persistent only makes it fire (and start fwupd) on every wake.
+  systemd.timers.fwupd-refresh.timerConfig.Persistent = false;
   services.smartd = {
     enable = true;
     autodetect = true;
@@ -361,12 +363,9 @@
     };
   };
 
-  nix.optimise.automatic = true;
-  # Same pattern as restic: a full store walk on wake otherwise competes with the desktop.
-  systemd.services.nix-optimise.serviceConfig = {
-    IOReadBandwidthMax = "/dev/mapper/cryptroot 80M";
-    MemoryHigh = "512M";
-  };
+  # Dedupe as paths land instead of a daily full-store walk: the persistent
+  # 03:45 timer always missed while asleep and ran on every wake.
+  nix.settings.auto-optimise-store = true;
 
   # Homelab binary cache on nas-01 (niks3), through its read-only TLS front.
   # Signatures are enforced (no extra-trusted-substituters bypass); the key
