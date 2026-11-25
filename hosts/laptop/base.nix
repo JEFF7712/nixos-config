@@ -121,8 +121,16 @@
     after = [ "polkit.service" ];
     restartIfChanged = false;
   };
-  # Hourly timer: Persistent only makes it fire (and start fwupd) on every wake.
-  systemd.timers.fwupd-refresh.timerConfig.Persistent = false;
+  # Upstream refreshes hourly and catches up on every wake; metadata changes a
+  # few times a month and updates are applied by hand anyway.
+  systemd.timers.fwupd-refresh.timerConfig = {
+    # Drop-in: the empty entry clears the upstream hourly OnCalendar.
+    OnCalendar = [
+      ""
+      "weekly"
+    ];
+    Persistent = false;
+  };
   services.smartd = {
     enable = true;
     autodetect = true;
